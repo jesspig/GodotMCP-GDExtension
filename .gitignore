@@ -1,0 +1,85 @@
+# ==============================
+# Rust / Cargo
+# ==============================
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# ==============================
+# Godot
+# ==============================
+# Godot 4+ specific ignores
+.godot/
+.import/
+export_presets.cfg
+
+# Imported audio files
+*.ogg.import
+*.wav.import
+*.mp3.import
+
+# Imported textures
+*.png.import
+*.jpg.import
+*.jpeg.import
+*.bmp.import
+*.tga.import
+*.svg.import
+*.webp.import
+
+# Imported 3D models
+*.dae.import
+*.fbx.import
+*.glb.import
+*.gltf.import
+*.obj.import
+*.escn.import
+
+# Imported translation files
+*.csv.import
+*.po.import
+
+# Imported video files
+*.mp4.import
+*.webm.import
+
+# Imported files (general)
+*.md.import
+*.json.import
+*.txt.import
+
+# ==============================
+# IDE / Editor
+# ==============================
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.iml
+
+# ==============================
+# Build artifacts
+# ==============================
+# GDExtension compiled libraries
+addons/godot_mcp/bin/*
+!addons/godot_mcp/bin/.gitkeep
+*.dll
+*.so
+*.dylib
+
+# Packaged zip files
+*.zip
+!example-*.zip
+
+# ==============================
+# Temporary files
+# ==============================
+*.tmp
+*.log
+*.pid
+*.cache
+*.local/
