@@ -1,9 +1,13 @@
 use std::sync::Arc;
-use tokio::sync::Notify;
+use tokio::sync::{Notify, broadcast};
 
-use godot::classes::{EditorPlugin, Engine, IEditorPlugin};
+use godot::classes::editor_plugin::DockSlot;
+use godot::classes::{EditorPlugin, Engine, IEditorPlugin, VBoxContainer};
 use godot::prelude::*;
 
+use crate::commands;
+use crate::dispatcher::MainThreadDispatcher;
+use crate::dock;
 use crate::ipc::plugin_state::PluginState;
 use crate::ipc::ws_server::IpcWebSocketServer;
 
@@ -14,6 +18,9 @@ pub struct McpEditorPlugin {
     base: Base<EditorPlugin>,
     runtime: Option<tokio::runtime::Runtime>,
     shutdown: Option<Arc<Notify>>,
+    dispatcher: Option<MainThreadDispatcher>,
+    broadcast_tx: Option<broadcast::Sender<String>>,
+    main_dock: Option<Gd<VBoxContainer>>,
 }
 
 #[godot_api]
@@ -23,6 +30,9 @@ impl IEditorPlugin for McpEditorPlugin {
             base,
             runtime: None,
             shutdown: None,
+            dispatcher: None,
+            broadcast_tx: None,
+            main_dock: None,
         }
     }
 
@@ -49,10 +59,17 @@ impl IEditorPlugin for McpEditorPlugin {
             plugin_version,
         });
 
+        let dispatcher = MainThreadDispatcher::new();
+        self.dispatcher = Some(dispatcher.clone());
+
         let shutdown = Arc::new(Notify::new());
         self.shutdown = Some(shutdown.clone());
 
-        let server = IpcWebSocketServer::new(9500, state, shutdown);
+        let registry = commands::create_registry();
+
+        let server = IpcWebSocketServer::new(9500, state, shutdown, dispatcher, registry);
+        self.broadcast_tx = Some(server.broadcast_tx());
+
         runtime.spawn(async move {
             let mut server = server;
             match server.run().await {
@@ -62,11 +79,30 @@ impl IEditorPlugin for McpEditorPlugin {
         });
 
         self.runtime = Some(runtime);
+
+        if let Some(ref tx) = self.broadcast_tx {
+            let dock = dock::main_dock::create_dock(tx.clone());
+            self.base_mut()
+                .add_control_to_dock(DockSlot::RIGHT_UL, &dock);
+            self.main_dock = Some(dock);
+        }
+
         godot_print!("[Godot MCP] Plugin loaded!");
+    }
+
+    fn process(&mut self, _delta: f64) {
+        if let Some(ref dispatcher) = self.dispatcher {
+            dispatcher.process_pending();
+        }
     }
 
     fn exit_tree(&mut self) {
         godot_print!("[Godot MCP] Plugin exiting tree...");
+
+        if let Some(dock) = self.main_dock.take() {
+            self.base_mut().remove_control_from_docks(&dock);
+            dock.free();
+        }
 
         if let Some(shutdown) = self.shutdown.take() {
             shutdown.notify_one();
@@ -74,6 +110,7 @@ impl IEditorPlugin for McpEditorPlugin {
             std::thread::sleep(std::time::Duration::from_millis(200));
         }
 
+        self.dispatcher = None;
         self.runtime.take();
 
         godot_print!("[Godot MCP] Plugin unloaded!");
@@ -88,5 +125,19 @@ impl McpEditorPlugin {
         let minor = version_dict.get("minor").unwrap().to::<i64>();
         let patch = version_dict.get("patch").unwrap().to::<i64>();
         format!("{}.{}.{}", major, minor, patch)
+    }
+
+    #[allow(dead_code)]
+    pub fn broadcast_tool_list_updated(&self, tools: serde_json::Value) {
+        if let Some(ref tx) = self.broadcast_tx {
+            let notification = godot_mcp_core::protocol::IpcNotification {
+                msg_type: "notification".into(),
+                event: "tool_list_updated".into(),
+                data: tools,
+            };
+            if let Ok(json) = serde_json::to_string(&notification) {
+                let _ = tx.send(json);
+            }
+        }
     }
 }

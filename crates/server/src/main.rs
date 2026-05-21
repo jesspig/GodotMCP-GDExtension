@@ -3,6 +3,7 @@ use rmcp::ServiceExt;
 
 mod bridge;
 mod handler;
+mod tool_registry;
 
 #[derive(Parser, Debug)]
 #[command(name = "godot-mcp-server")]

@@ -1,6 +1,9 @@
 use godot::init::InitLevel;
 use godot::prelude::*;
 
+pub mod commands;
+pub mod dispatcher;
+mod dock;
 mod editor_plugin;
 mod ipc;
 

@@ -7,6 +7,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::bridge::GodotBridge;
+use crate::tool_registry::ToolRegistry;
 
 const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -14,6 +15,7 @@ const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub struct GodotMcpHandler {
     godot_port: u16,
     bridge: Arc<Mutex<Option<Arc<GodotBridge>>>>,
+    registry: ToolRegistry,
 }
 
 impl GodotMcpHandler {
@@ -21,23 +23,24 @@ impl GodotMcpHandler {
         Self {
             godot_port,
             bridge: Arc::new(Mutex::new(None)),
+            registry: ToolRegistry::new(),
         }
     }
 
-    fn empty_schema() -> Arc<serde_json::Map<String, serde_json::Value>> {
-        let schema: serde_json::Map<String, serde_json::Value> = serde_json::from_value(json!({
-            "type": "object",
-            "properties": {},
-            "required": []
-        }))
-        .unwrap();
-        Arc::new(schema)
+    #[allow(dead_code)]
+    pub fn registry(&self) -> &ToolRegistry {
+        &self.registry
     }
 
     async fn ensure_bridge(&self) -> Option<Arc<GodotBridge>> {
         let mut guard = self.bridge.lock().await;
         if guard.is_none() {
-            match GodotBridge::connect(self.godot_port).await {
+            match GodotBridge::connect_with_handler(
+                self.godot_port,
+                Some(Arc::new(self.clone())),
+            )
+            .await
+            {
                 Ok(bridge) => {
                     eprintln!(
                         "[MCP Server] Connected to Godot on port {}",
@@ -70,6 +73,13 @@ impl GodotMcpHandler {
     }
 
     pub async fn handle_tool_call(&self, tool_name: &str) -> Result<String, String> {
+        if !self.registry.has_tool(tool_name) {
+            return Err(format!("Unknown tool: {}", tool_name));
+        }
+        if !self.registry.is_tool_enabled(tool_name) {
+            return Err(format!("Tool '{}' is disabled", tool_name));
+        }
+
         match tool_name {
             "ping" => Ok(self.bridge_text("ping", "Godot 编辑器未连接").await),
             "get_engine_version" => Ok(self
@@ -83,14 +93,15 @@ impl GodotMcpHandler {
         }
     }
 
-    #[cfg(test)]
-    pub fn tool_names() -> &'static [&'static str] {
-        &[
-            "ping",
-            "get_engine_version",
-            "get_plugin_version",
-            "get_server_version",
-        ]
+    #[allow(dead_code)]
+    pub fn update_tools(&self, update: &godot_mcp_core::tool_manifest::ToolListUpdate) {
+        self.registry.update_from_notification(update);
+    }
+
+    fn schema_from_value(
+        value: &serde_json::Value,
+    ) -> Arc<serde_json::Map<String, serde_json::Value>> {
+        Arc::new(serde_json::from_value(value.clone()).unwrap_or_default())
     }
 }
 
@@ -111,29 +122,18 @@ impl ServerHandler for GodotMcpHandler {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
+        let tools: Vec<Tool> = self
+            .registry
+            .get_enabled_tools()
+            .into_iter()
+            .map(|info| {
+                let schema = Self::schema_from_value(&info.input_schema);
+                Tool::new(info.name, info.description, schema)
+            })
+            .collect();
+
         Ok(ListToolsResult {
-            tools: vec![
-                Tool::new(
-                    "ping",
-                    "检测与 Godot 编辑器的连接状态",
-                    Self::empty_schema(),
-                ),
-                Tool::new(
-                    "get_engine_version",
-                    "获取 Godot 引擎版本号",
-                    Self::empty_schema(),
-                ),
-                Tool::new(
-                    "get_plugin_version",
-                    "获取 Godot MCP 插件版本号",
-                    Self::empty_schema(),
-                ),
-                Tool::new(
-                    "get_server_version",
-                    "获取 godot-mcp-server 版本号",
-                    Self::empty_schema(),
-                ),
-            ],
+            tools,
             next_cursor: None,
             meta: None,
         })
@@ -154,6 +154,7 @@ impl ServerHandler for GodotMcpHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use godot_mcp_core::tool_manifest::{ToolListUpdate, ToolState};
 
     #[test]
     fn test_get_info() {
@@ -167,13 +168,18 @@ mod tests {
     }
 
     #[test]
-    fn test_tool_names_contains_all_tools() {
-        let names = GodotMcpHandler::tool_names();
-        assert_eq!(names.len(), 4);
-        assert!(names.contains(&"ping"));
-        assert!(names.contains(&"get_engine_version"));
-        assert!(names.contains(&"get_plugin_version"));
-        assert!(names.contains(&"get_server_version"));
+    fn test_registry_defaults() {
+        let handler = GodotMcpHandler::new(9500);
+        let (enabled, total) = handler.registry().tool_count();
+        assert_eq!(total, 4);
+        assert_eq!(enabled, 4);
+    }
+
+    #[test]
+    fn test_registry_disable() {
+        let handler = GodotMcpHandler::new(9500);
+        handler.registry().set_tool_enabled("ping", false);
+        assert!(!handler.registry().is_tool_enabled("ping"));
     }
 
     #[tokio::test]
@@ -214,5 +220,27 @@ mod tests {
         let result = handler.handle_tool_call("nonexistent").await;
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "Unknown tool: nonexistent");
+    }
+
+    #[tokio::test]
+    async fn test_disabled_tool() {
+        let handler = GodotMcpHandler::new(9999);
+        handler.registry().set_tool_enabled("ping", false);
+        let result = handler.handle_tool_call("ping").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("disabled"));
+    }
+
+    #[test]
+    fn test_update_tools() {
+        let handler = GodotMcpHandler::new(9500);
+        let update = ToolListUpdate {
+            tools: vec![ToolState {
+                name: "ping".into(),
+                enabled: false,
+            }],
+        };
+        handler.update_tools(&update);
+        assert!(!handler.registry().is_tool_enabled("ping"));
     }
 }
