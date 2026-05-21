@@ -10,15 +10,16 @@ use godot_mcp_core::protocol::{
 
 use crate::commands::CommandHandler;
 use crate::commands::meta::MetaCommands;
+use crate::commands::scene::SceneCommands;
 use crate::dispatcher::MainThreadDispatcher;
 use crate::ipc::plugin_state::PluginState;
+use crate::logging::{log_error, log_info};
 
 pub struct IpcWebSocketServer {
     port: u16,
     state: Arc<PluginState>,
     shutdown: Arc<Notify>,
     dispatcher: MainThreadDispatcher,
-    #[allow(dead_code)]
     registry: Vec<Box<dyn CommandHandler>>,
     broadcast_tx: broadcast::Sender<String>,
 }
@@ -29,8 +30,7 @@ impl IpcWebSocketServer {
         state: Arc<PluginState>,
         shutdown: Arc<Notify>,
         dispatcher: MainThreadDispatcher,
-    #[allow(dead_code)]
-    registry: Vec<Box<dyn CommandHandler>>,
+        registry: Vec<Box<dyn CommandHandler>>,
     ) -> Self {
         let (broadcast_tx, _) = broadcast::channel(64);
         Self {
@@ -73,10 +73,13 @@ impl IpcWebSocketServer {
                             let state = self.state.clone();
                             let dispatcher = self.dispatcher.clone();
                             let broadcast_rx = self.broadcast_tx.subscribe();
+                            let registry: Vec<String> = self.registry.iter()
+                                .flat_map(|h| h.tool_names().iter().map(|s| s.to_string()))
+                                .collect();
                             match accept_async(stream).await {
                                 Ok(ws) => {
                                     tokio::spawn(Self::handle_connection(
-                                        ws, state, dispatcher, broadcast_rx,
+                                        ws, state, dispatcher, broadcast_rx, registry,
                                     ));
                                 }
                                 Err(e) => {
@@ -106,6 +109,7 @@ impl IpcWebSocketServer {
         state: Arc<PluginState>,
         dispatcher: MainThreadDispatcher,
         mut broadcast_rx: broadcast::Receiver<String>,
+        registry_tools: Vec<String>,
     ) {
         eprintln!("[Godot MCP] IPC connection established");
 
@@ -134,8 +138,9 @@ impl IpcWebSocketServer {
                                 eprintln!("[Godot MCP] Received: {}", text);
 
                                 if let Ok(request) = serde_json::from_str::<IpcRequest>(&text) {
-                                    let response =
-                                        Self::handle_request(&request, &state, &dispatcher).await;
+                                    let response = Self::handle_request(
+                                        &request, &state, &dispatcher, &registry_tools,
+                                    ).await;
 
                                     if let Ok(json) = serde_json::to_string(&response) {
                                         eprintln!("[Godot MCP] Sending: {}", json);
@@ -167,6 +172,7 @@ impl IpcWebSocketServer {
         request: &IpcRequest,
         state: &PluginState,
         dispatcher: &MainThreadDispatcher,
+        registry_tools: &[String],
     ) -> IpcResponse {
         let result = if request.method == "tool_call" {
             let params: ToolCallParams = match serde_json::from_value(request.params.clone()) {
@@ -181,9 +187,9 @@ impl IpcWebSocketServer {
                     };
                 }
             };
-            Self::route_tool_call(&params.tool, &params.args, state, dispatcher).await
+            Self::route_tool_call(&params.tool, &params.args, state, dispatcher, registry_tools).await
         } else {
-            Self::route_tool_call(&request.method, &request.params, state, dispatcher).await
+            Self::route_tool_call(&request.method, &request.params, state, dispatcher, registry_tools).await
         };
 
         match result {
@@ -206,25 +212,30 @@ impl IpcWebSocketServer {
         args: &serde_json::Value,
         state: &PluginState,
         dispatcher: &MainThreadDispatcher,
+        registry_tools: &[String],
     ) -> Result<serde_json::Value, String> {
+        log_info(tool, &format!("called args={}", args));
+
+        // MetaCommands: simple state queries, no dispatcher needed
         let meta = MetaCommands::new().with_engine_version(state.engine_version.clone());
-        if meta.can_handle(tool) {
-            return meta.handle_meta_tool(tool);
-        }
-
-        let tool_name = tool.to_string();
-        let _args = args.clone();
-        let result = dispatcher
-            .submit(move || {
-                // TODO: route to registered CommandHandlers here (Phase 2b)
-                serde_json::json!({ "error": format!("Unknown tool: {}", tool_name) })
-            })
-            .await;
-
-        if let Some(err) = result.get("error").and_then(|v| v.as_str()) {
-            Err(err.to_string())
+        let result = if meta.can_handle(tool) {
+            meta.handle_meta_tool(tool)
         } else {
-            Ok(result)
+            // SceneCommands: all scene/node operations via dispatcher
+            let scene = SceneCommands::new();
+            if scene.can_handle(tool) {
+                scene.handle_scene_tool(tool, args, dispatcher).await
+            } else if registry_tools.contains(&tool.to_string()) {
+                Err(format!("Tool '{}' handler not yet implemented", tool))
+            } else {
+                Err(format!("Unknown tool: {}", tool))
+            }
+        };
+
+        match &result {
+            Ok(v) => log_info(tool, &format!("ok result={}", v)),
+            Err(e) => log_error(tool, &format!("failed: {}", e)),
         }
+        result
     }
 }

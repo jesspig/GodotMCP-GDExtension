@@ -1,4 +1,5 @@
 pub mod meta;
+pub mod scene;
 
 use serde_json::Value;
 
@@ -12,5 +13,8 @@ pub trait CommandHandler: Send + Sync {
 }
 
 pub fn create_registry() -> Vec<Box<dyn CommandHandler>> {
-    vec![Box::new(meta::MetaCommands::new())]
+    vec![
+        Box::new(meta::MetaCommands::new()),
+        Box::new(scene::SceneCommands::new()),
+    ]
 }
