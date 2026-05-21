@@ -14,14 +14,17 @@ jobs:
             target: x86_64-unknown-linux-gnu
             gdext_lib: libgodot_mcp_gdext.so
             server_bin: godot-mcp-server
+            server_name: godot-mcp-server_linux
           - os: macos-latest
             target: x86_64-apple-darwin
             gdext_lib: libgodot_mcp_gdext.dylib
             server_bin: godot-mcp-server
+            server_name: godot-mcp-server_macos
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             gdext_lib: godot_mcp_gdext.dll
             server_bin: godot-mcp-server.exe
+            server_name: godot-mcp-server_windows.exe
 
     runs-on: ${{ matrix.os }}
 
@@ -42,28 +45,22 @@ jobs:
       - name: Build Server
         run: cargo build --release -p godot-mcp-server
 
-      - name: Rename Server binary
-        run: |
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            mv target/release/${{ matrix.server_bin }} target/release/godot-mcp-server-windows.exe
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            mv target/release/${{ matrix.server_bin }} target/release/godot-mcp-server-macos
-          else
-            mv target/release/${{ matrix.server_bin }} target/release/godot-mcp-server-linux
-          fi
-        shell: bash
-
       - name: Upload GDExtension library
         uses: actions/upload-artifact@v4
         with:
           name: gdext-${{ matrix.os }}
           path: target/release/${{ matrix.gdext_lib }}
 
+      - name: Rename Server binary
+        run: |
+          mv target/release/${{ matrix.server_bin }} target/release/${{ matrix.server_name }}
+        shell: bash
+
       - name: Upload Server binary
         uses: actions/upload-artifact@v4
         with:
           name: server-${{ matrix.os }}
-          path: target/release/godot-mcp-server-*
+          path: target/release/${{ matrix.server_name }}
 
   package:
     needs: build
@@ -88,9 +85,6 @@ jobs:
         run: |
           mkdir -p addons/godot_mcp/bin
 
-          cp addons/godot_mcp/godot_mcp.gdextension addons/godot_mcp/
-          cp addons/godot_mcp/plugin.cfg addons/godot_mcp/
-
           cp libs/gdext-windows-latest/godot_mcp_gdext.dll addons/godot_mcp/bin/
           cp libs/gdext-ubuntu-latest/libgodot_mcp_gdext.so addons/godot_mcp/bin/
           cp libs/gdext-macos-latest/libgodot_mcp_gdext.dylib addons/godot_mcp/bin/
@@ -103,8 +97,8 @@ jobs:
         with:
           files: |
             addons.zip
-            servers/server-windows-latest/godot-mcp-server-windows.exe
-            servers/server-ubuntu-latest/godot-mcp-server-linux
-            servers/server-macos-latest/godot-mcp-server-macos
+            servers/server-ubuntu-latest/godot-mcp-server_linux
+            servers/server-macos-latest/godot-mcp-server_macos
+            servers/server-windows-latest/godot-mcp-server_windows.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,6 +2,20 @@
 
 > 本文件为追加式记录，追踪项目 wiki 的每次更新。
 
+## [2026-05-22] wiki | 全量重构 — 按模块拆分，对齐 35 工具 + Pump 架构
+
+- 删除全部历史目录（`overview/`, `implementation/`, `design/`, `planning/`, `guide/`, `specification/`）并重建为新结构：`overview/`, `crates/`, `modules/`, `reference/`, `design/`, `specification/`。
+- 新增/重写 14 页面，全部依据 2026-05-22 代码事实：
+  - `index.md`、`overview/architecture.md`、`overview/threading-model.md`（pump 模式 + tokio↔主线程双管道，最关键页面）
+  - `crates/{core,server,gdext}.md`（每 crate 的文件级地图）
+  - `modules/{dispatcher,logging,editor-plugin,ipc-bridge,command-routing,scene-commands,dock-ui}.md`
+  - `reference/{tools-catalog,client-config,client-quirks,build-and-package}.md`
+  - `specification/{ipc-protocol,workspace}.md`
+  - `design/decisions.md`（10 条 ADR）
+- 已知不准确事实清算（保留为新页面里显式标注）：旧 `current-status.md` 还在说"4 个工具"、`tool_manager.rs` 写"Tools (4/4)"、`integration.rs` 按钮无回调、`settings.rs` 端口只读 —— 全部在 `modules/dock-ui.md` 中明确说明为 skeleton。
+- 工具数量校准为 **35**（4 meta + 31 scene），匹配 `tool_registry.rs::register_defaults` 与 `commands/scene.rs::TOOL_NAMES`。
+- 删除所有 Phase 1/2a/2b 路线图说法 —— 路线图属于项目管理，不属于知识库。
+
 ## [2026-05-21] wiki | Wiki 刷新 — 事实校准 + 实现文档
 
 - 校准 `specification/workspace.md`：修正依赖列表（godot `default` 非 `codegen`、移除 `parking_lot`/`tracing`、uuid 含 `serde` feature）、修正 entry_symbol 为 `gdext_rust_init`、新增实际 vs 计划目录树对比

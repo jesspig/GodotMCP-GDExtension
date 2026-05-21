@@ -1,71 +1,47 @@
 # Godot MCP — Repo Wiki
 
-> Godot 编辑器的 Model Context Protocol 桥接方案。纯 Rust 实现：GDExtension 插件 + 独立 MCP Server 二进制。
+> Knowledge base for the GodotMCP project. Updated to match the codebase as of 2026-05-22. All "this is what the code does" claims are verified against current source; speculation and stale Phase-1 talk has been purged.
 
-## 实现文档
+## What this project is
 
-| 页面 | 描述 |
-|------|------|
-| [当前实现状态](implementation/current-status.md) | Phase 1 完成度、已实现组件、已知缺失 |
-| [GDExtension 实现](implementation/gdext-skeleton.md) | EditorPlugin、WS Server、IPC 模块详细文档 |
-| [MCP Server 实现](implementation/server-skeleton.md) | CLI、ServerHandler、GodotBridge 详细文档 |
+A Rust-only **Model Context Protocol** bridge that lets AI clients drive the Godot 4.6+ editor. Two processes:
 
-## 概览
+- `godot-mcp-server` — standalone binary; AI client launches it over stdio. Forwards every tool call as a `tool_call` IPC request.
+- `godot_mcp_gdext` — `cdylib` loaded by the Godot editor as a GDExtension `EditorPlugin`. Hosts a WebSocket server on `127.0.0.1:9500`, dispatches every call back to the Godot main thread, executes `EditorInterface`/`Node` APIs, and ships results back.
 
-| 页面 | 描述 |
-|------|------|
-| [架构概览](overview/architecture.md) | 整体架构（含实现状态标注）、三协议通信、组件拓扑 |
+35 tools are exposed today (4 meta + 31 scene). All are end-to-end tested in a live editor.
 
-## 技术规范
+## How to read this wiki
 
-| 页面 | 描述 |
-|------|------|
-| [IPC 与 MCP 协议](specification/protocol.md) | IPC 消息格式、MCP 传输层、协议版本（含当前支持的方法） |
-| [Cargo Workspace 结构](specification/workspace.md) | 三层 crate 设计：core / gdext / server（含实际 vs 计划目录树） |
+Start with `overview/` for the mental model, dip into `modules/` for the implementation patterns that bite (threading, command routing, J↔V), use `reference/` for ready-to-copy commands, configs, and the tool catalog. `crates/` is a file-by-file map per crate. `specification/` and `design/` are the stable contracts and recorded decisions.
 
-## 设计文档
+| Section | When you need it |
+|---------|------------------|
+| [overview/architecture.md](overview/architecture.md) | Big picture: two processes, three crates, where each layer lives |
+| [overview/threading-model.md](overview/threading-model.md) | **Read first if touching gdext.** The tokio↔main-thread split, dispatcher, log pump, and the `bind_mut() failed, already bound` trap |
+| [crates/core.md](crates/core.md) | Shared protocol types (`IpcRequest`, `IpcResponse`, `ToolCallParams`, …) |
+| [crates/server.md](crates/server.md) | `main` → `handler` → `bridge` → `tool_registry` flow |
+| [crates/gdext.md](crates/gdext.md) | Module map for the GDExtension cdylib |
+| [modules/command-routing.md](modules/command-routing.md) | How a `call_tool` MCP request becomes a `cmd_*` invocation; must add to **both** sides when you add a tool |
+| [modules/scene-commands.md](modules/scene-commands.md) | 31 scene tools, the `j2v`/`v2j` JSON↔Variant rules, `resolve_node`, `try_load` |
+| [modules/ipc-bridge.md](modules/ipc-bridge.md) | `IpcWebSocketServer` + `GodotBridge` over WebSocket |
+| [modules/dispatcher.md](modules/dispatcher.md) | `MainThreadDispatcher`: tokio worker → main-thread closure execution via oneshot |
+| [modules/logging.md](modules/logging.md) | mpsc log channel + `process_frame` pump (because Godot macros panic off main thread) |
+| [modules/editor-plugin.md](modules/editor-plugin.md) | `McpEditorPlugin` lifecycle; why `process()` is intentionally empty |
+| [modules/dock-ui.md](modules/dock-ui.md) | Right-dock VBox panel, 4 sub-panels, current vs aspirational state |
+| [reference/tools-catalog.md](reference/tools-catalog.md) | All 35 tools, JSON schema, args, return shape |
+| [reference/client-config.md](reference/client-config.md) | 12 AI clients × stdio/HTTP config templates (only stdio works today) |
+| [reference/client-quirks.md](reference/client-quirks.md) | Per-client config oddities cheat sheet |
+| [reference/build-and-package.md](reference/build-and-package.md) | `package_addons.py` flags, CI gate order, hot-reload tips, file-lock recovery |
+| [specification/ipc-protocol.md](specification/ipc-protocol.md) | Wire format for `IpcRequest`/`IpcResponse`/`IpcNotification`/`ToolCallParams` |
+| [specification/workspace.md](specification/workspace.md) | Real per-crate `Cargo.toml`, pinned versions, addon manifest |
+| [design/decisions.md](design/decisions.md) | ADR-style record of the choices that shape the codebase |
+| [log.md](log.md) | Append-only project changelog |
 
-| 页面 | 描述 |
-|------|------|
-| [Dock UI 面板](design/dock-ui.md) | 独立 Dock 设计、状态栏、客户端列表、工具管理（计划） |
-| [工具清单与热切换](design/tools.md) | 48 工具按类别分组、热切换机制（计划） |
-| [IPC 桥接细节](design/ipc-bridge.md) | WebSocket 通信、命令路由（含当前实现与计划） |
+## Conventions in this wiki
 
-## 使用指南
-
-| 页面 | 描述 |
-|------|------|
-| [客户端配置](guide/client-config.md) | 12 个 AI 客户端自动配置方案 |
-
-## 项目规划
-
-| 页面 | 描述 |
-|------|------|
-| [分阶段实施计划](planning/phases.md) | Phase 1-4 时间线与里程碑 |
-| [变更日志](log.md) | 项目演变记录 |
-
-## 决策记录
-
-| 决策 | 结论 | 依据 |
-|------|------|------|
-| 语言 | Rust 全栈 | `godot-rust/gdext` + `rmcp`，单语言零运行时依赖 |
-| GDExtension 库 | `godot-rust/gdext` v0.5+ | 4.6K stars，120 贡献者，EditorPlugin 原生支持 |
-| MCP SDK | `rmcp` v1.7+ | 官方 Rust SDK，支持 stdio + Streamable HTTP |
-| IPC | WebSocket (tokio-tungstenite) | 跨平台、全双工、Rust 生态成熟 |
-| 传输协议 | stdio + Streamable HTTP | MCP 2025 标准，覆盖所有主流客户端 |
-| UI 面板 | 独立 Dock (add_control_to_dock) | FileSystem 风格，不占用底部面板空间 |
-| 工具管理 | 热切换（IPC 实时同步） | 面板开关 → 通知 Server → Service 动态重载 |
-| 插件形式 | GDExtension EditorPlugin | 原生 C++ 级别 API 访问，非 GDScript 桥接 |
-
-## 产出物
-
-- **`godot-mcp-server`** — 独立二进制文件，AI 客户端直接启动，零运行时依赖
-- **`addons.zip`** — Godot 编辑器插件包，解压到 `addons/` 目录即可使用
-
-## 外部参考
-
-- [godot-rust/gdext](https://github.com/godot-rust/gdext) — Rust bindings for Godot 4
-- [modelcontextprotocol/rust-sdk](https://github.com/modelcontextprotocol/rust-sdk) — 官方 Rust MCP SDK (rmcp)
-- [hi-godot/godot-ai](https://github.com/hi-godot/godot-ai) — 现有 Godot MCP 实现（GDScript + Python）
-- [CoplayDev/unity-mcp](https://github.com/CoplayDev/unity-mcp) — Unity MCP 社区版（方案对标）
-- [modelcontextprotocol/python-sdk](https://github.com/modelcontextprotocol/python-sdk) — Python MCP SDK
+- "Verified" = an actual file line was inspected when the page was written. Pages avoid speculation; if something is aspirational it's marked **Planned**.
+- Line/file references use the form `crates/<crate>/src/<file>.rs:<line>` so they survive into editors.
+- Mermaid diagrams describe runtime data flow, not call trees.
+- Code excerpts are kept short; for the full source, follow the file reference and read directly.
+- New ingest? Append an entry to [log.md](log.md). Touched a pattern that's documented here? Update the page in the same change.
