@@ -1,89 +1,145 @@
 use rmcp::handler::server::ServerHandler;
 use rmcp::model::*;
-use rmcp::tool;
-use rmcp::ServiceExt;
+use rmcp::service::{RequestContext, RoleServer};
+use rmcp::ErrorData;
 use serde_json::json;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use dashmap::DashMap;
-use tokio::sync::oneshot;
+use tokio::sync::Mutex;
 
 use crate::bridge::GodotBridge;
-use godot_mcp_core::tool_manifest::{ToolListUpdate, ToolState};
+
+const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Clone)]
 pub struct GodotMcpHandler {
-    bridge: Arc<GodotBridge>,
-    enabled_tools: Arc<DashMap<String, bool>>,
-    tool_router_needs_rebuild: Arc<AtomicBool>,
+    godot_port: u16,
+    bridge: Arc<Mutex<Option<Arc<GodotBridge>>>>,
 }
 
 impl GodotMcpHandler {
-    pub async fn new(godot_port: u16) -> anyhow::Result<Self> {
-        let bridge = Arc::new(GodotBridge::connect(godot_port).await?);
-        
-        Ok(Self {
-            bridge,
-            enabled_tools: Arc::new(DashMap::new()),
-            tool_router_needs_rebuild: Arc::new(AtomicBool::new(false)),
-        })
-    }
-    
-    pub fn rebuild_tools(&self, update: &ToolListUpdate) {
-        for tool in &update.tools {
-            self.enabled_tools.insert(tool.name.clone(), tool.enabled);
+    pub fn new(godot_port: u16) -> Self {
+        Self {
+            godot_port,
+            bridge: Arc::new(Mutex::new(None)),
         }
-        self.tool_router_needs_rebuild.store(true, Ordering::SeqCst);
     }
-    
-    pub fn is_tool_enabled(&self, tool_name: &str) -> bool {
-        self.enabled_tools.get(tool_name).map(|v| *v).unwrap_or(true)
+
+    fn empty_schema() -> Arc<serde_json::Map<String, serde_json::Value>> {
+        let schema: serde_json::Map<String, serde_json::Value> = serde_json::from_value(json!({
+            "type": "object",
+            "properties": {},
+            "required": []
+        }))
+        .unwrap();
+        Arc::new(schema)
     }
+
+    async fn ensure_bridge(&self) -> Option<Arc<GodotBridge>> {
+        let mut guard = self.bridge.lock().await;
+        if guard.is_none() {
+            match GodotBridge::connect(self.godot_port).await {
+                Ok(bridge) => {
+                    eprintln!(
+                        "[MCP Server] Connected to Godot on port {}",
+                        self.godot_port
+                    );
+                    let bridge = Arc::new(bridge);
+                    *guard = Some(bridge.clone());
+                    Some(bridge)
+                }
+                Err(_) => None,
+            }
+        } else {
+            guard.as_ref().cloned()
+        }
+    }
+
+    async fn bridge_text(&self, method: &str, offline_message: &str) -> String {
+        let bridge = match self.ensure_bridge().await {
+            Some(b) => b,
+            None => return offline_message.to_string(),
+        };
+        match bridge.call(method, json!({})).await {
+            Ok(result) => serde_json::to_string(&result).unwrap_or_else(|_| "{}".into()),
+            Err(e) => {
+                self.bridge.lock().await.take();
+                eprintln!("[MCP Server] Godot connection lost: {}", e);
+                format!("Godot 通信失败: {}", e)
+            }
+        }
+    }
+
 }
 
-#[rmcp::async_trait]
 impl ServerHandler for GodotMcpHandler {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            protocol_version: ProtocolVersion::V_2025_03_26,
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .build(),
-            server_info: Implementation::new("Godot MCP", env!("CARGO_PKG_VERSION")),
-            instructions: Some("Godot MCP Server — 通过 AI 控制 Godot 编辑器".into()),
-            ..Default::default()
-        }
+        let instructions = "Start Godot editor with the Godot MCP plugin installed. Connection will be established automatically.";
+
+        let mut info = ServerInfo::default();
+        info.protocol_version = ProtocolVersion::V_2025_03_26;
+        info.capabilities = ServerCapabilities::builder().enable_tools().build();
+        info.server_info = Implementation::new("Godot MCP", SERVER_VERSION);
+        info.instructions = Some(instructions.into());
+        info
     }
-    
-    async fn list_tools(&self, _cursor: Option<String>) -> Result<ListToolsResult, McpError> {
+
+    async fn list_tools(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListToolsResult, ErrorData> {
         Ok(ListToolsResult {
             tools: vec![
                 Tool::new(
                     "ping",
-                    "Ping the Godot editor to check connection",
-                    json!({
-                        "type": "object",
-                        "properties": {},
-                        "required": []
-                    })
-                )
+                    "检测与 Godot 编辑器的连接状态",
+                    Self::empty_schema(),
+                ),
+                Tool::new(
+                    "get_engine_version",
+                    "获取 Godot 引擎版本号",
+                    Self::empty_schema(),
+                ),
+                Tool::new(
+                    "get_plugin_version",
+                    "获取 Godot MCP 插件版本号",
+                    Self::empty_schema(),
+                ),
+                Tool::new(
+                    "get_server_version",
+                    "获取 godot-mcp-server 版本号",
+                    Self::empty_schema(),
+                ),
             ],
             next_cursor: None,
             meta: None,
         })
     }
-    
-    async fn call_tool(&self, name: &str, arguments: serde_json::Value) -> Result<CallToolResult, McpError> {
-        match name {
-            "ping" => {
-                let result = self.bridge.call("ping", json!({})).await?;
-                Ok(CallToolResult::success(vec![
-                    Content::text(serde_json::to_string_pretty(&result).unwrap())
-                ]))
-            }
-            _ => {
-                Err(McpError::invalid_params(format!("Unknown tool: {}", name)))
-            }
+
+    async fn call_tool(
+        &self,
+        request: CallToolRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<CallToolResult, ErrorData> {
+        match request.name.as_ref() {
+            "ping" => Ok(CallToolResult::success(vec![Content::text(
+                self.bridge_text("ping", "Godot 编辑器未连接").await,
+            )])),
+            "get_engine_version" => Ok(CallToolResult::success(vec![Content::text(
+                self.bridge_text("get_engine_version", "Godot 编辑器未连接，无法获取引擎版本")
+                    .await,
+            )])),
+            "get_plugin_version" => Ok(CallToolResult::success(vec![Content::text(
+                self.bridge_text("get_plugin_version", "Godot 编辑器未连接，无法获取插件版本")
+                    .await,
+            )])),
+            "get_server_version" => Ok(CallToolResult::success(vec![Content::text(
+                SERVER_VERSION.to_string(),
+            )])),
+            _ => Err(ErrorData::invalid_params(
+                format!("Unknown tool: {}", request.name),
+                None,
+            )),
         }
     }
 }

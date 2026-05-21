@@ -2,7 +2,8 @@ use tokio_tungstenite::connect_async;
 use futures_util::{SinkExt, StreamExt};
 use dashmap::DashMap;
 use tokio::sync::oneshot;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use serde_json::Value;
 use uuid::Uuid;
 
