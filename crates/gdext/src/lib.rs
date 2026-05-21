@@ -6,6 +6,7 @@ pub mod dispatcher;
 mod dock;
 mod editor_plugin;
 mod ipc;
+mod logging;
 
 struct GodotMcpExtension;
 
