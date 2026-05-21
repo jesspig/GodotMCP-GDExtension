@@ -1,10 +1,10 @@
+use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::Notify;
-use tokio_tungstenite::{accept_async, WebSocketStream, tungstenite::protocol::Message};
-use futures_util::{SinkExt, StreamExt};
+use tokio_tungstenite::{WebSocketStream, accept_async, tungstenite::protocol::Message};
 
-use godot_mcp_core::protocol::{IpcRequest, IpcResponse, IpcResult, IpcNotification};
+use godot_mcp_core::protocol::{IpcNotification, IpcRequest, IpcResponse, IpcResult};
 
 use crate::ipc::plugin_state::PluginState;
 

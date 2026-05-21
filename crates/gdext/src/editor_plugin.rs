@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use tokio::sync::Notify;
 
-use godot::prelude::*;
 use godot::classes::{EditorPlugin, Engine, IEditorPlugin};
+use godot::prelude::*;
 
 use crate::ipc::plugin_state::PluginState;
 use crate::ipc::ws_server::IpcWebSocketServer;

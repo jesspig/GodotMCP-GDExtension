@@ -1,5 +1,5 @@
-use godot::prelude::*;
 use godot::init::InitLevel;
+use godot::prelude::*;
 
 mod editor_plugin;
 mod ipc;
