@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            gdext_lib: libgodot_mcp_gdext.so
+            server_bin: godot-mcp-server
+            server_name: godot-mcp-server_linux
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            gdext_lib: libgodot_mcp_gdext.dylib
+            server_bin: godot-mcp-server
+            server_name: godot-mcp-server_macos
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            gdext_lib: godot_mcp_gdext.dll
+            server_bin: godot-mcp-server.exe
+            server_name: godot-mcp-server_windows.exe
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libclang-dev
+
+      - name: Build GDExtension
+        run: cargo build --release -p godot-mcp-gdext
+
+      - name: Build Server
+        run: cargo build --release -p godot-mcp-server
+
+      - name: Upload GDExtension library
+        uses: actions/upload-artifact@v4
+        with:
+          name: gdext-${{ matrix.os }}
+          path: target/release/${{ matrix.gdext_lib }}
+
+      - name: Rename Server binary
+        run: |
+          mv target/release/${{ matrix.server_bin }} target/release/${{ matrix.server_name }}
+        shell: bash
+
+      - name: Upload Server binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-${{ matrix.os }}
+          path: target/release/${{ matrix.server_name }}
+
+  package:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download GDExtension artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gdext-*
+          path: libs
+
+      - name: Download Server artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: server-*
+          path: servers
+
+      - name: Assemble addons.zip
+        run: |
+          mkdir -p addons/godot_mcp/bin
+
+          cp libs/gdext-windows-latest/godot_mcp_gdext.dll addons/godot_mcp/bin/
+          cp libs/gdext-ubuntu-latest/libgodot_mcp_gdext.so addons/godot_mcp/bin/
+          cp libs/gdext-macos-latest/libgodot_mcp_gdext.dylib addons/godot_mcp/bin/
+
+          cd addons
+          zip -r ../addons.zip godot_mcp/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            addons.zip
+            servers/server-ubuntu-latest/godot-mcp-server_linux
+            servers/server-macos-latest/godot-mcp-server_macos
+            servers/server-windows-latest/godot-mcp-server_windows.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
