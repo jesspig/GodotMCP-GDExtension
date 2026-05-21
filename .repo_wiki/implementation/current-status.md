@@ -2,85 +2,85 @@
 
 > 本文档是代码库的真实反映。所有引用均为实际存在的文件路径。
 
-## Phase 1 完成度
+## Phase 2a 完成度
 
 | 步骤 | 描述 | 状态 |
 |------|------|------|
-| 1 | Cargo workspace + `crates/core` 协议类型 | ✅ 完成 |
-| 2 | `rust-toolchain.toml` | ❌ **缺失** |
-| 3 | `crates/gdext` — EditorPlugin + WS server | ✅ 完成 |
-| 4 | `crates/server` — CLI + stdio + 4 工具 | ✅ 完成 |
-| 5 | WebSocket IPC 桥接 | ✅ 完成 |
-| 6 | End-to-end ping/pong | ✅ 完成 |
+| 2a.1 | 协议升级：引入 `ToolCallParams` | ✅ 完成 |
+| 2a.2 | 主线程调度器 | ✅ 完成 |
+| 2a.3 | `CommandHandler` trait | ✅ 完成 |
+| 2a.4 | `MetaCommands` 迁移 | ✅ 完成 |
+| 2a.5 | Server `ToolRegistry` + 动态 `list_tools` | ✅ 完成 |
+| 2a.6 | `tool_list_updated` 单向推送 | ✅ 完成 |
+| 2a.7 | Dock UI 主容器 + 状态栏 | ✅ 完成 |
+| 2a.8 | Dock UI 工具管理面板（交互完整） | ✅ 完成 |
+| 2a.9 | Dock UI 客户端集成面板（骨架） | ✅ 完成 |
+| 2a.10 | Dock UI 高级设置面板（骨架） | ✅ 完成 |
+| 2a.11 | 文档同步 | ✅ 完成 |
 
 ## 已实现组件
 
 ### crates/core (`crates/core/src/`)
 
-| 文件 | 行数 | 内容 |
-|------|------|------|
-| `lib.rs` | 5 | `pub mod protocol; pub mod tool_manifest;` |
-| `protocol.rs` | 33 | `IpcRequest`, `IpcResponse`, `IpcResult`(带 `#[serde(tag = "status")]`), `IpcNotification` |
-| `tool_manifest.rs` | 38 | `ToolManifest`, `ToolCategory`, `ToolInfo`, `ToolListUpdate`, `ToolState` |
-
-依赖：`serde`, `serde_json`, `uuid`(v4 + serde)
+| 文件 | 内容 |
+|------|------|
+| `protocol.rs` | `IpcRequest`, `IpcResponse`, `IpcResult`, `IpcNotification`, `ToolCallParams` |
+| `tool_manifest.rs` | `ToolManifest`, `ToolCategory`, `ToolInfo`, `ToolListUpdate`, `ToolState` |
 
 ### crates/gdext (`crates/gdext/src/`)
 
-| 文件 | 行数 | 内容 |
-|------|------|------|
-| `lib.rs` | 14 | `#[gdextension]` 入口，`InitLevel::Editor` |
-| `editor_plugin.rs` | 92 | `McpEditorPlugin`：enter_tree 构建 tokio runtime(2 worker)，启动 WS server；exit_tree 发 shutdown 信号 |
-| `ipc/mod.rs` | 2 | 声明 `ws_server` 和 `plugin_state` 子模块 |
-| `ipc/plugin_state.rs` | 5 | ` PluginState { engine_version, plugin_version }` |
-| `ipc/ws_server.rs` | 150 | `IpcWebSocketServer`：TCP :9500，accept 循环，连接时发 `godot_ready` 通知，3 个 RPC 方法 |
-
-**未声明的空目录**：`commands/`（无 `mod.rs`，不在 `lib.rs` 模块树中）
+| 文件 | 内容 |
+|------|------|
+| `lib.rs` | `#[gdextension]` 入口，声明 `commands`, `dispatcher`, `dock`, `editor_plugin`, `ipc` |
+| `editor_plugin.rs` | `McpEditorPlugin`：tokio runtime + WS server + dispatcher + dock 管理 |
+| `dispatcher.rs` | `MainThreadDispatcher`：tokio worker → Godot 主线程调度 |
+| `commands/mod.rs` | `CommandHandler` trait + `create_registry()` |
+| `commands/meta.rs` | `MetaCommands`：ping, get_engine_version, get_plugin_version |
+| `ipc/ws_server.rs` | `IpcWebSocketServer`：TCP :9500，CommandHandler 路由，broadcast 通道 |
+| `ipc/plugin_state.rs` | `PluginState { engine_version, plugin_version }` |
+| `dock/mod.rs` | 模块导出 |
+| `dock/main_dock.rs` | 主容器创建函数 |
+| `dock/status_bar.rs` | 状态栏：指示灯 + 标签 + 按钮 |
+| `dock/tool_manager.rs` | 工具管理面板：CheckBox 列表 + toggle 广播 |
+| `dock/integration.rs` | 客户端集成面板骨架（12 客户端列表，按钮禁用） |
+| `dock/settings.rs` | 高级设置面板骨架（端口输入框 + 操作按钮禁用） |
 
 ### crates/server (`crates/server/src/`)
 
-| 文件 | 行数 | 内容 |
-|------|------|------|
-| `main.rs` | 27 | CLI (clap `--godot-port`)，stdio transport (rmcp `serve`) |
-| `handler.rs` | 145 | `GodotMcpHandler`：`ServerHandler` impl，4 个工具，懒连接 bridge |
-| `bridge.rs` | 72 | `GodotBridge`：WebSocket 客户端，oneshot 应答，`Arc<Mutex<Option<...>>>` 懒连接 |
+| 文件 | 内容 |
+|------|------|
+| `main.rs` | CLI (clap `--godot-port`)，stdio transport |
+| `handler.rs` | `GodotMcpHandler`：`ServerHandler` impl，动态 `list_tools` 从 ToolRegistry 读取 |
+| `bridge.rs` | `GodotBridge`：WebSocket 客户端，oneshot 应答，通知监听（`tool_list_updated`） |
+| `tool_registry.rs` | `ToolRegistry`：工具启用/禁用状态管理，`update_from_notification` |
 
-**未声明的空目录**：`transports/`（无 `mod.rs`）
+## 测试覆盖
 
-## 工具实现现状
+| Crate | 测试数 | 覆盖内容 |
+|-------|--------|----------|
+| `godot-mcp-core` | 15 | 协议序列化往返 + ToolCallParams + ToolManifest |
+| `godot-mcp-gdext` | 12 | MetaCommands + MainThreadDispatcher |
+| `godot-mcp-server` | 20 | ToolRegistry + GodotMcpHandler（含 disabled/unknown 区分） |
+| **总计** | **47** | |
 
-当前仅 4 个 MCP 工具，全部在 `handler.rs` 中：
-
-| 工具 | 类型 | 实现方式 |
-|------|------|---------|
-| `ping` | IPC | 通过 bridge 调用 GDExtension |
-| `get_engine_version` | IPC | 通过 bridge 调用 GDExtension |
-| `get_plugin_version` | IPC | 通过 bridge 调用 GDExtension |
-| `get_server_version` | 本地 | 直接返回 `CARGO_PKG_VERSION` |
-
-GDExtension 侧对应 3 个方法在 `ws_server.rs` 的 `handle_request` 中以硬编码 `match` 实现。
-
-计划中的 48 个工具（6 分类）**全部未实现**。详见 [工具清单与热切换](../design/tools.md)。
-
-## 已知缺失
+## 已知缺失（Phase 2b+ 待实现）
 
 | 缺失项 | 影响 |
 |--------|------|
-| `rust-toolchain.toml` | 本地工具链版本不确定 |
-| 测试 | 无法自动化验证 |
-| `Cargo.lock` 被 gitignore | 二进制 crate 应提交 lockfile |
-| Dock UI 面板 | 用户无法可视化控制插件 |
+| 30+ 核心工具（Scene/Script/Editor/Project） | AI 客户端只能调用 4 个元工具 |
+| Debug Tools 6 个 | 运行时调试不可用 |
+| 客户端集成实际配置写入 | UI 存在但按钮禁用 |
+| 高级设置保存 | UI 存在但按钮禁用 |
 | Streamable HTTP 传输 | 仅支持 stdio 客户端 |
 | 心跳机制 | 连接断开依赖 WebSocket 底层检测 |
-| 工具热切换 | 所有工具硬编码，无法运行时调整 |
 
 ## 构建与验证
 
 ```bash
 cargo check --workspace               # 类型检查
+cargo test --workspace                 # 运行 47 个测试
+cargo clippy --workspace -- -D warnings  # 零警告
 cargo build -p godot-mcp-gdext        # 构建 GDExtension (debug)
 cargo build -p godot-mcp-server       # 构建 Server (debug)
 python package_addons.py              # 一键构建 + 打包 addons.zip
 ```
-
-目前无测试套件。`cargo test` 会通过（无测试函数 = 零失败），但没有任何有意义的用例。
