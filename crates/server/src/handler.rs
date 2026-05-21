@@ -1,7 +1,7 @@
+use rmcp::ErrorData;
 use rmcp::handler::server::ServerHandler;
 use rmcp::model::*;
 use rmcp::service::{RequestContext, RoleServer};
-use rmcp::ErrorData;
 use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -69,6 +69,29 @@ impl GodotMcpHandler {
         }
     }
 
+    pub async fn handle_tool_call(&self, tool_name: &str) -> Result<String, String> {
+        match tool_name {
+            "ping" => Ok(self.bridge_text("ping", "Godot 编辑器未连接").await),
+            "get_engine_version" => Ok(self
+                .bridge_text("get_engine_version", "Godot 编辑器未连接，无法获取引擎版本")
+                .await),
+            "get_plugin_version" => Ok(self
+                .bridge_text("get_plugin_version", "Godot 编辑器未连接，无法获取插件版本")
+                .await),
+            "get_server_version" => Ok(SERVER_VERSION.to_string()),
+            _ => Err(format!("Unknown tool: {}", tool_name)),
+        }
+    }
+
+    #[cfg(test)]
+    pub fn tool_names() -> &'static [&'static str] {
+        &[
+            "ping",
+            "get_engine_version",
+            "get_plugin_version",
+            "get_server_version",
+        ]
+    }
 }
 
 impl ServerHandler for GodotMcpHandler {
@@ -121,25 +144,75 @@ impl ServerHandler for GodotMcpHandler {
         request: CallToolRequestParams,
         _context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, ErrorData> {
-        match request.name.as_ref() {
-            "ping" => Ok(CallToolResult::success(vec![Content::text(
-                self.bridge_text("ping", "Godot 编辑器未连接").await,
-            )])),
-            "get_engine_version" => Ok(CallToolResult::success(vec![Content::text(
-                self.bridge_text("get_engine_version", "Godot 编辑器未连接，无法获取引擎版本")
-                    .await,
-            )])),
-            "get_plugin_version" => Ok(CallToolResult::success(vec![Content::text(
-                self.bridge_text("get_plugin_version", "Godot 编辑器未连接，无法获取插件版本")
-                    .await,
-            )])),
-            "get_server_version" => Ok(CallToolResult::success(vec![Content::text(
-                SERVER_VERSION.to_string(),
-            )])),
-            _ => Err(ErrorData::invalid_params(
-                format!("Unknown tool: {}", request.name),
-                None,
-            )),
+        match self.handle_tool_call(request.name.as_ref()).await {
+            Ok(text) => Ok(CallToolResult::success(vec![Content::text(text)])),
+            Err(msg) => Err(ErrorData::invalid_params(msg, None)),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_info() {
+        let handler = GodotMcpHandler::new(9500);
+        let info = handler.get_info();
+
+        assert_eq!(info.protocol_version, ProtocolVersion::V_2025_03_26);
+        assert_eq!(info.server_info.name, "Godot MCP");
+        assert_eq!(info.server_info.version, SERVER_VERSION);
+        assert!(info.instructions.is_some());
+    }
+
+    #[test]
+    fn test_tool_names_contains_all_tools() {
+        let names = GodotMcpHandler::tool_names();
+        assert_eq!(names.len(), 4);
+        assert!(names.contains(&"ping"));
+        assert!(names.contains(&"get_engine_version"));
+        assert!(names.contains(&"get_plugin_version"));
+        assert!(names.contains(&"get_server_version"));
+    }
+
+    #[tokio::test]
+    async fn test_get_server_version_offline() {
+        let handler = GodotMcpHandler::new(9999);
+        let result = handler.handle_tool_call("get_server_version").await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), SERVER_VERSION);
+    }
+
+    #[tokio::test]
+    async fn test_ping_offline() {
+        let handler = GodotMcpHandler::new(9999);
+        let result = handler.handle_tool_call("ping").await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Godot 编辑器未连接");
+    }
+
+    #[tokio::test]
+    async fn test_get_engine_version_offline() {
+        let handler = GodotMcpHandler::new(9999);
+        let result = handler.handle_tool_call("get_engine_version").await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Godot 编辑器未连接，无法获取引擎版本");
+    }
+
+    #[tokio::test]
+    async fn test_get_plugin_version_offline() {
+        let handler = GodotMcpHandler::new(9999);
+        let result = handler.handle_tool_call("get_plugin_version").await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Godot 编辑器未连接，无法获取插件版本");
+    }
+
+    #[tokio::test]
+    async fn test_unknown_tool() {
+        let handler = GodotMcpHandler::new(9999);
+        let result = handler.handle_tool_call("nonexistent").await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Unknown tool: nonexistent");
     }
 }
