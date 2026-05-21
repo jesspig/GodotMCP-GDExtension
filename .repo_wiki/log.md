@@ -2,6 +2,16 @@
 
 > 本文件为追加式记录，追踪项目 wiki 的每次更新。
 
+## [2026-05-21] wiki | Wiki 刷新 — 事实校准 + 实现文档
+
+- 校准 `specification/workspace.md`：修正依赖列表（godot `default` 非 `codegen`、移除 `parking_lot`/`tracing`、uuid 含 `serde` feature）、修正 entry_symbol 为 `gdext_rust_init`、新增实际 vs 计划目录树对比
+- 重写 `design/ipc-bridge.md`：将模型代码替换为实际实现（`IpcWebSocketServer` 构造函数、`PluginState` 替代 `parking_lot::RwLock`、无 `CommandHandler`）、标注计划功能
+- 校准 `specification/protocol.md`：移除对不存在文件（`error.rs`）的引用、修正 IPC 消息格式为平坦 params、移除未实现的 resources/tool_router 代码、标注 Streamable HTTP 为计划
+- 重写 `overview/architecture.md`：在 mermaid 图中标注 ✅/📋/❌ 状态、新增实现状态总览表
+- 新建 `implementation/` 目录：`current-status.md`（Phase 1 完成度 + 已知缺失）、`gdext-skeleton.md`（EditorPlugin + WS Server 详细文档）、`server-skeleton.md`（CLI + ServerHandler + GodotBridge 详细文档）
+- 更新 `index.md`：新增实现文档分区
+- 更新 `AGENTS.md`：替换"无代码"为准确状态表、修正依赖 feature、添加 `package_addons.py` 命令
+
 ## [2026-05-20] 规划 | 12 客户端适配 + 个体工具粒度 + Godot 4.6
 
 - 扩展客户端列表至 12 个：Claude Code, Codex, Gemini CLI, OpenCode, Cursor, GitHub Copilot, Qwen Code, Trae, Trae CN, Qoder, Antigravity, CodeBuddy

@@ -2,32 +2,40 @@
 
 > Godot 编辑器的 Model Context Protocol 桥接方案。纯 Rust 实现：GDExtension 插件 + 独立 MCP Server 二进制。
 
+## 实现文档
+
+| 页面 | 描述 |
+|------|------|
+| [当前实现状态](implementation/current-status.md) | Phase 1 完成度、已实现组件、已知缺失 |
+| [GDExtension 实现](implementation/gdext-skeleton.md) | EditorPlugin、WS Server、IPC 模块详细文档 |
+| [MCP Server 实现](implementation/server-skeleton.md) | CLI、ServerHandler、GodotBridge 详细文档 |
+
 ## 概览
 
 | 页面 | 描述 |
 |------|------|
-| [架构概览](overview/architecture.md) | 整体架构、三协议通信、组件拓扑 |
+| [架构概览](overview/architecture.md) | 整体架构（含实现状态标注）、三协议通信、组件拓扑 |
 
 ## 技术规范
 
 | 页面 | 描述 |
 |------|------|
-| [IPC 与 MCP 协议](specification/protocol.md) | IPC 消息格式、MCP 传输层、协议版本 |
-| [Cargo Workspace 结构](specification/workspace.md) | 三层 crate 设计：core / gdext / server |
+| [IPC 与 MCP 协议](specification/protocol.md) | IPC 消息格式、MCP 传输层、协议版本（含当前支持的方法） |
+| [Cargo Workspace 结构](specification/workspace.md) | 三层 crate 设计：core / gdext / server（含实际 vs 计划目录树） |
 
 ## 设计文档
 
 | 页面 | 描述 |
 |------|------|
-| [Dock UI 面板](design/dock-ui.md) | 独立 Dock 设计、状态栏、客户端列表、工具管理 |
-| [工具清单与热切换](design/tools.md) | 48 工具按类别分组、热切换机制 |
-| [IPC 桥接细节](design/ipc-bridge.md) | WebSocket 通信、命令路由、通知机制 |
+| [Dock UI 面板](design/dock-ui.md) | 独立 Dock 设计、状态栏、客户端列表、工具管理（计划） |
+| [工具清单与热切换](design/tools.md) | 48 工具按类别分组、热切换机制（计划） |
+| [IPC 桥接细节](design/ipc-bridge.md) | WebSocket 通信、命令路由（含当前实现与计划） |
 
 ## 使用指南
 
 | 页面 | 描述 |
 |------|------|
-| [客户端配置](guide/client-config.md) | 10+ AI 客户端自动配置方案 |
+| [客户端配置](guide/client-config.md) | 12 个 AI 客户端自动配置方案 |
 
 ## 项目规划
 
