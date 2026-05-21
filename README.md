@@ -63,7 +63,7 @@ python package_addons.py
 }
 ```
 
-更多客户端配置参考 `.repo_wiki/guide/client-config.md`。
+更多客户端配置参考 `.repo_wiki/reference/client-config.md`。
 
 ### 使用流程
 
