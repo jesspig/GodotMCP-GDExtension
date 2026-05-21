@@ -1,135 +1,103 @@
-# 架构概览
+# Architecture Overview
 
-> 图例：✅ = 已实现 | 📋 = 计划中 | ❌ = 未实现
+> Two processes, three crates, one WebSocket. Verified against the codebase as of 2026-05-22.
 
-## 整体拓扑
+## Process topology
 
 ```mermaid
-graph TD
-    subgraph AI["AI 客户端层"]
-        CC["OpenCode / Claude Code<br/>✅ stdio 可用"]
-        Other["Cursor / Copilot / Gemini CLI / ...<br/>❌ HTTP 待实现"]
+graph LR
+    subgraph AI["AI client"]
+        Client["Claude Code / OpenCode /<br/>Codex / Cursor / …"]
     end
 
-    subgraph RustServer["godot-mcp-server（独立二进制）✅"]
-        CLI["CLI 解析 (clap) ✅"]
-        StdioSrv["stdio Transport ✅<br/>(rmcp transport-io)"]
-        HttpSrv["Streamable HTTP 📋<br/>(rmcp + axum) 未实现"]
-        Handler["GodotMcpHandler ✅<br/>(ServerHandler 手动实现)"]
-        Bridge["GodotBridge ✅<br/>(WebSocket 客户端)"]
-
-        CLI --> StdioSrv
-        CLI -.-> HttpSrv
-        StdioSrv --> Handler
-        Handler --> Bridge
+    subgraph ServerProc["godot-mcp-server process (binary)"]
+        Stdio["rmcp stdio Transport"]
+        Handler["GodotMcpHandler<br/>(rmcp ServerHandler)"]
+        Registry["ToolRegistry<br/>(35 tool schemas)"]
+        Bridge["GodotBridge<br/>(WS client)"]
     end
 
-    subgraph GodotProc["Godot Editor 进程"]
-        GDExt["godot-mcp-gdext ✅<br/>(Rust cdylib)"]
-        EditorPlugin["McpEditorPlugin ✅<br/>#[class(tool, base=EditorPlugin)]"]
-        DockUI["Dock 面板 📋<br/>(add_control_to_dock) 未实现"]
-        WSServer["WebSocket 服务端 ✅<br/>(tokio-tungstenite, 3 个方法)"]
-        CmdRouter["命令路由 📋<br/>(CommandHandler trait) 未实现"]
-
-        ToolImpl["工具实现模块 📋<br/>scene / asset / script / editor / project / debug<br/>全部未实现"]
-
-        GDExt --> EditorPlugin
-        EditorPlugin -.-> DockUI
-        EditorPlugin --> WSServer
-        WSServer -.-> CmdRouter
-        CmdRouter -.-> ToolImpl
+    subgraph GodotProc["Godot editor process"]
+        Plugin["McpEditorPlugin<br/>(GDExtension EditorPlugin)"]
+        WS["IpcWebSocketServer<br/>(tokio-tungstenite)"]
+        Pump["main-thread pump<br/>(Callable on process_frame)"]
+        Dispatcher["MainThreadDispatcher"]
+        Commands["MetaCommands<br/>SceneCommands<br/>(cmd_* fns)"]
+        Editor["EditorInterface /<br/>SceneTree / Node API"]
+        Dock["Right-dock UI<br/>(4 sub-panels)"]
     end
 
-    CC -->|"stdio ✅"| StdioSrv
-    Other -.->|"HTTP 📋"| HttpSrv
-
-    Bridge <-->|"ws://127.0.0.1:9500<br/>JSON-RPC 2.0 ✅"| WSServer
+    Client -->|stdio JSON-RPC| Stdio
+    Stdio --> Handler
+    Handler --> Registry
+    Handler --> Bridge
+    Bridge <-->|ws://127.0.0.1:9500<br/>IpcRequest method=tool_call| WS
+    WS --> Dispatcher
+    Dispatcher --> Pump
+    Pump --> Commands
+    Commands --> Editor
+    Plugin --> WS
+    Plugin --> Pump
+    Plugin --> Dock
 ```
 
-## 数据流
+## Crates
 
-### stdio 模式（已实现 — 由 AI 客户端直接启动）
+| Crate | Kind | Role |
+|-------|------|------|
+| `godot-mcp-core` | `lib` | Wire types: `IpcRequest`, `IpcResponse`, `IpcResult`, `IpcNotification`, `ToolCallParams`, `ToolManifest`, `ToolListUpdate` |
+| `godot-mcp-server` | `bin` | MCP server using `rmcp`. Owns `ToolRegistry` (schemas), `GodotMcpHandler` (rmcp glue), `GodotBridge` (WS client) |
+| `godot-mcp-gdext` | `cdylib` | GDExtension. Owns `McpEditorPlugin`, `IpcWebSocketServer`, command handlers, dispatcher, logging pump, dock UI |
 
-```
-AI Client (e.g. OpenCode)
-    |
-    | MCP Protocol (stdio JSON-RPC 2.0)
-    ↓
-godot-mcp-server (子进程)
-    |
-    | WebSocket (JSON-RPC 2.0)
-    ↓
-GDExtension WebSocket Server (:9500)
-    |
-    | EditorInterface / ClassDB API (3 个方法)
-    ↓
-Godot Editor
-```
+See [`specification/workspace.md`](../specification/workspace.md) for full `Cargo.toml` per crate.
 
-### Streamable HTTP 模式（计划，未实现）
+## Request flow (worked example)
 
-```
-AI Client (e.g. Cursor / Codex)
-    |
-    | MCP Protocol (HTTP POST /mcp)
-    ↓
-godot-mcp-server (HTTP 守护进程, axum :8900)
-    |
-    | WebSocket (JSON-RPC 2.0)
-    ↓
-GDExtension WebSocket Server
-    |
-    | EditorInterface / ClassDB API
-    ↓
-Godot Editor
-```
+`call_tool { name: "create_node", arguments: { parent_path: ".", node_type: "Node2D", name: "Player" } }`:
 
-## 实现状态总览
+1. AI client writes JSON-RPC to the server's stdin.
+2. `rmcp` parses it, invokes `GodotMcpHandler::call_tool` (`crates/server/src/handler.rs:142`).
+3. Handler verifies the tool is registered & enabled in `ToolRegistry`, then calls `forward_tool_call` for non-meta tools.
+4. `forward_tool_call` invokes `bridge.call("tool_call", {tool, args})`. The wire frame is `{id, method: "tool_call", params: {tool, args}}`.
+5. `IpcWebSocketServer::handle_request` (`crates/gdext/src/ipc/ws_server.rs:170`) reads the frame, deserialises `ToolCallParams`, calls `route_tool_call`.
+6. `route_tool_call` chooses `MetaCommands::handle_meta_tool` (4 tools) or `SceneCommands::handle_scene_tool` (31 tools). Logs every call via the cross-thread `logging` channel.
+7. For scene tools: `handle_scene_tool` is async; it calls `dispatcher.submit(move || cmd_create_node(&args))` and awaits the oneshot reply. The closure runs on the **Godot main thread** when the pump fires.
+8. The pump (`Callable::from_fn` connected to `SceneTree::process_frame` in `editor_plugin.rs:install_main_thread_pump`) drains the dispatcher queue and the log channel each frame.
+9. `cmd_create_node` calls Godot APIs synchronously, returns a `serde_json::Value`. Dispatcher sends it through the oneshot.
+10. `route_tool_call` wraps it in `IpcResponse { status: ok, data }`, the WS server sends it back.
+11. `GodotBridge` matches the response id to its pending oneshot, server returns the JSON-stringified result as MCP `CallToolResult`.
 
-| 组件 | 状态 | 详情 |
-|------|------|------|
-| Cargo Workspace (3 crates) | ✅ | core / gdext / server |
-| core: 协议类型 | ✅ | IpcRequest, IpcResponse, IpcNotification, ToolManifest |
-| gdext: EditorPlugin | ✅ | InitLevel::Editor, tokio worker_threads=2 |
-| gdext: WS Server (:9500) | ✅ | 3 个方法: ping, get_engine_version, get_plugin_version |
-| gdext: Dock UI | ❌ | 独立 Dock 面板未实现 |
-| gdext: CommandHandler | ❌ | 命令路由 trait 未实现 |
-| gdext: 48 工具 | ❌ | commands/ 目录为空 |
-| server: CLI + stdio | ✅ | clap --godot-port, rmcp transport-io |
-| server: 4 个 MCP 工具 | ✅ | ping, get_engine_version, get_plugin_version, get_server_version |
-| server: GodotBridge | ✅ | WebSocket 客户端, oneshot 应答, 懒连接 + 错误恢复 |
-| server: Streamable HTTP | ❌ | transports/ 目录为空 |
-| server: 48 工具 | ❌ | tools/ 目录不存在 |
-| CI/CD | ✅ | GitHub Actions, 标签触发, 3 平台构建 + 打包 |
-| 构建脚本 | ✅ | package_addons.py 一键构建打包 |
+## Threading
 
-## 核心设计原则
+There are **two** worlds and one ferry between them:
 
-1. **单语言全栈**：Rust 贯穿引擎端（GDExtension）和服务端（MCP Server），无 Python/Node.js 运行时依赖
-2. **共享类型**：`core` crate 定义 IPC 协议和工具清单，`gdext` 和 `server` 共享同一套类型系统
-3. **解耦传输**：MCP Server 不直接操作 Godot API，所有操作通过 WebSocket 委托给 GDExtension
-4. **热加载**：GDExtension 支持 `reloadable = true`，修改 Rust 代码后无需重启 Godot 编辑器
+- **tokio multi-thread runtime** (2 worker threads, owned by `McpEditorPlugin`). Runs the WS server, all routing, all `await`s. Calling Godot APIs from here panics.
+- **Godot editor main thread**. The only place where `EditorInterface`, `Node`, `godot_print!` and other engine APIs are safe to touch.
+- The ferry: `MainThreadDispatcher` (closures) + `logging` mpsc (log records), both drained every frame by a Callable connected to `SceneTree::process_frame`.
 
----
+Read [`overview/threading-model.md`](threading-model.md) before writing any new code in `crates/gdext/`.
 
-## 与相关页面的关系
+## What lives where
 
-| 页面 | 关系 |
-|------|------|
-| [Cargo Workspace 结构](../specification/workspace.md) | 代码组织方式 |
-| [IPC 与 MCP 协议](../specification/protocol.md) | 通信协议细节 |
-| [当前实现状态](../implementation/current-status.md) | 已完成与待实现的详细对照 |
-| [Dock UI 面板](../design/dock-ui.md) | 编辑器插件 UI 设计 |
-| [IPC 桥接细节](../design/ipc-bridge.md) | 桥接实现 |
+| Concern | File |
+|---------|------|
+| Wire types shared by both processes | `crates/core/src/protocol.rs`, `crates/core/src/tool_manifest.rs` |
+| MCP entry point (stdio) | `crates/server/src/main.rs` |
+| MCP handler (`get_info`, `list_tools`, `call_tool`) | `crates/server/src/handler.rs` |
+| Tool schemas (35 entries) | `crates/server/src/tool_registry.rs:register_defaults` |
+| WS client (id↔oneshot, notification listener) | `crates/server/src/bridge.rs` |
+| GDExtension entry, init level | `crates/gdext/src/lib.rs` |
+| Plugin lifecycle, pump install | `crates/gdext/src/editor_plugin.rs` |
+| WS server, request dispatch | `crates/gdext/src/ipc/ws_server.rs` |
+| Routing trait + meta tools | `crates/gdext/src/commands/{mod,meta}.rs` |
+| 31 scene tools + J↔V helpers | `crates/gdext/src/commands/scene.rs` |
+| Closure queue (worker → main) | `crates/gdext/src/dispatcher.rs` |
+| Log channel + main-thread drain | `crates/gdext/src/logging.rs` |
+| Right-dock UI | `crates/gdext/src/dock/*.rs` |
 
-## 现有方案对比
+## Boundaries
 
-| 维度 | hi-godot/godot-ai | CoplayDev/unity-mcp | **本方案** |
-|------|-------------------|---------------------|------------|
-| 引擎端 | GDScript EditorPlugin | C# EditorPlugin | **Rust GDExtension** |
-| 服务端 | Python FastMCP | Python uvx | **Rust rmcp** |
-| 运行时依赖 | Python 3.10+, uv | Python 3.10+, uv | **无（静态编译）** |
-| 传输协议 | Streamable HTTP | HTTP + stdio | **stdio ✅ + Streamable HTTP 📋** |
-| 配置启动 | `uvx godot-ai` | `uvx mcp-for-unity` | **`godot-mcp-server`** |
-| UI 面板 | 底部面板 + 配置页 | 完整管理窗口 | **独立 Dock 面板 📋** |
-| 工具热切换 | 不支持 | 支持 (manage_tools) | **面板 CheckBox → IPC 实时同步 📋** |
+- **The server never imports `godot`**. It only knows how to forward `tool_call` frames. Adding a tool only on the server side will surface as `Tool '...' handler not yet implemented` from the gdext side.
+- **The gdext never imports `rmcp`**. Symmetric: adding a `cmd_*` without registering a schema in `tool_registry.rs` means MCP clients never see the tool.
+- **`core` never imports `godot` or `rmcp`**. It is the only place both sides may share types.
+- **stdio is the only working MCP transport**. `transport-streamable-http-server` is in the server's deps but no `transports/` module exists; the planned HTTP `:8900/mcp` mode is unimplemented.
