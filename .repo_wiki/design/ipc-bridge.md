@@ -5,175 +5,102 @@
 - [架构概览](../overview/architecture.md) — 桥接在架构中的位置
 - [IPC 与 MCP 协议](../specification/protocol.md) — 消息格式定义
 - [工具清单与热切换](tools.md) — 工具调用的桥接路由
+- [当前实现状态](../implementation/current-status.md) — 已完成与待实现的对照
 
 ---
 
-## GDExtension 侧：WebSocket 服务端
+## 当前实现（Phase 1 已完成）
+
+### GDExtension 侧：WebSocket 服务端
+
+**文件**：`crates/gdext/src/ipc/ws_server.rs` (150 行)
 
 ```rust
-// crates/gdext/src/ipc/ws_server.rs
-use tokio::net::TcpListener;
-use tokio_tungstenite::accept_async;
-use futures_util::{SinkExt, StreamExt};
-use std::sync::Arc;
-use tokio::sync::Notify;
-use parking_lot::RwLock;
-
-use godot_mcp_core::protocol::*;
-use crate::commands::CommandHandler;
-
 pub struct IpcWebSocketServer {
     port: u16,
-    handlers: Arc<Vec<Box<dyn CommandHandler + Send + Sync>>>,
-    shutdown_signal: Arc<Notify>,
-    active_connections: Arc<RwLock<Vec<ConnectionHandle>>>,
-}
-
-struct ConnectionHandle {
-    id: String,
-    sender: futures_util::stream::SplitSink<WebSocketStream<tokio::net::TcpStream>, Message>,
+    state: Arc<PluginState>,         // engine_version + plugin_version
+    shutdown: Arc<Notify>,
 }
 
 impl IpcWebSocketServer {
-    pub fn new(port: u16) -> Self {
-        Self {
-            port,
-            handlers: Arc::new(commands::create_registry()),
-            shutdown_signal: Arc::new(Notify::new()),
-            active_connections: Arc::new(RwLock::new(Vec::new())),
-        }
+    pub fn new(port: u16, state: Arc<PluginState>, shutdown: Arc<Notify>) -> Self;
+
+    pub async fn run(&mut self) -> anyhow::Result<()> {
+        // 绑定 127.0.0.1:{port}
+        // tokio::select! between accept 和 shutdown.notified()
+        // 每个连接：accept_async → 发送 godot_ready 通知 → handle_request 循环
     }
 
-    pub async fn run(self) {
-        let listener = TcpListener::bind(("127.0.0.1", self.port)).await.unwrap();
-        
-        loop {
-            tokio::select! {
-                result = listener.accept() => {
-                    match result {
-                        Ok((stream, addr)) => {
-                            match accept_async(stream).await {
-                                Ok(ws) => {
-                                    let handlers = self.handlers.clone();
-                                    let conns = self.active_connections.clone();
-                                    let (tx, mut rx) = ws.split();
-                                    
-                                    let conn_id = uuid::Uuid::new_v4().to_string();
-                                    conns.write().push(ConnectionHandle {
-                                        id: conn_id.clone(),
-                                        sender: tx,
-                                    });
-                                    
-                                    let ready = IpcNotification {
-                                        msg_type: "notification".into(),
-                                        event: "godot_ready".into(),
-                                        data: serde_json::json!({
-                                            "project_path": "res://",
-                                            "godot_version": "4.3+",
-                                            "protocol_version": "1.0",
-                                        }),
-                                    };
-                                    
-                                    tokio::spawn(async move {
-                                        while let Some(Ok(msg)) = rx.next().await {
-                                            if let Message::Text(text) = msg {
-                                                if let Ok(request) = serde_json::from_str::<IpcRequest>(&text) {
-                                                    let response = handle_request(&request, &handlers);
-                                                    // send response...
-                                                }
-                                            }
-                                        }
-                                        conns.write().retain(|c| c.id != conn_id);
-                                    });
-                                }
-                                Err(e) => { /* log */ }
-                            }
-                        }
-                        Err(e) => { /* log */ }
-                    }
-                }
-                _ = self.shutdown_signal.notified() => break,
-            }
-        }
-    }
+    async fn handle_connection(ws, state);
+    fn handle_request(request: &IpcRequest, state: &PluginState) -> IpcResponse;
 }
 ```
 
-## MCP Server 侧：WebSocket 客户端
+**当前支持的方法**（`handle_request` 硬编码匹配）：
+
+| 方法 | 响应 |
+|------|------|
+| `ping` | `{ "message": "pong" }` |
+| `get_engine_version` | `{ "engine_version": "4.x.y" }` |
+| `get_plugin_version` | `{ "plugin_version": "0.1.0" }` |
+| 其他 | Error code: -2, "Unknown method: ..." |
+
+**连接时通知**（每个 WebSocket 客户端连接时发送一次）：
+
+```json
+{
+  "type": "notification",
+  "event": "godot_ready",
+  "data": {
+    "engine_version": "4.5.1",
+    "plugin_version": "0.1.0",
+    "protocol_version": "1.0"
+  }
+}
+```
+
+### MCP Server 侧：WebSocket 客户端
+
+**文件**：`crates/server/src/bridge.rs` (72 行)
 
 ```rust
-// crates/server/src/bridge.rs
-use tokio_tungstenite::connect_async;
-use futures_util::{SinkExt, StreamExt};
-use dashmap::DashMap;
-use tokio::sync::oneshot;
-
 pub struct GodotBridge {
-    writer: Arc<Mutex<SplitSink<WebSocketStream, Message>>>,
-    pending: Arc<DashMap<String, oneshot::Sender<serde_json::Value>>>,
+    writer: Arc<Mutex<SplitSink<...>>>,
+    pending: Arc<DashMap<String, oneshot::Sender<Value>>>,
 }
 
 impl GodotBridge {
-    pub async fn connect(port: u16) -> anyhow::Result<Self> {
-        let url = format!("ws://127.0.0.1:{}", port);
-        let (ws, _) = connect_async(&url).await?;
-        let (write, read) = ws.split();
-        
-        let writer = Arc::new(Mutex::new(write));
-        let pending: Arc<DashMap<String, oneshot::Sender<serde_json::Value>>> = Arc::new(DashMap::new());
-        
-        let p = pending.clone();
-        tokio::spawn(async move {
-            let mut read = read;
-            while let Some(Ok(msg)) = read.next().await {
-                if let Message::Text(text) = msg {
-                    if let Ok(response) = serde_json::from_str::<IpcResponse>(&text) {
-                        if let Some((_, tx)) = p.remove(&response.id) {
-                            match response.result {
-                                IpcResult::Success { data } => { let _ = tx.send(data); }
-                                IpcResult::Error { message, .. } => {
-                                    let _ = tx.send(serde_json::json!({"error": message}));
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        
-        Ok(Self { writer, pending })
-    }
-
-    pub async fn call(&self, method: &str, params: Value) -> anyhow::Result<Value> {
-        let id = uuid::Uuid::new_v4().to_string();
-        let request = IpcRequest {
-            id: id.clone(),
-            method: method.into(),
-            params,
-        };
-        
-        let (tx, rx) = oneshot::channel();
-        self.pending.insert(id.clone(), tx);
-        
-        let msg = serde_json::to_string(&request)?;
-        self.writer.lock().await.send(Message::Text(msg.into())).await?;
-        
-        let result = rx.await?;
-        Ok(result)
-    }
+    pub async fn connect(port: u16) -> anyhow::Result<Self>;
+    pub async fn call(&self, method: &str, params: Value) -> anyhow::Result<Value>;
 }
 ```
 
-## 命令路由
+**机制**：
+1. `connect(port)` → 连接 `ws://127.0.0.1:{port}`
+2. 派生读取任务：解析 `IpcResponse` → 通过 UUID 匹配 `oneshot` sender
+3. `call(method, params)` → `IpcRequest(UUID + method + params)` → 存储 oneshot sender → 发送 JSON → 等待响应
+
+**错误恢复**（`handler.rs` 中）：
+- 桥接方法返回错误时，将内部 bridge 置为 `None`（`self.bridge.lock().await.take()`）
+- 下次工具调用时重新懒连接
+
+---
+
+## 计划中的扩展（Phase 2+）
+
+### 命令路由（待实现）
+
+当前 3 个方法（ping/get_engine_version/get_plugin_version）通过 `match` 硬编码处理。未来 48 个工具将通过 `CommandHandler` trait 路由：
 
 ```rust
-// crates/gdext/src/handler.rs
+// 计划：crates/gdext/src/commands/mod.rs
 pub trait CommandHandler: Send + Sync {
     fn can_handle(&self, method: &str) -> bool;
     fn execute(&self, params: &Value) -> Result<Value, String>;
+    fn is_enabled(&self) -> bool { true }
+    fn group_name(&self) -> &str { "unknown" }
 }
 
-// crates/gdext/src/commands/mod.rs
 pub fn create_registry() -> Vec<Box<dyn CommandHandler + Send + Sync>> {
     vec![
         Box::new(scene::SceneCommands::new()),
@@ -211,15 +138,16 @@ fn handle_request(request: &IpcRequest, handlers: &[Box<dyn CommandHandler>]) ->
     }
     IpcResponse {
         id: request.id.clone(),
-        result: IpcResult::Error {
-            code: -2,
-            message: format!("Unknown tool: {}", request.params.get("tool").unwrap_or(&Value::Null)),
-        },
+        result: IpcResult::Error { code: -2, message: format!("Unknown method: {}", request.method) },
     }
 }
 ```
 
-## 心跳与重连
+### 连接管理（待实现）
+
+多客户端连接管理：连接 ID 追踪、广播通知（`tool_list_updated`）、连接状态上报。
+
+### 心跳与重连（待实现）
 
 | 机制 | 间隔 | 说明 |
 |------|------|------|
@@ -228,24 +156,4 @@ fn handle_request(request: &IpcRequest, handlers: &[Box<dyn CommandHandler>]) ->
 | 连接超时 | 30s | 首次连接超时阈值 |
 | 工具超时 | 30s | 每个工具调用的最大等待时间 |
 
-## 连接状态管理
-
-```rust
-// 在 ws_server.rs 中
-struct ConnectionManager {
-    connections: Vec<ConnectionInfo>,
-}
-
-struct ConnectionInfo {
-    id: String,
-    address: SocketAddr,
-    connected_at: SystemTime,
-    last_seen: SystemTime,
-}
-
-impl ConnectionManager {
-    fn get_connections(&self) -> Vec<ConnectionInfo> { ... }
-    fn remove_connection(&mut self, id: &str) { ... }
-    fn broadcast(&self, notification: &IpcNotification) { ... }
-}
-```
+当前无心跳机制——连接断开由 WebSocket 底层检测，设计中的 10s ping/pong 尚未实现。
