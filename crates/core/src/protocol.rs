@@ -32,6 +32,17 @@ pub struct IpcNotification {
     pub data: Value,
 }
 
+fn default_args() -> Value {
+    Value::Object(serde_json::Map::new())
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolCallParams {
+    pub tool: String,
+    #[serde(default = "default_args")]
+    pub args: Value,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -147,5 +158,37 @@ mod tests {
         let req: IpcRequest = serde_json::from_str(json_str).unwrap();
         assert_eq!(req.params["tool"], "create_node");
         assert_eq!(req.params["args"]["x"], 1);
+    }
+
+    #[test]
+    fn test_tool_call_params_roundtrip() {
+        let params = ToolCallParams {
+            tool: "create_node".into(),
+            args: json!({ "parent_path": "/root", "node_type": "Node2D", "name": "Player" }),
+        };
+        let json_str = serde_json::to_string(&params).unwrap();
+        let de: ToolCallParams = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(de.tool, "create_node");
+        assert_eq!(de.args["parent_path"], "/root");
+    }
+
+    #[test]
+    fn test_tool_call_params_empty_args() {
+        let params = ToolCallParams {
+            tool: "ping".into(),
+            args: json!({}),
+        };
+        let json_str = serde_json::to_string(&params).unwrap();
+        let de: ToolCallParams = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(de.tool, "ping");
+        assert_eq!(de.args, json!({}));
+    }
+
+    #[test]
+    fn test_tool_call_params_default_args() {
+        let json_str = r#"{"tool":"get_scene_tree"}"#;
+        let de: ToolCallParams = serde_json::from_str(json_str).unwrap();
+        assert_eq!(de.tool, "get_scene_tree");
+        assert_eq!(de.args, json!({}));
     }
 }
