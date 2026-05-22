@@ -44,7 +44,7 @@ impl ToolRegistry {
                 "获取 godot-mcp-server 版本号",
                 empty.clone(),
             ),
-            // Scene Management: Read
+            // Node Management: Read
             (
                 "get_scene_tree",
                 "获取当前场景节点树",
@@ -68,7 +68,7 @@ impl ToolRegistry {
                     &["node_path", "property"],
                 ),
             ),
-            // Scene Management: Node write
+            // Node Management: Write
             (
                 "create_node",
                 "创建新节点",
@@ -111,7 +111,7 @@ impl ToolRegistry {
                     &["node_path", "new_parent_path"],
                 ),
             ),
-            // Scene Management: Script + search
+            // Node Management: Script
             (
                 "attach_script",
                 "为节点挂载脚本",
@@ -173,7 +173,7 @@ impl ToolRegistry {
                     &["scene_path", "parent_path"],
                 ),
             ),
-            // Scene Management: Advanced
+            // Node Management: Advanced
             (
                 "reset_parent",
                 "重设父节点 (reparent)",
@@ -195,7 +195,7 @@ impl ToolRegistry {
                     &["node_paths", "property", "value"],
                 ),
             ),
-            // Scene Management: Editor scene tabs (open/close/save/reload)
+            // Scene Management: Editor tabs
             (
                 "open_scene",
                 "在编辑器中打开 .tscn 场景文件 (set_inherited 可选)",
@@ -318,8 +318,11 @@ impl ToolRegistry {
             ),
             (
                 "csharp_create_solution",
-                "创建 C# Solution 文件 (调用 godot --build-solutions)",
-                empty.clone(),
+                "创建 C# Solution 文件 (需先执行 csharp_create_solution)",
+                schema(
+                    r#"{"enable_nativeaot":{"type":"boolean","description":"可选，启用 NativeAOT 支持（添加 PublishAot 和 TrimmerRootAssembly）"}}"#,
+                    &[],
+                ),
             ),
             // Search tools
             (
@@ -336,6 +339,24 @@ impl ToolRegistry {
                 schema(
                     r#"{"pattern":{"type":"string"},"literal":{"type":"boolean"},"extensions":{"type":"array"},"root":{"type":"string"},"case_sensitive":{"type":"boolean"},"max_matches":{"type":"integer"},"max_files":{"type":"integer"}}"#,
                     &["pattern"],
+                ),
+            ),
+            // Godot editor control (server-side, no Godot connection needed)
+            (
+                "godot_editor_open",
+                "启动 Godot 编辑器并打开项目 (通过环境变量 GODOT_PATH 指定 Godot 可执行文件路径)",
+                schema(
+                    r#"{"project_path":{"type":"string","description":"Godot 项目目录路径，默认为 godot/"}}"#,
+                    &[],
+                ),
+            ),
+            ("godot_editor_close", "关闭 Godot 编辑器进程", empty.clone()),
+            (
+                "godot_editor_restart",
+                "重启 Godot 编辑器 (关闭后重新打开)",
+                schema(
+                    r#"{"project_path":{"type":"string","description":"Godot 项目目录路径，默认为 godot/"}}"#,
+                    &[],
                 ),
             ),
         ];
@@ -437,8 +458,8 @@ mod tests {
     fn new_registry_has_defaults() {
         let registry = ToolRegistry::new();
         let (enabled, total) = registry.tool_count();
-        assert_eq!(total, 49);
-        assert_eq!(enabled, 49);
+        assert_eq!(total, 52);
+        assert_eq!(enabled, 52);
     }
 
     #[test]
@@ -456,7 +477,7 @@ mod tests {
         assert!(registry.set_tool_enabled("ping", false));
         assert!(!registry.is_tool_enabled("ping"));
         let (enabled, _) = registry.tool_count();
-        assert_eq!(enabled, 48);
+        assert_eq!(enabled, 51);
     }
 
     #[test]
@@ -485,7 +506,7 @@ mod tests {
         registry.register_tool("custom_tool", "A custom tool", json!({}));
         assert!(registry.is_tool_enabled("custom_tool"));
         let (_, total) = registry.tool_count();
-        assert_eq!(total, 50);
+        assert_eq!(total, 53);
     }
 
     #[test]
@@ -494,7 +515,7 @@ mod tests {
         registry.set_tool_enabled("ping", false);
         registry.set_tool_enabled("get_engine_version", false);
         let enabled = registry.get_enabled_tools();
-        assert_eq!(enabled.len(), 47);
+        assert_eq!(enabled.len(), 50);
         let names: Vec<&str> = enabled.iter().map(|t| t.name.as_str()).collect();
         assert!(names.contains(&"get_plugin_version"));
         assert!(names.contains(&"get_server_version"));
@@ -520,7 +541,7 @@ mod tests {
         assert!(!registry.is_tool_enabled("get_engine_version"));
         assert!(registry.is_tool_enabled("get_plugin_version"));
         let (enabled, _) = registry.tool_count();
-        assert_eq!(enabled, 47);
+        assert_eq!(enabled, 50);
     }
 
     #[test]
@@ -534,6 +555,6 @@ mod tests {
         };
         registry.update_from_notification(&update);
         let (_, total) = registry.tool_count();
-        assert_eq!(total, 49);
+        assert_eq!(total, 52);
     }
 }

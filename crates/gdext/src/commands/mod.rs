@@ -1,4 +1,5 @@
 pub mod meta;
+pub mod node;
 pub mod scene;
 pub mod script_cs;
 pub mod script_gd;
@@ -23,6 +24,7 @@ pub trait CommandHandler: Send + Sync {
 pub fn create_registry() -> Vec<Box<dyn CommandHandler>> {
     vec![
         Box::new(meta::MetaCommands::new()),
+        Box::new(node::NodeCommands::new()),
         Box::new(scene::SceneCommands::new()),
         Box::new(script_gd::ScriptGdCommands::new()),
         Box::new(script_cs::ScriptCsCommands::new()),

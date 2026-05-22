@@ -1,7 +1,7 @@
 use serde_json::{Value, json};
 
 use godot::classes::file_access::ModeFlags;
-use godot::classes::{DirAccess, EditorInterface, FileAccess};
+use godot::classes::{DirAccess, EditorInterface, Engine, FileAccess, ProjectSettings};
 use godot::obj::Singleton;
 use godot::prelude::GString;
 
@@ -305,48 +305,261 @@ fn cmd_csharp_build(args: &Value) -> Value {
     }
 }
 
-fn cmd_csharp_create_solution(_args: &Value) -> Value {
+fn get_sdk_version() -> String {
+    let vi = Engine::singleton().get_version_info();
+    let major: i64 = vi.get("major").map(|v| v.to()).unwrap_or(4);
+    let minor: i64 = vi.get("minor").map(|v| v.to()).unwrap_or(0);
+    let patch: i64 = vi.get("patch").map(|v| v.to()).unwrap_or(0);
+    let status: String = vi
+        .get("status")
+        .map(|v| v.to::<GString>().to_string())
+        .unwrap_or_else(|| "stable".to_string());
+
+    let mut ver = format!("{}.{}.{}", major, minor, patch);
+    if status != "stable" && !status.is_empty() {
+        let suffix = parse_status_to_semver(&status);
+        ver.push_str(&format!("-{}", suffix));
+    }
+    ver
+}
+
+/// Convert Godot version status to SemVer 2.0 pre-release suffix.
+/// "beta2" → "beta.2", "rc1" → "rc.1", "dev" → "dev", "alpha3" → "alpha.3"
+fn parse_status_to_semver(status: &str) -> String {
+    let bytes = status.as_bytes();
+    let split_pos = bytes.iter().position(|b| b.is_ascii_digit());
+    match split_pos {
+        Some(pos) if pos > 0 => {
+            let (alpha, digits) = status.split_at(pos);
+            format!("{}.{}", alpha, digits)
+        }
+        _ => status.to_string(),
+    }
+}
+
+fn get_project_name() -> String {
+    let ps = ProjectSettings::singleton();
+    let val = ps.get_setting("dotnet/project/assembly_name");
+    let custom: String = val
+        .try_to::<GString>()
+        .map(|g| g.to_string())
+        .unwrap_or_default();
+    if !custom.is_empty() {
+        return custom;
+    }
+    let app_val = ps.get_setting("application/config/name");
+    let app_name: String = app_val
+        .try_to::<GString>()
+        .map(|g| g.to_string())
+        .unwrap_or_default();
+    if !app_name.is_empty() {
+        return app_name;
+    }
+    let project_root = ps.globalize_path(&GString::from("res://")).to_string();
+    std::path::Path::new(&project_root)
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "GodotProject".to_string())
+}
+
+fn generate_uuid() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let t = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
+    let seed = t.as_nanos() as u64;
+    let mut state = seed;
+    let mut next_u64 = || -> u64 {
+        state = state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        let xor = ((state >> 18) ^ state) >> 27;
+        (state >> 59) ^ xor
+    };
+    format!(
+        "{:08X}-{:04X}-{:04X}-{:04X}-{:012X}",
+        (next_u64() & 0xFFFF_FFFF) as u32,
+        (next_u64() & 0xFFFF) as u16,
+        ((next_u64() & 0x0FFF) | 0x4000) as u16,
+        ((next_u64() & 0x3FFF) | 0x8000) as u16,
+        next_u64() & 0xFFFF_FFFF_FFFF,
+    )
+}
+
+fn sanitize_identifier(name: &str) -> String {
+    if name.is_empty() {
+        return "_".to_string();
+    }
+    let mut result = String::with_capacity(name.len());
+    for ch in name.chars() {
+        if result.is_empty() {
+            if ch.is_ascii_alphabetic() || ch == '_' {
+                result.push(ch);
+            } else {
+                result.push('_');
+                if ch.is_ascii_alphanumeric() {
+                    result.push(ch);
+                }
+            }
+        } else if ch.is_ascii_alphanumeric() || ch == '_' || ch == '.' {
+            result.push(ch);
+        } else {
+            result.push('_');
+        }
+    }
+    result
+}
+
+fn write_file_utf8_no_bom(path: &str, content: &str) -> bool {
+    match FileAccess::open(&GString::from(path), ModeFlags::WRITE) {
+        Some(mut f) => {
+            f.store_string(&GString::from(content));
+            true
+        }
+        None => false,
+    }
+}
+
+fn write_file_utf8_with_bom(path: &str, content: &str) -> bool {
+    match FileAccess::open(&GString::from(path), ModeFlags::WRITE) {
+        Some(mut f) => {
+            let bom: [u8; 3] = [0xEF, 0xBB, 0xBF];
+            let bom_var = godot::prelude::PackedByteArray::from(bom.as_slice());
+            f.store_buffer(&bom_var);
+            let content_bytes = content.as_bytes();
+            let content_var = godot::prelude::PackedByteArray::from(content_bytes);
+            f.store_buffer(&content_var);
+            true
+        }
+        None => false,
+    }
+}
+
+fn generate_csproj(project_name: &str, sdk_version: &str, enable_nativeaot: bool) -> String {
+    let sanitized = sanitize_identifier(project_name);
+    let root_ns = if sanitized != project_name {
+        format!("\n    <RootNamespace>{}</RootNamespace>", sanitized)
+    } else {
+        String::new()
+    };
+
+    let aot_props = if enable_nativeaot {
+        "\n    <PublishAot>true</PublishAot>".to_string()
+    } else {
+        String::new()
+    };
+
+    let aot_items = if enable_nativeaot {
+        "\n  <ItemGroup>\n    \
+         <TrimmerRootAssembly Include=\"GodotSharp\" />\n    \
+         <TrimmerRootAssembly Include=\"$(TargetName)\" />\n  \
+         </ItemGroup>"
+            .to_string()
+    } else {
+        String::new()
+    };
+
+    format!(
+        "<Project Sdk=\"Godot.NET.Sdk/{sdk_version}\">\n  \
+         <PropertyGroup>\n    \
+         <TargetFramework>net8.0</TargetFramework>\n    \
+         <TargetFramework Condition=\" '$(GodotTargetPlatform)' == 'android' \">net9.0</TargetFramework>\n    \
+         <EnableDynamicLoading>true</EnableDynamicLoading>{root_ns}{aot_props}\n  \
+         </PropertyGroup>{aot_items}\n\
+         </Project>\n"
+    )
+}
+
+fn generate_sln(project_name: &str, guid: &str, csproj_filename: &str) -> String {
+    let csproj_relative = csproj_filename.replace('/', "\\");
+
+    let project_decl = format!(
+        "Project(\"{{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}}\") = \"{}\", \"{}\", \"{{{}}}\"\n\
+         EndProject",
+        project_name, csproj_relative, guid
+    );
+
+    let configs = ["Debug", "ExportDebug", "ExportRelease"];
+    let mut sln_platforms = String::new();
+    let mut proj_platforms = String::new();
+    for (i, cfg) in configs.iter().enumerate() {
+        if i > 0 {
+            sln_platforms.push('\n');
+            proj_platforms.push('\n');
+        }
+        sln_platforms.push_str(&format!("\t{cfg}|Any CPU = {cfg}|Any CPU"));
+        proj_platforms.push_str(&format!(
+            "\t{{{guid}}}.{cfg}|Any CPU.ActiveCfg = {cfg}|Any CPU\n\
+             \t{{{guid}}}.{cfg}|Any CPU.Build.0 = {cfg}|Any CPU"
+        ));
+    }
+
+    format!(
+        "Microsoft Visual Studio Solution File, Format Version 12.00\n\
+         # Visual Studio 2012\n\
+         {project_decl}\n\
+         Global\n\
+         \tGlobalSection(SolutionConfigurationPlatforms) = preSolution\n\
+         {sln_platforms}\n\
+         \tEndGlobalSection\n\
+         \tGlobalSection(ProjectConfigurationPlatforms) = postSolution\n\
+         {proj_platforms}\n\
+         \tEndGlobalSection\n\
+         EndGlobal\n"
+    )
+}
+
+fn cmd_csharp_create_solution(args: &Value) -> Value {
+    let enable_nativeaot = args["enable_nativeaot"].as_bool().unwrap_or(false);
+
     let project_root = match globalize_path("res://") {
         Some(p) => p,
         None => return json!({"error": "Cannot resolve project root"}),
     };
-    let godot_exe = std::env::current_exe()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_default();
-    if godot_exe.is_empty() {
-        return json!({"error": "Cannot determine Godot executable path"});
-    }
 
-    let output = std::process::Command::new(&godot_exe)
-        .args([
-            "--headless",
-            "--build-solutions",
-            "--path",
-            &project_root,
-            "--quit",
-        ])
-        .output();
+    let project_name = get_project_name();
+    let sdk_version = get_sdk_version();
+    let guid = generate_uuid();
+    let csproj_filename = format!("{}.csproj", project_name);
+    let sln_filename = format!("{}.sln", project_name);
 
-    match output {
-        Ok(o) => {
-            let stdout = String::from_utf8_lossy(&o.stdout).to_string();
-            let stderr = String::from_utf8_lossy(&o.stderr).to_string();
-            json!({
-                "exit_code": o.status.code(),
-                "success": o.status.success(),
-                "stdout": stdout,
-                "stderr": stderr,
-                "project_root": project_root,
-                "godot_executable": godot_exe
-            })
-        }
-        Err(e) => json!({
+    let csproj_path = format!("res://{}", csproj_filename);
+    let sln_path = format!("res://{}", sln_filename);
+
+    if FileAccess::file_exists(&GString::from(&csproj_path))
+        || FileAccess::file_exists(&GString::from(&sln_path))
+    {
+        return json!({
             "error": format!(
-                "Failed to spawn Godot: {}. Ensure Godot is built with .NET support and dotnet SDK is installed.",
-                e
-            ),
-            "godot_executable": godot_exe,
-            "project_root": project_root
-        }),
+                "Solution files already exist: {}, {}. Delete them first if you want to regenerate.",
+                csproj_filename, sln_filename
+            )
+        });
     }
+
+    let csproj_content = generate_csproj(&project_name, &sdk_version, enable_nativeaot);
+    let sln_content = generate_sln(&project_name, &guid, &csproj_filename);
+
+    if !write_file_utf8_no_bom(&csproj_path, &csproj_content) {
+        return json!({"error": format!("Failed to write {}", csproj_filename)});
+    }
+    if !write_file_utf8_with_bom(&sln_path, &sln_content) {
+        return json!({"error": format!("Failed to write {}", sln_filename)});
+    }
+
+    if let Some(mut efs) = EditorInterface::singleton().get_resource_filesystem() {
+        efs.update_file(&GString::from(&csproj_path));
+        efs.update_file(&GString::from(&sln_path));
+    }
+
+    json!({
+        "success": true,
+        "project_name": project_name,
+        "sdk_version": sdk_version,
+        "guid": guid,
+        "csproj": csproj_filename,
+        "sln": sln_filename,
+        "enable_nativeaot": enable_nativeaot,
+        "project_root": project_root
+    })
 }

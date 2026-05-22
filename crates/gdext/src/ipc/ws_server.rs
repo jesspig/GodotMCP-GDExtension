@@ -10,6 +10,7 @@ use godot_mcp_core::protocol::{
 
 use crate::commands::CommandHandler;
 use crate::commands::meta::MetaCommands;
+use crate::commands::node::NodeCommands;
 use crate::commands::scene::SceneCommands;
 use crate::commands::script_cs::ScriptCsCommands;
 use crate::commands::script_gd::ScriptGdCommands;
@@ -238,30 +239,36 @@ impl IpcWebSocketServer {
         let result = if meta.can_handle(tool) {
             meta.handle_meta_tool(tool)
         } else {
-            // SceneCommands: scene/node operations via dispatcher
-            let scene = SceneCommands::new();
-            if scene.can_handle(tool) {
-                scene.handle_scene_tool(tool, args, dispatcher).await
+            // NodeCommands: node operations via dispatcher
+            let node = NodeCommands::new();
+            if node.can_handle(tool) {
+                node.handle_node_tool(tool, args, dispatcher).await
             } else {
-                let script_gd = ScriptGdCommands::new();
-                if script_gd.can_handle(tool) {
-                    script_gd
-                        .handle_script_gd_tool(tool, args, dispatcher)
-                        .await
+                // SceneCommands: scene file and editor tab operations via dispatcher
+                let scene = SceneCommands::new();
+                if scene.can_handle(tool) {
+                    scene.handle_scene_tool(tool, args, dispatcher).await
                 } else {
-                    let script_cs = ScriptCsCommands::new();
-                    if script_cs.can_handle(tool) {
-                        script_cs
-                            .handle_script_cs_tool(tool, args, dispatcher)
+                    let script_gd = ScriptGdCommands::new();
+                    if script_gd.can_handle(tool) {
+                        script_gd
+                            .handle_script_gd_tool(tool, args, dispatcher)
                             .await
                     } else {
-                        let search = SearchCommands::new();
-                        if search.can_handle(tool) {
-                            search.handle_search_tool(tool, args, dispatcher).await
-                        } else if registry_tools.contains(&tool.to_string()) {
-                            Err(format!("Tool '{}' handler not yet implemented", tool))
+                        let script_cs = ScriptCsCommands::new();
+                        if script_cs.can_handle(tool) {
+                            script_cs
+                                .handle_script_cs_tool(tool, args, dispatcher)
+                                .await
                         } else {
-                            Err(format!("Unknown tool: {}", tool))
+                            let search = SearchCommands::new();
+                            if search.can_handle(tool) {
+                                search.handle_search_tool(tool, args, dispatcher).await
+                            } else if registry_tools.contains(&tool.to_string()) {
+                                Err(format!("Tool '{}' handler not yet implemented", tool))
+                            } else {
+                                Err(format!("Unknown tool: {}", tool))
+                            }
                         }
                     }
                 }
