@@ -5,7 +5,28 @@
 ## Sequencing
 
 ```
-NOW   ── 35 tools, dispatcher/pump/logging stable, Dock skeleton, stdio only
+Phase 1 — Foundations                ✅ Shipped  ── workspace, EditorPlugin, WS :9500, 4 meta tools
+   │
+   ▼
+┌──────────────────────────────────────────────────────────────┐
+│  Phase 2a — MVP Integration         ✅ Shipped  ── merged   │
+│              `5c68d32a` (feature/mvp → develop)             │
+│  Dispatcher, ToolRegistry, CommandHandler routing, Dock UI  │
+│  skeleton                                                    │
+└──────────────────────────────────────────────────────────────┘
+   │
+   ▼
+┌──────────────────────────────────────────────────────────────┐
+│  Phase 2b — Scene Management      🛠 Partially shipped ──    │
+│              `12fb1431` (feature/scene_manager → develop)    │
+│               tagged `v0.1.0` at `d1ee1fb3`                 │
+│  ✅ 2b.1 Scene Management (10 tools) + 21 utility tools      │
+│  ⏳ 2b.2 Script Management (8), 2b.3 Editor Ctrl (7)         │
+│  ⏳ 2b.4 Project Mgmt (6), e2e tests, docs                  │
+└──────────────────────────────────────────────────────────────┘
+   │
+   ▼
+NOW   ── 10 scene tools + 21 utility tools, dispatcher/pump/logging, Dock skeleton, stdio only
    │
    ▼
 Phase 3 — Dock UI polish              (1 week)   ── unblocks self-service tool toggling + client config
@@ -20,7 +41,52 @@ Phase 5 — Tool group expansion        (open)     ── runtime / asset / proj
 Phase 6 — Resilience                  (1 week)   ── once we have real-world usage, heartbeat + multi-client matter
 ```
 
-Phases 3 and 4 are independent and can be parallelised; both build on top of today's foundations without touching the dispatcher / IPC layer. Phase 5 depends on Phase 4 only if we want the new tools accessible to HTTP-only clients. Phase 6 is best done after Phase 5 because the failure modes only show up under volume.
+Phases 1 through 2b are shipped. Phases 3 and 4 are independent and can be parallelised; both build on top of today's foundations without touching the dispatcher / IPC layer. Phase 5 depends on Phase 4 only if we want the new tools accessible to HTTP-only clients. Phase 6 is best done after Phase 5 because the failure modes only show up under volume.
+
+## Phase 1 — Foundations (✅ Shipped)
+
+**Goal**: biprocess skeleton with end-to-end connectivity. Merged as `ad9c2eb5`..`e15e5183`.
+
+- Cargo workspace (`crates/core`, `crates/server`, `crates/gdext`) + `IpcRequest`/`IpcResponse`/`ToolManifest` types
+- GDExtension `EditorPlugin` + `PluginState` + WebSocket server on `127.0.0.1:9500`
+- MCP server binary (`godot-mcp-server`) with `rmcp` stdio transport + `GodotBridge` (id→oneshot) + `GodotMcpHandler`
+- 4 meta tools: `ping`, `get_engine_version`, `get_plugin_version`, `get_server_version` + lazy-connect
+- `package_addons.py` packaging script, CI pipeline (fmt + clippy + build + test), `rust-toolchain.toml`
+- `version.workspace = true` unification, `Cargo.lock` committed
+
+## Phase 2a — MVP Integration (✅ Shipped)
+
+**Goal**: structured dispatch, thread-safe Godot calls, and Dock UI skeleton. Merged as `5c68d32a`.
+
+- `ToolCallParams` protocol, `MainThreadDispatcher` (worker→main-thread oneshot queue), `ToolRegistry` with enable/disable
+- `CommandHandler` trait + `MetaCommands`/`SceneCommands` modules + `route_tool_call` dispatcher
+- `broadcast_tx` notification channel + dynamic `list_tools` + tool state validation in bridge
+- Dock UI: 4-panel `VBoxContainer` (status bar with green dot + Stop button, tool manager with 4 checkboxes, 12-client integration skeleton, settings with read-only ports)
+- Editor plugin lifecycle integration with dispatcher
+
+## Phase 2b — Scene Management (🛠 Partially shipped)
+
+**Goal**: full scene-tree manipulation + script editing + editor control + project config. Merged as `12fb1431`; tagged `v0.1.0`.
+
+| # | Sub-phase | Tools | Status |
+|---|-----------|-------|--------|
+| 2b.1 | Scene Management | `get_scene_tree`, `create_node`, `delete_node`, `modify_node_property`, `get_node_properties`, `move_node`, `duplicate_node`, `rename_node`, `set_node_script`, `find_nodes` (10) | ✅ Shipped |
+| 2b.2 | Script Management | `create_script`, `read_script`, `edit_script`, `validate_script`, `list_scripts`, `find_in_file`, `search_project`, `eval_expression` (read-only) (8) | ⏳ Not started |
+| 2b.3 | Editor Control | `play`, `pause`, `stop`, `get_console`, `clear_console`, `refresh_project`, `execute_menu_item` (7) | ⏳ Not started |
+| 2b.4 | Project Management | `get_project_settings`, `update_project_settings`, `get_input_map`, `configure_input_map`, `list_scenes`, `run_tests` (6) | ⏳ Not started |
+| 2b.5 | Server registry sync | 31 tools visible in `list_tools` | ✅ Shipped |
+| 2b.6 | e2e tests | 5 representative tools (mock WS server + real server process) | ⏳ Not started |
+| 2b.7 | Documentation sync | parameter and response examples per tool | ⏳ Not started |
+
+Shipped so far:
+- Cross-thread logging: `log_info`/`log_warn`/`log_error` → `mpsc` channel → `drain_to_console()` via pump; eprintln! mirror
+- Main-thread pump: `Callable::from_fn` on `SceneTree::process_frame` (not `EditorPlugin::process`) — solves `bind_mut` re-entrancy (gdext issue #338)
+- 10 scene management commands from 2b.1 + remaining 21 scene-file/tab/utility commands (31 total in `handle_scene_tool`)
+- `j2v`/`v2j` JSON↔Variant helpers (Vector2/3/4, Color, Rect2, Quaternion, Resource); `resolve_node` for root aliases
+- Server registry expanded from 4→35 tools; `package_addons.py` rewritten with flags
+- Wiki restructure (14 pages), bilingual README, AGENTS.md, License
+
+Still to do: 2b.2 through 2b.4 (21 new tools), 2b.6 (e2e tests), 2b.7 (docs). These are queued as the earliest actionable items — they require no new architecture, just new `cmd_*` functions and tool schemas.
 
 ## Phase 3 — Dock UI polish
 
