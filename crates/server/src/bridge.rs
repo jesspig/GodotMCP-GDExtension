@@ -53,15 +53,13 @@ impl GodotBridge {
                                     let _ = tx.send(data);
                                 }
                                 IpcResult::Error { message, .. } => {
-                                    let _ =
-                                        tx.send(serde_json::json!({ "error": message }));
+                                    let _ = tx.send(serde_json::json!({ "error": message }));
                                 }
                             }
                         }
                     }
                     // Try parsing as notification
-                    else if let Ok(notification) =
-                        serde_json::from_str::<IpcNotification>(&text)
+                    else if let Ok(notification) = serde_json::from_str::<IpcNotification>(&text)
                     {
                         Self::handle_notification(&notification, &handler);
                     }
@@ -83,23 +81,16 @@ impl GodotBridge {
             "tool_list_updated" => {
                 eprintln!("[MCP Server] Received tool_list_updated");
                 if let Some(h) = handler
-                    && let Ok(update) =
-                        serde_json::from_value::<godot_mcp_core::tool_manifest::ToolListUpdate>(
-                            notification.data.clone(),
-                        )
+                    && let Ok(update) = serde_json::from_value::<
+                        godot_mcp_core::tool_manifest::ToolListUpdate,
+                    >(notification.data.clone())
                 {
                     h.update_tools(&update);
-                    eprintln!(
-                        "[MCP Server] Tools updated: {} tools",
-                        update.tools.len()
-                    );
+                    eprintln!("[MCP Server] Tools updated: {} tools", update.tools.len());
                 }
             }
             _ => {
-                eprintln!(
-                    "[MCP Server] Unknown notification: {}",
-                    notification.event
-                );
+                eprintln!("[MCP Server] Unknown notification: {}", notification.event);
             }
         }
     }

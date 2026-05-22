@@ -1,7 +1,15 @@
 pub mod meta;
 pub mod scene;
+pub mod script_cs;
+pub mod script_gd;
+pub mod search;
 
-use serde_json::Value;
+use serde_json::{Value, json};
+
+use godot::builtin::{Color, Quaternion, Rect2, Vector2, Vector3, Vector4};
+use godot::classes::{Node, Resource};
+use godot::prelude::{GString, NodePath, StringName, Variant};
+use godot::tools::try_load;
 
 use crate::dispatcher::MainThreadDispatcher;
 
@@ -16,5 +24,213 @@ pub fn create_registry() -> Vec<Box<dyn CommandHandler>> {
     vec![
         Box::new(meta::MetaCommands::new()),
         Box::new(scene::SceneCommands::new()),
+        Box::new(script_gd::ScriptGdCommands::new()),
+        Box::new(script_cs::ScriptCsCommands::new()),
+        Box::new(search::SearchCommands::new()),
     ]
+}
+
+// ── Shared helpers ───────────────────────────────────────────────────
+
+/// Read a string field from JSON args, defaulting to empty string.
+pub fn s(args: &Value, key: &str) -> String {
+    args[key].as_str().unwrap_or("").to_string()
+}
+
+/// Convert an error-shaped JSON Value into Result<Value, String>.
+/// Used to pipe `cmd_*` outputs through to the route_tool_call layer.
+pub fn pipe(val: Value) -> Result<Value, String> {
+    if let Some(e) = val.get("error").and_then(|v| v.as_str()) {
+        Err(e.into())
+    } else {
+        Ok(val)
+    }
+}
+
+/// Resolve a node from a path, accepting root aliases ("", ".", "/", "/root", root name).
+pub fn resolve_node(root: &godot::obj::Gd<Node>, path: &str) -> Option<godot::obj::Gd<Node>> {
+    let trimmed = path.trim();
+    if trimmed.is_empty()
+        || trimmed == "."
+        || trimmed == "/"
+        || trimmed == "/root"
+        || root.get_name() == trimmed
+        || trimmed == format!("/root/{}", root.get_name())
+    {
+        return Some(root.clone());
+    }
+    root.get_node_or_null(&NodePath::from(trimmed))
+}
+
+/// Convert a Godot Variant to serde_json::Value with type recognition for
+/// Vector2/3/4, Color, Rect2, Quaternion, and Resource.
+pub fn v2j(v: &Variant) -> Value {
+    if v.is_nil() {
+        return Value::Null;
+    }
+    if let Ok(b) = v.try_to::<bool>() {
+        return json!(b);
+    }
+    if let Ok(i) = v.try_to::<i64>() {
+        return json!(i);
+    }
+    if let Ok(f) = v.try_to::<f64>() {
+        return json!(f);
+    }
+    if let Ok(gs) = v.try_to::<GString>() {
+        return json!(gs.to_string());
+    }
+    if let Ok(p) = v.try_to::<Vector2>() {
+        return json!({"x": p.x, "y": p.y});
+    }
+    if let Ok(p) = v.try_to::<Vector3>() {
+        return json!({"x": p.x, "y": p.y, "z": p.z});
+    }
+    if let Ok(p) = v.try_to::<Vector4>() {
+        return json!({"x": p.x, "y": p.y, "z": p.z, "w": p.w});
+    }
+    if let Ok(c) = v.try_to::<Color>() {
+        return json!({"r": c.r, "g": c.g, "b": c.b, "a": c.a});
+    }
+    if let Ok(r) = v.try_to::<Rect2>() {
+        return json!({
+            "position": {"x": r.position.x, "y": r.position.y},
+            "size": {"x": r.size.x, "y": r.size.y}
+        });
+    }
+    if let Ok(q) = v.try_to::<Quaternion>() {
+        return json!({"x": q.x, "y": q.y, "z": q.z, "w": q.w});
+    }
+    if let Ok(res) = v.try_to::<godot::obj::Gd<Resource>>() {
+        let path = res.get_path().to_string();
+        if !path.is_empty() {
+            return json!({"resource_path": path});
+        }
+    }
+    json!(v.to_string())
+}
+
+fn obj_keys_match(map: &serde_json::Map<String, Value>, expected: &[&str]) -> bool {
+    map.len() == expected.len() && expected.iter().all(|k| map.contains_key(*k))
+}
+
+fn obj_get_f32(map: &serde_json::Map<String, Value>, key: &str) -> Option<f32> {
+    map.get(key).and_then(|v| v.as_f64()).map(|f| f as f32)
+}
+
+/// Convert a serde_json::Value to a Godot Variant with type recognition for
+/// Vector2/3/4, Color, Rect2, Quaternion, and Resource (via "resource_path" key
+/// or "res://"/"user://" string prefix).
+pub fn j2v(v: &Value) -> Variant {
+    match v {
+        Value::Null => Variant::nil(),
+        Value::Bool(b) => Variant::from(*b),
+        Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                Variant::from(i)
+            } else if let Some(f) = n.as_f64() {
+                Variant::from(f)
+            } else {
+                Variant::nil()
+            }
+        }
+        Value::String(str) => {
+            if (str.starts_with("res://") || str.starts_with("user://"))
+                && let Ok(res) = try_load::<Resource>(str.as_str())
+            {
+                return Variant::from(res);
+            }
+            Variant::from(GString::from(str.as_str()))
+        }
+        Value::Object(map) => {
+            if obj_keys_match(map, &["x", "y"])
+                && let (Some(x), Some(y)) = (obj_get_f32(map, "x"), obj_get_f32(map, "y"))
+            {
+                return Variant::from(Vector2::new(x, y));
+            }
+            if obj_keys_match(map, &["x", "y", "z"])
+                && let (Some(x), Some(y), Some(z)) = (
+                    obj_get_f32(map, "x"),
+                    obj_get_f32(map, "y"),
+                    obj_get_f32(map, "z"),
+                )
+            {
+                return Variant::from(Vector3::new(x, y, z));
+            }
+            if obj_keys_match(map, &["x", "y", "z", "w"])
+                && let (Some(x), Some(y), Some(z), Some(w)) = (
+                    obj_get_f32(map, "x"),
+                    obj_get_f32(map, "y"),
+                    obj_get_f32(map, "z"),
+                    obj_get_f32(map, "w"),
+                )
+            {
+                return Variant::from(Quaternion::new(x, y, z, w));
+            }
+            if obj_keys_match(map, &["r", "g", "b", "a"])
+                && let (Some(r), Some(g), Some(b), Some(a)) = (
+                    obj_get_f32(map, "r"),
+                    obj_get_f32(map, "g"),
+                    obj_get_f32(map, "b"),
+                    obj_get_f32(map, "a"),
+                )
+            {
+                return Variant::from(Color::from_rgba(r, g, b, a));
+            }
+            if obj_keys_match(map, &["r", "g", "b"])
+                && let (Some(r), Some(g), Some(b)) = (
+                    obj_get_f32(map, "r"),
+                    obj_get_f32(map, "g"),
+                    obj_get_f32(map, "b"),
+                )
+            {
+                return Variant::from(Color::from_rgb(r, g, b));
+            }
+            if obj_keys_match(map, &["position", "size"])
+                && let (Some(Value::Object(p)), Some(Value::Object(sz))) =
+                    (map.get("position"), map.get("size"))
+                && let (Some(px), Some(py), Some(sx), Some(sy)) = (
+                    obj_get_f32(p, "x"),
+                    obj_get_f32(p, "y"),
+                    obj_get_f32(sz, "x"),
+                    obj_get_f32(sz, "y"),
+                )
+            {
+                return Variant::from(Rect2::from_components(px, py, sx, sy));
+            }
+            if let Some(Value::String(path)) = map.get("resource_path")
+                && let Ok(res) = try_load::<Resource>(path.as_str())
+            {
+                return Variant::from(res);
+            }
+            Variant::from(GString::from(&v.to_string()))
+        }
+        Value::Array(arr) => {
+            let nums: Option<Vec<f32>> = arr.iter().map(|x| x.as_f64().map(|f| f as f32)).collect();
+            if let Some(ns) = nums {
+                match ns.len() {
+                    2 => return Variant::from(Vector2::new(ns[0], ns[1])),
+                    3 => return Variant::from(Vector3::new(ns[0], ns[1], ns[2])),
+                    4 => return Variant::from(Color::from_rgba(ns[0], ns[1], ns[2], ns[3])),
+                    _ => {}
+                }
+            }
+            Variant::from(GString::from(&v.to_string()))
+        }
+    }
+}
+
+/// Globalize a "res://" path to an OS absolute path via ProjectSettings.
+/// Returns None if ProjectSettings is unavailable.
+/// **Must be called on the main thread.**
+pub fn globalize_path(res_path: &str) -> Option<String> {
+    use godot::classes::ProjectSettings;
+    use godot::obj::Singleton;
+    let ps = ProjectSettings::singleton();
+    Some(ps.globalize_path(&GString::from(res_path)).to_string())
+}
+
+/// StringName from a &str (small convenience).
+pub fn sn(s: &str) -> StringName {
+    StringName::from(s)
 }
