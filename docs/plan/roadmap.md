@@ -71,12 +71,14 @@ Phases 1 through 2b are shipped. Phases 3 and 4 are independent and can be paral
 | # | Sub-phase | Tools | Status |
 |---|-----------|-------|--------|
 | 2b.1 | Scene Management | `get_scene_tree`, `create_node`, `delete_node`, `modify_node_property`, `get_node_properties`, `move_node`, `duplicate_node`, `rename_node`, `set_node_script`, `find_nodes` (10) | ✅ Shipped |
-| 2b.2 | Script Management | `create_script`, `read_script`, `edit_script`, `validate_script`, `list_scripts`, `find_in_file`, `search_project`, `eval_expression` (read-only) (8) | ⏳ Not started |
+| 2b.2 | Script Management | GDScript 子组 (6) + C# 子组 (5) + 通用搜索 (2) = 13；含 LSP 接入 `validate_gdscript` 和 `dotnet build` 集成 | ⏳ Not started |
 | 2b.3 | Editor Control | `play`, `pause`, `stop`, `get_console`, `clear_console`, `refresh_project`, `execute_menu_item` (7) | ⏳ Not started |
 | 2b.4 | Project Management | `get_project_settings`, `update_project_settings`, `get_input_map`, `configure_input_map`, `list_scenes`, `run_tests` (6) | ⏳ Not started |
 | 2b.5 | Server registry sync | 31 tools visible in `list_tools` | ✅ Shipped |
 | 2b.6 | e2e tests | 5 representative tools (mock WS server + real server process) | ⏳ Not started |
 | 2b.7 | Documentation sync | parameter and response examples per tool | ⏳ Not started |
+
+Sub-page: [`phase-2b.md`](phase-2b.md)（含 2b.2 完整设计：LSP 子系统、内置模板、`dotnet build` spawn、文件清单）。
 
 Shipped so far:
 - Cross-thread logging: `log_info`/`log_warn`/`log_error` → `mpsc` channel → `drain_to_console()` via pump; eprintln! mirror
@@ -86,7 +88,7 @@ Shipped so far:
 - Server registry expanded from 4→35 tools; `package_addons.py` rewritten with flags
 - Wiki restructure (14 pages), bilingual README, AGENTS.md, License
 
-Still to do: 2b.2 through 2b.4 (21 new tools), 2b.6 (e2e tests), 2b.7 (docs). These are queued as the earliest actionable items — they require no new architecture, just new `cmd_*` functions and tool schemas.
+Still to do: 2b.2 through 2b.4 (26 new tools), 2b.6 (e2e tests), 2b.7 (docs).
 
 ## Phase 3 — Dock UI polish
 
