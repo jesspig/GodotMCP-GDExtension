@@ -35,11 +35,8 @@ impl GodotMcpHandler {
     async fn ensure_bridge(&self) -> Option<Arc<GodotBridge>> {
         let mut guard = self.bridge.lock().await;
         if guard.is_none() {
-            match GodotBridge::connect_with_handler(
-                self.godot_port,
-                Some(Arc::new(self.clone())),
-            )
-            .await
+            match GodotBridge::connect_with_handler(self.godot_port, Some(Arc::new(self.clone())))
+                .await
             {
                 Ok(bridge) => {
                     eprintln!(
@@ -187,8 +184,8 @@ mod tests {
     fn test_registry_defaults() {
         let handler = GodotMcpHandler::new(9500);
         let (enabled, total) = handler.registry().tool_count();
-        assert_eq!(total, 35);
-        assert_eq!(enabled, 35);
+        assert_eq!(total, 49);
+        assert_eq!(enabled, 49);
     }
 
     #[test]
@@ -201,7 +198,9 @@ mod tests {
     #[tokio::test]
     async fn test_get_server_version_offline() {
         let handler = GodotMcpHandler::new(9999);
-        let result = handler.handle_tool_call("get_server_version", json!({})).await;
+        let result = handler
+            .handle_tool_call("get_server_version", json!({}))
+            .await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), SERVER_VERSION);
     }
@@ -217,7 +216,9 @@ mod tests {
     #[tokio::test]
     async fn test_get_engine_version_offline() {
         let handler = GodotMcpHandler::new(9999);
-        let result = handler.handle_tool_call("get_engine_version", json!({})).await;
+        let result = handler
+            .handle_tool_call("get_engine_version", json!({}))
+            .await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Godot 编辑器未连接，无法获取引擎版本");
     }
@@ -225,7 +226,9 @@ mod tests {
     #[tokio::test]
     async fn test_get_plugin_version_offline() {
         let handler = GodotMcpHandler::new(9999);
-        let result = handler.handle_tool_call("get_plugin_version", json!({})).await;
+        let result = handler
+            .handle_tool_call("get_plugin_version", json!({}))
+            .await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Godot 编辑器未连接，无法获取插件版本");
     }

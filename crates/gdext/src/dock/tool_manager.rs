@@ -57,7 +57,11 @@ impl ToolManager {
         panel
     }
 
-    fn on_tool_toggled(tool_name: &str, enabled: bool, tx: &tokio::sync::broadcast::Sender<String>) {
+    fn on_tool_toggled(
+        tool_name: &str,
+        enabled: bool,
+        tx: &tokio::sync::broadcast::Sender<String>,
+    ) {
         godot_print!(
             "[Godot MCP] Tool '{}' {}",
             tool_name,
