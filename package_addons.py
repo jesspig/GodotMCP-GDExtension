@@ -5,13 +5,13 @@ Default flow (no flags):
   1. Sync version from Cargo.toml to plugin.cfg
   2. Kill any running godot-mcp-server.exe so cargo can overwrite the binary
   3. Build BOTH crates: godot-mcp-gdext + godot-mcp-server
-  4. Copy fresh GDExtension shared library to addons/godot_mcp/bin/
-  5. Zip addons/ into addons.zip
+  4. Copy fresh GDExtension shared library to godot/addons/godot_mcp/bin/
+  5. Zip godot/addons/ into addons.zip
   6. Print a summary of every produced artifact (path, size, mtime)
 
 Flags:
   --release      Build with --release profile (target/release/* instead of debug)
-  --clean        Run `cargo clean` and wipe addons/godot_mcp/bin/ before building
+  --clean        Run `cargo clean` and wipe godot/addons/godot_mcp/bin/ before building
   --no-zip       Skip the final addons.zip step (faster iteration)
   --no-server    Skip building godot-mcp-server (e.g. when only the dll changed)
 """
@@ -67,17 +67,42 @@ def read_workspace_version(project_root: Path) -> str:
     return m.group(1)
 
 
-def update_plugin_version(project_root: Path, version: str) -> None:
-    plugin_cfg = project_root / "addons" / "godot_mcp" / "plugin.cfg"
-    content = plugin_cfg.read_text(encoding="utf-8")
-    new_content = re.sub(
-        r'^version="[^"]*"', f'version="{version}"', content, flags=re.MULTILINE
+def generate_plugin_cfg(project_root: Path, version: str) -> None:
+    addon_dir = project_root / "godot" / "addons" / "godot_mcp"
+    addon_dir.mkdir(parents=True, exist_ok=True)
+    content = (
+        "[plugin]\n"
+        f'name="Godot MCP"\n'
+        'description="Model Context Protocol bridge for Godot Engine."\n'
+        'author=""\n'
+        f'version="{version}"\n'
+        'script=""\n'
     )
-    if new_content == content:
-        print(f"[OK] plugin.cfg version already {version}")
-        return
-    plugin_cfg.write_text(new_content, encoding="utf-8")
-    print(f"[OK] plugin.cfg version updated to {version}")
+    (addon_dir / "plugin.cfg").write_text(content, encoding="utf-8")
+    print(f"[GEN] plugin.cfg (version={version})")
+
+
+def generate_gdextension(project_root: Path) -> None:
+    addon_dir = project_root / "godot" / "addons" / "godot_mcp"
+    addon_dir.mkdir(parents=True, exist_ok=True)
+    content = (
+        "[configuration]\n"
+        "\n"
+        'entry_symbol = "gdext_rust_init"\n'
+        'compatibility_minimum = "4.6"\n'
+        "reloadable = true\n"
+        "\n"
+        "[libraries]\n"
+        "\n"
+        'windows.debug.x86_64 = "res://addons/godot_mcp/bin/godot_mcp_gdext.dll"\n'
+        'windows.release.x86_64 = "res://addons/godot_mcp/bin/godot_mcp_gdext.dll"\n'
+        'linux.debug.x86_64 = "res://addons/godot_mcp/bin/libgodot_mcp_gdext.so"\n'
+        'linux.release.x86_64 = "res://addons/godot_mcp/bin/libgodot_mcp_gdext.so"\n'
+        'macos.debug = "res://addons/godot_mcp/bin/libgodot_mcp_gdext.dylib"\n'
+        'macos.release = "res://addons/godot_mcp/bin/libgodot_mcp_gdext.dylib"\n'
+    )
+    (addon_dir / "godot_mcp.gdextension").write_text(content, encoding="utf-8")
+    print("[GEN] godot_mcp.gdextension")
 
 
 def kill_server_processes() -> None:
@@ -96,10 +121,10 @@ def kill_server_processes() -> None:
 
 
 def clean_artifacts(project_root: Path) -> bool:
-    print("\n[CLEAN] removing cargo target/ and addons/godot_mcp/bin/")
+    print("\n[CLEAN] removing cargo target/ and godot/addons/godot_mcp/bin/")
     if not stream_command(["cargo", "clean"], cwd=project_root):
         return False
-    bin_dir = project_root / "addons" / "godot_mcp" / "bin"
+    bin_dir = project_root / "godot" / "addons" / "godot_mcp" / "bin"
     if bin_dir.exists():
         shutil.rmtree(bin_dir)
         print(f"[OK] removed {bin_dir}")
@@ -133,7 +158,7 @@ def copy_library(project_root: Path, release: bool) -> bool:
     if not src.exists():
         print(f"[ERROR] build artifact not found: {src}", file=sys.stderr)
         return False
-    dest_dir = project_root / "addons" / "godot_mcp" / "bin"
+    dest_dir = project_root / "godot" / "addons" / "godot_mcp" / "bin"
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / lib_name
     shutil.copy2(src, dest)
@@ -142,19 +167,19 @@ def copy_library(project_root: Path, release: bool) -> bool:
 
 
 def package_addons(project_root: Path, output_file: str) -> bool:
-    source_path = project_root / "addons"
+    source_path = project_root / "godot" / "addons"
     if not source_path.exists():
-        print("[ERROR] addons directory does not exist", file=sys.stderr)
+        print("[ERROR] godot/addons directory does not exist", file=sys.stderr)
         return False
 
-    print(f"\n[ZIP] addons/ -> {output_file}")
+    print(f"\n[ZIP] godot/addons/ -> {output_file}")
     output_path = project_root / output_file
     with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zipf:
         for root, _dirs, files in os.walk(source_path):
             root_path = Path(root)
             for file in files:
                 file_path = root_path / file
-                arcname = file_path.relative_to(project_root)
+                arcname = Path("godot") / "addons" / file_path.relative_to(source_path)
                 zipf.write(file_path, arcname)
     size_mb = output_path.stat().st_size / (1024 * 1024)
     print(f"[OK] {output_file} ({size_mb:.2f} MB)")
@@ -168,7 +193,7 @@ def print_summary(project_root: Path, release: bool, packaged_zip: bool) -> None
     paths = [
         project_root / "target" / profile_dir / lib_name,
         project_root / "target" / profile_dir / SERVER_BIN,
-        project_root / "addons" / "godot_mcp" / "bin" / lib_name,
+        project_root / "godot" / "addons" / "godot_mcp" / "bin" / lib_name,
     ]
     if packaged_zip:
         paths.append(project_root / "addons.zip")
@@ -205,7 +230,7 @@ def main():
     parser.add_argument(
         "--clean",
         action="store_true",
-        help="Run `cargo clean` and wipe addons/godot_mcp/bin/ before building",
+        help="Run `cargo clean` and wipe godot/addons/godot_mcp/bin/ before building",
     )
     parser.add_argument(
         "--no-zip", action="store_true", help="Skip producing addons.zip"
@@ -223,7 +248,8 @@ def main():
     print(f"Profile: {'release' if args.release else 'debug'}")
 
     version = read_workspace_version(project_root)
-    update_plugin_version(project_root, version)
+    generate_plugin_cfg(project_root, version)
+    generate_gdextension(project_root)
 
     print("\n[KILL] terminating any running godot-mcp-server processes")
     kill_server_processes()

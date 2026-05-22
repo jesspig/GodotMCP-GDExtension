@@ -61,14 +61,13 @@ export_presets.cfg
 *.iml
 
 # ==============================
-# Build artifacts
+# Godot test project
 # ==============================
-# GDExtension compiled libraries
-addons/godot_mcp/bin/*
-!addons/godot_mcp/bin/.gitkeep
-*.dll
-*.so
-*.dylib
+# Only track project.godot and icon.svg; everything else is test artifacts
+godot/*
+!godot/project.godot
+!godot/icon.svg
+!godot/.gitignore
 
 # Packaged zip files
 *.zip
