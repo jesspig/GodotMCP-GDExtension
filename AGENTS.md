@@ -1,6 +1,6 @@
 # GodotMCP — Agent Instructions
 
-MCP server that exposes the Godot 4.6+ editor to AI tools via 52 commands (49 gdext + 3 server-side editor control).
+MCP server that exposes the Godot 4.6+ editor to AI tools via 85 commands (82 gdext + 3 server-side editor control).
 
 ## Architecture (two-process, three-crate)
 
@@ -14,14 +14,16 @@ AI client ── stdio ──► godot-mcp-server.exe ── WebSocket :9500 ─
 - **stdio is the only MCP transport in use**. `transport-streamable-http-server` is in deps but unwired.
 - **IPC wire format**: JSON-RPC-like, types in `crates/core/src/protocol.rs`. Every tool call is `method = "tool_call"` with `{tool, args}` params; the gdext side routes via `ws_server::route_tool_call`.
 - **Adding a tool requires both sides**: register schema in `crates/server/src/tool_registry.rs::register_defaults` AND add a routing arm in the matching handler module under `crates/gdext/src/commands/`. Exception: server-side tools (editor control) only need the registry + `handler.rs` match arm. Mismatch shows as "Unknown tool" or "handler not yet implemented".
-- **Hardcoded counts in tests**: `tool_registry.rs` and `handler.rs` tests assert `total == 52`. Update them when adding/removing tools.
+- **Hardcoded counts in tests**: `tool_registry.rs` and `handler.rs` tests assert `total == 85`. Update them when adding/removing tools.
 
-## Handler routing chain (7 groups, 52 tools)
+## Handler routing chain (12 groups, 85 tools)
 
 ```
 server handler → EditorControl (3, server-side) ────────────────────────────────────────┐
-gdext route_tool_call → MetaCommands (4) → NodeCommands (16) → SceneCommands (15)      │
-                     → ScriptGdCommands (6) → ScriptCsCommands (6) → SearchCommands (2) │
+gdext route_tool_call → MetaCommands (4) → NodeCommands (16) → PropertyCommands (21)    │
+                     → CollisionCommands (2) → FindCommands (4) → ScriptHelperCommands (3)│
+                     → ProjectSettingsCommands (3) → SceneCommands (15)                   │
+                     → ScriptGdCommands (5) → ScriptCsCommands (6) → SearchCommands (2)  │
                                                                                          │
 Editor control tools are intercepted in handler.rs BEFORE forward_tool_call() ←──────────┘
 ```
@@ -30,9 +32,14 @@ Editor control tools are intercepted in handler.rs BEFORE forward_tool_call() �
 |---------|------|-------|
 | EditorControl | `server/handler.rs` | godot_editor_open, godot_editor_close, godot_editor_restart |
 | MetaCommands | `commands/meta.rs` | ping, get_engine_version, get_plugin_version, get_server_version |
-| NodeCommands | `commands/node.rs` | 16 node CRUD/property/script/find tools |
+| NodeCommands | `commands/node.rs` | 16 node CRUD/script/group tools |
+| PropertyCommands | `commands/property.rs` | 21 typed get/set tools (position, rotation, scale, visible, modulate, z_index, text, collision_layer/mask, texture, unique_name) |
+| CollisionCommands | `commands/collision.rs` | add_circle_collision, add_rectangle_collision |
+| FindCommands | `commands/find.rs` | find_nodes_by_name, find_nodes_by_type, find_nodes_by_group, find_nodes_by_script |
+| ScriptHelperCommands | `commands/script_helpers.rs` | call_method, get_variable, set_variable |
+| ProjectSettingsCommands | `commands/project_settings.rs` | get_project_setting, set_project_setting, set_main_scene |
 | SceneCommands | `commands/scene.rs` | 15 scene file/editor tab tools |
-| ScriptGdCommands | `commands/script_gd.rs` | 6 GDScript tools (create/read/edit/validate/list/eval) |
+| ScriptGdCommands | `commands/script_gd.rs` | 5 GDScript tools (create/read/edit/validate/list) |
 | ScriptCsCommands | `commands/script_cs.rs` | 6 C# tools (create/read/edit/list/build/create_solution) |
 | SearchCommands | `commands/search.rs` | find_in_file, search_project |
 
@@ -54,9 +61,22 @@ Both queues drain via `Callable::from_fn` on `SceneTree::process_frame` (NOT fro
 - `ProjectSettings::get_setting(name)` takes `impl AsArg<GString>` — pass a `&str` or `GString`, not `&StringName`.
 - `ResourceSaver::save(&mut self, resource)` is a method on a `&mut ResourceSaver` singleton, takes only the resource (path is set on the resource). Prefer `ResourceSaver::singleton().save_ex(resource).path(path).done()` for saving to a specific path, or set `resource.set_path()` first.
 - Use `godot::tools::try_load::<T>(path)` (returns `Result`) rather than `ResourceLoader::singleton().load() + cast`.
-- `resolve_node(&root, path)` in `commands/mod.rs` accepts `""`, `"."`, `"/"`, `"/root"`, root name, or any `NodePath`. Use it for all node lookups.
+- `resolve_node(&root, path)` in `commands/mod.rs` accepts `""`, `"."`, `"/"`, `"/root"`, root name, `"RootName/Child"` (prefix auto-stripped), or any `NodePath`. Use it for all node lookups.
 - JSON ↔ Variant conversion: `j2v` / `v2j` in `commands/mod.rs` handle `Vector2/3/4`, `Color`, `Rect2`, `Quaternion`, `Resource`. Always use them; bypassing writes garbage.
 - Scene-file ops must use `EditorInterface` methods — the editor won't see direct `.tscn` file writes.
+
+## Editor-mode limitations
+
+- **`get_variable`/`set_variable`** only work with `@export` script variables in editor mode. Non-exported GDScript members use `PlaceHolderScriptInstance` which does not expose them through `Object::get()/set()`. When a variable returns NIL, the response includes a `hint` field explaining this.
+- **`validate_gdscript`** uses Godot's built-in LSP server. Requires Editor Settings → Network → Language Server → Enable to be ON. Creates a temporary tokio runtime for the LSP TCP connection since `cmd_validate_gdscript` runs on the main thread.
+- **`add_circle_collision`/`add_rectangle_collision`** detect if the target node is already a `CollisionShape2D`. If so, they set the `shape` property directly; otherwise they create a child `CollisionShape2D`. The response `mode` field indicates which path was taken.
+- **`rename_scene`** when the target scene is open in the editor: saves → closes the tab → renames on disk → reopens with new path. If the scene is open but not the active tab, returns an error asking the user to make it active first.
+- **`find_nodes_by_name`** uses case-sensitive substring matching (`contains`), not glob patterns.
+- **`get/set_node_collision_layer/mask`** check node type before operation. Returns error for non-CollisionObject2D/3D nodes (e.g. Sprite2D). No longer silently succeeds.
+- **`set_node_texture`** loads the resource as `Texture2D` (not generic `Resource`) and verifies the property was accepted after setting. The `property` parameter defaults to `"texture"`. For TextureButton use `texture_normal`/`texture_pressed`/`texture_hover`/`texture_disabled`/`texture_focused`; for TextureProgressBar use `texture_under`/`texture_over`/`texture_progress`.
+- **`set_project_setting`/`set_main_scene`** now call `ProjectSettings::save()` to persist changes to `project.godot`. If save fails, a `warning` field is included in the response.
+- **`set_as_root`** verifies the root was actually changed after calling `set_edited_scene_root`. Returns error with the actual root name if the operation failed silently.
+- **`ensure_parent_dir()`** (shared helper in `commands/mod.rs`) handles parent directory creation for file-creating tools. Correctly handles `res://` root paths without triggering `Could not create directory: 'res:/'` errors.
 
 ## Commands
 
