@@ -72,7 +72,8 @@ fn cmd_find_by_name(args: &Value) -> Value {
     };
     let mut matches = Vec::new();
     collect_by_name(&root, &pattern, &mut matches, max);
-    json!({"matches": matches, "count": matches.len()})
+    let truncated = matches.len() >= max;
+    json!({"matches": matches, "count": matches.len(), "truncated": truncated})
 }
 
 fn cmd_find_by_type(args: &Value) -> Value {
@@ -87,7 +88,8 @@ fn cmd_find_by_type(args: &Value) -> Value {
     };
     let mut matches = Vec::new();
     collect_by_type(&root, &node_class, &mut matches, max);
-    json!({"matches": matches, "count": matches.len()})
+    let truncated = matches.len() >= max;
+    json!({"matches": matches, "count": matches.len(), "truncated": truncated})
 }
 
 fn cmd_find_by_group(args: &Value) -> Value {
@@ -102,7 +104,8 @@ fn cmd_find_by_group(args: &Value) -> Value {
     };
     let mut matches = Vec::new();
     collect_by_group(&root, &group, &mut matches, max);
-    json!({"matches": matches, "count": matches.len()})
+    let truncated = matches.len() >= max;
+    json!({"matches": matches, "count": matches.len(), "truncated": truncated})
 }
 
 fn cmd_find_by_script(args: &Value) -> Value {
@@ -117,7 +120,8 @@ fn cmd_find_by_script(args: &Value) -> Value {
     };
     let mut matches = Vec::new();
     collect_by_script(&root, &script_path, &mut matches, max);
-    json!({"matches": matches, "count": matches.len()})
+    let truncated = matches.len() >= max;
+    json!({"matches": matches, "count": matches.len(), "truncated": truncated})
 }
 
 fn push_match(n: &godot::obj::Gd<Node>, root: &godot::obj::Gd<Node>) -> Value {
@@ -154,7 +158,7 @@ fn collect_by_type(n: &godot::obj::Gd<Node>, node_class: &str, out: &mut Vec<Val
         Ok(r) => r,
         Err(_) => return,
     };
-    if n.get_class() == node_class {
+    if n.is_class(node_class) {
         out.push(push_match(n, &root));
     }
     for i in 0..n.get_child_count() {

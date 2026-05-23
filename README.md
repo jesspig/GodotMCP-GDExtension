@@ -1,8 +1,10 @@
 # Godot MCP
 
-[![CI](https://github.com/jessp/godot-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/jessp/godot-mcp/actions/workflows/ci.yml)
-[![Rust](https://img.shields.io/badge/Rust-2024%20edition-orange?style=flat-square)](https://www.rust-lang.org)
-[![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?style=flat-square)](https://godotengine.org)
+[![Version](https://img.shields.io/badge/version-0.1.1-blue?logo=github)](https://github.com/jessp/godot-mcp)
+[![Rust](https://img.shields.io/badge/Rust-2024%20edition-orange?logo=rust)](https://www.rust-lang.org)
+[![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?logo=godot%20engine)](https://godotengine.org)
+[![MCP](https://badge.mcpx.dev/?type=plugin&plugin_id=github.com/jessp/godot-mcp&logo=true)](https://modelcontextprotocol.io)
+[![License](https://img.shields.io/badge/License-MIT-green?logo=open-source-initiative)](License)
 
 > Model Context Protocol bridge that lets AI assistants control the Godot Engine editor.
 

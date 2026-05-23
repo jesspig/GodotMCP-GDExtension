@@ -72,12 +72,22 @@ fn cmd_call_method(args: &Value) -> Value {
         .map(|arr| arr.iter().map(j2v).collect())
         .unwrap_or_default();
     let result = node.call(&StringName::from(method.as_str()), &call_args);
-    json!({
+    let is_nil = result.is_nil();
+    let mut resp = json!({
         "node_path": p,
         "method": method,
         "result": v2j(&result),
         "type": format!("{:?}", result.get_type())
-    })
+    });
+    if is_nil {
+        resp.as_object_mut().unwrap().insert(
+            "hint".into(),
+            json!("Method returned null. In editor mode, custom GDScript methods can only execute on @tool scripts. \
+                   Add '@tool' at the top of the script and re-attach it to enable editor-time method calls. \
+                   Built-in engine methods (e.g. get_name, get_child_count) work regardless of @tool."),
+        );
+    }
+    resp
 }
 
 fn cmd_get_variable(args: &Value) -> Value {
@@ -94,6 +104,15 @@ fn cmd_get_variable(args: &Value) -> Value {
         Some(n) => {
             let val = n.get(&StringName::from(var_name.as_str()));
             if val.is_nil() {
+                let retry = n.get(&StringName::from(var_name.as_str()));
+                if !retry.is_nil() {
+                    return json!({
+                        "node_path": p,
+                        "variable": var_name,
+                        "value": v2j(&retry),
+                        "type": format!("{:?}", retry.get_type())
+                    });
+                }
                 json!({
                     "node_path": p,
                     "variable": var_name,
@@ -135,8 +154,29 @@ fn cmd_set_variable(args: &Value) -> Value {
     };
     match resolve_node(&root, p.as_str()) {
         Some(mut n) => {
-            n.set(&StringName::from(var_name.as_str()), &j2v(&val));
-            json!({"node_path": p, "variable": var_name, "value": val})
+            let gv = j2v(&val);
+            n.set(&StringName::from(var_name.as_str()), &gv);
+            let actual = n.get(&StringName::from(var_name.as_str()));
+            if actual.is_nil() {
+                return json!({
+                    "node_path": p,
+                    "variable": var_name,
+                    "success": false,
+                    "hint": format!(
+                        "Variable '{}' was not actually set. In editor mode, Object.set() only works \
+                         with engine properties and @export script variables. Non-@export variables \
+                         are stored in PlaceHolderScriptInstance which may not persist the value. \
+                         Use @export var {} in your GDScript.",
+                        var_name, var_name
+                    )
+                });
+            }
+            json!({
+                "node_path": p,
+                "variable": var_name,
+                "value": v2j(&actual),
+                "success": true
+            })
         }
         None => json!({"error": format!("Node not found: {}", p)}),
     }

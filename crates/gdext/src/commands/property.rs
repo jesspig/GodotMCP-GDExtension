@@ -5,7 +5,7 @@ use godot::classes::Texture2D;
 use godot::prelude::{GString, StringName, Variant};
 use godot::tools::try_load;
 
-use super::{get_root, pipe, resolve_node, s, v2j};
+use super::{get_root, get_undo_redo, pipe, resolve_node, s, v2j};
 use crate::dispatcher::MainThreadDispatcher;
 
 pub const TOOL_NAMES: &[&str] = &[
@@ -121,10 +121,12 @@ macro_rules! get_set_prop {
             let p = s(args, "node_path");
             let root = match get_root() { Ok(r) => r, Err(e) => return e };
             match resolve_node(&root, p.as_str()) {
-                Some(mut n) => {
+                Some(n) => {
                     let val: Variant = $set_val(args);
-                    n.set(&StringName::from($prop), &val);
-                    json!({"node_path": p, "property": $prop})
+                    let action = format!("Set {} for {}", $prop, p);
+                    super::undoable_set(&n, $prop, &val, &action);
+                    let actual = n.get(&StringName::from($prop));
+                    json!({"node_path": p, "property": $prop, "value": $get_ret(&actual)})
                 }
                 None => json!({"error": format!("Node not found: {}", p)}),
             }
@@ -158,9 +160,11 @@ fn cmd_set_node_position(args: &Value) -> Value {
         Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
-        Some(mut n) => {
-            n.set("position", &Variant::from(Vector2::new(x, y)));
-            json!({"node_path": p, "property": "position", "x": x, "y": y})
+        Some(n) => {
+            let val = Variant::from(Vector2::new(x, y));
+            super::undoable_set(&n, "position", &val, &format!("Set position for {}", p));
+            let actual: Vector2 = n.get("position").try_to().unwrap_or_default();
+            json!({"node_path": p, "property": "position", "x": actual.x, "y": actual.y})
         }
         None => json!({"error": format!("Node not found: {}", p)}),
     }
@@ -191,9 +195,16 @@ fn cmd_set_node_rotation(args: &Value) -> Value {
         Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
-        Some(mut n) => {
-            n.set("rotation_degrees", &Variant::from(deg));
-            json!({"node_path": p, "property": "rotation_degrees", "degrees": deg})
+        Some(n) => {
+            let val = Variant::from(deg);
+            super::undoable_set(
+                &n,
+                "rotation_degrees",
+                &val,
+                &format!("Set rotation for {}", p),
+            );
+            let actual: f64 = n.get("rotation_degrees").try_to().unwrap_or(0.0);
+            json!({"node_path": p, "property": "rotation_degrees", "degrees": actual})
         }
         None => json!({"error": format!("Node not found: {}", p)}),
     }
@@ -225,9 +236,11 @@ fn cmd_set_node_scale(args: &Value) -> Value {
         Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
-        Some(mut n) => {
-            n.set("scale", &Variant::from(Vector2::new(x, y)));
-            json!({"node_path": p, "property": "scale", "x": x, "y": y})
+        Some(n) => {
+            let val = Variant::from(Vector2::new(x, y));
+            super::undoable_set(&n, "scale", &val, &format!("Set scale for {}", p));
+            let actual: Vector2 = n.get("scale").try_to().unwrap_or_default();
+            json!({"node_path": p, "property": "scale", "x": actual.x, "y": actual.y})
         }
         None => json!({"error": format!("Node not found: {}", p)}),
     }
@@ -271,9 +284,11 @@ fn cmd_set_node_modulate(args: &Value) -> Value {
         Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
-        Some(mut n) => {
-            n.set("modulate", &Variant::from(Color::from_rgba(r, g, b, a)));
-            json!({"node_path": p, "property": "modulate", "r": r, "g": g, "b": b, "a": a})
+        Some(n) => {
+            let val = Variant::from(Color::from_rgba(r, g, b, a));
+            super::undoable_set(&n, "modulate", &val, &format!("Set modulate for {}", p));
+            let actual: Color = n.get("modulate").try_to().unwrap_or_default();
+            json!({"node_path": p, "property": "modulate", "r": actual.r, "g": actual.g, "b": actual.b, "a": actual.a})
         }
         None => json!({"error": format!("Node not found: {}", p)}),
     }
@@ -342,13 +357,20 @@ fn cmd_set_node_collision_layer(args: &Value) -> Value {
         Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
-        Some(mut n) => {
+        Some(n) => {
             if let Some(err) = check_collision_compatible(&n, &p) {
                 return err;
             }
             let layer = args["layer"].as_i64().unwrap_or(1);
-            n.set(&StringName::from("collision_layer"), &Variant::from(layer));
-            json!({"node_path": p, "property": "collision_layer", "layer": layer})
+            let val = Variant::from(layer);
+            super::undoable_set(
+                &n,
+                "collision_layer",
+                &val,
+                &format!("Set collision_layer for {}", p),
+            );
+            let actual: i64 = n.get("collision_layer").try_to().unwrap_or(1);
+            json!({"node_path": p, "property": "collision_layer", "layer": actual})
         }
         None => json!({"error": format!("Node not found: {}", p)}),
     }
@@ -382,13 +404,20 @@ fn cmd_set_node_collision_mask(args: &Value) -> Value {
         Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
-        Some(mut n) => {
+        Some(n) => {
             if let Some(err) = check_collision_compatible(&n, &p) {
                 return err;
             }
             let mask = args["mask"].as_i64().unwrap_or(1);
-            n.set(&StringName::from("collision_mask"), &Variant::from(mask));
-            json!({"node_path": p, "property": "collision_mask", "mask": mask})
+            let val = Variant::from(mask);
+            super::undoable_set(
+                &n,
+                "collision_mask",
+                &val,
+                &format!("Set collision_mask for {}", p),
+            );
+            let actual: i64 = n.get("collision_mask").try_to().unwrap_or(1);
+            json!({"node_path": p, "property": "collision_mask", "mask": actual})
         }
         None => json!({"error": format!("Node not found: {}", p)}),
     }
@@ -404,8 +433,21 @@ fn cmd_set_node_unique_name(args: &Value) -> Value {
         Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
-        Some(mut n) => {
-            n.set_unique_name_in_owner(unique);
+        Some(n) => {
+            let mut ur = get_undo_redo();
+            let old_unique = n.is_unique_name_in_owner();
+            ur.create_action(&format!("Set unique_name for {}", p));
+            ur.add_do_method(
+                &n.clone(),
+                &StringName::from("set_unique_name_in_owner"),
+                &[Variant::from(unique)],
+            );
+            ur.add_undo_method(
+                &n.clone(),
+                &StringName::from("set_unique_name_in_owner"),
+                &[Variant::from(old_unique)],
+            );
+            ur.commit_action();
             json!({"node_path": p, "unique_name_in_owner": unique})
         }
         None => json!({"error": format!("Node not found: {}", p)}),
@@ -473,6 +515,7 @@ fn cmd_set_node_texture(args: &Value) -> Value {
     };
     match resolve_node(&root, p.as_str()) {
         Some(mut n) => {
+            let old_val = n.get(&StringName::from(prop));
             n.set(&StringName::from(prop), &Variant::from(texture));
             let check = n.get(&StringName::from(prop));
             if check.is_nil() {
@@ -481,6 +524,15 @@ fn cmd_set_node_texture(args: &Value) -> Value {
                     p, n.get_class().to_string(), prop
                 )});
             }
+            let mut ur = get_undo_redo();
+            ur.create_action(&format!("Set {} for {}", prop, p));
+            ur.add_do_property(
+                &n.clone(),
+                &StringName::from(prop),
+                &Variant::from(check.clone()),
+            );
+            ur.add_undo_property(&n.clone(), &StringName::from(prop), &old_val);
+            ur.commit_action_ex().execute(false).done();
             json!({
                 "node_path": p,
                 "property": prop,

@@ -1,12 +1,13 @@
 use serde_json::{Value, json};
 
-use godot::classes::{DirAccess, FileAccess};
+use godot::classes::{DirAccess, EditorInterface, FileAccess};
+use godot::obj::Singleton;
 use godot::prelude::GString;
 
 use super::{CommandHandler, pipe, s};
 use crate::dispatcher::MainThreadDispatcher;
 
-pub const TOOL_NAMES: &[&str] = &["find_in_file", "search_project"];
+pub const TOOL_NAMES: &[&str] = &["find_in_file", "search_project", "find_and_replace"];
 
 pub struct SearchCommands;
 
@@ -52,6 +53,10 @@ impl SearchCommands {
             "search_project" => {
                 let a = args.clone();
                 pipe(d.submit(move || cmd_search_project(&a)).await)
+            }
+            "find_and_replace" => {
+                let a = args.clone();
+                pipe(d.submit(move || cmd_find_and_replace(&a)).await)
             }
             _ => Err(format!("Unknown search tool: {}", tool)),
         }
@@ -245,4 +250,74 @@ fn cmd_search_project(args: &Value) -> Value {
         "files_scanned": files_scanned,
         "truncated": truncated
     })
+}
+
+fn cmd_find_and_replace(args: &Value) -> Value {
+    let path = s(args, "path");
+    let pattern = s(args, "pattern");
+    let replacement = s(args, "replacement");
+    if pattern.is_empty() {
+        return json!({"error": "missing 'pattern'"});
+    }
+    if replacement.is_empty() && args.get("replacement").is_none() {
+        return json!({"error": "missing 'replacement'"});
+    }
+    let literal = args["literal"].as_bool().unwrap_or(true);
+    let case_sensitive = args["case_sensitive"].as_bool().unwrap_or(true);
+    let max_replacements = args["max_replacements"].as_u64().unwrap_or(10000) as usize;
+
+    let source = match read_file_text(&path) {
+        Ok(s) => s,
+        Err(e) => return json!({"error": e}),
+    };
+
+    let re = if literal {
+        regex::RegexBuilder::new(&regex::escape(&pattern))
+            .case_insensitive(!case_sensitive)
+            .build()
+    } else {
+        regex::RegexBuilder::new(&pattern)
+            .case_insensitive(!case_sensitive)
+            .build()
+    };
+    let Ok(re) = re else {
+        return json!({"error": "Invalid regex pattern"});
+    };
+
+    let mut count = 0usize;
+    let result = re.replace_all(&source, |caps: &regex::Captures| {
+        if count < max_replacements {
+            count += 1;
+            if literal {
+                replacement.clone()
+            } else {
+                let mut expanded = String::new();
+                caps.expand(&replacement, &mut expanded);
+                expanded
+            }
+        } else {
+            caps[0].to_string()
+        }
+    });
+
+    if count == 0 {
+        return json!({"path": path, "replacements": 0, "hint": "No matches found"});
+    }
+
+    let content = GString::from(&*result);
+    let mut fa = match FileAccess::open(
+        &GString::from(&path),
+        godot::classes::file_access::ModeFlags::WRITE,
+    ) {
+        Some(f) => f,
+        None => return json!({"error": format!("Failed to open '{}' for writing", path)}),
+    };
+    fa.store_string(&content);
+    drop(fa);
+
+    if let Some(mut efs) = EditorInterface::singleton().get_resource_filesystem() {
+        efs.update_file(&GString::from(&path));
+    }
+
+    json!({"path": path, "replacements": count, "truncated": count >= max_replacements})
 }

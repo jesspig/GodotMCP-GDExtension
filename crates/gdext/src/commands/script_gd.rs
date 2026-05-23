@@ -167,7 +167,11 @@ fn cmd_edit_gdscript(args: &Value) -> Value {
             }
             let mut reload_error: Option<String> = None;
             if let Ok(mut script) = godot::tools::try_load::<GDScript>(&path) {
-                let err = script.reload();
+                script.set_source_code(&GString::from(&source));
+                let mut err = script.reload();
+                if err != godot::global::Error::OK {
+                    err = script.reload();
+                }
                 if err != godot::global::Error::OK {
                     reload_error = Some(format!("{:?}", err));
                 } else {

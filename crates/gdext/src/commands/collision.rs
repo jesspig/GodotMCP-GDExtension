@@ -1,10 +1,11 @@
 use serde_json::{Value, json};
 
 use godot::classes::{ClassDb, Node};
+use godot::meta::ToGodot;
 use godot::obj::{NewGd, Singleton};
 use godot::prelude::{StringName, Variant};
 
-use super::{get_root, pipe, resolve_node, s};
+use super::{get_root, get_undo_redo, pipe, resolve_node, s};
 use crate::dispatcher::MainThreadDispatcher;
 
 pub const TOOL_NAMES: &[&str] = &["add_circle_collision", "add_rectangle_collision"];
@@ -73,12 +74,22 @@ fn cmd_add_circle_collision(args: &Value) -> Value {
     circle.set_radius(radius);
 
     if target.get_class() == "CollisionShape2D" {
+        let old_shape = target.get("shape");
         let mut cs = target;
-        cs.set("shape", &Variant::from(circle));
+        cs.set("shape", &Variant::from(circle.clone()));
+        let mut ur = get_undo_redo();
+        ur.create_action(&format!("Set circle collision for {}", p));
+        ur.add_do_property(
+            &cs.clone(),
+            &StringName::from("shape"),
+            &Variant::from(circle),
+        );
+        ur.add_undo_property(&cs.clone(), &StringName::from("shape"), &old_shape);
+        ur.commit_action_ex().execute(false).done();
         return json!({"node_path": p, "radius": radius, "shape": "CircleShape2D", "mode": "set_on_existing"});
     }
 
-    let mut parent = target;
+    let parent = target;
     let mut shape_node: godot::obj::Gd<Node> = ClassDb::singleton()
         .instantiate(&StringName::from("CollisionShape2D"))
         .try_to()
@@ -86,8 +97,25 @@ fn cmd_add_circle_collision(args: &Value) -> Value {
     shape_node.set_name(&StringName::from("CollisionShape2D"));
     shape_node.set("shape", &Variant::from(circle));
 
-    parent.add_child(&shape_node);
-    shape_node.set_owner(&root);
+    let mut ur = get_undo_redo();
+    ur.create_action(&format!("Add circle collision to {}", p));
+    ur.add_do_method(
+        &parent.clone(),
+        &StringName::from("add_child"),
+        &[shape_node.to_variant()],
+    );
+    ur.add_do_method(
+        &shape_node.clone(),
+        &StringName::from("set_owner"),
+        &[root.to_variant()],
+    );
+    ur.add_do_reference(&shape_node.clone());
+    ur.add_undo_method(
+        &parent.clone(),
+        &StringName::from("remove_child"),
+        &[shape_node.to_variant()],
+    );
+    ur.commit_action();
 
     json!({"node_path": p, "radius": radius, "shape": "CircleShape2D", "mode": "created_child"})
 }
@@ -110,8 +138,18 @@ fn cmd_add_rectangle_collision(args: &Value) -> Value {
     rect.set_size(godot::builtin::Vector2::new(width, height));
 
     if target.get_class() == "CollisionShape2D" {
+        let old_shape = target.get("shape");
         let mut cs = target;
-        cs.set("shape", &Variant::from(rect));
+        cs.set("shape", &Variant::from(rect.clone()));
+        let mut ur = get_undo_redo();
+        ur.create_action(&format!("Set rectangle collision for {}", p));
+        ur.add_do_property(
+            &cs.clone(),
+            &StringName::from("shape"),
+            &Variant::from(rect),
+        );
+        ur.add_undo_property(&cs.clone(), &StringName::from("shape"), &old_shape);
+        ur.commit_action_ex().execute(false).done();
         return json!({
             "node_path": p,
             "width": width,
@@ -121,7 +159,7 @@ fn cmd_add_rectangle_collision(args: &Value) -> Value {
         });
     }
 
-    let mut parent = target;
+    let parent = target;
     let mut shape_node: godot::obj::Gd<Node> = ClassDb::singleton()
         .instantiate(&StringName::from("CollisionShape2D"))
         .try_to()
@@ -129,8 +167,25 @@ fn cmd_add_rectangle_collision(args: &Value) -> Value {
     shape_node.set_name(&StringName::from("CollisionShape2D"));
     shape_node.set("shape", &Variant::from(rect));
 
-    parent.add_child(&shape_node);
-    shape_node.set_owner(&root);
+    let mut ur = get_undo_redo();
+    ur.create_action(&format!("Add rectangle collision to {}", p));
+    ur.add_do_method(
+        &parent.clone(),
+        &StringName::from("add_child"),
+        &[shape_node.to_variant()],
+    );
+    ur.add_do_method(
+        &shape_node.clone(),
+        &StringName::from("set_owner"),
+        &[root.to_variant()],
+    );
+    ur.add_do_reference(&shape_node.clone());
+    ur.add_undo_method(
+        &parent.clone(),
+        &StringName::from("remove_child"),
+        &[shape_node.to_variant()],
+    );
+    ur.commit_action();
 
     json!({
         "node_path": p,
