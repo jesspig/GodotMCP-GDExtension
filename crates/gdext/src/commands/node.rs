@@ -1,11 +1,11 @@
 use serde_json::{Value, json};
 
-use godot::classes::{ClassDb, EditorInterface, Node};
+use godot::classes::{ClassDb, Node};
 use godot::obj::Singleton;
 use godot::prelude::{StringName, Variant};
 use godot::tools::try_load;
 
-use super::{CommandHandler, j2v, pipe, resolve_node, s, v2j};
+use super::{get_root, j2v, pipe, relative_path, resolve_node, s, v2j};
 use crate::dispatcher::MainThreadDispatcher;
 
 pub const TOOL_NAMES: &[&str] = &[
@@ -21,10 +21,11 @@ pub const TOOL_NAMES: &[&str] = &[
     "move_node",
     "attach_script",
     "detach_script",
-    "find_nodes",
     "reset_parent",
     "set_as_root",
     "batch_set_property",
+    "add_node_to_group",
+    "remove_node_from_group",
 ];
 
 pub struct NodeCommands;
@@ -41,7 +42,7 @@ impl Default for NodeCommands {
     }
 }
 
-impl CommandHandler for NodeCommands {
+impl super::CommandHandler for NodeCommands {
     fn can_handle(&self, tool: &str) -> bool {
         TOOL_NAMES.contains(&tool)
     }
@@ -77,10 +78,13 @@ impl NodeCommands {
             "move_node" => pipe(d.submit(move || cmd_move_node(&a)).await),
             "attach_script" => pipe(d.submit(move || cmd_attach_script(&a)).await),
             "detach_script" => pipe(d.submit(move || cmd_detach_script(&a)).await),
-            "find_nodes" => pipe(d.submit(move || cmd_find_nodes(&a)).await),
             "reset_parent" => pipe(d.submit(move || cmd_reset_parent(&a)).await),
             "set_as_root" => pipe(d.submit(move || cmd_set_as_root(&a)).await),
             "batch_set_property" => pipe(d.submit(move || cmd_batch_set_property(&a)).await),
+            "add_node_to_group" => pipe(d.submit(move || cmd_add_node_to_group(&a)).await),
+            "remove_node_from_group" => {
+                pipe(d.submit(move || cmd_remove_node_from_group(&a)).await)
+            }
             _ => Err(format!("Unknown node tool: {}", tool)),
         }
     }
@@ -90,32 +94,29 @@ impl NodeCommands {
 
 fn cmd_get_scene_tree(args: &Value) -> Value {
     let max = args["max_depth"].as_u64().unwrap_or(10) as i32;
-    let ei = EditorInterface::singleton();
-    match ei.get_edited_scene_root() {
-        Some(root) => serialize_tree(&root, 0, max),
-        None => json!({"error": "No scene open"}),
+    match get_root() {
+        Ok(root) => serialize_tree(&root, 0, max),
+        Err(e) => e,
     }
 }
 
 fn cmd_get_node_path(args: &Value) -> Value {
     let p = s(args, "node_path");
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
-        Some(n) => json!({"path": n.get_path().to_string()}),
+        Some(n) => json!({"path": relative_path(&n, &root)}),
         None => json!({"error": format!("Node not found: {}", p)}),
     }
 }
 
 fn cmd_get_property_list(args: &Value) -> Value {
     let p = s(args, "node_path");
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
         Some(n) => {
@@ -137,10 +138,9 @@ fn cmd_get_property_list(args: &Value) -> Value {
 fn cmd_get_property(args: &Value) -> Value {
     let p = s(args, "node_path");
     let prop = s(args, "property");
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
         Some(n) => json!({"value": v2j(&n.get(&StringName::from(prop.as_str())))}),
@@ -154,10 +154,9 @@ fn cmd_create_node(args: &Value) -> Value {
     let parent_p = s(args, "parent_path");
     let node_type = s(args, "node_type");
     let name = s(args, "name");
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     let mut parent = match resolve_node(&root, parent_p.as_str()) {
         Some(p) => p,
@@ -169,7 +168,7 @@ fn cmd_create_node(args: &Value) -> Value {
             node.set_name(&StringName::from(name.as_str()));
             parent.add_child(&node);
             node.set_owner(&root);
-            json!({"path": format!("{}/{}", parent_p, name)})
+            json!({"path": relative_path(&node, &root)})
         }
         Err(_) => json!({"error": format!("Cannot instantiate type: {}", node_type)}),
     }
@@ -177,10 +176,9 @@ fn cmd_create_node(args: &Value) -> Value {
 
 fn cmd_delete_node(args: &Value) -> Value {
     let p = s(args, "node_path");
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
         Some(mut n) => {
@@ -194,15 +192,14 @@ fn cmd_delete_node(args: &Value) -> Value {
 fn cmd_rename_node(args: &Value) -> Value {
     let p = s(args, "node_path");
     let new_name = s(args, "new_name");
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
         Some(mut n) => {
             n.set_name(&StringName::from(new_name.as_str()));
-            json!({"new_path": n.get_path().to_string()})
+            json!({"new_path": relative_path(&n, &root)})
         }
         None => json!({"error": format!("Node not found: {}", p)}),
     }
@@ -215,10 +212,9 @@ fn cmd_set_property(args: &Value) -> Value {
         Some(v) => v.clone(),
         None => return json!({"error": "missing 'value'"}),
     };
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
         Some(mut n) => {
@@ -231,10 +227,9 @@ fn cmd_set_property(args: &Value) -> Value {
 
 fn cmd_duplicate_node(args: &Value) -> Value {
     let p = s(args, "node_path");
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
         Some(n) => {
@@ -245,7 +240,7 @@ fn cmd_duplicate_node(args: &Value) -> Value {
                     dup.set_name(&StringName::from(nm.as_str()));
                     parent.add_child(&dup);
                     dup.set_owner(&root);
-                    json!({"new_path": dup.get_path().to_string()})
+                    json!({"new_path": relative_path(&dup, &root)})
                 }
                 None => json!({"error": "Failed to duplicate node"}),
             }
@@ -258,10 +253,9 @@ fn cmd_move_node(args: &Value) -> Value {
     let p = s(args, "node_path");
     let new_p = s(args, "new_parent_path");
     let idx = args["position_index"].as_i64();
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     let mut node = match resolve_node(&root, p.as_str()) {
         Some(n) => n,
@@ -278,7 +272,7 @@ fn cmd_move_node(args: &Value) -> Value {
     if let Some(i) = idx {
         new_parent.move_child(&node, i as i32);
     }
-    json!({"new_path": node.get_path().to_string()})
+    json!({"new_path": relative_path(&node, &root)})
 }
 
 // ── Script tools ─────────────────────────────────────────────────────
@@ -286,10 +280,9 @@ fn cmd_move_node(args: &Value) -> Value {
 fn cmd_attach_script(args: &Value) -> Value {
     let p = s(args, "node_path");
     let sp = s(args, "script_path");
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
         Some(mut n) => match try_load::<godot::classes::Script>(sp.as_str()) {
@@ -305,10 +298,9 @@ fn cmd_attach_script(args: &Value) -> Value {
 
 fn cmd_detach_script(args: &Value) -> Value {
     let p = s(args, "node_path");
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
         Some(mut n) => {
@@ -319,55 +311,71 @@ fn cmd_detach_script(args: &Value) -> Value {
     }
 }
 
-fn cmd_find_nodes(args: &Value) -> Value {
-    let q = s(args, "query");
-    let method = args["search_method"].as_str().unwrap_or("name").to_string();
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
-    };
-    let mut matches = Vec::new();
-    collect_nodes(&root, &q, &method, &mut matches, 0, 50);
-    json!({"matches": matches, "count": matches.len()})
-}
-
 // ── Advanced ─────────────────────────────────────────────────────────
 
 fn cmd_reset_parent(args: &Value) -> Value {
     let p = s(args, "node_path");
     let np = s(args, "new_parent_path");
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     let mut node = match resolve_node(&root, p.as_str()) {
         Some(n) => n,
         None => return json!({"error": format!("Node not found: {}", p)}),
     };
-    let new_parent = match resolve_node(&root, np.as_str()) {
+    let mut new_parent = match resolve_node(&root, np.as_str()) {
         Some(n) => n,
         None => return json!({"error": format!("New parent not found: {}", np)}),
     };
-    node.reparent(&new_parent);
+    let mut old_parent = node.get_parent().unwrap();
+    old_parent.remove_child(&node);
+    new_parent.add_child(&node);
+    node.set_owner(&root);
     json!({"node_path": p, "new_parent": np})
 }
 
 fn cmd_set_as_root(args: &Value) -> Value {
     let p = s(args, "node_path");
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
         Some(node) => {
-            let mut tree = root.get_tree();
+            let old_root = root;
+            let mut tree = old_root.get_tree();
             tree.set_edited_scene_root(&node);
-            json!({"root": p})
+            let actual = tree.get_edited_scene_root();
+            match actual {
+                Some(new_root) if new_root == node => {
+                    fix_owners_recursive(&new_root, &new_root);
+                    if old_root != new_root && new_root.is_ancestor_of(&old_root) {
+                        let mut old = old_root;
+                        old.set_owner(&new_root);
+                    }
+                    json!({"root": p})
+                }
+                Some(new_root) => json!({"error": format!(
+                    "Failed to set '{}' as scene root. Current root is '{}' ({}). The editor may not support changing root for nodes with certain child types.",
+                    p, new_root.get_name().to_string(), new_root.get_class().to_string()
+                )}),
+                None => {
+                    json!({"error": format!("Failed to set '{}' as scene root. Scene root is now empty.", p)})
+                }
+            }
         }
         None => json!({"error": format!("Node not found: {}", p)}),
+    }
+}
+
+fn fix_owners_recursive(node: &godot::prelude::Gd<Node>, owner: &godot::prelude::Gd<Node>) {
+    let count = node.get_child_count();
+    for i in 0..count {
+        if let Some(mut child) = node.get_child(i) {
+            child.set_owner(owner);
+            fix_owners_recursive(&child, owner);
+        }
     }
 }
 
@@ -384,10 +392,9 @@ fn cmd_batch_set_property(args: &Value) -> Value {
         Some(v) => v.clone(),
         None => return json!({"error": "missing 'value'"}),
     };
-    let ei = EditorInterface::singleton();
-    let root = match ei.get_edited_scene_root() {
-        Some(r) => r,
-        None => return json!({"error": "No scene open"}),
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
     };
     let results: Vec<Value> = paths
         .iter()
@@ -402,9 +409,53 @@ fn cmd_batch_set_property(args: &Value) -> Value {
     json!({"results": results})
 }
 
+// ── Group management ─────────────────────────────────────────────────
+
+fn cmd_add_node_to_group(args: &Value) -> Value {
+    let p = s(args, "node_path");
+    let group = s(args, "group");
+    if group.is_empty() {
+        return json!({"error": "missing 'group'"});
+    }
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
+    };
+    match resolve_node(&root, p.as_str()) {
+        Some(mut n) => {
+            n.add_to_group(&StringName::from(group.as_str()));
+            json!({"node_path": p, "group": group})
+        }
+        None => json!({"error": format!("Node not found: {}", p)}),
+    }
+}
+
+fn cmd_remove_node_from_group(args: &Value) -> Value {
+    let p = s(args, "node_path");
+    let group = s(args, "group");
+    if group.is_empty() {
+        return json!({"error": "missing 'group'"});
+    }
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
+    };
+    match resolve_node(&root, p.as_str()) {
+        Some(mut n) => {
+            n.remove_from_group(&StringName::from(group.as_str()));
+            json!({"node_path": p, "group": group})
+        }
+        None => json!({"error": format!("Node not found: {}", p)}),
+    }
+}
+
 // ── Tree serialization ───────────────────────────────────────────────
 
 fn serialize_tree(n: &godot::prelude::Gd<Node>, depth: i32, max: i32) -> Value {
+    let root = match get_root() {
+        Ok(r) => r,
+        Err(e) => return e,
+    };
     if depth > max {
         return json!({"name": "...", "type": "truncated"});
     }
@@ -414,36 +465,7 @@ fn serialize_tree(n: &godot::prelude::Gd<Node>, depth: i32, max: i32) -> Value {
     json!({
         "name": n.get_name().to_string(),
         "type": n.get_class().to_string(),
-        "path": n.get_path().to_string(),
+        "path": relative_path(n, &root),
         "children": children,
     })
-}
-
-fn collect_nodes(
-    n: &godot::prelude::Gd<Node>,
-    q: &str,
-    method: &str,
-    out: &mut Vec<Value>,
-    depth: i32,
-    max: i32,
-) {
-    if depth > max || out.len() >= 100 {
-        return;
-    }
-    let name = n.get_name().to_string();
-    let class = n.get_class().to_string();
-    let path = n.get_path().to_string();
-    let hit = match method {
-        "type" => class.contains(q),
-        "path" => path.contains(q),
-        _ => name.contains(q),
-    };
-    if hit {
-        out.push(json!({"name": name, "type": class, "path": path}));
-    }
-    for i in 0..n.get_child_count() {
-        if let Some(c) = n.get_child(i) {
-            collect_nodes(&c, q, method, out, depth + 1, max);
-        }
-    }
 }
