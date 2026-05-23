@@ -5,6 +5,20 @@
 **/*.rs.bk
 
 # ==============================
+# CMake
+# ==============================
+build/
+_CPack_Packages/
+CMakeCache.txt
+CMakeFiles/
+CMakeUserPresets.json
+Makefile
+*.cmake
+*.slnx
+*.vcxproj
+*.vcxproj.filters
+
+# ==============================
 # Godot
 # ==============================
 # Godot 4+ specific ignores
