@@ -1,14 +1,19 @@
+pub mod collision;
+pub mod find;
 pub mod meta;
 pub mod node;
+pub mod project_settings;
+pub mod property;
 pub mod scene;
 pub mod script_cs;
 pub mod script_gd;
+pub mod script_helpers;
 pub mod search;
 
 use serde_json::{Value, json};
 
 use godot::builtin::{Color, Quaternion, Rect2, Vector2, Vector3, Vector4};
-use godot::classes::{Node, Resource};
+use godot::classes::{DirAccess, Node, Resource};
 use godot::prelude::{GString, NodePath, StringName, Variant};
 use godot::tools::try_load;
 
@@ -49,7 +54,35 @@ pub fn pipe(val: Value) -> Result<Value, String> {
     }
 }
 
-/// Resolve a node from a path, accepting root aliases ("", ".", "/", "/root", root name).
+/// Ensure the parent directory of `path` exists.
+/// `path` should be a `res://` style resource path (e.g. `res://sub/file.tscn`).
+/// Silently succeeds when the parent is `res://` itself (always exists).
+/// **Must be called on the main thread.**
+pub fn ensure_parent_dir(path: &str) -> bool {
+    let Some(slash) = path.rfind('/') else {
+        return true;
+    };
+    let parent = &path[..=slash];
+    if parent == "res://" || parent == "res:/" {
+        return true;
+    }
+    if DirAccess::dir_exists_absolute(&GString::from(parent)) {
+        return true;
+    }
+    let Some(mut d) = DirAccess::open(&GString::from("res://")) else {
+        return false;
+    };
+    let sub = parent.strip_prefix("res://").unwrap_or(parent);
+    let sub = sub.trim_end_matches('/');
+    if sub.is_empty() {
+        return true;
+    }
+    d.make_dir_recursive(&GString::from(sub));
+    true
+}
+
+/// Resolve a node from a path, accepting root aliases ("", ".", "/", "/root", root name)
+/// and "RootName/Child" style paths (which `relative_path()` produces).
 pub fn resolve_node(root: &godot::obj::Gd<Node>, path: &str) -> Option<godot::obj::Gd<Node>> {
     let trimmed = path.trim();
     if trimmed.is_empty()
@@ -61,7 +94,15 @@ pub fn resolve_node(root: &godot::obj::Gd<Node>, path: &str) -> Option<godot::ob
     {
         return Some(root.clone());
     }
-    root.get_node_or_null(&NodePath::from(trimmed))
+    let effective = {
+        let prefix = format!("{}/", root.get_name());
+        if trimmed.starts_with(&prefix) {
+            trimmed.strip_prefix(&prefix).unwrap()
+        } else {
+            trimmed
+        }
+    };
+    root.get_node_or_null(&NodePath::from(effective))
 }
 
 /// Convert a Godot Variant to serde_json::Value with type recognition for
@@ -235,4 +276,31 @@ pub fn globalize_path(res_path: &str) -> Option<String> {
 /// StringName from a &str (small convenience).
 pub fn sn(s: &str) -> StringName {
     StringName::from(s)
+}
+
+/// Compute a scene-relative path like "Pong/Ball" instead of the editor-internal
+/// "/root/@EditorNode@.../Root/Pong/Ball".
+pub fn relative_path(node: &godot::obj::Gd<Node>, root: &godot::obj::Gd<Node>) -> String {
+    let full = node.get_path().to_string();
+    let root_full = root.get_path().to_string();
+    if full == root_full {
+        return root.get_name().to_string();
+    }
+    if let Some(suffix) = full
+        .strip_prefix(&root_full)
+        .and_then(|s| s.strip_prefix('/'))
+    {
+        format!("{}/{}", root.get_name(), suffix)
+    } else {
+        full
+    }
+}
+
+/// Boilerplate: get edited scene root or return an error JSON.
+pub fn get_root() -> Result<godot::obj::Gd<Node>, Value> {
+    use godot::classes::EditorInterface;
+    use godot::obj::Singleton;
+    EditorInterface::singleton()
+        .get_edited_scene_root()
+        .ok_or_else(|| json!({"error": "No scene open"}))
 }
