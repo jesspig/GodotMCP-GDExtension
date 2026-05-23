@@ -1,11 +1,11 @@
 use serde_json::{Value, json};
 
-use godot::classes::{DirAccess, EditorInterface, FileAccess, Node, PackedScene};
-use godot::obj::{NewAlloc, NewGd, Singleton};
+use godot::classes::{ClassDb, DirAccess, EditorInterface, FileAccess, Node, PackedScene};
+use godot::obj::{NewGd, Singleton};
 use godot::prelude::{GString, StringName};
 use godot::tools::{try_load, try_save};
 
-use super::{CommandHandler, pipe, resolve_node, s};
+use super::{CommandHandler, pipe, relative_path, resolve_node, s};
 use crate::dispatcher::MainThreadDispatcher;
 
 pub const TOOL_NAMES: &[&str] = &[
@@ -97,16 +97,26 @@ fn cmd_create_scene(args: &Value) -> Value {
     if FileAccess::file_exists(&GString::from(&p)) {
         return json!({"error": format!("File already exists: {}. Use a different path or delete it first.", p)});
     }
-    if let Some(slash) = p.rfind('/')
-        && !DirAccess::dir_exists_absolute(&GString::from(&p[..slash]))
-        && let Some(mut d) = DirAccess::open(&GString::from("res://"))
-    {
-        let dir = &p[..slash];
-        let sub = dir.strip_prefix("res://").unwrap_or(dir);
-        d.make_dir_recursive(&GString::from(sub));
-    }
-    let mut root = Node::new_alloc();
-    root.set_name(&StringName::from("Root"));
+    super::ensure_parent_dir(&p);
+    let root_type = s(args, "root_type");
+    let root_type = if root_type.is_empty() {
+        "Node"
+    } else {
+        &root_type
+    };
+    let root_name = s(args, "root_name");
+    let root_name = if root_name.is_empty() {
+        "Root"
+    } else {
+        &root_name
+    };
+
+    let variant = ClassDb::singleton().instantiate(&StringName::from(root_type));
+    let mut root = match variant.try_to::<godot::prelude::Gd<Node>>() {
+        Ok(n) => n,
+        Err(_) => return json!({"error": format!("Cannot instantiate root type: {}", root_type)}),
+    };
+    root.set_name(&StringName::from(root_name));
     let mut packed = PackedScene::new_gd();
     packed.pack(&root);
     match try_save(&packed, p.as_str()) {
@@ -115,7 +125,7 @@ fn cmd_create_scene(args: &Value) -> Value {
             if let Some(mut efs) = EditorInterface::singleton().get_resource_filesystem() {
                 efs.update_file(&GString::from(&p));
             }
-            json!({"path": p, "created": true})
+            json!({"path": p, "created": true, "root_type": root_type, "root_name": root_name})
         }
         Err(e) => {
             root.free();
@@ -142,16 +152,56 @@ fn cmd_delete_scene(args: &Value) -> Value {
 fn cmd_rename_scene(args: &Value) -> Value {
     let src = s(args, "source_path");
     let dst = s(args, "dest_path");
-    match DirAccess::open(&GString::from("res://")) {
-        Some(mut d) => {
-            let err = d.rename(&GString::from(src.as_str()), &GString::from(dst.as_str()));
-            if err == godot::global::Error::OK {
-                json!({"source": src, "destination": dst})
-            } else {
-                json!({"error": format!("Failed to rename: {:?}", err)})
-            }
+
+    let mut ei = EditorInterface::singleton();
+    let open_scenes = ei.get_open_scenes();
+    let is_open =
+        (0..open_scenes.len()).any(|i| open_scenes.get(i).is_some_and(|s| s.to_string() == src));
+
+    if is_open {
+        let scene_is_current = ei
+            .get_edited_scene_root()
+            .is_some_and(|r| r.get_scene_file_path().to_string() == src);
+        if !scene_is_current {
+            return json!({"error": format!(
+                "Scene '{}' is open but not the active tab. Close it manually first, or make it active before renaming.", src
+            )});
         }
-        None => json!({"error": "Cannot open res://"}),
+        let _ = ei.save_scene();
+        let close_err = ei.close_scene();
+        if close_err != godot::global::Error::OK {
+            return json!({"error": format!("Failed to close scene before rename: {:?}", close_err)});
+        }
+        match DirAccess::open(&GString::from("res://")) {
+            Some(mut d) => {
+                let err = d.rename(&GString::from(src.as_str()), &GString::from(dst.as_str()));
+                if err != godot::global::Error::OK {
+                    return json!({"error": format!("Failed to rename: {:?}", err)});
+                }
+            }
+            None => return json!({"error": "Cannot open res://"}),
+        }
+        if let Some(mut efs) = ei.get_resource_filesystem() {
+            efs.update_file(&GString::from(dst.as_str()));
+        }
+        ei.open_scene_from_path_ex(&GString::from(dst.as_str()))
+            .done();
+        json!({"source": src, "destination": dst, "tab_reopened": true})
+    } else {
+        match DirAccess::open(&GString::from("res://")) {
+            Some(mut d) => {
+                let err = d.rename(&GString::from(src.as_str()), &GString::from(dst.as_str()));
+                if err == godot::global::Error::OK {
+                    if let Some(mut efs) = ei.get_resource_filesystem() {
+                        efs.update_file(&GString::from(dst.as_str()));
+                    }
+                    json!({"source": src, "destination": dst})
+                } else {
+                    json!({"error": format!("Failed to rename: {:?}", err)})
+                }
+            }
+            None => json!({"error": "Cannot open res://"}),
+        }
     }
 }
 
@@ -236,7 +286,7 @@ fn cmd_instantiate_scene(args: &Value) -> Value {
                 }
                 parent.add_child(&inst);
                 inst.set_owner(&root);
-                json!({"path": inst.get_path().to_string(), "parent": parent.get_path().to_string()})
+                json!({"path": relative_path(&inst, &root), "parent": relative_path(&parent, &root)})
             }
             None => json!({"error": format!("Failed to instantiate scene from {}", sp)}),
         },
@@ -259,14 +309,33 @@ fn cmd_open_scene(args: &Value) -> Value {
     ei.open_scene_from_path_ex(&GString::from(sp.as_str()))
         .set_inherited(set_inherited)
         .done();
-    json!({"opened": sp})
+    let root_after = ei.get_edited_scene_root();
+    let loaded = root_after.is_some();
+    if loaded {
+        json!({"opened": sp, "loaded": true})
+    } else {
+        json!({
+            "opened": sp,
+            "loaded": false,
+            "error": "Scene file was opened but the scene root could not be loaded. \
+                      This usually means the scene references resources that no longer exist. \
+                      Check for broken ExtResource references in the .tscn file."
+        })
+    }
 }
 
 fn cmd_close_scene(_args: &Value) -> Value {
     let mut ei = EditorInterface::singleton();
+    let before: Vec<String> = (0..ei.get_open_scenes().len())
+        .map(|i| ei.get_open_scenes().get(i).unwrap_or_default().to_string())
+        .collect();
     let err = ei.close_scene();
     if err == godot::global::Error::OK {
-        json!({"closed": true})
+        let after: Vec<String> = (0..ei.get_open_scenes().len())
+            .map(|i| ei.get_open_scenes().get(i).unwrap_or_default().to_string())
+            .collect();
+        let closed = before.iter().find(|p| !after.contains(p));
+        json!({"closed": true, "scene": closed})
     } else {
         json!({"error": format!("close_scene failed: {:?}", err)})
     }
@@ -331,11 +400,16 @@ fn cmd_get_open_scene_roots(_args: &Value) -> Value {
     let list: Vec<Value> = roots
         .iter_shared()
         .map(|r| {
+            let scene_fp = r.get_scene_file_path().to_string();
+            let display_path = if scene_fp.is_empty() {
+                r.get_name().to_string()
+            } else {
+                scene_fp
+            };
             json!({
                 "name": r.get_name().to_string(),
-                "path": r.get_path().to_string(),
-                "scene_file_path": r.get_scene_file_path().to_string(),
                 "class": r.get_class().to_string(),
+                "scene_file_path": display_path,
             })
         })
         .collect();

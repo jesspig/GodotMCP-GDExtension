@@ -4,12 +4,16 @@ use rmcp::model::*;
 use rmcp::service::{RequestContext, RoleServer};
 use serde_json::json;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::Mutex;
 
 use crate::bridge::GodotBridge;
 use crate::tool_registry::ToolRegistry;
 
 const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
+const RECONNECT_MAX_ATTEMPTS: u32 = 5;
+const RECONNECT_INITIAL_DELAY: Duration = Duration::from_secs(1);
+const RECONNECT_MAX_DELAY: Duration = Duration::from_secs(30);
 
 #[derive(Clone)]
 pub struct GodotMcpHandler {
@@ -33,25 +37,53 @@ impl GodotMcpHandler {
     }
 
     async fn ensure_bridge(&self) -> Option<Arc<GodotBridge>> {
-        let mut guard = self.bridge.lock().await;
-        if guard.is_none() {
+        let guard = self.bridge.lock().await;
+        if guard.is_some() {
+            return guard.as_ref().cloned();
+        }
+        drop(guard);
+
+        let mut delay = RECONNECT_INITIAL_DELAY;
+        for attempt in 0..RECONNECT_MAX_ATTEMPTS {
+            let mut guard = self.bridge.lock().await;
+            if guard.is_some() {
+                return guard.as_ref().cloned();
+            }
             match GodotBridge::connect_with_handler(self.godot_port, Some(Arc::new(self.clone())))
                 .await
             {
                 Ok(bridge) => {
                     eprintln!(
-                        "[MCP Server] Connected to Godot on port {}",
-                        self.godot_port
+                        "[MCP Server] Connected to Godot on port {} (attempt {})",
+                        self.godot_port,
+                        attempt + 1
                     );
                     let bridge = Arc::new(bridge);
                     *guard = Some(bridge.clone());
-                    Some(bridge)
+                    return Some(bridge);
                 }
-                Err(_) => None,
+                Err(e) => {
+                    if attempt + 1 < RECONNECT_MAX_ATTEMPTS {
+                        eprintln!(
+                            "[MCP Server] Connection attempt {} failed: {}. Retrying in {:?}...",
+                            attempt + 1,
+                            e,
+                            delay
+                        );
+                        drop(guard);
+                        tokio::time::sleep(delay).await;
+                        delay = (delay * 2).min(RECONNECT_MAX_DELAY);
+                    } else {
+                        eprintln!(
+                            "[MCP Server] All {} connection attempts failed. Last error: {}",
+                            RECONNECT_MAX_ATTEMPTS, e
+                        );
+                        return None;
+                    }
+                }
             }
-        } else {
-            guard.as_ref().cloned()
         }
+        None
     }
 
     async fn forward_tool_call(
@@ -91,7 +123,7 @@ impl GodotMcpHandler {
             "get_server_version" => return Ok(SERVER_VERSION.to_string()),
             "godot_editor_open" => return godot_editor_open(args),
             "godot_editor_close" => return godot_editor_close(),
-            "godot_editor_restart" => return godot_editor_restart(args),
+            "godot_editor_restart" => return self.godot_editor_restart(args).await,
             _ => {}
         }
 
@@ -114,6 +146,41 @@ impl GodotMcpHandler {
         value: &serde_json::Value,
     ) -> Arc<serde_json::Map<String, serde_json::Value>> {
         Arc::new(serde_json::from_value(value.clone()).unwrap_or_default())
+    }
+
+    async fn godot_editor_restart(&self, args: serde_json::Value) -> Result<String, String> {
+        let godot_path = get_godot_path()?;
+        let exe_name = std::path::Path::new(&godot_path)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+
+        let was_running = kill_process_by_name(&exe_name);
+        if was_running {
+            self.bridge.lock().await.take();
+            tokio::time::sleep(Duration::from_millis(500)).await;
+        }
+
+        let project_path = resolve_project_path(&args);
+        if !std::path::Path::new(&project_path).exists() {
+            return Err(format!("项目目录不存在: {}", project_path));
+        }
+
+        let child = std::process::Command::new(&godot_path)
+            .args(["--editor", "--path", &project_path])
+            .spawn()
+            .map_err(|e| format!("重启 Godot 编辑器失败: {}", e))?;
+
+        let pid = child.id();
+        Ok(serde_json::json!({
+            "status": "restarted",
+            "pid": pid,
+            "was_running": was_running,
+            "godot_path": godot_path,
+            "project_path": project_path,
+            "hint": "Editor is restarting. First tool call will auto-reconnect with retry."
+        })
+        .to_string())
     }
 }
 
@@ -229,39 +296,6 @@ fn godot_editor_close() -> Result<String, String> {
     .to_string())
 }
 
-fn godot_editor_restart(args: serde_json::Value) -> Result<String, String> {
-    let godot_path = get_godot_path()?;
-    let exe_name = std::path::Path::new(&godot_path)
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_default();
-
-    let was_running = kill_process_by_name(&exe_name);
-    if was_running {
-        std::thread::sleep(std::time::Duration::from_millis(500));
-    }
-
-    let project_path = resolve_project_path(&args);
-    if !std::path::Path::new(&project_path).exists() {
-        return Err(format!("项目目录不存在: {}", project_path));
-    }
-
-    let child = std::process::Command::new(&godot_path)
-        .args(["--editor", "--path", &project_path])
-        .spawn()
-        .map_err(|e| format!("重启 Godot 编辑器失败: {}", e))?;
-
-    let pid = child.id();
-    Ok(serde_json::json!({
-        "status": "restarted",
-        "pid": pid,
-        "was_running": was_running,
-        "godot_path": godot_path,
-        "project_path": project_path
-    })
-    .to_string())
-}
-
 fn kill_process_by_name(name: &str) -> bool {
     if cfg!(target_os = "windows") {
         std::process::Command::new("taskkill")
@@ -298,8 +332,8 @@ mod tests {
     fn test_registry_defaults() {
         let handler = GodotMcpHandler::new(9500);
         let (enabled, total) = handler.registry().tool_count();
-        assert_eq!(total, 52);
-        assert_eq!(enabled, 52);
+        assert_eq!(total, 85);
+        assert_eq!(enabled, 85);
     }
 
     #[test]
