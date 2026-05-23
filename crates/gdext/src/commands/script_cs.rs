@@ -121,11 +121,8 @@ fn cmd_create_csharp_script(args: &Value) -> Value {
     }
 
     let parent_dir = path.rfind('/').map(|i| &path[..i]).unwrap_or("res://");
-    if !DirAccess::dir_exists_absolute(&GString::from(parent_dir))
-        && let Some(mut d) = DirAccess::open(&GString::from("res://"))
-    {
-        let sub = parent_dir.strip_prefix("res://").unwrap_or(parent_dir);
-        d.make_dir_recursive(&GString::from(sub));
+    if !DirAccess::dir_exists_absolute(&GString::from(parent_dir)) {
+        super::ensure_parent_dir(&path);
     }
 
     let class_name = class_name_from_path(&path);

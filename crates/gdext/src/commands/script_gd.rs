@@ -1,13 +1,11 @@
 use serde_json::{Value, json};
 
 use godot::classes::file_access::ModeFlags;
-use godot::classes::{
-    DirAccess, EditorInterface, Expression, FileAccess, GDScript, ProjectSettings,
-};
-use godot::obj::{NewGd, Singleton};
-use godot::prelude::{GString, Variant};
+use godot::classes::{DirAccess, EditorInterface, FileAccess, GDScript, ProjectSettings};
+use godot::obj::Singleton;
+use godot::prelude::GString;
 
-use super::{CommandHandler, resolve_node, s, v2j};
+use super::{CommandHandler, s};
 use crate::dispatcher::MainThreadDispatcher;
 use crate::lsp::validate_via_lsp;
 
@@ -19,7 +17,6 @@ pub const TOOL_NAMES: &[&str] = &[
     "edit_gdscript",
     "validate_gdscript",
     "list_gdscripts",
-    "eval_gdscript_expression",
 ];
 
 pub struct ScriptGdCommands;
@@ -65,9 +62,6 @@ impl ScriptGdCommands {
             "edit_gdscript" => super::pipe(d.submit(move || cmd_edit_gdscript(&a)).await),
             "validate_gdscript" => super::pipe(d.submit(move || cmd_validate_gdscript(&a)).await),
             "list_gdscripts" => super::pipe(d.submit(move || cmd_list_gdscripts(&a)).await),
-            "eval_gdscript_expression" => {
-                super::pipe(d.submit(move || cmd_eval_gdscript_expression(&a)).await)
-            }
             _ => Err(format!("Unknown GDScript tool: {}", tool)),
         }
     }
@@ -96,15 +90,8 @@ fn cmd_create_gdscript(args: &Value) -> Value {
     }
 
     let parent_dir = path.rfind('/').map(|i| &path[..i]).unwrap_or("res://");
-    if !DirAccess::dir_exists_absolute(&GString::from(parent_dir))
-        && let Some(mut d) = DirAccess::open(&GString::from("res://"))
-    {
-        let sub = if let Some(stripped) = parent_dir.strip_prefix("res://") {
-            stripped
-        } else {
-            parent_dir
-        };
-        d.make_dir_recursive(&GString::from(sub));
+    if !DirAccess::dir_exists_absolute(&GString::from(parent_dir)) {
+        super::ensure_parent_dir(&path);
     }
 
     let ts = "\t";
@@ -141,9 +128,22 @@ fn cmd_read_gdscript(args: &Value) -> Value {
         return json!({"error": format!("File not found: {}", path)});
     }
     let from_editor = args["from_editor"].as_bool().unwrap_or(false);
-    if from_editor && let Ok(script) = godot::tools::try_load::<GDScript>(&path) {
-        let source = script.get_source_code().to_string();
-        return json!({"path": path, "source": source, "length": source.len(), "language": "gdscript"});
+    if from_editor {
+        let disk_content = FileAccess::get_file_as_string(&GString::from(&path)).to_string();
+        if let Ok(script) = godot::tools::try_load::<GDScript>(&path) {
+            let editor_source = script.get_source_code().to_string();
+            if editor_source.len() != disk_content.len() {
+                return json!({
+                    "path": path,
+                    "source": disk_content,
+                    "length": disk_content.len(),
+                    "language": "gdscript",
+                    "stale_cache": true,
+                    "cached_length": editor_source.len()
+                });
+            }
+            return json!({"path": path, "source": editor_source, "length": editor_source.len(), "language": "gdscript"});
+        }
     }
     let content = FileAccess::get_file_as_string(&GString::from(&path)).to_string();
     json!({"path": path, "source": content, "length": content.len(), "language": "gdscript"})
@@ -170,6 +170,9 @@ fn cmd_edit_gdscript(args: &Value) -> Value {
                 let err = script.reload();
                 if err != godot::global::Error::OK {
                     reload_error = Some(format!("{:?}", err));
+                } else {
+                    let mut ei = EditorInterface::singleton();
+                    ei.edit_script_ex(&script).done();
                 }
             }
             let mut result =
@@ -207,7 +210,12 @@ fn cmd_validate_gdscript(args: &Value) -> Value {
         })
         .unwrap_or(6005) as u16;
 
-    let rt = tokio::runtime::Handle::current();
+    let rt = match tokio::runtime::Runtime::new() {
+        Ok(r) => r,
+        Err(e) => {
+            return json!({"error": format!("Cannot create tokio runtime for LSP: {}", e)});
+        }
+    };
     let result = rt.block_on(validate_via_lsp(port, &path, &file_uri, &source, &root_uri));
 
     match result {
@@ -227,7 +235,9 @@ fn cmd_validate_gdscript(args: &Value) -> Value {
             let ok = diag_json.is_empty();
             json!({"path": path, "ok": ok, "diagnostics": diag_json})
         }
-        Err(e) => json!({"error": e}),
+        Err(e) => json!({"error": format!(
+            "{}. Ensure the GDScript Language Server is enabled in Editor Settings > Network > Language Server > Enable.", e
+        )}),
     }
 }
 
@@ -299,57 +309,4 @@ fn list_scripts_recursive(
             });
         }
     }
-}
-
-fn cmd_eval_gdscript_expression(args: &Value) -> Value {
-    let text = s(args, "expression");
-    if text.is_empty() {
-        return json!({"error": "missing 'expression'"});
-    }
-    let const_only = args["const_only"].as_bool().unwrap_or(true);
-    let node_path = s(args, "node_path");
-
-    let mut expr = Expression::new_gd();
-    let parse_err = expr.parse(&GString::from(&text));
-    if parse_err != godot::global::Error::OK {
-        return json!({
-            "expression": text,
-            "error": expr.get_error_text().to_string(),
-            "phase": "parse"
-        });
-    }
-
-    let base_inst: Option<godot::obj::Gd<godot::classes::Node>> = if node_path.is_empty() {
-        None
-    } else {
-        let ei = EditorInterface::singleton();
-        let root = match ei.get_edited_scene_root() {
-            Some(r) => r,
-            None => return json!({"error": "node_path specified but no scene is open"}),
-        };
-        resolve_node(&root, &node_path)
-    };
-
-    let result: Variant = match base_inst {
-        Some(node) => expr
-            .execute_ex()
-            .const_calls_only(const_only)
-            .base_instance(&node)
-            .done(),
-        None => expr.execute_ex().const_calls_only(const_only).done(),
-    };
-
-    if expr.has_execute_failed() {
-        return json!({
-            "expression": text,
-            "error": expr.get_error_text().to_string(),
-            "phase": "execute"
-        });
-    }
-
-    json!({
-        "expression": text,
-        "result": v2j(&result),
-        "type": format!("{:?}", result.get_type())
-    })
 }
