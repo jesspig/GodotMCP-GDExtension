@@ -15,11 +15,13 @@ use crate::commands::meta::MetaCommands;
 use crate::commands::node::NodeCommands;
 use crate::commands::project_settings::ProjectSettingsCommands;
 use crate::commands::property::PropertyCommands;
+use crate::commands::property_3d::Property3dCommands;
 use crate::commands::scene::SceneCommands;
 use crate::commands::script_cs::ScriptCsCommands;
 use crate::commands::script_gd::ScriptGdCommands;
 use crate::commands::script_helpers::ScriptHelpersCommands;
 use crate::commands::search::SearchCommands;
+use crate::commands::undo::UndoCommands;
 use crate::dispatcher::MainThreadDispatcher;
 use crate::ipc::plugin_state::PluginState;
 use crate::logging::{log_error, log_info};
@@ -295,14 +297,32 @@ impl IpcWebSocketServer {
                                                     search
                                                         .handle_search_tool(tool, args, dispatcher)
                                                         .await
-                                                } else if registry_tools.contains(&tool.to_string())
-                                                {
-                                                    Err(format!(
-                                                        "Tool '{}' handler not yet implemented",
-                                                        tool
-                                                    ))
                                                 } else {
-                                                    Err(format!("Unknown tool: {}", tool))
+                                                    let undo = UndoCommands::new();
+                                                    if undo.can_handle(tool) {
+                                                        undo.handle_undo_tool(
+                                                            tool, args, dispatcher,
+                                                        )
+                                                        .await
+                                                    } else {
+                                                        let prop3d = Property3dCommands::new();
+                                                        if prop3d.can_handle(tool) {
+                                                            prop3d
+                                                                .handle_property_3d_tool(
+                                                                    tool, args, dispatcher,
+                                                                )
+                                                                .await
+                                                        } else if registry_tools
+                                                            .contains(&tool.to_string())
+                                                        {
+                                                            Err(format!(
+                                                                "Tool '{}' handler not yet implemented",
+                                                                tool
+                                                            ))
+                                                        } else {
+                                                            Err(format!("Unknown tool: {}", tool))
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }

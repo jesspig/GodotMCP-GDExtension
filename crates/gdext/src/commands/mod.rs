@@ -4,16 +4,20 @@ pub mod meta;
 pub mod node;
 pub mod project_settings;
 pub mod property;
+pub mod property_3d;
 pub mod scene;
 pub mod script_cs;
 pub mod script_gd;
 pub mod script_helpers;
 pub mod search;
+pub mod undo;
 
 use serde_json::{Value, json};
 
 use godot::builtin::{Color, Quaternion, Rect2, Vector2, Vector3, Vector4};
-use godot::classes::{DirAccess, Node, Resource};
+use godot::classes::{DirAccess, EditorInterface, Node, Resource};
+use godot::meta::ToGodot;
+use godot::obj::Singleton;
 use godot::prelude::{GString, NodePath, StringName, Variant};
 use godot::tools::try_load;
 
@@ -34,6 +38,8 @@ pub fn create_registry() -> Vec<Box<dyn CommandHandler>> {
         Box::new(script_gd::ScriptGdCommands::new()),
         Box::new(script_cs::ScriptCsCommands::new()),
         Box::new(search::SearchCommands::new()),
+        Box::new(undo::UndoCommands::new()),
+        Box::new(property_3d::Property3dCommands::new()),
     ]
 }
 
@@ -298,9 +304,101 @@ pub fn relative_path(node: &godot::obj::Gd<Node>, root: &godot::obj::Gd<Node>) -
 
 /// Boilerplate: get edited scene root or return an error JSON.
 pub fn get_root() -> Result<godot::obj::Gd<Node>, Value> {
-    use godot::classes::EditorInterface;
-    use godot::obj::Singleton;
     EditorInterface::singleton()
         .get_edited_scene_root()
         .ok_or_else(|| json!({"error": "No scene open"}))
+}
+
+/// Get the editor's undo/redo manager. Must be called on the main thread.
+pub fn get_undo_redo() -> godot::obj::Gd<godot::classes::EditorUndoRedoManager> {
+    EditorInterface::singleton()
+        .get_editor_undo_redo()
+        .expect("EditorUndoRedoManager should be available in editor mode")
+}
+
+/// Undoable property change: records old value and sets new value via the editor's undo system.
+pub fn undoable_set(
+    node: &godot::obj::Gd<Node>,
+    property: &str,
+    new_value: &Variant,
+    action_name: &str,
+) {
+    let mut ur = get_undo_redo();
+    let old_value = node.get(property);
+    ur.create_action(action_name);
+    ur.add_do_property(node, property, new_value);
+    ur.add_undo_property(node, property, &old_value);
+    ur.commit_action();
+}
+
+/// Mark the current scene as having unsaved changes.
+pub fn mark_dirty() {
+    EditorInterface::singleton().mark_scene_as_unsaved();
+}
+
+/// Recursively fix owners for a subtree (move to shared location).
+pub fn fix_owners_recursive(node: &godot::obj::Gd<Node>, owner: &godot::obj::Gd<Node>) {
+    let count = node.get_child_count();
+    for i in 0..count {
+        if let Some(mut child) = node.get_child(i) {
+            child.set_owner(owner);
+            fix_owners_recursive(&child, owner);
+        }
+    }
+}
+
+/// Controls which UndoRedo actions `node_replace_owner` registers.
+#[derive(Clone, Copy)]
+pub enum ReplaceOwnerMode {
+    Do,
+    Undo,
+    Both,
+}
+
+/// Recursively walk all descendants of `base`. For any node whose `owner == old_owner`
+/// (and is not `new_owner` itself), record `set_owner(new_owner)` via UndoRedo.
+/// Mirrors Godot editor's `SceneTreeDock::_node_replace_owner`.
+pub fn node_replace_owner(
+    base: &godot::obj::Gd<Node>,
+    old_owner: &godot::obj::Gd<Node>,
+    new_owner: &godot::obj::Gd<Node>,
+    ur: &mut godot::obj::Gd<godot::classes::EditorUndoRedoManager>,
+    mode: ReplaceOwnerMode,
+) {
+    let count = base.get_child_count();
+    for i in 0..count {
+        if let Some(child) = base.get_child(i) {
+            if child.get_owner() == Some(old_owner.clone()) && child != *new_owner {
+                match mode {
+                    ReplaceOwnerMode::Do => {
+                        ur.add_do_method(
+                            &child.clone(),
+                            &StringName::from("set_owner"),
+                            &[new_owner.to_variant()],
+                        );
+                    }
+                    ReplaceOwnerMode::Undo => {
+                        ur.add_undo_method(
+                            &child.clone(),
+                            &StringName::from("set_owner"),
+                            &[old_owner.to_variant()],
+                        );
+                    }
+                    ReplaceOwnerMode::Both => {
+                        ur.add_do_method(
+                            &child.clone(),
+                            &StringName::from("set_owner"),
+                            &[new_owner.to_variant()],
+                        );
+                        ur.add_undo_method(
+                            &child.clone(),
+                            &StringName::from("set_owner"),
+                            &[old_owner.to_variant()],
+                        );
+                    }
+                }
+            }
+            node_replace_owner(&child, old_owner, new_owner, ur, mode);
+        }
+    }
 }

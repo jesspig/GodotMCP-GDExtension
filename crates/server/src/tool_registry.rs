@@ -600,6 +600,91 @@ impl ToolRegistry {
                     &[],
                 ),
             ),
+            // ── Undo/Redo (2) ────────────────────────────────────────────
+            ("undo", "撤销最近一次操作", empty.clone()),
+            ("redo", "重做最近一次操作", empty.clone()),
+            // ── Property 3D (6) ──────────────────────────────────────────
+            (
+                "get_node_position_3d",
+                "获取 Node3D 节点的 Vector3 位置",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_position_3d",
+                "设置 Node3D 节点的 Vector3 位置",
+                schema(
+                    r#"{"node_path":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            (
+                "get_node_rotation_3d",
+                "获取 Node3D 节点的 Euler 角旋转（度数）",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_rotation_3d",
+                "设置 Node3D 节点的 Euler 角旋转（度数）",
+                schema(
+                    r#"{"node_path":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            (
+                "get_node_scale_3d",
+                "获取 Node3D 节点的 Vector3 缩放",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_scale_3d",
+                "设置 Node3D 节点的 Vector3 缩放",
+                schema(
+                    r#"{"node_path":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            // ── Node convenience (4) ────────────────────────────────────
+            (
+                "set_node_transform_2d",
+                "一次性设置 2D 节点的 position + rotation + scale（单个 undo action）",
+                schema(
+                    r#"{"node_path":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"degrees":{"type":"number"},"scale_x":{"type":"number"},"scale_y":{"type":"number"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            (
+                "set_node_transform_3d",
+                "一次性设置 3D 节点的 position + rotation + scale（单个 undo action）",
+                schema(
+                    r#"{"node_path":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"},"rot_x":{"type":"number"},"rot_y":{"type":"number"},"rot_z":{"type":"number"},"scale_x":{"type":"number"},"scale_y":{"type":"number"},"scale_z":{"type":"number"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            (
+                "get_node_info",
+                "返回节点的完整信息：类型、脚本路径、可见性、组、子节点数、owner、unique_name、是否为实例化场景",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "get_script_variables",
+                "列出节点脚本上的所有 @export 变量名、类型和当前值",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            // ── Scene info (1) ──────────────────────────────────────────
+            (
+                "is_scene_dirty",
+                "查询当前场景是否有未保存的变更",
+                empty.clone(),
+            ),
+            // ── Search (1) ──────────────────────────────────────────────
+            (
+                "find_and_replace",
+                "项目级查找替换（脚本/tscn 文件中的文本）",
+                schema(
+                    r#"{"path":{"type":"string"},"pattern":{"type":"string"},"replacement":{"type":"string"},"literal":{"type":"boolean"},"case_sensitive":{"type":"boolean"},"max_replacements":{"type":"integer"}}"#,
+                    &["path", "pattern", "replacement"],
+                ),
+            ),
         ];
 
         for (name, desc, schema) in defaults {
@@ -699,8 +784,8 @@ mod tests {
     fn new_registry_has_defaults() {
         let registry = ToolRegistry::new();
         let (enabled, total) = registry.tool_count();
-        assert_eq!(total, 85);
-        assert_eq!(enabled, 85);
+        assert_eq!(total, 99);
+        assert_eq!(enabled, 99);
     }
 
     #[test]
@@ -717,8 +802,9 @@ mod tests {
         let registry = ToolRegistry::new();
         assert!(registry.set_tool_enabled("ping", false));
         assert!(!registry.is_tool_enabled("ping"));
-        let (enabled, _) = registry.tool_count();
-        assert_eq!(enabled, 84);
+        let (enabled, total) = registry.tool_count();
+        assert_eq!(total, 99);
+        assert_eq!(enabled, 98);
     }
 
     #[test]
@@ -747,7 +833,7 @@ mod tests {
         registry.register_tool("custom_tool", "A custom tool", json!({}));
         assert!(registry.is_tool_enabled("custom_tool"));
         let (_, total) = registry.tool_count();
-        assert_eq!(total, 86);
+        assert_eq!(total, 100);
     }
 
     #[test]
@@ -756,7 +842,7 @@ mod tests {
         registry.set_tool_enabled("ping", false);
         registry.set_tool_enabled("get_engine_version", false);
         let enabled = registry.get_enabled_tools();
-        assert_eq!(enabled.len(), 83);
+        assert_eq!(enabled.len(), 97);
         let names: Vec<&str> = enabled.iter().map(|t| t.name.as_str()).collect();
         assert!(names.contains(&"get_plugin_version"));
         assert!(names.contains(&"get_server_version"));
@@ -782,7 +868,7 @@ mod tests {
         assert!(!registry.is_tool_enabled("get_engine_version"));
         assert!(registry.is_tool_enabled("get_plugin_version"));
         let (enabled, _) = registry.tool_count();
-        assert_eq!(enabled, 83);
+        assert_eq!(enabled, 97);
     }
 
     #[test]
@@ -796,6 +882,6 @@ mod tests {
         };
         registry.update_from_notification(&update);
         let (_, total) = registry.tool_count();
-        assert_eq!(total, 85);
+        assert_eq!(total, 99);
     }
 }
