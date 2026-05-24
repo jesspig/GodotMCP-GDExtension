@@ -92,6 +92,8 @@ fn cmd_redo(_args: &Value) -> Value {
     if !ur_obj.has_redo() {
         return json!({"success": false, "hint": "Nothing to redo"});
     }
+    // Align with cmd_undo: capture action name before executing redo.
+    let name = ur_obj.get_current_action_name().to_string();
     let result = ur_obj.redo();
-    json!({"success": result})
+    json!({"success": result, "action": name})
 }
