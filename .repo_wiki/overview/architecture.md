@@ -1,25 +1,25 @@
-# Architecture
+# 架构总览
 
-## Dual-Process, Three-Crate Design
+## 双进程、三 crate 设计
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│ AI Client (Claude Code / OpenCode / Cursor / Copilot / Codex / …)   │
-│ Standard I/O (stdio) JSON-RPC (MCP Protocol)                         │
+│ AI 客户端 (Claude Code / OpenCode / Cursor / Copilot / Codex / …)   │
+│ 标准输入输出 (stdio) JSON-RPC (MCP 协议)                              │
 └───────────────┬─────────────────────────────────────────────────────┘
                 │ stdio
                 ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │ godot-mcp-server.exe              ┌─────────────────────────────┐   │
-│ (crates/server, binary)           │ ToolRegistry                │   │
-│                                    │ 99 tool JSON Schemas       │   │
+│ (crates/server, 二进制)            │ ToolRegistry                │   │
+│                                    │ 125 个工具的 JSON Schema     │   │
 │ ┌────────┐  ┌─────────┐  ┌──────┐ │                             │   │
 │ │ main.rs│→│handler.rs│→│bridge│ └─────────────────────────────┘   │
 │ │(clap)  │  │(rmcp)   │  │(WS)  │                                  │
 │ └────────┘  └─────────┘  └──┬───┘                                  │
 └──────────────────────────────┼──────────────────────────────────────┘
                                │ WebSocket ws://127.0.0.1:9500
-                               │ tool_call IPC requests
+                               │ tool_call IPC 请求
                                ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │ godot_mcp_gdext.dll            (crates/gdext, cdylib)               │
@@ -31,7 +31,7 @@
 │                                               │                     │
 │                        ┌──────────────────────▼──────────────┐      │
 │                        │ route_tool_call (ws_server.rs)       │      │
-│                        │ 13 handler groups chained            │      │
+│                        │ 17 个 handler 组链式调用              │      │
 │                        └──────────┬───────────┬──────────────┘      │
 │                                   │           │                     │
 │                          ┌────────▼───┐ ┌─────▼─────────┐          │
@@ -41,80 +41,80 @@
 │                          └───────┬────┘ └───────┬────────┘          │
 │                                  │               │                  │
 │                          ┌───────▼───────────────▼────────┐         │
-│                          │ process_frame (SceneTree signal)│         │
-│                          │ Main-thread pump (NOT plugin)  │         │
+│                          │ process_frame (SceneTree 信号)   │         │
+│                          │ 主线程泵（非 plugin .process()） │         │
 │                          └────────────────────────────────┘         │
 │                                                                     │
 │                          Godot EditorInterface / Node / Scene API   │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-## Data Flow
+## 数据流
 
 ```mermaid
 sequenceDiagram
-    participant AI as AI Client
+    participant AI as AI 客户端
     participant S as godot-mcp-server
     participant G as godot_mcp_gdext
     
     AI->>S: stdio JSON-RPC (call_tool)
     S->>S: handler.rs: handle_tool_call()
-    S->>S: Match server-side tools (godot_editor_*)
+    S->>S: 匹配服务器端工具 (godot_editor_*)
     S->>G: WebSocket tool_call IPC
     G->>G: ws_server.rs: route_tool_call()
-    G->>G: dispatcher.submit() → main-thread queue
-    G->>G: process_frame pump → execute cmd_*
-    G-->>S: WebSocket IPC response
-    S-->>AI: stdio JSON-RPC response
+    G->>G: dispatcher.submit() → 主线程队列
+    G->>G: process_frame 泵 → 执行 cmd_*
+    G-->>S: WebSocket IPC 响应
+    S-->>AI: stdio JSON-RPC 响应
 ```
 
-## Key Properties
+## 关键属性
 
-- **stdio is the only** enabled MCP transport. `transport-streamable-http-server` is in deps but unwired.
-- **IPC wire format**: JSON-RPC-style `IpcRequest`/`IpcResponse`/`IpcNotification`, types in `crates/core/src/protocol.rs`
-- **99 tools**: 96 via gdext execution, 3 server-side (editor_control) intercepted in `handler.rs`, never reaching WebSocket
-- **Tool registry**: maintained in both `crates/server/src/tool_registry.rs` (MCP server) and `crates/gdext/src/commands/mod.rs` (via `CommandHandler` trait)
-- **Test assertions**: `tool_registry.rs` and `handler.rs` both have `assert_eq!(total, 99)`
+- **stdio 是唯一**启用的 MCP 传输。`transport-streamable-http-server` 在依赖中但未接线
+- **IPC 线路格式**: JSON-RPC 风格的 `IpcRequest`/`IpcResponse`/`IpcNotification`，类型定义在 `crates/core/src/protocol.rs`
+- **125 个工具**: 122 个通过 gdext 执行，3 个服务器端（editor_control）在 `handler.rs` 中拦截，永不抵达 WebSocket
+- **工具注册表**: 同时维护在 `crates/server/src/tool_registry.rs`（MCP 服务端侧）和 `crates/gdext/src/commands/mod.rs`（通过 `CommandHandler` trait）
+- **测试断言**: `tool_registry.rs` 和 `handler.rs` 都有 `assert_eq!(total, 125)`
 
-## Directory Layout
+## 目录布局
 
 ```
 crates/
-├── core/          # Shared types: protocol.rs, tool_manifest.rs
-├── server/        # MCP server binary
+├── core/          # 共享类型: protocol.rs, tool_manifest.rs
+├── server/        # MCP 服务端二进制
 │   └── src/
 │       ├── main.rs          # clap CLI → GodotMcpHandler
-│       ├── handler.rs       # rmcp ServerHandler implementation
-│       ├── bridge.rs        # WebSocket client (GodotBridge)
-│       └── tool_registry.rs # Tool registration & Schema
+│       ├── handler.rs       # rmcp ServerHandler 实现
+│       ├── bridge.rs        # WebSocket 客户端 (GodotBridge)
+│       └── tool_registry.rs # 工具注册与 Schema
 └── gdext/         # GDExtension cdylib
     └── src/
-        ├── lib.rs           # gdextension entry point
-        ├── editor_plugin.rs # McpEditorPlugin lifecycle
+        ├── lib.rs           # gdextension 入口
+        ├── editor_plugin.rs # McpEditorPlugin 生命周期
         ├── dispatcher.rs    # MainThreadDispatcher
-        ├── logging.rs       # Cross-thread logging
-        ├── commands/        # 13 command handler modules
-        │   ├── mod.rs       # CommandHandler trait + shared utilities
-        │   ├── meta.rs      # ping, engine/plugin version
-        │   ├── node.rs      # Node CRUD + scene tree traversal
-        │   ├── property.rs  # 2D property get/set
-        │   ├── property_3d.rs # 3D property get/set
-        │   ├── scene.rs     # Scene file + editor tab operations
-        │   ├── collision.rs # Collision shape addition
-        │   ├── find.rs      # Node search
+        ├── logging.rs       # 跨线程日志
+        ├── commands/        # 18 个命令处理模块
+        │   ├── mod.rs       # CommandHandler trait + 共享工具函数
+        │   ├── meta.rs      # ping, get_engine_version, get_plugin_version
+        │   ├── node.rs      # 节点 CRUD + 场景树遍历
+        │   ├── property.rs  # 2D 属性 get/set
+        │   ├── property_3d.rs # 3D 属性 get/set
+        │   ├── scene.rs     # 场景文件 + 编辑器标签操作
+        │   ├── collision.rs # 碰撞体添加
+        │   ├── find.rs      # 节点搜索
         │   ├── script_helpers.rs # call_method, get/set_variable
-        │   ├── project_settings.rs # Project settings read/write
-        │   ├── script_gd.rs # GDScript file ops + LSP validation
-        │   ├── script_cs.rs # C# file ops + Solution generation
+        │   ├── project_settings.rs # 项目设置读写
+        │   ├── script_gd.rs # GDScript 文件操作 + LSP 验证
+        │   ├── script_cs.rs # C# 文件操作 + Solution 生成
         │   ├── search.rs    # find_in_file, search_project, find_and_replace
-        │   └── undo.rs      # Undo/redo
-        ├── ipc/             # WebSocket server
+        │   └── undo.rs      # 撤销/重做
+        ├── ipc/             # WebSocket 服务器
         │   ├── ws_server.rs # IpcWebSocketServer + route_tool_call
         │   └── plugin_state.rs
-        ├── lsp/             # GDScript LSP client
+        ├── lsp/             # GDScript LSP 客户端
         │   ├── client.rs    # validate_via_lsp
-        │   └── protocol.rs  # LSP protocol types
-        └── dock/            # Editor right-dock UI
+        │   └── protocol.rs  # LSP 协议类型
+        └── dock/            # 编辑器右侧 Dock UI
             ├── main_dock.rs
             ├── status_bar.rs
             ├── integration.rs

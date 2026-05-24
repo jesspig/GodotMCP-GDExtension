@@ -16,7 +16,7 @@ godot_mcp_gdext / ws_server.rs → route_tool_call()
   ├─ can_handle("get_node_position") → PropertyCommands → 否
   ├─ can_handle("get_node_position") → NodeCommands → 否
   ├─ can_handle("get_node_position") → SceneCommands → 否
-  ├─ ... (13 个组依次检查)
+  ├─ ... (17 个组依次检查)
   ├─ can_handle("get_node_position") → NodeConvenience → 是！
   │   │
   │   ▼
@@ -39,7 +39,7 @@ AI 客户端 {"result": {"x": 100, "y": 200}}
 ## 路由链（`ws_server.rs`）
 
 ```rust
-// 检查顺序（13 组）
+// 检查顺序（17 组）
 MetaCommands::can_handle(name)
     || NodeCommands::can_handle(name)
     || PropertyCommands::can_handle(name)
@@ -69,8 +69,8 @@ MetaCommands::can_handle(name)
 |------|------|
 | `src/tool_registry.rs` | 在 `register_defaults()` 中添加工具的 JSON Schema |
 | `src/handler.rs` | 如果是服务器端工具（`godot_editor_*`），添加处理分支 |
-| 测试 | `tool_registry.rs` 的 `total == 99` 断言需要更新 |
-| 测试 | `handler.rs` 的 `total == 99` 断言也需要更新 |
+| 测试 | `tool_registry.rs` 的 `total == 125` 断言需要更新 |
+| 测试 | `handler.rs` 的 `total == 125` 断言也需要更新 |
 
 ### gdext 侧（`crates/gdext/`）
 
@@ -87,8 +87,8 @@ MetaCommands::can_handle(name)
 
 ## 测试
 
-- `handler.rs` 断言 `total == 99`（服务器侧工具数）
-- `tool_registry.rs` 断言 `total == 99`（注册表工具数）
+- `handler.rs` 断言 `total == 125`（服务器侧工具数）
+- `tool_registry.rs` 断言 `total == 125`（注册表工具数）
 - 离线测试（无 Godot）：不能测试真实工具调用，但可以测试 schema 注册和工具列表查询
 
 ## 注意

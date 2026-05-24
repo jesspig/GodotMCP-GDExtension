@@ -53,7 +53,7 @@ handle_request(request) → Result
   └─ match: 其他 → 默认实现
 ```
 
-**测试断言**：`assert_eq!(total, 99)`
+**测试断言**：`assert_eq!(total, 125)`
 
 ### `bridge.rs`
 
@@ -85,10 +85,10 @@ impl ToolRegistry {
 }
 ```
 
-`register_defaults()` 中注册 99 个工具的完整 Schema，包括：
+`register_defaults()` 中注册 125 个工具的完整 Schema，包括：
 
 - 3 个服务器端工具（`godot_editor_open`、`godot_editor_close`、`godot_editor_restart`）
-- 96 个通过 WebSocket 转发到 gdext 的工具
+- 122 个通过 WebSocket 转发到 gdext 的工具
 
 ## 工具分组（工具注册表中）
 
