@@ -2,9 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   check:
@@ -28,8 +31,11 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace -- -D warnings
 
+      - name: Configure CMake
+        run: cmake -B build -S .
+
       - name: Build
-        run: cargo build --workspace
+        run: cmake --build build --config Debug
 
       - name: Test
         run: cargo test --workspace

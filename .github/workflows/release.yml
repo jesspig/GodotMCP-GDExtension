@@ -1,5 +1,8 @@
 name: Release
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     tags:
@@ -39,32 +42,34 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libclang-dev
 
-      - name: Build GDExtension
-        run: cargo build --release -p godot-mcp-gdext
+      - name: Configure CMake
+        run: cmake -B build -S . -DRELEASE=ON
 
-      - name: Build Server
-        run: cargo build --release -p godot-mcp-server
+      - name: Build
+        run: cmake --build build --config Release
 
       - name: Upload GDExtension library
         uses: actions/upload-artifact@v4
         with:
           name: gdext-${{ matrix.os }}
-          path: target/release/${{ matrix.gdext_lib }}
+          path: build/${{ matrix.gdext_lib }}
 
       - name: Rename Server binary
         run: |
-          mv target/release/${{ matrix.server_bin }} target/release/${{ matrix.server_name }}
+          mv build/${{ matrix.server_bin }} build/${{ matrix.server_name }}
         shell: bash
 
       - name: Upload Server binary
         uses: actions/upload-artifact@v4
         with:
           name: server-${{ matrix.os }}
-          path: target/release/${{ matrix.server_name }}
+          path: build/${{ matrix.server_name }}
 
   package:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -83,14 +88,14 @@ jobs:
 
       - name: Assemble addons.zip
         run: |
-          mkdir -p addons/godot_mcp/bin
+          mkdir -p godot/addons/godot_mcp/bin
 
-          cp libs/gdext-windows-latest/godot_mcp_gdext.dll addons/godot_mcp/bin/
-          cp libs/gdext-ubuntu-latest/libgodot_mcp_gdext.so addons/godot_mcp/bin/
-          cp libs/gdext-macos-latest/libgodot_mcp_gdext.dylib addons/godot_mcp/bin/
+          cp libs/gdext-windows-latest/godot_mcp_gdext.dll godot/addons/godot_mcp/bin/
+          cp libs/gdext-ubuntu-latest/libgodot_mcp_gdext.so godot/addons/godot_mcp/bin/
+          cp libs/gdext-macos-latest/libgodot_mcp_gdext.dylib godot/addons/godot_mcp/bin/
 
-          cd addons
-          zip -r ../addons.zip godot_mcp/
+          cd godot/addons
+          zip -r ../../addons.zip godot_mcp/
 
       - name: Create Release
         uses: softprops/action-gh-release@v1

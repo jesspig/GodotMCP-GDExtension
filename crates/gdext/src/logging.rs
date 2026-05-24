@@ -18,9 +18,9 @@
 //! up in the terminal stderr stream when Godot is launched from a shell or
 //! the addon is run during tests.
 
+use std::sync::Mutex;
 use std::sync::OnceLock;
 use std::sync::mpsc::{Receiver, Sender, channel};
-use std::sync::Mutex;
 
 use godot::global::{godot_error, godot_print, godot_warn};
 
@@ -76,7 +76,13 @@ fn emit(level: LogLevel, tool: &str, msg: &str) {
     let truncated = truncate(msg);
     // Mirror to stderr so the log is captured even before the main-thread
     // pump is installed (very early plugin boot) or in headless test runs.
-    eprintln!("{}[{}][{}] {}", FORMAT_PREFIX, tool, level.as_str(), truncated);
+    eprintln!(
+        "{}[{}][{}] {}",
+        FORMAT_PREFIX,
+        tool,
+        level.as_str(),
+        truncated
+    );
     let record = LogRecord {
         level,
         tool: tool.to_string(),

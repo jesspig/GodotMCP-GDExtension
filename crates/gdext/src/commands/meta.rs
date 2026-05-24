@@ -93,7 +93,10 @@ mod tests {
     #[test]
     fn meta_commands_tool_names() {
         let meta = MetaCommands::new();
-        assert_eq!(meta.tool_names(), &["ping", "get_engine_version", "get_plugin_version"]);
+        assert_eq!(
+            meta.tool_names(),
+            &["ping", "get_engine_version", "get_plugin_version"]
+        );
     }
 
     #[test]

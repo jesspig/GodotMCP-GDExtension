@@ -7,6 +7,7 @@ mod dock;
 mod editor_plugin;
 mod ipc;
 mod logging;
+mod lsp;
 
 struct GodotMcpExtension;
 

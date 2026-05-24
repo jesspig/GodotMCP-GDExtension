@@ -69,11 +69,10 @@ mod tests {
         let dispatcher = MainThreadDispatcher::new();
 
         let dispatcher_clone = dispatcher.clone();
-        let handle = tokio::spawn(async move {
-            dispatcher_clone
-                .submit(|| json!({ "result": "ok" }))
-                .await
-        });
+        let handle =
+            tokio::spawn(
+                async move { dispatcher_clone.submit(|| json!({ "result": "ok" })).await },
+            );
 
         tokio::task::yield_now().await;
         dispatcher.process_pending();
@@ -117,9 +116,7 @@ mod tests {
         let name = "test_node".to_string();
 
         let d = dispatcher.clone();
-        let handle = tokio::spawn(async move {
-            d.submit(move || json!({ "name": name })).await
-        });
+        let handle = tokio::spawn(async move { d.submit(move || json!({ "name": name })).await });
 
         tokio::task::yield_now().await;
         dispatcher.process_pending();
