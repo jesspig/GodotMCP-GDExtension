@@ -96,7 +96,22 @@ fn cmd_create_gdscript(args: &Value) -> Value {
 
     let ts = "\t";
     let body = if !template.is_empty() {
-        template
+        match template.as_str() {
+            "empty" => {
+                let cn = if class_name.is_empty() {
+                    String::new()
+                } else {
+                    format!("class_name {}\n", class_name)
+                };
+                format!("extends {}\n{}", base_class, cn)
+            }
+            other => {
+                other
+                    .replace("_BASE_", &base_class)
+                    .replace("_CLASS_", &class_name)
+                    .replace("_TS_", ts)
+            }
+        }
     } else {
         let cn = if class_name.is_empty() {
             String::new()

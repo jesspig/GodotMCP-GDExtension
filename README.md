@@ -1,6 +1,6 @@
 # Godot MCP
 
-[![Version](https://img.shields.io/badge/version-0.1.1-blue?logo=github)](https://github.com/jessp/godot-mcp)
+[![Version](https://img.shields.io/badge/version-0.1.2--dev-blue?logo=github)](https://github.com/jessp/godot-mcp)
 [![Rust](https://img.shields.io/badge/Rust-2024%20edition-orange?logo=rust)](https://www.rust-lang.org)
 [![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?logo=godot%20engine)](https://godotengine.org)
 [![MCP](https://badge.mcpx.dev/?type=plugin&plugin_id=github.com/jessp/godot-mcp&logo=true)](https://modelcontextprotocol.io)

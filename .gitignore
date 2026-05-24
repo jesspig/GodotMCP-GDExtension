@@ -75,13 +75,13 @@ export_presets.cfg
 *.iml
 
 # ==============================
-# Godot test project
+# Godot example project
 # ==============================
 # Only track project.godot and icon.svg; everything else is test artifacts
-godot/*
-!godot/project.godot
-!godot/icon.svg
-!godot/.gitignore
+example/*
+!example/project.godot
+!example/icon.svg
+!example/.gitignore
 
 # Packaged zip files
 *.zip

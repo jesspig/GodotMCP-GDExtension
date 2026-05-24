@@ -332,8 +332,8 @@ mod tests {
     fn test_registry_defaults() {
         let handler = GodotMcpHandler::new(9500);
         let (enabled, total) = handler.registry().tool_count();
-        assert_eq!(total, 99);
-        assert_eq!(enabled, 99);
+        assert_eq!(total, 125);
+        assert_eq!(enabled, 125);
     }
 
     #[test]
