@@ -2,6 +2,7 @@ use serde_json::{Value, json};
 
 use godot::classes::EditorInterface;
 use godot::classes::Engine;
+use godot::classes::ProjectSettings;
 use godot::obj::Singleton;
 use godot::prelude::GString;
 
@@ -79,10 +80,10 @@ fn cmd_play_current_scene() -> Value {
 
 fn cmd_play_main_scene() -> Value {
     let mut ei = EditorInterface::singleton();
-    let main_scene = ei
-        .get_edited_scene_root()
-        .map(|r| r.get_scene_file_path().to_string())
-        .unwrap_or_default();
+    let main_scene = ProjectSettings::singleton()
+        .get_setting("application/run/main_scene")
+        .to::<GString>()
+        .to_string();
     ei.call_deferred(&godot::prelude::StringName::from("play_main_scene"), &[]);
     json!({"playing": true, "main_scene": main_scene})
 }
