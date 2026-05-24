@@ -1076,7 +1076,9 @@ fn cmd_get_script_variables(args: &Value) -> Value {
                 .iter_shared()
                 .filter_map(|d| {
                     let usage: i64 = d.get(&Variant::from("usage"))?.try_to().unwrap_or(0);
-                    if usage & 0x00001000 == 0 {
+                    // Align with scene_debugger_object.cpp: filter by SCRIPT_VARIABLE (0x10000000)
+                    // and EDITOR (0x00000002), matching how Godot identifies exported variables.
+                    if usage & 0x10000000 == 0 && usage & 0x00000002 == 0 {
                         return None;
                     }
                     let name = d.get(&Variant::from("name"))?.to_string();

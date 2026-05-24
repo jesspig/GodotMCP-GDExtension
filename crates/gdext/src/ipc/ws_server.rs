@@ -10,10 +10,14 @@ use godot_mcp_core::protocol::{
 
 use crate::commands::CommandHandler;
 use crate::commands::collision::CollisionCommands;
+use crate::commands::editor_control::EditorControlCommands;
 use crate::commands::find::FindCommands;
+use crate::commands::input_map::InputMapCommands;
 use crate::commands::meta::MetaCommands;
 use crate::commands::node::NodeCommands;
+use crate::commands::plugin_management::PluginManagementCommands;
 use crate::commands::project_settings::ProjectSettingsCommands;
+use crate::commands::project_settings_ext::ProjectSettingsExtCommands;
 use crate::commands::property::PropertyCommands;
 use crate::commands::property_3d::Property3dCommands;
 use crate::commands::scene::SceneCommands;
@@ -312,15 +316,57 @@ impl IpcWebSocketServer {
                                                                     tool, args, dispatcher,
                                                                 )
                                                                 .await
-                                                        } else if registry_tools
-                                                            .contains(&tool.to_string())
-                                                        {
-                                                            Err(format!(
-                                                                "Tool '{}' handler not yet implemented",
-                                                                tool
-                                                            ))
                                                         } else {
-                                                            Err(format!("Unknown tool: {}", tool))
+                                                            let editor_control =
+                                                                EditorControlCommands::new();
+                                                            if editor_control.can_handle(tool) {
+                                                                editor_control
+                                                                    .handle_editor_control_tool(
+                                                                        tool, args, dispatcher,
+                                                                    )
+                                                                    .await
+                                                            } else {
+                                                                let ps_ext =
+                                                                    ProjectSettingsExtCommands::new(
+                                                                    );
+                                                                if ps_ext.can_handle(tool) {
+                                                                    ps_ext.handle_project_settings_ext_tool(
+                                                                        tool, args, dispatcher,
+                                                                    )
+                                                                    .await
+                                                                } else {
+                                                                    let plugins = PluginManagementCommands::new();
+                                                                    if plugins.can_handle(tool) {
+                                                                        plugins.handle_plugin_management_tool(
+                                                                            tool, args, dispatcher,
+                                                                        )
+                                                                        .await
+                                                                    } else {
+                                                                        let input =
+                                                                            InputMapCommands::new();
+                                                                        if input.can_handle(tool) {
+                                                                            input.handle_input_map_tool(
+                                                                                tool, args, dispatcher,
+                                                                            )
+                                                                            .await
+                                                                        } else if registry_tools
+                                                                            .contains(
+                                                                                &tool.to_string(),
+                                                                            )
+                                                                        {
+                                                                            Err(format!(
+                                                                                "Tool '{}' handler not yet implemented",
+                                                                                tool
+                                                                            ))
+                                                                        } else {
+                                                                            Err(format!(
+                                                                                "Unknown tool: {}",
+                                                                                tool
+                                                                            ))
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }

@@ -86,7 +86,7 @@ endif()
 # ---------------------------------------------------------------------------
 # Generate addon config files (at configure time)
 # ---------------------------------------------------------------------------
-set(_addon_dir "${CMAKE_SOURCE_DIR}/godot/addons/godot_mcp")
+set(_addon_dir "${CMAKE_SOURCE_DIR}/example/addons/godot_mcp")
 file(MAKE_DIRECTORY "${_addon_dir}")
 
 # plugin.cfg
@@ -146,8 +146,8 @@ add_dependencies(copy-gdext godot_mcp_gdext)
 # Install rules (for CPack packaging)
 # ---------------------------------------------------------------------------
 install(
-    DIRECTORY "${CMAKE_SOURCE_DIR}/godot/addons/"
-    DESTINATION "godot/addons"
+    DIRECTORY "${CMAKE_SOURCE_DIR}/example/addons/"
+    DESTINATION "example/addons"
     USE_SOURCE_PERMISSIONS
     PATTERN "bin/*.ilk" EXCLUDE
     PATTERN "bin/*.pdb" EXCLUDE

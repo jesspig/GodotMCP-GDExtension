@@ -1,8 +1,12 @@
 pub mod collision;
+pub mod editor_control;
 pub mod find;
+pub mod input_map;
 pub mod meta;
 pub mod node;
+pub mod plugin_management;
 pub mod project_settings;
+pub mod project_settings_ext;
 pub mod property;
 pub mod property_3d;
 pub mod scene;

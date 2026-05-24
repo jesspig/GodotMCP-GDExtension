@@ -1,6 +1,6 @@
 # Godot MCP
 
-[![Version](https://img.shields.io/badge/version-0.1.1-blue?logo=github)](https://github.com/jessp/godot-mcp)
+[![Version](https://img.shields.io/badge/version-0.1.2-blue?logo=github)](https://github.com/jessp/godot-mcp)
 [![Rust](https://img.shields.io/badge/Rust-2024%20edition-orange?logo=rust)](https://www.rust-lang.org)
 [![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?logo=godot%20engine)](https://godotengine.org)
 [![MCP](https://badge.mcpx.dev/?type=plugin&plugin_id=github.com/jessp/godot-mcp&logo=true)](https://modelcontextprotocol.io)
@@ -8,7 +8,7 @@
 
 > Model Context Protocol bridge that lets AI assistants control the Godot Engine editor.
 
-*[中文文档](README.zh-CN.md)*
+*[中文文档](README-zh.md)*
 
 ```mermaid
 graph LR
@@ -19,14 +19,14 @@ graph LR
     subgraph ServerProc["godot-mcp-server"]
         Stdio["rmcp stdio Transport"]
         Handler["GodotMcpHandler"]
-        Registry["ToolRegistry<br/>(99 tool schemas)"]
+        Registry["ToolRegistry<br/>(125 tool schemas)"]
         Bridge["GodotBridge<br/>(WS client)"]
     end
 
     subgraph GodotProc["Godot Editor"]
         WS["IpcWebSocketServer"]
         Dispatcher["MainThreadDispatcher"]
-        Commands["13 handler groups<br/>96 gdext commands"]
+        Commands["17 handler groups<br/>122 gdext commands"]
         Editor["EditorInterface /<br/>SceneTree / Node API"]
     end
 
@@ -40,16 +40,16 @@ graph LR
     Commands --> Editor
 ```
 
-Godot MCP exposes the Godot 4.6+ editor to AI tools through **99 commands** — create nodes, modify properties, manage scenes, inspect the scene tree, edit GDScript/C# files, and more.
+Godot MCP exposes the Godot 4.6+ editor to AI tools through **125 commands** — create nodes, modify properties, manage scenes, inspect the scene tree, edit GDScript/C# files, and more.
 
 ## Features
 
-- **99 Editor Commands** — Scene/node manipulation, properties, search, undo/redo, collision shapes, GDScript/C# script management, LSP validation, file search/replace, project settings, multi-scene operations
+- **125 Editor Commands** — Scene/node manipulation, properties, search, undo/redo, collision shapes, GDScript/C# script management, LSP validation, file search/replace, project settings, multi-scene operations
 - **Dual-Process Architecture** — stdio MCP server + in-editor GDExtension plugin, connected via local WebSocket
 - **Thread-Safe Design** — Async tokio runtime paired with a main-thread dispatcher for safe Godot API access
 - **12 AI Client Support** — Claude Code, OpenCode, Cursor, GitHub Copilot, Codex, Trae, and more (stdio transport)
 - **Cross-Platform** — Windows, macOS, and Linux
-- **50 Offline Tests** — Protocol round-trips and tool registry correctness (no Godot needed)
+- **23 Offline Tests** — Protocol round-trips and tool registry correctness (no Godot needed)
 
 ## How It Works
 
@@ -68,7 +68,7 @@ AI Assistant ──► godot-mcp-server ──► godot_mcp_gdext
 ### Prerequisites
 
 - [Godot 4.6+](https://godotengine.org/download)
-- [Rust](https://rustup.rs) (channel 1.83.0, pinned in `rust-toolchain.toml`)
+- [Rust](https://rustup.rs) (stable channel, via `rustup`)
 - [Python 3](https://www.python.org) (for the build script)
 
 ### Build
@@ -147,25 +147,37 @@ Add this to your MCP client config:
 "attach the script res://player.gd to the Player node"
 ```
 
-### Available Tools (99 total)
+### Available Tools (125 total)
 
 | Category | Count | Tools |
 |----------|-------|-------|
 | Meta | 4 | `ping`, `get_engine_version`, `get_plugin_version`, `get_server_version` |
-| Node CRUD | 17 | `create/delete/rename/move/duplicate` node, `reset_parent`, `set_as_root`, `attach/detach_script`, group mgmt, `set_node_unique_name`, `get_node_path/info`, `get_scene_tree`, `scene_to_branch`/`branch_to_scene` |
-| 2D Properties | 19 | `get/set_property`, `get_property_list`, `batch_set_property`, `get/set_node_position/rotation/scale/modulate/visible/text/z_index`, `call_method` |
+| Node: Read | 4 | `get_scene_tree`, `get_node_path`, `get_property`, `get_property_list` |
+| Node: Write | 13 | `create/delete/rename/duplicate/move` node, `set_property`, `reset_parent`, `set_as_root`, `batch_set_property`, `attach/detach_script`, `add/remove_node_from_group` |
+| 2D Properties | 21 | `get/set_node_position/rotation/scale`, `get/set_node_visible/modulate/z_index/text`, `get/set_node_collision_layer/mask`, `get/set_node_texture`, `set_node_unique_name` |
 | 3D Properties | 6 | `get/set_node_position_3d/rotation_3d/scale_3d` |
 | Collision | 2 | `add_circle_collision`, `add_rectangle_collision` |
-| Scene Files | 15 | `create/open/save/save_as/close/reload/rename/delete` scene, `save_all`, `is_scene_dirty`, `mark_scene_unsaved`, `instantiate_scene`, `get_open_scenes/roots`, `set_node_transform_2d/3d` |
+| Node Search | 4 | `find_nodes_by_name/type/group/script` |
+| Script Helpers | 3 | `call_method`, `get_variable`, `set_variable` |
+| Project Settings | 3 | `get/set_project_setting`, `set_main_scene` |
+| Scene: File | 6 | `create/delete/rename_scene`, `branch_to_scene`, `scene_to_branch`, `instantiate_scene` |
+| Scene: Editor Tabs | 9 | `open/close/save/save_as/save_all/reload_scene`, `get_open_scenes/roots`, `mark_scene_unsaved` |
 | GDScript | 5 | `create/edit/read/list_gdscript`, `validate_gdscript` |
 | C# | 6 | `csharp_create_solution`, `create/edit/read/list_csharp_script`, `csharp_build` |
 | Search | 3 | `find_in_file`, `search_project`, `find_and_replace` |
-| Script Helpers | 3 | `get_script_variables`, `get_variable`, `set_variable` |
-| Project Settings | 3 | `get/set_project_setting`, `set_main_scene` |
+| Editor Control (server) | 3 | `godot_editor_open/close/restart` |
+| Editor Control (gdext) | 6 | `play_current_scene`, `play_main_scene`, `stop_scene`, `is_scene_playing`, `refresh_filesystem`, `get_editor_info` |
 | Undo/Redo | 2 | `undo`, `redo` |
-| Node Search | 4 | `find_nodes_by_name/type/group/script` |
-| Editor Control | 3 | `godot_editor_open/close/restart` (server-side) |
-| Convenience | 4 | `get/set_node_texture`, `get/set_node_collision_layer/mask` |
+| Node Convenience | 4 | `set_node_transform_2d/3d`, `get_node_info`, `get_script_variables` |
+| Scene Info | 1 | `is_scene_dirty` |
+| Autoload + Scene Listing | 4 | `list/add/remove_autoload`, `list_scenes` |
+| Display Settings | 2 | `get/set_display_settings` |
+| Project Info | 2 | `get/set_project_info` |
+| Physics Settings | 2 | `get/set_physics_settings` |
+| Rendering Settings | 2 | `get/set_rendering_settings` |
+| Layer Names | 2 | `get/set_layer_names` |
+| Plugin Management | 2 | `list_plugins`, `set_plugin_enabled` |
+| Input Map | 4 | `list/add/remove_input_action`, `set_input_action_events` |
 
 See the [Tool Catalog](.repo_wiki/en/reference/tools-catalog.md) for detailed argument shapes and return values.
 
@@ -177,7 +189,7 @@ See the [Tool Catalog](.repo_wiki/en/reference/tools-catalog.md) for detailed ar
 crates/
 ├── core/          Shared protocol types (IpcRequest, IpcResponse, ToolCallParams)
 ├── server/        MCP server binary — rmcp stdio transport, tool registry, WS client
-└── gdext/         GDExtension cdylib — editor plugin, WS server, 99 command handlers
+└── gdext/         GDExtension cdylib — editor plugin, WS server, 122 command handlers
 ```
 
 ### CI Gates
@@ -189,7 +201,7 @@ cargo fmt --check --all                       # Formatting
 cargo clippy --workspace -- -D warnings       # Linting (strict)
 cmake -B build -S .                           # Configure CMake
 cmake --build build --config Debug            # Build gdext + server
-cargo test --workspace                        # Tests (50, all offline, no Godot)
+cargo test --workspace                        # Tests (23, all offline, no Godot)
 ```
 
 ### Build Flags
@@ -210,16 +222,16 @@ py -3 build.py --no-server                    # DLL only (editor changes)
 ### Key Constraints
 
 - **Pinned deps**: `godot = "=0.5"`, `rmcp = "=1.7"`. Don't bump without testing.
-- **Rust channel**: `1.83.0` (pinned in `rust-toolchain.toml`).
+- **Rust channel**: `stable` (via `rust-toolchain.toml`).
 - **`Cargo.lock`** is committed (binary crate).
 - **Version** auto-syncs from `Cargo.toml` → `plugin.cfg` via CMake. Bump cargo version only.
-- **Adding a tool** requires registering the schema in `tool_registry.rs` AND adding a routing arm in `ws_server.rs::route_tool_call`. Update both `total == 99` assertions in tests.
+- **Adding a tool** requires registering the schema in `tool_registry.rs` AND adding a routing arm in `ws_server.rs::route_tool_call`. Update both `total == 125` assertions in tests.
 
 ## Documentation
 
 - [Architecture Overview](.repo_wiki/en/overview/architecture.md) — Two-process, three-crate design
 - [Threading Model](.repo_wiki/en/overview/threading-model.md) — tokio ↔ main-thread split and dispatcher pattern
-- [Tool Catalog](.repo_wiki/en/reference/tools-catalog.md) — All 99 tools with args and return shapes
+- [Tool Catalog](.repo_wiki/en/reference/tools-catalog.md) — All 125 tools with args and return shapes
 - [Client Configuration](.repo_wiki/en/reference/client-config.md) — 12 AI client config templates
 - [Build & Package](.repo_wiki/en/reference/build-and-package.md) — Build flags, CI gates, gotchas
 - [IPC Protocol](.repo_wiki/en/specification/ipc-protocol.md) — Wire format specification

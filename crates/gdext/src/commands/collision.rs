@@ -89,6 +89,28 @@ fn cmd_add_circle_collision(args: &Value) -> Value {
         return json!({"node_path": p, "radius": radius, "shape": "CircleShape2D", "mode": "set_on_existing"});
     }
 
+    // Check if a CollisionShape2D child already exists.
+    let child_count = target.get_child_count();
+    for i in 0..child_count {
+        if let Some(child) = target.get_child(i)
+            && child.get_class() == "CollisionShape2D"
+        {
+            let old_shape = child.get("shape");
+            let mut cs = child;
+            cs.set("shape", &Variant::from(circle.clone()));
+            let mut ur = get_undo_redo();
+            ur.create_action(&format!("Set circle collision for {}", p));
+            ur.add_do_property(
+                &cs.clone(),
+                &StringName::from("shape"),
+                &Variant::from(circle),
+            );
+            ur.add_undo_property(&cs.clone(), &StringName::from("shape"), &old_shape);
+            ur.commit_action_ex().execute(false).done();
+            return json!({"node_path": p, "radius": radius, "shape": "CircleShape2D", "mode": "set_on_existing"});
+        }
+    }
+
     let parent = target;
     let mut shape_node: godot::obj::Gd<Node> = ClassDb::singleton()
         .instantiate(&StringName::from("CollisionShape2D"))
@@ -157,6 +179,34 @@ fn cmd_add_rectangle_collision(args: &Value) -> Value {
             "shape": "RectangleShape2D",
             "mode": "set_on_existing"
         });
+    }
+
+    // Check if a CollisionShape2D child already exists.
+    let child_count = target.get_child_count();
+    for i in 0..child_count {
+        if let Some(child) = target.get_child(i)
+            && child.get_class() == "CollisionShape2D"
+        {
+            let old_shape = child.get("shape");
+            let mut cs = child;
+            cs.set("shape", &Variant::from(rect.clone()));
+            let mut ur = get_undo_redo();
+            ur.create_action(&format!("Set rectangle collision for {}", p));
+            ur.add_do_property(
+                &cs.clone(),
+                &StringName::from("shape"),
+                &Variant::from(rect),
+            );
+            ur.add_undo_property(&cs.clone(), &StringName::from("shape"), &old_shape);
+            ur.commit_action_ex().execute(false).done();
+            return json!({
+                "node_path": p,
+                "width": width,
+                "height": height,
+                "shape": "RectangleShape2D",
+                "mode": "set_on_existing"
+            });
+        }
     }
 
     let parent = target;

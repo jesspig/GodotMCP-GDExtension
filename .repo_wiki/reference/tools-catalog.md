@@ -1,6 +1,6 @@
 # 工具目录
 
-> 全部 99 个 MCP 工具的描述、参数和返回值。分为 13 个处理器分组 + 3 个服务器端工具。
+> 全部 125 个 MCP 工具的描述、参数和返回值。分为 17 个处理器分组 + 3 个服务器端工具。
 
 ## 分组速览
 
@@ -22,7 +22,7 @@
 | [Property3dCommands](#property3dcommands-6) | 6 | gdext |
 | [NodeConvenience](#nodeconvenience-4) | 4 | gdext |
 | [SceneInfo](#sceneinfo-1) | 1 | gdext |
-| **总计** | **99** | |
+| **总计** | **125** | |
 
 ---
 
