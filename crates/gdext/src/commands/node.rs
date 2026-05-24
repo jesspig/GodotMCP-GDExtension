@@ -820,7 +820,7 @@ fn cmd_batch_set_property(args: &Value) -> Value {
                 let actual = n.get(&StringName::from(prop.as_str()));
                 json!({"node_path": p, "status": "ok", "value": v2j(&actual)})
             }
-            None => json!({"node_path": p, "status": "error", "message": "not found"}),
+            None => json!({"node_path": p, "status": "error", "message": "not found", "hint": format!("Node '{}' not found in current scene. It may have been moved, renamed, or the scene may have changed.", p)}),
         })
         .collect();
     json!({"results": results})
