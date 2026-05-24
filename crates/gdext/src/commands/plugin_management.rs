@@ -74,14 +74,14 @@ fn cmd_list_plugins() -> Value {
     let mut plugins = Vec::new();
     dir.list_dir_begin();
     loop {
-        let name = dir.get_next().to_string();
-        if name.is_empty() {
+        let dir_name = dir.get_next().to_string();
+        if dir_name.is_empty() {
             break;
         }
-        if name == "." || name == ".." || !dir.current_is_dir() {
+        if dir_name == "." || dir_name == ".." || !dir.current_is_dir() {
             continue;
         }
-        let cfg_path = format!("res://addons/{}/plugin.cfg", name);
+        let cfg_path = format!("res://addons/{}/plugin.cfg", dir_name);
         if !godot::classes::FileAccess::file_exists(&GString::from(&cfg_path)) {
             continue;
         }
@@ -94,9 +94,11 @@ fn cmd_list_plugins() -> Value {
         let author = cfg_get(&cf, "author");
         let ver = cfg_get(&cf, "version");
         let script = cfg_get(&cf, "script");
-        let enabled = ei.is_plugin_enabled(&GString::from(&plugin_name));
+        // Godot's API uses the directory name (not the display name) for plugin identification
+        let enabled = ei.is_plugin_enabled(&GString::from(&dir_name));
         plugins.push(json!({
             "name": plugin_name,
+            "directory": dir_name,
             "description": desc,
             "author": author,
             "version": ver,
@@ -119,7 +121,11 @@ fn cmd_set_plugin_enabled(args: &Value) -> Value {
     let mut ei = EditorInterface::singleton();
     let gs = GString::from(plugin.as_str());
     let was_enabled = ei.is_plugin_enabled(&gs);
+
+    // Runtime enable/disable in the editor.
+    // Godot internally calls _update_addon_config() → queue_save() to persist
     ei.set_plugin_enabled(&gs, enabled);
+
     json!({
         "plugin": plugin,
         "enabled": enabled,
