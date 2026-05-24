@@ -685,6 +685,169 @@ impl ToolRegistry {
                     &["path", "pattern", "replacement"],
                 ),
             ),
+            // ── Editor control: gdext (6) ──────────────────────────────
+            (
+                "play_current_scene",
+                "播放当前编辑器中打开的场景",
+                empty.clone(),
+            ),
+            ("play_main_scene", "播放项目主场景", empty.clone()),
+            ("stop_scene", "停止正在运行的场景", empty.clone()),
+            ("is_scene_playing", "查询场景是否正在播放", empty.clone()),
+            (
+                "refresh_filesystem",
+                "刷新编辑器文件系统扫描",
+                empty.clone(),
+            ),
+            (
+                "get_editor_info",
+                "获取编辑器信息：引擎版本、编辑器路径、缩放比例、语言",
+                empty.clone(),
+            ),
+            // ── Autoload + Scene listing (4) ──────────────────────────
+            (
+                "list_autoloads",
+                "列出项目所有 Autoload 单例",
+                empty.clone(),
+            ),
+            (
+                "add_autoload",
+                "添加 Autoload 单例",
+                schema(
+                    r#"{"name":{"type":"string"},"path":{"type":"string"},"singleton":{"type":"boolean","description":"是否启用单例模式，默认 true"}}"#,
+                    &["name", "path"],
+                ),
+            ),
+            (
+                "remove_autoload",
+                "移除 Autoload 单例",
+                schema(r#"{"name":{"type":"string"}}"#, &["name"]),
+            ),
+            (
+                "list_scenes",
+                "列出项目中所有场景文件 (.tscn/.scn)",
+                schema(
+                    r#"{"root":{"type":"string"},"max_results":{"type":"integer"}}"#,
+                    &[],
+                ),
+            ),
+            // ── Settings aggregates: Display (2) ──────────────────────
+            (
+                "get_display_settings",
+                "获取显示/窗口相关设置（分辨率、拉伸、全屏模式等）",
+                empty.clone(),
+            ),
+            (
+                "set_display_settings",
+                "设置显示/窗口相关设置",
+                schema(
+                    r#"{"viewport_width":{"type":"integer"},"viewport_height":{"type":"integer"},"mode":{"type":"integer"},"resizable":{"type":"boolean"},"borderless":{"type":"boolean"},"transparent":{"type":"boolean"},"always_on_top":{"type":"boolean"},"stretch_mode":{"type":"string"},"stretch_aspect":{"type":"string"},"stretch_scale":{"type":"number"},"vsync_mode":{"type":"integer"}}"#,
+                    &[],
+                ),
+            ),
+            // ── Settings aggregates: Project Info (2) ─────────────────
+            (
+                "get_project_info",
+                "获取项目基本信息（名称、描述、版本、图标、主场景等）",
+                empty.clone(),
+            ),
+            (
+                "set_project_info",
+                "设置项目基本信息",
+                schema(
+                    r#"{"name":{"type":"string"},"description":{"type":"string"},"version":{"type":"string"},"icon":{"type":"string"},"main_scene":{"type":"string"},"use_custom_user_dir":{"type":"boolean"},"custom_user_dir_name":{"type":"string"}}"#,
+                    &[],
+                ),
+            ),
+            // ── Settings aggregates: Physics (2) ─────────────────────
+            (
+                "get_physics_settings",
+                "获取物理引擎设置（2D/3D 重力、阻尼、帧率等）",
+                empty.clone(),
+            ),
+            (
+                "set_physics_settings",
+                "设置物理引擎参数",
+                schema(
+                    r#"{"gravity_2d":{"type":"number"},"gravity_3d":{"type":"number"},"linear_damp_2d":{"type":"number"},"angular_damp_2d":{"type":"number"},"linear_damp_3d":{"type":"number"},"angular_damp_3d":{"type":"number"},"physics_ticks_per_second":{"type":"integer"}}"#,
+                    &[],
+                ),
+            ),
+            // ── Settings aggregates: Rendering (2) ───────────────────
+            (
+                "get_rendering_settings",
+                "获取渲染相关设置（渲染器、抗锯齿、像素对齐等）",
+                empty.clone(),
+            ),
+            (
+                "set_rendering_settings",
+                "设置渲染参数",
+                schema(
+                    r#"{"rendering_method":{"type":"string"},"default_clear_color":{"type":"string"},"msaa_2d":{"type":"integer"},"msaa_3d":{"type":"integer"},"screen_space_aa":{"type":"integer"},"snap_2d_transforms_to_pixel":{"type":"boolean"},"snap_2d_vertices_to_pixel":{"type":"boolean"},"use_occlusion_culling":{"type":"boolean"}}"#,
+                    &[],
+                ),
+            ),
+            // ── Settings aggregates: Layer Names (2) ─────────────────
+            (
+                "get_layer_names",
+                "获取物理/导航/渲染层名称（按分类）",
+                schema(
+                    r#"{"category":{"type":"string","description":"2d_physics/2d_navigation/2d_render/3d_physics/3d_navigation/3d_render/avoidance"}}"#,
+                    &["category"],
+                ),
+            ),
+            (
+                "set_layer_names",
+                "设置物理/导航/渲染层名称",
+                schema(
+                    r#"{"category":{"type":"string"},"layers":{"type":"object","description":"层号到名称的映射，如 {\"1\":\"Player\",\"2\":\"Enemy\"}"}}"#,
+                    &["category", "layers"],
+                ),
+            ),
+            // ── Plugin management (2) ──────────────────────────────────
+            (
+                "list_plugins",
+                "列出 res://addons/ 中所有插件及其启用状态",
+                empty.clone(),
+            ),
+            (
+                "set_plugin_enabled",
+                "启用或禁用编辑器插件",
+                schema(
+                    r#"{"plugin":{"type":"string"},"enabled":{"type":"boolean"}}"#,
+                    &["plugin", "enabled"],
+                ),
+            ),
+            // ── Input map (4) ──────────────────────────────────────────
+            (
+                "list_input_actions",
+                "列出输入动作及其绑定的事件",
+                schema(
+                    r#"{"include_builtin":{"type":"boolean","description":"是否包含 ui_* 内置动作，默认 false"}}"#,
+                    &[],
+                ),
+            ),
+            (
+                "add_input_action",
+                "添加新的输入动作",
+                schema(
+                    r#"{"name":{"type":"string"},"deadzone":{"type":"number","description":"死区阈值，默认 0.5"}}"#,
+                    &["name"],
+                ),
+            ),
+            (
+                "set_input_action_events",
+                "设置输入动作绑定的事件（替换/追加/清空）",
+                schema(
+                    r#"{"name":{"type":"string"},"mode":{"type":"string","description":"replace/add/clear，默认 replace"},"events":{"type":"array","description":"事件数组，每项含 type 及对应属性"}}"#,
+                    &["name"],
+                ),
+            ),
+            (
+                "remove_input_action",
+                "移除输入动作",
+                schema(r#"{"name":{"type":"string"}}"#, &["name"]),
+            ),
         ];
 
         for (name, desc, schema) in defaults {
@@ -784,8 +947,8 @@ mod tests {
     fn new_registry_has_defaults() {
         let registry = ToolRegistry::new();
         let (enabled, total) = registry.tool_count();
-        assert_eq!(total, 99);
-        assert_eq!(enabled, 99);
+        assert_eq!(total, 125);
+        assert_eq!(enabled, 125);
     }
 
     #[test]
@@ -803,8 +966,8 @@ mod tests {
         assert!(registry.set_tool_enabled("ping", false));
         assert!(!registry.is_tool_enabled("ping"));
         let (enabled, total) = registry.tool_count();
-        assert_eq!(total, 99);
-        assert_eq!(enabled, 98);
+        assert_eq!(total, 125);
+        assert_eq!(enabled, 124);
     }
 
     #[test]
@@ -833,7 +996,7 @@ mod tests {
         registry.register_tool("custom_tool", "A custom tool", json!({}));
         assert!(registry.is_tool_enabled("custom_tool"));
         let (_, total) = registry.tool_count();
-        assert_eq!(total, 100);
+        assert_eq!(total, 126);
     }
 
     #[test]
@@ -842,7 +1005,7 @@ mod tests {
         registry.set_tool_enabled("ping", false);
         registry.set_tool_enabled("get_engine_version", false);
         let enabled = registry.get_enabled_tools();
-        assert_eq!(enabled.len(), 97);
+        assert_eq!(enabled.len(), 123);
         let names: Vec<&str> = enabled.iter().map(|t| t.name.as_str()).collect();
         assert!(names.contains(&"get_plugin_version"));
         assert!(names.contains(&"get_server_version"));
@@ -868,7 +1031,7 @@ mod tests {
         assert!(!registry.is_tool_enabled("get_engine_version"));
         assert!(registry.is_tool_enabled("get_plugin_version"));
         let (enabled, _) = registry.tool_count();
-        assert_eq!(enabled, 97);
+        assert_eq!(enabled, 123);
     }
 
     #[test]
@@ -882,6 +1045,6 @@ mod tests {
         };
         registry.update_from_notification(&update);
         let (_, total) = registry.tool_count();
-        assert_eq!(total, 99);
+        assert_eq!(total, 125);
     }
 }
