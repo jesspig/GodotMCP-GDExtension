@@ -1,92 +1,112 @@
 # GodotMCP — Agent Instructions
 
-MCP server that exposes the Godot 4.6+ editor to AI tools via 35 in-editor commands.
+MCP server that exposes the Godot 4.6+ editor to AI tools via **99 commands** (96 gdext + 3 server-side editor control).
 
-## Architecture (two-process, three-crate)
+## Architecture
 
 ```
 AI client ── stdio ──► godot-mcp-server.exe ── WebSocket :9500 ──► godot_mcp_gdext.dll
-                       (crates/server, bin)                         (crates/gdext, cdylib in Godot Editor)
+                       (crates/server, bin)                         (crates/gdext, cdylib)
                                   │                                          │
                                   └──── crates/core ── shared protocol types ┘
 ```
 
-- **stdio is the only MCP transport in use**. `transport-streamable-http-server` is in deps but unwired (no `transports/` module).
-- **IPC wire format**: JSON-RPC-like, types in `crates/core/src/protocol.rs`. Every tool call from the server is wrapped as `method = "tool_call"` with `{tool, args}` params; the gdext side routes via `ws_server::route_tool_call` → `MetaCommands` (4 tools) or `SceneCommands` (31 tools). Adding a tool requires **both** registering schema in `crates/server/src/tool_registry.rs::register_defaults` AND adding a routing arm in `crates/gdext/src/commands/scene.rs::handle_scene_tool` (or a new handler module). The server `handle_tool_call` forwards anything `registry.has_tool()` knows; mismatch between the two sides shows as "Unknown tool" or "handler not yet implemented".
-- **Hardcoded counts in tests**: `tool_registry.rs` and `handler.rs` tests assert exact tool counts (currently 35). Update them when adding/removing tools or the test suite breaks.
+- **stdio is the only MCP transport**. `transport-streamable-http-server` is in deps but unwired.
+- **Adding a tool requires both sides**: register schema in `crates/server/src/tool_registry.rs::register_defaults` AND add a routing arm in `crates/gdext/src/ipc/ws_server.rs::route_tool_call`. Server-side tools only need the registry + `handler.rs` match arm.
+- **Hardcoded counts in tests**: `tool_registry.rs` + `handler.rs` assert `total == 99`. Update both when adding/removing tools.
+- **`crates/gdext/src/commands/mod.rs::create_registry()`** (8 groups for name discovery) and **`route_tool_call`** (13 routing groups) must stay in sync — `SceneCommands`, `ScriptHelpersCommands`, `SearchCommands`, `UndoCommands`, `ProjectSettingsCommands` exist in routing but NOT in `create_registry()`.
 
-## The main-thread / tokio split (most important gotcha)
-
-Tool routing runs on tokio worker threads. **Almost every Godot API panics if called off the main thread** with `attempted to access binding from different thread than main thread`. Two mechanisms handle this:
-
-1. **`dispatcher::MainThreadDispatcher`** (`crates/gdext/src/dispatcher.rs`): worker submits a closure via `submit()`, returns a oneshot future. Main thread drains the queue and runs closures. **All `cmd_*` functions in `scene.rs` are invoked through this.**
-2. **`logging` module** (`crates/gdext/src/logging.rs`): worker calls `log_info/log_warn/log_error`, which pushes a `LogRecord` over an `mpsc` channel AND mirrors to `eprintln!`. Main thread calls `drain_to_console()` to flush queued records to `godot_print!/godot_warn!/godot_error!`. **Never call `godot_print!` from a worker thread.**
-
-Both queues are drained by a **`Callable::from_fn` connected to `SceneTree::process_frame`** (set up in `editor_plugin::install_main_thread_pump`). They are **deliberately NOT** drained from the plugin's `process(&mut self)` callback. Reason: `process` holds an active `bind_mut` on `McpEditorPlugin`; any closure executing `EditorInterface` calls that synchronously re-enter the plugin (via signals) triggers `Gd<T>::bind_mut() failed, already bound` (gdext issue #338). The `process_frame` pump runs in a call stack with no plugin borrow held.
-
-If you add new tool handlers, **dispatch them through `dispatcher.submit()`**. Do not call Godot APIs directly from `route_tool_call`.
-
-## Scene command conventions (`crates/gdext/src/commands/scene.rs`)
-
-- All `cmd_*` are free functions, not methods — closures cannot capture `&self` across `dispatcher.submit()`.
-- `resolve_node(&root, path)` is the standard way to look up a node. It accepts `""`, `"."`, `"/"`, `"/root"`, the root's name, or any normal `NodePath`. Use it instead of `root.get_node_or_null` directly so tools work when targeting the scene root.
-- JSON ↔ Variant conversion is in `j2v` / `v2j`. They handle `Vector2`/`Vector3`/`Vector4`/`Color`/`Rect2`/`Quaternion`/`Resource` via key-shape detection (`{x,y}`, `{r,g,b,a}`, `{position,size}`, `resource_path`, `res://...` string). Bypassing them and stuffing a JSON object into `node.set()` writes garbage (Godot falls back to defaults like `(1e-05, 1e-05)`).
-- Use `godot::tools::try_load::<T>(path)` (returns `Result<Gd<T>, IoError>`) rather than `ResourceLoader::singleton().load() + cast`. Better errors, type-correct.
-- Scene-file ops use `EditorInterface` (e.g. `open_scene_from_path_ex`, `save_scene`, `get_open_scenes`). Don't write to `.tscn` files directly — the editor won't see the changes.
-
-## Commands
+## Handler routing chain (13 groups)
 
 ```
-py -3 package_addons.py          # default: kills server.exe, builds both crates (debug),
-                                 # copies dll to addons/godot_mcp/bin/, zips addons.zip,
-                                 # prints artifact summary with mtimes
-py -3 package_addons.py --release       # release profile
-py -3 package_addons.py --clean         # cargo clean + wipe addons/bin/ first
-py -3 package_addons.py --no-zip        # skip addons.zip (fast iteration)
-py -3 package_addons.py --no-server     # only rebuild the dll
-
-cargo fmt --check --all                 # CI gate 1
-cargo clippy --workspace -- -D warnings # CI gate 2
-cargo build --workspace                 # CI gate 3
-cargo test --workspace                  # CI gate 4 (47 tests, all offline / no Godot needed)
+server handler → EditorControl (3, server-side)
+gdext route_tool_call → MetaCommands(4) → NodeCommands(17) → PropertyCommands(19)
+  → CollisionCommands(2) → FindCommands(4) → ScriptHelpersCommands(3)
+  → ProjectSettingsCommands(3) → SceneCommands(15) → ScriptGdCommands(5)
+  → ScriptCsCommands(6) → SearchCommands(3) → UndoCommands(2)
+  → Property3dCommands(6) → NodeConvenience(4) → SceneInfo(1)
 ```
 
-CI (`.github/workflows/ci.yml`) runs exactly those four steps in order on Ubuntu. Reproduce locally before pushing — clippy is `-D warnings` and will reject anything new.
+## Main-thread / tokio split (biggest gotcha)
 
-**On Windows the `python` / `python3` commands are Microsoft Store stubs and hang silently. Use `py -3`.**
+Tool routing runs on tokio worker threads. **Almost every Godot API panics if called off the main thread.**
 
-## Build / packaging gotchas
+1. **`MainThreadDispatcher`**: worker calls `dispatcher.submit(move || cmd_*(...))` → returns a `oneshot` future. Main thread drains `VecDeque` via `process_pending()`. **All `cmd_*` functions are invoked through this.**
+2. **`logging` module**: worker calls `log_info/log_warn/log_error` → mpsc channel + `eprintln!`. Main thread `drain_to_console()` → `godot_print!`. **Never call `godot_print!` from a worker thread.**
 
-- The MCP client launches `target/debug/godot-mcp-server.exe` (or release) directly via the path in the client's `mcpServers` config. **You must restart the MCP client after rebuilding** or it keeps the old binary loaded.
-- Cargo will fail to overwrite `godot-mcp-server.exe` if a client still has it loaded → `package_addons.py` runs `taskkill /F /IM godot-mcp-server.exe` first. If you run `cargo build` manually and get a file-lock error, kill the process yourself.
-- `target/debug/godot_mcp_gdext.dll` is locked while the Godot editor has the plugin loaded. Either disable the plugin first or close the editor before rebuilding.
-- Cargo dependencies are pinned: `godot = "=0.5"`, `rmcp = "=1.7"`. Don't bump without testing — gdext API changes frequently and rmcp 1.x has had breaking minor releases.
-- `Cargo.lock` IS committed (binary crate). Do not regenerate casually.
-- `rust-toolchain.toml` pins `stable` with `rustfmt`+`clippy`.
-- `plugin.cfg` has `script=""` — intentional. All logic is native.
-- Addon binaries: `addons/godot_mcp/bin/*` is `.gitignore`d except `.gitkeep`. `package_addons.py` repopulates it; never check in built artifacts.
-- `plugin.cfg` version auto-syncs from `Cargo.toml [workspace.package].version` in `package_addons.py`. Bump the cargo version, not plugin.cfg.
+Both queues drain via `Callable::from_fn` on `SceneTree::process_frame` (NOT from `EditorPlugin::_process()` — that holds `bind_mut` which deadlocks on re-entrant `EditorInterface` calls).
 
-## Reference docs
+## gdext API constraints
 
-The repository wiki (`.repo_wiki/`) is the long-form companion to this file. Start at [`.repo_wiki/index.md`](.repo_wiki/index.md) and follow the section that matches the task:
+- `Dictionary::get(key)` returns `Option<Variant>` (single arg, no default). Unwrap with `.map(|v| v.to::<T>()).unwrap_or(default)`.
+- `ProjectSettings::get_setting(name)` takes `impl AsArg<GString>` — pass `&str` or `GString`, not `&StringName`.
+- Prefer `ResourceSaver::singleton().save_ex(resource).path(path).done()` for saving, or `resource.set_path()` first.
+- Use `godot::tools::try_load::<T>(path)` (returns `Result`) over `ResourceLoader::singleton().load() + cast`.
+- `resolve_node(&root, path)` in `commands/mod.rs` accepts `""`, `"."`, `"/"`, `"/root"`, root name, or `"RootName/Child"` (prefix auto-stripped). Use it for all node lookups.
+- JSON↔Variant: `j2v`/`v2j` handle `Vector2/3/4`, `Color`, `Rect2`, `Quaternion`, `Resource`. Always use them.
+- Scene-file ops must use `EditorInterface` — the editor won't see direct `.tscn` file writes.
+- After writing files, call `EditorInterface::singleton().get_resource_filesystem().update_file()` so the editor detects changes.
+- For subdirectories: `DirAccess::open("res://")` → `make_dir_recursive()`.
 
-| Need | Page |
-|------|------|
-| Mental model of the two processes, three crates | [`.repo_wiki/overview/architecture.md`](.repo_wiki/overview/architecture.md) |
-| **Read before touching `crates/gdext/`** — the tokio↔main-thread split, pump pattern, `bind_mut` trap | [`.repo_wiki/overview/threading-model.md`](.repo_wiki/overview/threading-model.md) |
-| File-by-file map per crate | [`.repo_wiki/crates/{core,server,gdext}.md`](.repo_wiki/crates/) |
-| Adding a new tool (server side + gdext side checklist) | [`.repo_wiki/modules/command-routing.md`](.repo_wiki/modules/command-routing.md) |
-| JSON↔Variant rules, `resolve_node`, `try_load` | [`.repo_wiki/modules/scene-commands.md`](.repo_wiki/modules/scene-commands.md) |
-| Catalog of all 35 tools with args/returns | [`.repo_wiki/reference/tools-catalog.md`](.repo_wiki/reference/tools-catalog.md) |
-| `package_addons.py` flags and file-lock recovery | [`.repo_wiki/reference/build-and-package.md`](.repo_wiki/reference/build-and-package.md) |
-| Per-client MCP config quirks (`servers` vs `mcpServers`, `serverUrl`, `httpUrl`, Codex TOML, …) | [`.repo_wiki/reference/client-quirks.md`](.repo_wiki/reference/client-quirks.md) |
-| Wire format details (`IpcRequest`/`IpcResponse`/`ToolCallParams`) | [`.repo_wiki/specification/ipc-protocol.md`](.repo_wiki/specification/ipc-protocol.md) |
-| Why the code is shaped the way it is | [`.repo_wiki/design/decisions.md`](.repo_wiki/design/decisions.md) |
-| Append-only project changelog | [`.repo_wiki/log.md`](.repo_wiki/log.md) |
+## Editor-mode limitations
 
-When you touch a pattern documented in the wiki, update the matching page in the same change and add an entry to `.repo_wiki/log.md`.
+- `get_variable`/`set_variable`: `@export` only in editor. Non-exported uses `PlaceHolderScriptInstance`.
+- `validate_gdscript`: requires Editor Settings → Network → Language Server → Enable = ON. Creates a temporary tokio runtime.
+- `add_circle_collision`/`add_rectangle_collision`: detects existing `CollisionShape2D`; `mode` field indicates action path.
+- `rename_scene`: errors if target open but not active tab.
+- `find_nodes_by_name`: case-sensitive substring (`contains`), not glob.
+- `get/set_node_collision_layer/mask`: errors for non-CollisionObject2D/3D.
+- `set_node_texture`: loads as `Texture2D` (not generic `Resource`). Default property `"texture"`.
+- `set_project_setting`/`set_main_scene`: calls `ProjectSettings::save()`; `warning` field on failure.
 
-The forward-looking roadmap (planned phases, open ADR questions) lives under [`docs/plan/`](docs/plan/index.md). The wiki describes what *is*; `docs/plan/` describes what's *next*. When a planned item ships, move its description from `docs/plan/` into the matching wiki page and delete the plan entry.
+## Build system (CMake + Corrosion)
 
-For Godot / gdext API questions, query the Context7 library `/websites/godot-rust_github_io_gdext_master` or fetch `https://docs.godotengine.org/en/4.6/classes/...`. **Do NOT read the gdext source under `~/.cargo/registry/`** — the user has rejected that approach.
+```
+py -3 build.py                        # debug + addons.zip
+py -3 build.py --release              # release + addons.zip
+py -3 build.py --clean                # cargo clean + wipe addons/bin/
+py -3 build.py --no-zip               # skip zip (fast iteration)
+py -3 build.py --no-server            # only rebuild dll
+```
+
+**CI gates** (`.github/workflows/ci.yml`, Ubuntu): `cargo fmt --check --all` → `cargo clippy --workspace -- -D warnings` → `cmake -B build -S .` → `cmake --build build --config Debug` → `cargo test --workspace` (50 tests, offline, no Godot).
+
+**On Windows**: `python`/`python3` are Microsoft Store stubs — use `py -3`.
+
+**Gotchas**:
+- Restart MCP client after rebuilding — it holds the old `godot-mcp-server.exe`. CMake auto-kills; if manual, `taskkill`/`pkill` first.
+- `godot_mcp_gdext.dll` locked while Godot editor has plugin loaded. Close editor or disable plugin before rebuild.
+- Pinned deps: `godot = "=0.5"`, `rmcp = "=1.7"`. Don't bump without testing.
+- `Cargo.lock` is committed (binary crate). Don't regenerate casually.
+- `rust-toolchain.toml` pins channel `1.83.0`.
+- `plugin.cfg` version auto-syncs from `Cargo.toml [workspace.package].version`. Bump cargo version, not plugin.cfg.
+- `godot/addons/godot_mcp/bin/*` is `.gitignore`d (except `.gitkeep`).
+
+## C# solution generation
+
+`csharp_create_solution` generates `.sln` + `.csproj` in Rust directly — **no second Godot process** (avoids port 9500 conflict).
+
+- SDK version from `Engine::get_version_info()` → `Godot.NET.Sdk/X.Y.Z[-pre.N]` (SemVer 2.0: `"beta2"` → `"beta.2"`)
+- Project name from `dotnet/project/assembly_name` → `application/config/name` → project folder name
+- `.csproj`: UTF-8 **without** BOM; `.sln`: UTF-8 **with** BOM
+- `csharp_build` spawns `dotnet build` — can't run while editor holds assembly file lock
+
+## Editor control tools (server-side)
+
+`godot_editor_open/close/restart` handled in `server/handler.rs` — never reach gdext. Closing the editor kills WebSocket, so the response comes from the server process.
+
+- `GODOT_PATH` env var required. Must be in MCP client `env` config (stdio servers don't inherit shell env).
+- `project_path` defaults to `godot/` (test project). Relative paths resolve from CWD.
+- Close: `taskkill /F /IM` (Windows) or `pkill -f` (Unix).
+- Restart waits 500ms after kill.
+
+## Key patterns
+
+- All `cmd_*` are **free functions** — closures can't capture `&self` across `dispatcher.submit()`. Return `json!({"error": "..."})` on error; `pipe()` converts to `Result<Value, String>`.
+- `FileAccess::file_exists()` checks files; `DirAccess::dir_exists_absolute()` checks directories.
+
+## Reference
+
+Full wiki: `.repo_wiki/en/index.md` (also available in Chinese at `.repo_wiki/zh/`).
+
+- **README.md** says "35 tools" — actual count is **99**. Ignore that number.

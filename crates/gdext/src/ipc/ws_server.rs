@@ -9,11 +9,19 @@ use godot_mcp_core::protocol::{
 };
 
 use crate::commands::CommandHandler;
+use crate::commands::collision::CollisionCommands;
+use crate::commands::find::FindCommands;
 use crate::commands::meta::MetaCommands;
+use crate::commands::node::NodeCommands;
+use crate::commands::project_settings::ProjectSettingsCommands;
+use crate::commands::property::PropertyCommands;
+use crate::commands::property_3d::Property3dCommands;
 use crate::commands::scene::SceneCommands;
 use crate::commands::script_cs::ScriptCsCommands;
 use crate::commands::script_gd::ScriptGdCommands;
+use crate::commands::script_helpers::ScriptHelpersCommands;
 use crate::commands::search::SearchCommands;
+use crate::commands::undo::UndoCommands;
 use crate::dispatcher::MainThreadDispatcher;
 use crate::ipc::plugin_state::PluginState;
 use crate::logging::{log_error, log_info};
@@ -238,30 +246,89 @@ impl IpcWebSocketServer {
         let result = if meta.can_handle(tool) {
             meta.handle_meta_tool(tool)
         } else {
-            // SceneCommands: scene/node operations via dispatcher
-            let scene = SceneCommands::new();
-            if scene.can_handle(tool) {
-                scene.handle_scene_tool(tool, args, dispatcher).await
+            let node = NodeCommands::new();
+            if node.can_handle(tool) {
+                node.handle_node_tool(tool, args, dispatcher).await
             } else {
-                let script_gd = ScriptGdCommands::new();
-                if script_gd.can_handle(tool) {
-                    script_gd
-                        .handle_script_gd_tool(tool, args, dispatcher)
-                        .await
+                let property = PropertyCommands::new();
+                if property.can_handle(tool) {
+                    property.handle_property_tool(tool, args, dispatcher).await
                 } else {
-                    let script_cs = ScriptCsCommands::new();
-                    if script_cs.can_handle(tool) {
-                        script_cs
-                            .handle_script_cs_tool(tool, args, dispatcher)
+                    let collision = CollisionCommands::new();
+                    if collision.can_handle(tool) {
+                        collision
+                            .handle_collision_tool(tool, args, dispatcher)
                             .await
                     } else {
-                        let search = SearchCommands::new();
-                        if search.can_handle(tool) {
-                            search.handle_search_tool(tool, args, dispatcher).await
-                        } else if registry_tools.contains(&tool.to_string()) {
-                            Err(format!("Tool '{}' handler not yet implemented", tool))
+                        let find = FindCommands::new();
+                        if find.can_handle(tool) {
+                            find.handle_find_tool(tool, args, dispatcher).await
                         } else {
-                            Err(format!("Unknown tool: {}", tool))
+                            let script_helpers = ScriptHelpersCommands::new();
+                            if script_helpers.can_handle(tool) {
+                                script_helpers
+                                    .handle_script_helpers_tool(tool, args, dispatcher)
+                                    .await
+                            } else {
+                                let project_settings = ProjectSettingsCommands::new();
+                                if project_settings.can_handle(tool) {
+                                    project_settings
+                                        .handle_project_settings_tool(tool, args, dispatcher)
+                                        .await
+                                } else {
+                                    let scene = SceneCommands::new();
+                                    if scene.can_handle(tool) {
+                                        scene.handle_scene_tool(tool, args, dispatcher).await
+                                    } else {
+                                        let script_gd = ScriptGdCommands::new();
+                                        if script_gd.can_handle(tool) {
+                                            script_gd
+                                                .handle_script_gd_tool(tool, args, dispatcher)
+                                                .await
+                                        } else {
+                                            let script_cs = ScriptCsCommands::new();
+                                            if script_cs.can_handle(tool) {
+                                                script_cs
+                                                    .handle_script_cs_tool(tool, args, dispatcher)
+                                                    .await
+                                            } else {
+                                                let search = SearchCommands::new();
+                                                if search.can_handle(tool) {
+                                                    search
+                                                        .handle_search_tool(tool, args, dispatcher)
+                                                        .await
+                                                } else {
+                                                    let undo = UndoCommands::new();
+                                                    if undo.can_handle(tool) {
+                                                        undo.handle_undo_tool(
+                                                            tool, args, dispatcher,
+                                                        )
+                                                        .await
+                                                    } else {
+                                                        let prop3d = Property3dCommands::new();
+                                                        if prop3d.can_handle(tool) {
+                                                            prop3d
+                                                                .handle_property_3d_tool(
+                                                                    tool, args, dispatcher,
+                                                                )
+                                                                .await
+                                                        } else if registry_tools
+                                                            .contains(&tool.to_string())
+                                                        {
+                                                            Err(format!(
+                                                                "Tool '{}' handler not yet implemented",
+                                                                tool
+                                                            ))
+                                                        } else {
+                                                            Err(format!("Unknown tool: {}", tool))
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

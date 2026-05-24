@@ -31,8 +31,12 @@ impl ToolRegistry {
         let empty = json!({"type":"object","properties":{},"required":[]});
 
         let defaults: Vec<(&str, &str, serde_json::Value)> = vec![
-            // Meta tools
-            ("ping", "检测与 Godot 编辑器的连接状态", empty.clone()),
+            // ── Meta (4) ───────────────────────────────────────────────
+            (
+                "ping",
+                "检测与 Godot 编辑器的连接状态（编辑器刚启动时可能需要等待几秒后再调用）",
+                empty.clone(),
+            ),
             ("get_engine_version", "获取 Godot 引擎版本号", empty.clone()),
             (
                 "get_plugin_version",
@@ -44,7 +48,7 @@ impl ToolRegistry {
                 "获取 godot-mcp-server 版本号",
                 empty.clone(),
             ),
-            // Scene Management: Read
+            // ── Node: Read (4) ─────────────────────────────────────────
             (
                 "get_scene_tree",
                 "获取当前场景节点树",
@@ -68,7 +72,7 @@ impl ToolRegistry {
                     &["node_path", "property"],
                 ),
             ),
-            // Scene Management: Node write
+            // ── Node: Write (13) ───────────────────────────────────────
             (
                 "create_node",
                 "创建新节点",
@@ -92,7 +96,7 @@ impl ToolRegistry {
             ),
             (
                 "set_property",
-                "修改节点属性值",
+                "修改节点属性值 (通用兜底)",
                 schema(
                     r#"{"node_path":{"type":"string"},"property":{"type":"string"},"value":{}}"#,
                     &["node_path", "property", "value"],
@@ -111,7 +115,6 @@ impl ToolRegistry {
                     &["node_path", "new_parent_path"],
                 ),
             ),
-            // Scene Management: Script + search
             (
                 "attach_script",
                 "为节点挂载脚本",
@@ -126,18 +129,286 @@ impl ToolRegistry {
                 schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
             ),
             (
-                "find_nodes",
-                "按条件搜索节点",
+                "reset_parent",
+                "重设父节点 (reparent)",
                 schema(
-                    r#"{"query":{"type":"string"},"search_method":{"type":"string"}}"#,
-                    &["query"],
+                    r#"{"node_path":{"type":"string"},"new_parent_path":{"type":"string"}}"#,
+                    &["node_path", "new_parent_path"],
                 ),
             ),
-            // Scene Management: Scene file
+            (
+                "set_as_root",
+                "设置节点为场景根",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "batch_set_property",
+                "批量修改多个节点同名属性",
+                schema(
+                    r#"{"node_paths":{"type":"array"},"property":{"type":"string"},"value":{}}"#,
+                    &["node_paths", "property", "value"],
+                ),
+            ),
+            (
+                "add_node_to_group",
+                "添加节点到组",
+                schema(
+                    r#"{"node_path":{"type":"string"},"group":{"type":"string"}}"#,
+                    &["node_path", "group"],
+                ),
+            ),
+            (
+                "remove_node_from_group",
+                "从组中移除节点",
+                schema(
+                    r#"{"node_path":{"type":"string"},"group":{"type":"string"}}"#,
+                    &["node_path", "group"],
+                ),
+            ),
+            // ── Property: get/set (19) ─────────────────────────────────
+            (
+                "get_node_position",
+                "获取节点位置",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_position",
+                "设置节点位置",
+                schema(
+                    r#"{"node_path":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"}}"#,
+                    &["node_path", "x", "y"],
+                ),
+            ),
+            (
+                "get_node_rotation",
+                "获取节点旋转角度 (度)",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_rotation",
+                "设置节点旋转角度 (度)",
+                schema(
+                    r#"{"node_path":{"type":"string"},"degrees":{"type":"number"}}"#,
+                    &["node_path", "degrees"],
+                ),
+            ),
+            (
+                "get_node_scale",
+                "获取节点缩放",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_scale",
+                "设置节点缩放",
+                schema(
+                    r#"{"node_path":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"}}"#,
+                    &["node_path", "x", "y"],
+                ),
+            ),
+            (
+                "get_node_visible",
+                "获取节点可见性",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_visible",
+                "设置节点可见性",
+                schema(
+                    r#"{"node_path":{"type":"string"},"visible":{"type":"boolean"}}"#,
+                    &["node_path", "visible"],
+                ),
+            ),
+            (
+                "get_node_modulate",
+                "获取节点调制颜色",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_modulate",
+                "设置节点调制颜色",
+                schema(
+                    r#"{"node_path":{"type":"string"},"r":{"type":"number"},"g":{"type":"number"},"b":{"type":"number"},"a":{"type":"number"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            (
+                "get_node_z_index",
+                "获取节点 Z 轴索引",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_z_index",
+                "设置节点 Z 轴索引",
+                schema(
+                    r#"{"node_path":{"type":"string"},"z_index":{"type":"integer"}}"#,
+                    &["node_path", "z_index"],
+                ),
+            ),
+            (
+                "get_node_text",
+                "获取节点文本 (Label 等)",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_text",
+                "设置节点文本 (Label 等)",
+                schema(
+                    r#"{"node_path":{"type":"string"},"text":{"type":"string"}}"#,
+                    &["node_path", "text"],
+                ),
+            ),
+            (
+                "get_node_collision_layer",
+                "获取碰撞层",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_collision_layer",
+                "设置碰撞层",
+                schema(
+                    r#"{"node_path":{"type":"string"},"layer":{"type":"integer"}}"#,
+                    &["node_path", "layer"],
+                ),
+            ),
+            (
+                "get_node_collision_mask",
+                "获取碰撞掩码",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_collision_mask",
+                "设置碰撞掩码",
+                schema(
+                    r#"{"node_path":{"type":"string"},"mask":{"type":"integer"}}"#,
+                    &["node_path", "mask"],
+                ),
+            ),
+            (
+                "set_node_unique_name",
+                "设置节点唯一名称 (%前缀)",
+                schema(
+                    r#"{"node_path":{"type":"string"},"unique":{"type":"boolean"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            (
+                "get_node_texture",
+                "获取节点纹理属性 (Texture2D)。通过 property 参数指定属性名，默认 texture。TextureButton 支持 texture_normal/pressed/hover/disabled/focused；TextureProgressBar 支持 texture_under/over/progress",
+                schema(
+                    r#"{"node_path":{"type":"string"},"property":{"type":"string","description":"纹理属性名，默认 texture"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            (
+                "set_node_texture",
+                "设置节点纹理属性 (Texture2D)。通过 property 参数指定属性名，默认 texture。TextureButton 支持 texture_normal/pressed/hover/disabled/focused；TextureProgressBar 支持 texture_under/over/progress",
+                schema(
+                    r#"{"node_path":{"type":"string"},"texture_path":{"type":"string","description":"纹理资源路径，如 res://icon.svg"},"property":{"type":"string","description":"纹理属性名，默认 texture"}}"#,
+                    &["node_path", "texture_path"],
+                ),
+            ),
+            // ── Collision (2) ──────────────────────────────────────────
+            (
+                "add_circle_collision",
+                "为节点添加圆形碰撞体 (CollisionShape2D + CircleShape2D)",
+                schema(
+                    r#"{"node_path":{"type":"string"},"radius":{"type":"number"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            (
+                "add_rectangle_collision",
+                "为节点添加矩形碰撞体 (CollisionShape2D + RectangleShape2D)",
+                schema(
+                    r#"{"node_path":{"type":"string"},"width":{"type":"number"},"height":{"type":"number"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            // ── Find (4) ───────────────────────────────────────────────
+            (
+                "find_nodes_by_name",
+                "按名称子串搜索节点（大小写敏感，包含匹配）",
+                schema(
+                    r#"{"pattern":{"type":"string"},"max_results":{"type":"integer"}}"#,
+                    &["pattern"],
+                ),
+            ),
+            (
+                "find_nodes_by_type",
+                "按节点类型精确搜索",
+                schema(
+                    r#"{"node_class":{"type":"string"},"max_results":{"type":"integer"}}"#,
+                    &["node_class"],
+                ),
+            ),
+            (
+                "find_nodes_by_group",
+                "按组名搜索节点",
+                schema(
+                    r#"{"group":{"type":"string"},"max_results":{"type":"integer"}}"#,
+                    &["group"],
+                ),
+            ),
+            (
+                "find_nodes_by_script",
+                "按脚本路径搜索节点",
+                schema(
+                    r#"{"script_path":{"type":"string"},"max_results":{"type":"integer"}}"#,
+                    &["script_path"],
+                ),
+            ),
+            // ── Script helpers (3) ─────────────────────────────────────
+            (
+                "call_method",
+                "调用节点方法",
+                schema(
+                    r#"{"node_path":{"type":"string"},"method":{"type":"string"},"args":{"type":"array"}}"#,
+                    &["node_path", "method"],
+                ),
+            ),
+            (
+                "get_variable",
+                "读取节点脚本变量（编辑器模式下仅支持 @export 变量）",
+                schema(
+                    r#"{"node_path":{"type":"string"},"variable":{"type":"string"}}"#,
+                    &["node_path", "variable"],
+                ),
+            ),
+            (
+                "set_variable",
+                "写入节点脚本变量（编辑器模式下仅支持 @export 变量）",
+                schema(
+                    r#"{"node_path":{"type":"string"},"variable":{"type":"string"},"value":{}}"#,
+                    &["node_path", "variable", "value"],
+                ),
+            ),
+            // ── Project settings (3) ───────────────────────────────────
+            (
+                "get_project_setting",
+                "读取项目设置",
+                schema(r#"{"property":{"type":"string"}}"#, &["property"]),
+            ),
+            (
+                "set_project_setting",
+                "写入项目设置",
+                schema(
+                    r#"{"property":{"type":"string"},"value":{}}"#,
+                    &["property", "value"],
+                ),
+            ),
+            (
+                "set_main_scene",
+                "设置主场景",
+                schema(r#"{"scene_path":{"type":"string"}}"#, &["scene_path"]),
+            ),
+            // ── Scene: file (6) ────────────────────────────────────────
             (
                 "create_scene",
-                "创建新空场景文件",
-                schema(r#"{"path":{"type":"string"}}"#, &["path"]),
+                "创建新场景文件 (可选 root_type/root_name)",
+                schema(
+                    r#"{"path":{"type":"string"},"root_type":{"type":"string"},"root_name":{"type":"string"}}"#,
+                    &["path"],
+                ),
             ),
             (
                 "delete_scene",
@@ -173,32 +444,10 @@ impl ToolRegistry {
                     &["scene_path", "parent_path"],
                 ),
             ),
-            // Scene Management: Advanced
-            (
-                "reset_parent",
-                "重设父节点 (reparent)",
-                schema(
-                    r#"{"node_path":{"type":"string"},"new_parent_path":{"type":"string"}}"#,
-                    &["node_path", "new_parent_path"],
-                ),
-            ),
-            (
-                "set_as_root",
-                "设置节点为场景根",
-                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
-            ),
-            (
-                "batch_set_property",
-                "批量修改多个节点同名属性",
-                schema(
-                    r#"{"node_paths":{"type":"array"},"property":{"type":"string"},"value":{}}"#,
-                    &["node_paths", "property", "value"],
-                ),
-            ),
-            // Scene Management: Editor scene tabs (open/close/save/reload)
+            // ── Scene: editor tabs (9) ──────────────────────────────────
             (
                 "open_scene",
-                "在编辑器中打开 .tscn 场景文件 (set_inherited 可选)",
+                "在编辑器中打开场景文件",
                 schema(
                     r#"{"scene_path":{"type":"string"},"set_inherited":{"type":"boolean"}}"#,
                     &["scene_path"],
@@ -208,7 +457,7 @@ impl ToolRegistry {
             ("save_scene", "保存当前编辑场景到原文件", empty.clone()),
             (
                 "save_scene_as",
-                "将当前编辑场景另存为新路径 (with_preview 可选, 默认 true)",
+                "将当前编辑场景另存为新路径",
                 schema(
                     r#"{"scene_path":{"type":"string"},"with_preview":{"type":"boolean"}}"#,
                     &["scene_path"],
@@ -217,7 +466,7 @@ impl ToolRegistry {
             ("save_all_scenes", "保存所有已打开的场景", empty.clone()),
             (
                 "reload_scene",
-                "从磁盘重新加载指定场景 (外部修改后同步)",
+                "从磁盘重新加载指定场景",
                 schema(r#"{"scene_path":{"type":"string"}}"#, &["scene_path"]),
             ),
             (
@@ -232,10 +481,10 @@ impl ToolRegistry {
             ),
             (
                 "mark_scene_unsaved",
-                "标记当前编辑场景为未保存 (标签出现 * 号)",
+                "标记当前编辑场景为未保存",
                 empty.clone(),
             ),
-            // GDScript tools
+            // ── GDScript (5) ────────────────────────────────────────────
             (
                 "create_gdscript",
                 "创建 GDScript 文件",
@@ -273,15 +522,7 @@ impl ToolRegistry {
                     &[],
                 ),
             ),
-            (
-                "eval_gdscript_expression",
-                "评估 GDScript 表达式 (const_only 默认 true)",
-                schema(
-                    r#"{"expression":{"type":"string"},"node_path":{"type":"string"},"const_only":{"type":"boolean"}}"#,
-                    &["expression"],
-                ),
-            ),
-            // CSharp tools
+            // ── C# (6) ──────────────────────────────────────────────────
             (
                 "create_csharp_script",
                 "创建 C# 脚本文件 (需先执行 csharp_create_solution)",
@@ -318,10 +559,13 @@ impl ToolRegistry {
             ),
             (
                 "csharp_create_solution",
-                "创建 C# Solution 文件 (调用 godot --build-solutions)",
-                empty.clone(),
+                "创建 C# Solution 文件",
+                schema(
+                    r#"{"enable_nativeaot":{"type":"boolean","description":"可选，启用 NativeAOT 支持"}}"#,
+                    &[],
+                ),
             ),
-            // Search tools
+            // ── Search (2) ──────────────────────────────────────────────
             (
                 "find_in_file",
                 "在单个文件中搜索文本或正则",
@@ -336,6 +580,109 @@ impl ToolRegistry {
                 schema(
                     r#"{"pattern":{"type":"string"},"literal":{"type":"boolean"},"extensions":{"type":"array"},"root":{"type":"string"},"case_sensitive":{"type":"boolean"},"max_matches":{"type":"integer"},"max_files":{"type":"integer"}}"#,
                     &["pattern"],
+                ),
+            ),
+            // ── Editor control (3, server-side) ─────────────────────────
+            (
+                "godot_editor_open",
+                "启动 Godot 编辑器并打开项目",
+                schema(
+                    r#"{"project_path":{"type":"string","description":"Godot 项目目录路径，默认为 godot/"}}"#,
+                    &[],
+                ),
+            ),
+            ("godot_editor_close", "关闭 Godot 编辑器进程", empty.clone()),
+            (
+                "godot_editor_restart",
+                "重启 Godot 编辑器",
+                schema(
+                    r#"{"project_path":{"type":"string","description":"Godot 项目目录路径，默认为 godot/"}}"#,
+                    &[],
+                ),
+            ),
+            // ── Undo/Redo (2) ────────────────────────────────────────────
+            ("undo", "撤销最近一次操作", empty.clone()),
+            ("redo", "重做最近一次操作", empty.clone()),
+            // ── Property 3D (6) ──────────────────────────────────────────
+            (
+                "get_node_position_3d",
+                "获取 Node3D 节点的 Vector3 位置",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_position_3d",
+                "设置 Node3D 节点的 Vector3 位置",
+                schema(
+                    r#"{"node_path":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            (
+                "get_node_rotation_3d",
+                "获取 Node3D 节点的 Euler 角旋转（度数）",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_rotation_3d",
+                "设置 Node3D 节点的 Euler 角旋转（度数）",
+                schema(
+                    r#"{"node_path":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            (
+                "get_node_scale_3d",
+                "获取 Node3D 节点的 Vector3 缩放",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "set_node_scale_3d",
+                "设置 Node3D 节点的 Vector3 缩放",
+                schema(
+                    r#"{"node_path":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            // ── Node convenience (4) ────────────────────────────────────
+            (
+                "set_node_transform_2d",
+                "一次性设置 2D 节点的 position + rotation + scale（单个 undo action）",
+                schema(
+                    r#"{"node_path":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"degrees":{"type":"number"},"scale_x":{"type":"number"},"scale_y":{"type":"number"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            (
+                "set_node_transform_3d",
+                "一次性设置 3D 节点的 position + rotation + scale（单个 undo action）",
+                schema(
+                    r#"{"node_path":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"},"rot_x":{"type":"number"},"rot_y":{"type":"number"},"rot_z":{"type":"number"},"scale_x":{"type":"number"},"scale_y":{"type":"number"},"scale_z":{"type":"number"}}"#,
+                    &["node_path"],
+                ),
+            ),
+            (
+                "get_node_info",
+                "返回节点的完整信息：类型、脚本路径、可见性、组、子节点数、owner、unique_name、是否为实例化场景",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            (
+                "get_script_variables",
+                "列出节点脚本上的所有 @export 变量名、类型和当前值",
+                schema(r#"{"node_path":{"type":"string"}}"#, &["node_path"]),
+            ),
+            // ── Scene info (1) ──────────────────────────────────────────
+            (
+                "is_scene_dirty",
+                "查询当前场景是否有未保存的变更",
+                empty.clone(),
+            ),
+            // ── Search (1) ──────────────────────────────────────────────
+            (
+                "find_and_replace",
+                "项目级查找替换（脚本/tscn 文件中的文本）",
+                schema(
+                    r#"{"path":{"type":"string"},"pattern":{"type":"string"},"replacement":{"type":"string"},"literal":{"type":"boolean"},"case_sensitive":{"type":"boolean"},"max_replacements":{"type":"integer"}}"#,
+                    &["path", "pattern", "replacement"],
                 ),
             ),
         ];
@@ -437,8 +784,8 @@ mod tests {
     fn new_registry_has_defaults() {
         let registry = ToolRegistry::new();
         let (enabled, total) = registry.tool_count();
-        assert_eq!(total, 49);
-        assert_eq!(enabled, 49);
+        assert_eq!(total, 99);
+        assert_eq!(enabled, 99);
     }
 
     #[test]
@@ -455,8 +802,9 @@ mod tests {
         let registry = ToolRegistry::new();
         assert!(registry.set_tool_enabled("ping", false));
         assert!(!registry.is_tool_enabled("ping"));
-        let (enabled, _) = registry.tool_count();
-        assert_eq!(enabled, 48);
+        let (enabled, total) = registry.tool_count();
+        assert_eq!(total, 99);
+        assert_eq!(enabled, 98);
     }
 
     #[test]
@@ -485,7 +833,7 @@ mod tests {
         registry.register_tool("custom_tool", "A custom tool", json!({}));
         assert!(registry.is_tool_enabled("custom_tool"));
         let (_, total) = registry.tool_count();
-        assert_eq!(total, 50);
+        assert_eq!(total, 100);
     }
 
     #[test]
@@ -494,7 +842,7 @@ mod tests {
         registry.set_tool_enabled("ping", false);
         registry.set_tool_enabled("get_engine_version", false);
         let enabled = registry.get_enabled_tools();
-        assert_eq!(enabled.len(), 47);
+        assert_eq!(enabled.len(), 97);
         let names: Vec<&str> = enabled.iter().map(|t| t.name.as_str()).collect();
         assert!(names.contains(&"get_plugin_version"));
         assert!(names.contains(&"get_server_version"));
@@ -520,7 +868,7 @@ mod tests {
         assert!(!registry.is_tool_enabled("get_engine_version"));
         assert!(registry.is_tool_enabled("get_plugin_version"));
         let (enabled, _) = registry.tool_count();
-        assert_eq!(enabled, 47);
+        assert_eq!(enabled, 97);
     }
 
     #[test]
@@ -534,6 +882,6 @@ mod tests {
         };
         registry.update_from_notification(&update);
         let (_, total) = registry.tool_count();
-        assert_eq!(total, 49);
+        assert_eq!(total, 99);
     }
 }
