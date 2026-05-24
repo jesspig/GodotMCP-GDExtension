@@ -1,6 +1,6 @@
 # `crates/gdext` — GDExtension CDyLib
 
-> 加载到 Godot 编辑器内的本机插件。包含 99 个工具命令的实现。
+> 加载到 Godot 编辑器内的本机插件。包含 125 个工具命令的实现。
 
 ```mermaid
 flowchart LR
@@ -85,7 +85,7 @@ ScriptGdCommands    → 5 个
 ScriptCsCommands    → 6 个
 ```
 
-**注意**：`create_registry()` 有 8 个组，而 `route_tool_call` 有 13 个处理分支 —— 后者包含 `SceneCommands`、`ScriptHelpersCommands`、`SearchCommands`、`UndoCommands` 和 `ProjectSettingsCommands`，它们在 `create_registry()` 中不存在。**两边必须保持同步**。
+**注意**：`create_registry()` 有 8 个组，而 `route_tool_call` 有 17 个处理分支 —— 后者包含 `SceneCommands`、`ScriptHelpersCommands`、`SearchCommands`、`UndoCommands` 和 `ProjectSettingsCommands`，它们在 `create_registry()` 中不存在。**两边必须保持同步**。
 
 ## `commands/mod.rs` 共享工具
 

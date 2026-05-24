@@ -16,7 +16,7 @@
 |-------|------|------|
 | [core](crates/core.md) | `crates/core/src/` | 共享协议类型 (IpcRequest, IpcResponse, ToolCallParams, ToolManifest) |
 | [server](crates/server.md) | `crates/server/src/` | MCP 服务端二进制：rmcp stdio 传输、工具注册表、WebSocket 桥接 |
-| [gdext](crates/gdext.md) | `crates/gdext/src/` | GDExtension cdylib：编辑器插件、WebSocket 服务端、99 个命令处理器 |
+| [gdext](crates/gdext.md) | `crates/gdext/src/` | GDExtension cdylib：编辑器插件、WebSocket 服务端、125 个命令处理器 |
 
 ## 模块文档
 
@@ -34,7 +34,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| [工具目录](reference/tools-catalog.md) | 全部 99 个工具的 JSON Schema、参数、返回值 |
+| [工具目录](reference/tools-catalog.md) | 全部 125 个工具的 JSON Schema、参数、返回值 |
 | [客户端配置](reference/client-config.md) | 12 种 AI 客户端 × stdio 配置模板（仅 stdio 可用） |
 | [客户端 quirks](reference/client-quirks.md) | 各客户端配置怪癖速查表 |
 | [构建与打包](reference/build-and-package.md) | `build.py` 标志、CI 门禁顺序、热重载、文件锁恢复 |
@@ -55,5 +55,5 @@
 
 ## 过时文档预警
 
-- **`README.md`** 写着 "35 tools" — 实际是 **99**。不信任该数字。
+- **`README.md`** 写着 "99 commands" — 实际是 **125**。不信任该数字。
 - 本章首页（本页）内容来源于对当前源码的直接分析。
