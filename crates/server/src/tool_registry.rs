@@ -639,7 +639,7 @@ impl ToolRegistry {
                 "set_node_scale_3d",
                 "设置 Node3D 节点的 Vector3 缩放",
                 schema(
-                    r#"{"node_path":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"}}"#,
+                    r#"{"node_path":{"type":"string"},"scale_x":{"type":"number"},"scale_y":{"type":"number"},"scale_z":{"type":"number"}}"#,
                     &["node_path"],
                 ),
             ),
