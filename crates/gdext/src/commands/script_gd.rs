@@ -171,12 +171,20 @@ fn cmd_read_gdscript(args: &Value) -> Value {
 fn cmd_edit_gdscript(args: &Value) -> Value {
     let path = s(args, "path");
     let source = s(args, "source");
+    if !path.ends_with(".gd") {
+        return json!({"error": format!("path must end with .gd: {}", path)});
+    }
     if !FileAccess::file_exists(&GString::from(&path)) {
         return json!({"error": format!("File not found: {}. Use create_gdscript to create a new file.", path)});
     }
     if source.is_empty() {
         return json!({"error": "missing 'source'"});
     }
+    let source = if cfg!(target_os = "windows") {
+        source.replace("\r\n", "\n").replace('\n', "\r\n")
+    } else {
+        source
+    };
     match FileAccess::open(&GString::from(&path), ModeFlags::WRITE) {
         Some(mut f) => {
             f.store_string(&GString::from(&source));

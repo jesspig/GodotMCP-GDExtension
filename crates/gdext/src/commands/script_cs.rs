@@ -162,6 +162,9 @@ fn cmd_read_csharp_script(args: &Value) -> Value {
 fn cmd_edit_csharp_script(args: &Value) -> Value {
     let path = s(args, "path");
     let source = s(args, "source");
+    if !path.ends_with(".cs") {
+        return json!({"error": format!("path must end with .cs: {}", path)});
+    }
     if !FileAccess::file_exists(&GString::from(&path)) {
         return json!({"error": format!("File not found: {}. Use create_csharp_script to create a new file.", path)});
     }

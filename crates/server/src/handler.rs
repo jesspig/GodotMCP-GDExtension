@@ -186,7 +186,11 @@ impl GodotMcpHandler {
         let child = std::process::Command::new(&godot_path)
             .args(["--editor", "--path", &project_path])
             .spawn()
-            .map_err(|e| format!("重启 Godot 编辑器失败: {}", e))?;
+            .map_err(|e| format!(
+                "重启 Godot 编辑器失败: {}。请检查 GODOT_PATH 环境变量指向的文件是否存在（当前值: {}），\
+                 如果 Godot 已升级导致文件名变更，请更新 GODOT_PATH。",
+                e, godot_path
+            ))?;
 
         let pid = child.id();
         Ok(serde_json::json!({
@@ -289,7 +293,11 @@ impl GodotMcpHandler {
         let child = std::process::Command::new(&godot_path)
             .args(["--editor", "--path", &project_path])
             .spawn()
-            .map_err(|e| format!("启动 Godot 编辑器失败: {}", e))?;
+            .map_err(|e| format!(
+                "启动 Godot 编辑器失败: {}。请检查 GODOT_PATH 环境变量指向的文件是否存在（当前值: {}），\
+                 如果 Godot 已升级导致文件名变更，请更新 GODOT_PATH。",
+                e, godot_path
+            ))?;
 
         let pid = child.id();
         Ok(serde_json::json!({
