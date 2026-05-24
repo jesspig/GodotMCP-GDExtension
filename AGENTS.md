@@ -16,6 +16,11 @@ AI 客户端 ── stdio ──► godot-mcp-server.exe ── WebSocket :9500 
 - **测试中硬编码的计数**：`tool_registry.rs` 和 `handler.rs` 均断言 `total == 125`。增删工具时两处都要更新。
 - **`crates/gdext/src/commands/mod.rs::create_registry()`**（8 组，用于名称发现）与 **`route_tool_call`**（17 个路由组）必须保持同步。在路由中但不在 `create_registry()` 中的组：`PropertyCommands`、`CollisionCommands`、`FindCommands`、`ScriptHelpersCommands`、`ProjectSettingsCommands`、`EditorControlCommands`、`ProjectSettingsExtCommands`、`PluginManagementCommands`、`InputMapCommands`。
 
+## 硬性规定（禁止删除）
+
+- **必须结合联网搜索确认正确的 API**：在使用任何 Godot、gdext 或 Rust API 之前，必须先进行联网搜索确认 API 的正确用法、参数和行为。这是绝对的必要操作，不是可选项。
+- **禁止访问包源码**：禁止直接查看或依赖第三方包的源码来推断 API 用法，必须通过官方文档、教程或搜索结果来确认。
+
 ## 处理器路由链（17 组）
 
 ```
