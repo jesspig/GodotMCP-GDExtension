@@ -633,7 +633,7 @@ dependencies = [
 
 [[package]]
 name = "godot-mcp-core"
-version = "0.1.1"
+version = "0.1.2-dev"
 dependencies = [
  "serde",
  "serde_json",
@@ -642,7 +642,7 @@ dependencies = [
 
 [[package]]
 name = "godot-mcp-gdext"
-version = "0.1.1"
+version = "0.1.2-dev"
 dependencies = [
  "anyhow",
  "futures-util",
@@ -657,7 +657,7 @@ dependencies = [
 
 [[package]]
 name = "godot-mcp-server"
-version = "0.1.1"
+version = "0.1.2-dev"
 dependencies = [
  "anyhow",
  "async-trait",
