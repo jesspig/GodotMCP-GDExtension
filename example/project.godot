@@ -10,17 +10,17 @@ config_version=5
 
 [application]
 
-config/name="MCP-Test"
+config/name="Example"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
 [dotnet]
 
-project/assembly_name="MCP-Test"
+project/assembly_name="Example"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
+enabled=PackedStringArray()
 
 [input]
 
