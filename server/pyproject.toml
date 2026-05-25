@@ -16,6 +16,11 @@ requires = ["setuptools"]
 # When adding Cython extension modules (.pyx), add "cython>=3.0" above
 build-backend = "setuptools.build_meta"
 
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
+
 [tool.setuptools]
 packages = { find = { where = ["src"] } }
 
