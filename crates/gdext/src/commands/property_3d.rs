@@ -188,9 +188,18 @@ fn cmd_get_scale_3d(args: &Value) -> Value {
 
 fn cmd_set_scale_3d(args: &Value) -> Value {
     let p = s(args, "node_path");
-    let x = args["scale_x"].as_f64().or(args["x"].as_f64()).unwrap_or(1.0) as f32;
-    let y = args["scale_y"].as_f64().or(args["y"].as_f64()).unwrap_or(1.0) as f32;
-    let z = args["scale_z"].as_f64().or(args["z"].as_f64()).unwrap_or(1.0) as f32;
+    let x = args["scale_x"]
+        .as_f64()
+        .or(args["x"].as_f64())
+        .unwrap_or(1.0) as f32;
+    let y = args["scale_y"]
+        .as_f64()
+        .or(args["y"].as_f64())
+        .unwrap_or(1.0) as f32;
+    let z = args["scale_z"]
+        .as_f64()
+        .or(args["z"].as_f64())
+        .unwrap_or(1.0) as f32;
     let root = match get_root() {
         Ok(r) => r,
         Err(e) => return e,
