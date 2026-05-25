@@ -88,6 +88,20 @@ example/*
 !example-*.zip
 
 # ==============================
+# Python
+# ==============================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+*.egg
+Pipfile.lock
+pip-log.txt
+.pytest_cache/
+.mypy_cache/
+
+# ==============================
 # Temporary files
 # ==============================
 *.tmp
