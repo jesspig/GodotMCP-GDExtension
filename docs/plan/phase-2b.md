@@ -4,10 +4,10 @@
 > **Merge commit**: `12fb1431` (feature/scene_manager → develop)
 > **Tag**: `v0.1.0` at `d1ee1fb3`
 
-> **Archive note**: This file is kept for traceability. All planned sub-phases (2b.1–2b.5)
+> **Archive note**: This file is kept for traceability. Sub-phases 2b.1–2b.6
 > have been implemented and shipped with 125 tools in 17 handler groups.
-> Only 2b.6 (e2e tests) and 2b.7 (documentation sync) remain pending.
-> When those two are done, delete this file and update `roadmap.md`.
+> Only 2b.7 (documentation sync) remains pending.
+> When done, delete this file and update `roadmap.md`.
 
 ## What shipped
 
@@ -18,7 +18,7 @@
 | 2b.3 | Editor Control | `editor_control.rs` (6) + server-side `godot_editor_*` (3) | ✅ Shipped |
 | 2b.4 | Project Management | `project_settings.rs` (7) + `project_settings_ext.rs` (10) + `input_map.rs` (4) + `plugin_management.rs` (2) | ✅ Shipped |
 | 2b.5 | Server registry sync | 125 tools visible in `list_tools` | ✅ Shipped |
-| 2b.6 | e2e tests | 5 representative tools | ⏳ Not started |
+| 2b.6 | e2e tests | MockGodotServer + 5 E2E tests (ping, params, error, offline, list_tools) | ✅ Shipped |
 | 2b.7 | Documentation sync | parameter and response examples per tool | ⏳ Not started |
 
 **Total**: 125 tools across 17 gdext command handler groups + 3 server-side editor control tools. All registered in `tool_registry.rs` and routed through `route_tool_call`.
@@ -34,10 +34,6 @@
 - C# solution generated in Rust directly (no second Godot process)
 - `package_addons.py` rewritten with flags; CI pipeline (fmt + clippy + build + test)
 - Wiki restructure (`.repo_wiki/`), bilingual README, AGENTS.md, License
-
-## Remaining gap: 2b.6 — e2e tests (⏳ Not started)
-
-5 representative tools: mock WS server + real server process.
 
 ## Remaining gap: 2b.7 — Documentation sync (⏳ Not started)
 
