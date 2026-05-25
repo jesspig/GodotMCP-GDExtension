@@ -81,7 +81,7 @@ impl IEditorPlugin for McpEditorPlugin {
         runtime.spawn(async move {
             let mut server = server;
             match server.run().await {
-                Ok(()) => {}
+                Ok(()) => eprintln!("[Godot MCP] WebSocket server stopped cleanly"),
                 Err(e) => eprintln!("[Godot MCP] WebSocket server error: {}", e),
             }
         });

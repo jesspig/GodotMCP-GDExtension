@@ -8,7 +8,7 @@
 
 The right-dock UI shipped as scaffolding during Phase 2a. It's structurally correct (4 sub-panels in a `VBoxContainer`, `broadcast_tx` plumbed through, signal handlers registered) but the contents are stub data. Every panel has visible gaps a user notices in the first minute.
 
-This phase makes the dock match the tools-catalog reality (35 tools, real status, working client-config writers, editable settings).
+This phase makes the dock match the tools-catalog reality (125 tools, real status, working client-config writers, editable settings).
 
 ## Concrete gaps to close
 
@@ -16,7 +16,7 @@ Reference: [`.repo_wiki/modules/dock-ui.md`](../../.repo_wiki/modules/dock-ui.md
 
 ### 3.1  `tool_manager.rs` — dynamic tool list
 
-**Today**: header reads `"Tools (4/4)"`; the body builds 4 hardcoded CheckBox rows (`ping`, `get_engine_version`, `get_plugin_version`, `get_server_version`). The plumbing (toggle → `broadcast_tool_list_updated` → server `update_from_notification`) works end-to-end *for those 4 tools*.
+**Today**: header reads `"Tools (4/4)"`; the body builds 4 hardcoded CheckBox rows (`ping`, `get_engine_version`, `get_plugin_version`, `get_server_version`). The plumbing (toggle → `broadcast_tool_list_updated` → server `update_from_notification`) works end-to-end *for those 4 tools*. Actual registered tools: 125 in 17 handler groups.
 
 **Target**:
 
@@ -96,7 +96,7 @@ Reference: [`.repo_wiki/modules/dock-ui.md`](../../.repo_wiki/modules/dock-ui.md
 
 ## Done means
 
-- [ ] Dock shows 35 tools enumerated dynamically.
+- [ ] Dock shows all 125 tools enumerated dynamically.
 - [ ] All 12 client integration buttons write a valid config and toast the result.
 - [ ] Both ports are editable; Apply restarts the affected server.
 - [ ] Status bar reflects connect/disconnect within one frame.

@@ -15,11 +15,16 @@ const RECONNECT_MAX_ATTEMPTS: u32 = 5;
 const RECONNECT_INITIAL_DELAY: Duration = Duration::from_secs(1);
 const RECONNECT_MAX_DELAY: Duration = Duration::from_secs(30);
 
+const GODOT_PATH_MISSING_ERROR: &str = "\
+GODOT_PATH 环境变量未设置。请在 MCP 客户端配置中添加:\n\
+\"env\": { \"GODOT_PATH\": \"<path/to/godot.exe>\" }";
+
 #[derive(Clone)]
 pub struct GodotMcpHandler {
     godot_port: u16,
     bridge: Arc<Mutex<Option<Arc<GodotBridge>>>>,
     registry: ToolRegistry,
+    godot_path_override: Option<String>,
 }
 
 impl GodotMcpHandler {
@@ -28,6 +33,17 @@ impl GodotMcpHandler {
             godot_port,
             bridge: Arc::new(Mutex::new(None)),
             registry: ToolRegistry::new(),
+            godot_path_override: None,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn with_godot_path(godot_port: u16, godot_path: Option<String>) -> Self {
+        Self {
+            godot_port,
+            bridge: Arc::new(Mutex::new(None)),
+            registry: ToolRegistry::new(),
+            godot_path_override: godot_path,
         }
     }
 
@@ -37,11 +53,12 @@ impl GodotMcpHandler {
     }
 
     async fn ensure_bridge(&self) -> Option<Arc<GodotBridge>> {
-        let guard = self.bridge.lock().await;
-        if guard.is_some() {
-            return guard.as_ref().cloned();
+        {
+            let guard = self.bridge.lock().await;
+            if guard.is_some() {
+                return guard.as_ref().cloned();
+            }
         }
-        drop(guard);
 
         let mut delay = RECONNECT_INITIAL_DELAY;
         for attempt in 0..RECONNECT_MAX_ATTEMPTS {
@@ -121,8 +138,8 @@ impl GodotMcpHandler {
 
         match tool_name {
             "get_server_version" => return Ok(SERVER_VERSION.to_string()),
-            "godot_editor_open" => return godot_editor_open(args),
-            "godot_editor_close" => return godot_editor_close(),
+            "godot_editor_open" => return self.godot_editor_open(args),
+            "godot_editor_close" => return self.godot_editor_close(),
             "godot_editor_restart" => return self.godot_editor_restart(args).await,
             _ => {}
         }
@@ -149,7 +166,7 @@ impl GodotMcpHandler {
     }
 
     async fn godot_editor_restart(&self, args: serde_json::Value) -> Result<String, String> {
-        let godot_path = get_godot_path()?;
+        let godot_path = self.get_godot_path()?;
         let exe_name = std::path::Path::new(&godot_path)
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
@@ -169,7 +186,11 @@ impl GodotMcpHandler {
         let child = std::process::Command::new(&godot_path)
             .args(["--editor", "--path", &project_path])
             .spawn()
-            .map_err(|e| format!("重启 Godot 编辑器失败: {}", e))?;
+            .map_err(|e| format!(
+                "重启 Godot 编辑器失败: {}。请检查 GODOT_PATH 环境变量指向的文件是否存在（当前值: {}），\
+                 如果 Godot 已升级导致文件名变更，请更新 GODOT_PATH。",
+                e, godot_path
+            ))?;
 
         let pid = child.id();
         Ok(serde_json::json!({
@@ -181,6 +202,10 @@ impl GodotMcpHandler {
             "hint": "Editor is restarting. First tool call will auto-reconnect with retry."
         })
         .to_string())
+    }
+
+    fn get_godot_path(&self) -> Result<String, String> {
+        resolve_godot_path(self.godot_path_override.as_deref())
     }
 }
 
@@ -235,19 +260,18 @@ impl ServerHandler for GodotMcpHandler {
     }
 }
 
-fn get_godot_path() -> Result<String, String> {
-    std::env::var("GODOT_PATH").map_err(|_| {
-        "GODOT_PATH 环境变量未设置。请在 MCP 客户端配置中添加:\n\
-         \"env\": { \"GODOT_PATH\": \"<path/to/godot.exe>\" }"
-            .to_string()
-    })
+fn resolve_godot_path(override_path: Option<&str>) -> Result<String, String> {
+    if let Some(p) = override_path {
+        return Ok(p.to_string());
+    }
+    std::env::var("GODOT_PATH").map_err(|_| GODOT_PATH_MISSING_ERROR.to_string())
 }
 
 fn resolve_project_path(args: &serde_json::Value) -> String {
     let p = args
         .get("project_path")
         .and_then(|v| v.as_str())
-        .unwrap_or("godot");
+        .unwrap_or("example");
     if std::path::Path::new(p).is_absolute() {
         p.to_string()
     } else {
@@ -257,43 +281,49 @@ fn resolve_project_path(args: &serde_json::Value) -> String {
     }
 }
 
-fn godot_editor_open(args: serde_json::Value) -> Result<String, String> {
-    let godot_path = get_godot_path()?;
-    let project_path = resolve_project_path(&args);
+impl GodotMcpHandler {
+    fn godot_editor_open(&self, args: serde_json::Value) -> Result<String, String> {
+        let godot_path = self.get_godot_path()?;
+        let project_path = resolve_project_path(&args);
 
-    if !std::path::Path::new(&project_path).exists() {
-        return Err(format!("项目目录不存在: {}", project_path));
+        if !std::path::Path::new(&project_path).exists() {
+            return Err(format!("项目目录不存在: {}", project_path));
+        }
+
+        let child = std::process::Command::new(&godot_path)
+            .args(["--editor", "--path", &project_path])
+            .spawn()
+            .map_err(|e| format!(
+                "启动 Godot 编辑器失败: {}。请检查 GODOT_PATH 环境变量指向的文件是否存在（当前值: {}），\
+                 如果 Godot 已升级导致文件名变更，请更新 GODOT_PATH。",
+                e, godot_path
+            ))?;
+
+        let pid = child.id();
+        Ok(serde_json::json!({
+            "status": "opened",
+            "pid": pid,
+            "godot_path": godot_path,
+            "project_path": project_path
+        })
+        .to_string())
     }
 
-    let child = std::process::Command::new(&godot_path)
-        .args(["--editor", "--path", &project_path])
-        .spawn()
-        .map_err(|e| format!("启动 Godot 编辑器失败: {}", e))?;
+    fn godot_editor_close(&self) -> Result<String, String> {
+        let godot_path = self.get_godot_path()?;
+        let exe_name = std::path::Path::new(&godot_path)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
 
-    let pid = child.id();
-    Ok(serde_json::json!({
-        "status": "opened",
-        "pid": pid,
-        "godot_path": godot_path,
-        "project_path": project_path
-    })
-    .to_string())
-}
+        let killed = kill_process_by_name(&exe_name);
 
-fn godot_editor_close() -> Result<String, String> {
-    let godot_path = get_godot_path()?;
-    let exe_name = std::path::Path::new(&godot_path)
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_default();
-
-    let killed = kill_process_by_name(&exe_name);
-
-    Ok(serde_json::json!({
-        "status": if killed { "closed" } else { "not_running" },
-        "process_name": exe_name
-    })
-    .to_string())
+        Ok(serde_json::json!({
+            "status": if killed { "closed" } else { "not_running" },
+            "process_name": exe_name
+        })
+        .to_string())
+    }
 }
 
 fn kill_process_by_name(name: &str) -> bool {
@@ -305,7 +335,7 @@ fn kill_process_by_name(name: &str) -> bool {
             .unwrap_or(false)
     } else {
         std::process::Command::new("pkill")
-            .args(["-f", name])
+            .args(["-x", name])
             .output()
             .map(|o| o.status.success())
             .unwrap_or(false)
@@ -400,59 +430,43 @@ mod tests {
 
     #[tokio::test]
     async fn test_godot_editor_open_no_env() {
-        let handler = GodotMcpHandler::new(9999);
-        let saved = std::env::var("GODOT_PATH").ok();
-        unsafe {
-            std::env::remove_var("GODOT_PATH");
-        }
+        let handler = GodotMcpHandler::with_godot_path(9999, None);
         let result = handler
             .handle_tool_call("godot_editor_open", json!({}))
             .await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("GODOT_PATH"));
-        if let Some(v) = saved {
-            unsafe {
-                std::env::set_var("GODOT_PATH", v);
-            }
-        }
     }
 
     #[tokio::test]
     async fn test_godot_editor_close_no_env() {
-        let handler = GodotMcpHandler::new(9999);
-        let saved = std::env::var("GODOT_PATH").ok();
-        unsafe {
-            std::env::remove_var("GODOT_PATH");
-        }
+        let handler = GodotMcpHandler::with_godot_path(9999, None);
         let result = handler
             .handle_tool_call("godot_editor_close", json!({}))
             .await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("GODOT_PATH"));
-        if let Some(v) = saved {
-            unsafe {
-                std::env::set_var("GODOT_PATH", v);
-            }
-        }
     }
 
     #[tokio::test]
     async fn test_godot_editor_restart_no_env() {
-        let handler = GodotMcpHandler::new(9999);
-        let saved = std::env::var("GODOT_PATH").ok();
-        unsafe {
-            std::env::remove_var("GODOT_PATH");
-        }
+        let handler = GodotMcpHandler::with_godot_path(9999, None);
         let result = handler
             .handle_tool_call("godot_editor_restart", json!({}))
             .await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("GODOT_PATH"));
-        if let Some(v) = saved {
-            unsafe {
-                std::env::set_var("GODOT_PATH", v);
-            }
-        }
+    }
+
+    #[tokio::test]
+    async fn test_godot_editor_open_with_override_path() {
+        let handler =
+            GodotMcpHandler::with_godot_path(9999, Some("/nonexistent/godot".to_string()));
+        let result = handler
+            .handle_tool_call("godot_editor_open", json!({ "project_path": "/tmp" }))
+            .await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("启动 Godot 编辑器失败"));
     }
 
     #[test]
@@ -466,5 +480,20 @@ mod tests {
         };
         handler.update_tools(&update);
         assert!(!handler.registry().is_tool_enabled("ping"));
+    }
+
+    #[test]
+    fn test_resolve_godot_path_with_override() {
+        assert_eq!(
+            resolve_godot_path(Some("/usr/bin/godot")),
+            Ok("/usr/bin/godot".to_string())
+        );
+    }
+
+    #[test]
+    fn test_resolve_project_path_default() {
+        let args = json!({});
+        let path = resolve_project_path(&args);
+        assert!(path.contains("example"));
     }
 }

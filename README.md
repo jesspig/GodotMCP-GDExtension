@@ -49,7 +49,7 @@ Godot MCP exposes the Godot 4.6+ editor to AI tools through **125 commands** —
 - **Thread-Safe Design** — Async tokio runtime paired with a main-thread dispatcher for safe Godot API access
 - **12 AI Client Support** — Claude Code, OpenCode, Cursor, GitHub Copilot, Codex, Trae, and more (stdio transport)
 - **Cross-Platform** — Windows, macOS, and Linux
-- **23 Offline Tests** — Protocol round-trips and tool registry correctness (no Godot needed)
+- **58 Offline Tests** — Protocol round-trips, tool registry correctness, and E2E handler tests (no Godot needed)
 
 ## How It Works
 
@@ -201,7 +201,7 @@ cargo fmt --check --all                       # Formatting
 cargo clippy --workspace -- -D warnings       # Linting (strict)
 cmake -B build -S .                           # Configure CMake
 cmake --build build --config Debug            # Build gdext + server
-cargo test --workspace                        # Tests (23, all offline, no Godot)
+cargo test --workspace                        # Tests (58, all offline, no Godot)
 ```
 
 ### Build Flags

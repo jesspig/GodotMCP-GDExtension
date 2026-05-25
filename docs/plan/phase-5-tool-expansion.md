@@ -6,7 +6,7 @@
 
 ## Why this phase exists
 
-The 31 scene tools cover scene-file management and node/property manipulation — enough for an AI agent to compose levels. They don't cover everything else an editor session involves: importing assets, editing script bodies, tweaking project settings, observing the running scene, or debugging.
+The 125 tools cover scene management, node/property CRUD, GDScript/C# editing, project settings, editor control, input map, plugin management, and search. They don't cover everything else an editor session involves: importing assets, tweaking runtime settings, observing the running scene, or debugging.
 
 This phase grows the catalog along orthogonal axes. Each group is shipped independently with its own page (this file is the index).
 

@@ -35,12 +35,15 @@ impl CommandHandler for MetaCommands {
         TOOL_NAMES.contains(&tool)
     }
 
-    fn execute(&self, _args: &Value, _dispatcher: &MainThreadDispatcher) -> Result<Value, String> {
-        // MetaCommands tools don't need dispatcher since they only read PluginState.
-        // The tool name is resolved by the caller routing, so this method is not called
-        // directly for MetaCommands. Instead, handle_request resolves the tool and calls
-        // the appropriate method. See handle_meta_tool below.
-        Err("MetaCommands::execute should not be called directly".into())
+    fn handle<'a>(
+        &'a self,
+        tool: &'a str,
+        _args: &'a Value,
+        _dispatcher: &'a MainThreadDispatcher,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Value, String>> + Send + 'a>>
+    {
+        let result = self.handle_meta_tool(tool);
+        Box::pin(async move { result })
     }
 
     fn group_name(&self) -> &str {

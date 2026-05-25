@@ -5,7 +5,7 @@ use tokio::sync::oneshot;
 
 struct DispatcherJob {
     closure: Box<dyn FnOnce() -> Value + Send>,
-    response: oneshot::Sender<Value>,
+    response: oneshot::Sender<Result<Value, String>>,
 }
 
 pub struct MainThreadDispatcher {
@@ -27,7 +27,7 @@ impl MainThreadDispatcher {
         }
     }
 
-    pub async fn submit<F>(&self, f: F) -> Value
+    pub async fn submit<F>(&self, f: F) -> Result<Value, String>
     where
         F: FnOnce() -> Value + Send + 'static,
     {
@@ -37,7 +37,9 @@ impl MainThreadDispatcher {
             response: tx,
         };
         self.queue.lock().unwrap().push_back(job);
-        rx.await.unwrap_or(Value::Null)
+        rx.await
+            .map_err(|_| "Command execution cancelled (possible panic on main thread)".to_string())
+            .and_then(|r| r)
     }
 
     pub fn process_pending(&self) {
@@ -48,7 +50,7 @@ impl MainThreadDispatcher {
 
         for job in jobs {
             let result = (job.closure)();
-            let _ = job.response.send(result);
+            let _ = job.response.send(Ok(result));
         }
     }
 }
@@ -77,7 +79,7 @@ mod tests {
         tokio::task::yield_now().await;
         dispatcher.process_pending();
 
-        let result = handle.await.unwrap();
+        let result = handle.await.unwrap().unwrap();
         assert_eq!(result, json!({ "result": "ok" }));
     }
 
@@ -99,9 +101,9 @@ mod tests {
         tokio::task::yield_now().await;
         dispatcher.process_pending();
 
-        assert_eq!(h1.await.unwrap(), json!("first"));
-        assert_eq!(h2.await.unwrap(), json!("second"));
-        assert_eq!(h3.await.unwrap(), json!("third"));
+        assert_eq!(h1.await.unwrap().unwrap(), json!("first"));
+        assert_eq!(h2.await.unwrap().unwrap(), json!("second"));
+        assert_eq!(h3.await.unwrap().unwrap(), json!("third"));
     }
 
     #[tokio::test]
@@ -121,7 +123,7 @@ mod tests {
         tokio::task::yield_now().await;
         dispatcher.process_pending();
 
-        let result = handle.await.unwrap();
+        let result = handle.await.unwrap().unwrap();
         assert_eq!(result["name"], "test_node");
     }
 }

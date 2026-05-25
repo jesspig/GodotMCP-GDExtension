@@ -117,7 +117,7 @@ If Phase 3.3 has already shipped: enable the HTTP port input. Otherwise: add a s
 - New `crates/server/tests/` integration test (currently the crate has only unit tests) that:
   - Spawns `run_http(handler, 0.0.0.0:0)`, reads the bound port back.
   - Issues an MCP `initialize` + `list_tools` via reqwest.
-  - Asserts the 35 tools are listed.
+  - Asserts the 125 tools are listed.
 - Smoke-check with `--transport all`: both stdio + HTTP serve the same registry.
 
 ## Done means

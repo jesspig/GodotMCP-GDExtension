@@ -1,5 +1,6 @@
 use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::net::TcpListener;
 use tokio::sync::{Notify, broadcast};
 use tokio_tungstenite::{WebSocketStream, accept_async, tungstenite::protocol::Message};
@@ -9,33 +10,19 @@ use godot_mcp_core::protocol::{
 };
 
 use crate::commands::CommandHandler;
-use crate::commands::collision::CollisionCommands;
-use crate::commands::editor_control::EditorControlCommands;
-use crate::commands::find::FindCommands;
-use crate::commands::input_map::InputMapCommands;
-use crate::commands::meta::MetaCommands;
-use crate::commands::node::NodeCommands;
-use crate::commands::plugin_management::PluginManagementCommands;
-use crate::commands::project_settings::ProjectSettingsCommands;
-use crate::commands::project_settings_ext::ProjectSettingsExtCommands;
-use crate::commands::property::PropertyCommands;
-use crate::commands::property_3d::Property3dCommands;
-use crate::commands::scene::SceneCommands;
-use crate::commands::script_cs::ScriptCsCommands;
-use crate::commands::script_gd::ScriptGdCommands;
-use crate::commands::script_helpers::ScriptHelpersCommands;
-use crate::commands::search::SearchCommands;
-use crate::commands::undo::UndoCommands;
 use crate::dispatcher::MainThreadDispatcher;
 use crate::ipc::plugin_state::PluginState;
 use crate::logging::{log_error, log_info};
+
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30);
+const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(90);
 
 pub struct IpcWebSocketServer {
     port: u16,
     state: Arc<PluginState>,
     shutdown: Arc<Notify>,
     dispatcher: MainThreadDispatcher,
-    registry: Vec<Box<dyn CommandHandler>>,
+    registry: Arc<Vec<Box<dyn CommandHandler>>>,
     broadcast_tx: broadcast::Sender<String>,
 }
 
@@ -53,7 +40,7 @@ impl IpcWebSocketServer {
             state,
             shutdown,
             dispatcher,
-            registry,
+            registry: Arc::new(registry),
             broadcast_tx,
         }
     }
@@ -88,9 +75,7 @@ impl IpcWebSocketServer {
                             let state = self.state.clone();
                             let dispatcher = self.dispatcher.clone();
                             let broadcast_rx = self.broadcast_tx.subscribe();
-                            let registry: Vec<String> = self.registry.iter()
-                                .flat_map(|h| h.tool_names().iter().map(|s| s.to_string()))
-                                .collect();
+                            let registry = self.registry.clone();
                             match accept_async(stream).await {
                                 Ok(ws) => {
                                     tokio::spawn(Self::handle_connection(
@@ -124,7 +109,7 @@ impl IpcWebSocketServer {
         state: Arc<PluginState>,
         dispatcher: MainThreadDispatcher,
         mut broadcast_rx: broadcast::Receiver<String>,
-        registry_tools: Vec<String>,
+        registry: Arc<Vec<Box<dyn CommandHandler>>>,
     ) {
         eprintln!("[Godot MCP] IPC connection established");
 
@@ -143,18 +128,22 @@ impl IpcWebSocketServer {
         }
 
         let (mut write, mut read) = ws.split();
+        let mut heartbeat = tokio::time::interval(HEARTBEAT_INTERVAL);
+        heartbeat.tick().await;
+        let mut last_activity = tokio::time::Instant::now();
 
         loop {
             tokio::select! {
                 msg_result = read.next() => {
                     match msg_result {
                         Some(Ok(msg)) => {
+                            last_activity = tokio::time::Instant::now();
                             if let Ok(text) = msg.into_text() {
                                 eprintln!("[Godot MCP] Received: {}", text);
 
                                 if let Ok(request) = serde_json::from_str::<IpcRequest>(&text) {
                                     let response = Self::handle_request(
-                                        &request, &state, &dispatcher, &registry_tools,
+                                        &request, &state, &dispatcher, &registry,
                                     ).await;
 
                                     if let Ok(json) = serde_json::to_string(&response) {
@@ -177,6 +166,16 @@ impl IpcWebSocketServer {
                         let _ = write.send(Message::Text(json)).await;
                     }
                 }
+                _ = heartbeat.tick() => {
+                    if last_activity.elapsed() > HEARTBEAT_TIMEOUT {
+                        eprintln!("[Godot MCP] Connection timeout — no activity in {:?}", HEARTBEAT_TIMEOUT);
+                        break;
+                    }
+                    if write.send(Message::Ping(vec![])).await.is_err() {
+                        eprintln!("[Godot MCP] Failed to send heartbeat ping, closing connection");
+                        break;
+                    }
+                }
             }
         }
 
@@ -187,7 +186,7 @@ impl IpcWebSocketServer {
         request: &IpcRequest,
         state: &PluginState,
         dispatcher: &MainThreadDispatcher,
-        registry_tools: &[String],
+        registry: &[Box<dyn CommandHandler>],
     ) -> IpcResponse {
         let result = if request.method == "tool_call" {
             let params: ToolCallParams = match serde_json::from_value(request.params.clone()) {
@@ -202,21 +201,14 @@ impl IpcWebSocketServer {
                     };
                 }
             };
-            Self::route_tool_call(
-                &params.tool,
-                &params.args,
-                state,
-                dispatcher,
-                registry_tools,
-            )
-            .await
+            Self::route_tool_call(&params.tool, &params.args, state, dispatcher, registry).await
         } else {
             Self::route_tool_call(
                 &request.method,
                 &request.params,
                 state,
                 dispatcher,
-                registry_tools,
+                registry,
             )
             .await
         };
@@ -241,150 +233,40 @@ impl IpcWebSocketServer {
         args: &serde_json::Value,
         state: &PluginState,
         dispatcher: &MainThreadDispatcher,
-        registry_tools: &[String],
+        registry: &[Box<dyn CommandHandler>],
     ) -> Result<serde_json::Value, String> {
         log_info(tool, &format!("called args={}", args));
 
-        // MetaCommands: simple state queries, no dispatcher needed
-        let meta = MetaCommands::new().with_engine_version(state.engine_version.clone());
-        let result = if meta.can_handle(tool) {
-            meta.handle_meta_tool(tool)
-        } else {
-            let node = NodeCommands::new();
-            if node.can_handle(tool) {
-                node.handle_node_tool(tool, args, dispatcher).await
-            } else {
-                let property = PropertyCommands::new();
-                if property.can_handle(tool) {
-                    property.handle_property_tool(tool, args, dispatcher).await
-                } else {
-                    let collision = CollisionCommands::new();
-                    if collision.can_handle(tool) {
-                        collision
-                            .handle_collision_tool(tool, args, dispatcher)
-                            .await
-                    } else {
-                        let find = FindCommands::new();
-                        if find.can_handle(tool) {
-                            find.handle_find_tool(tool, args, dispatcher).await
-                        } else {
-                            let script_helpers = ScriptHelpersCommands::new();
-                            if script_helpers.can_handle(tool) {
-                                script_helpers
-                                    .handle_script_helpers_tool(tool, args, dispatcher)
-                                    .await
-                            } else {
-                                let project_settings = ProjectSettingsCommands::new();
-                                if project_settings.can_handle(tool) {
-                                    project_settings
-                                        .handle_project_settings_tool(tool, args, dispatcher)
-                                        .await
-                                } else {
-                                    let scene = SceneCommands::new();
-                                    if scene.can_handle(tool) {
-                                        scene.handle_scene_tool(tool, args, dispatcher).await
-                                    } else {
-                                        let script_gd = ScriptGdCommands::new();
-                                        if script_gd.can_handle(tool) {
-                                            script_gd
-                                                .handle_script_gd_tool(tool, args, dispatcher)
-                                                .await
-                                        } else {
-                                            let script_cs = ScriptCsCommands::new();
-                                            if script_cs.can_handle(tool) {
-                                                script_cs
-                                                    .handle_script_cs_tool(tool, args, dispatcher)
-                                                    .await
-                                            } else {
-                                                let search = SearchCommands::new();
-                                                if search.can_handle(tool) {
-                                                    search
-                                                        .handle_search_tool(tool, args, dispatcher)
-                                                        .await
-                                                } else {
-                                                    let undo = UndoCommands::new();
-                                                    if undo.can_handle(tool) {
-                                                        undo.handle_undo_tool(
-                                                            tool, args, dispatcher,
-                                                        )
-                                                        .await
-                                                    } else {
-                                                        let prop3d = Property3dCommands::new();
-                                                        if prop3d.can_handle(tool) {
-                                                            prop3d
-                                                                .handle_property_3d_tool(
-                                                                    tool, args, dispatcher,
-                                                                )
-                                                                .await
-                                                        } else {
-                                                            let editor_control =
-                                                                EditorControlCommands::new();
-                                                            if editor_control.can_handle(tool) {
-                                                                editor_control
-                                                                    .handle_editor_control_tool(
-                                                                        tool, args, dispatcher,
-                                                                    )
-                                                                    .await
-                                                            } else {
-                                                                let ps_ext =
-                                                                    ProjectSettingsExtCommands::new(
-                                                                    );
-                                                                if ps_ext.can_handle(tool) {
-                                                                    ps_ext.handle_project_settings_ext_tool(
-                                                                        tool, args, dispatcher,
-                                                                    )
-                                                                    .await
-                                                                } else {
-                                                                    let plugins = PluginManagementCommands::new();
-                                                                    if plugins.can_handle(tool) {
-                                                                        plugins.handle_plugin_management_tool(
-                                                                            tool, args, dispatcher,
-                                                                        )
-                                                                        .await
-                                                                    } else {
-                                                                        let input =
-                                                                            InputMapCommands::new();
-                                                                        if input.can_handle(tool) {
-                                                                            input.handle_input_map_tool(
-                                                                                tool, args, dispatcher,
-                                                                            )
-                                                                            .await
-                                                                        } else if registry_tools
-                                                                            .contains(
-                                                                                &tool.to_string(),
-                                                                            )
-                                                                        {
-                                                                            Err(format!(
-                                                                                "Tool '{}' handler not yet implemented",
-                                                                                tool
-                                                                            ))
-                                                                        } else {
-                                                                            Err(format!(
-                                                                                "Unknown tool: {}",
-                                                                                tool
-                                                                            ))
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        };
+        let result = Self::dispatch(tool, args, state, dispatcher, registry).await;
 
         match &result {
             Ok(v) => log_info(tool, &format!("ok result={}", v)),
             Err(e) => log_error(tool, &format!("failed: {}", e)),
         }
         result
+    }
+
+    async fn dispatch(
+        tool: &str,
+        args: &serde_json::Value,
+        state: &PluginState,
+        dispatcher: &MainThreadDispatcher,
+        registry: &[Box<dyn CommandHandler>],
+    ) -> Result<serde_json::Value, String> {
+        // MetaCommands needs the engine_version from state. We construct a fresh
+        // instance here so the rest of the registry can stay stateless.
+        let meta = crate::commands::meta::MetaCommands::new()
+            .with_engine_version(state.engine_version.clone());
+        if meta.can_handle(tool) {
+            return meta.handle_meta_tool(tool);
+        }
+
+        for handler in registry {
+            if handler.can_handle(tool) {
+                return handler.handle(tool, args, dispatcher).await;
+            }
+        }
+
+        Err(format!("Unknown tool: {}", tool))
     }
 }

@@ -54,8 +54,14 @@ impl super::CommandHandler for NodeCommands {
     fn can_handle(&self, tool: &str) -> bool {
         TOOL_NAMES.contains(&tool)
     }
-    fn execute(&self, _args: &Value, _d: &MainThreadDispatcher) -> Result<Value, String> {
-        Err("NodeCommands::execute should not be called directly".into())
+    fn handle<'a>(
+        &'a self,
+        tool: &'a str,
+        args: &'a Value,
+        d: &'a MainThreadDispatcher,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Value, String>> + Send + 'a>>
+    {
+        Box::pin(self.handle_node_tool(tool, args, d))
     }
     fn group_name(&self) -> &str {
         "node"
@@ -107,7 +113,7 @@ impl NodeCommands {
 fn cmd_get_scene_tree(args: &Value) -> Value {
     let max = args["max_depth"].as_u64().unwrap_or(10) as i32;
     match get_root() {
-        Ok(root) => serialize_tree(&root, 0, max),
+        Ok(root) => serialize_tree(&root, &root, 0, max),
         Err(e) => e,
     }
 }
@@ -814,7 +820,7 @@ fn cmd_batch_set_property(args: &Value) -> Value {
                 let actual = n.get(&StringName::from(prop.as_str()));
                 json!({"node_path": p, "status": "ok", "value": v2j(&actual)})
             }
-            None => json!({"node_path": p, "status": "error", "message": "not found"}),
+            None => json!({"node_path": p, "status": "error", "message": "not found", "hint": format!("Node '{}' not found in current scene. It may have been moved, renamed, or the scene may have changed.", p)}),
         })
         .collect();
     json!({"results": results})
@@ -1099,11 +1105,12 @@ fn cmd_get_script_variables(args: &Value) -> Value {
 
 // ── Tree serialization ───────────────────────────────────────────────
 
-fn serialize_tree(n: &godot::prelude::Gd<Node>, depth: i32, max: i32) -> Value {
-    let root = match get_root() {
-        Ok(r) => r,
-        Err(e) => return e,
-    };
+fn serialize_tree(
+    n: &godot::prelude::Gd<Node>,
+    root: &godot::prelude::Gd<Node>,
+    depth: i32,
+    max: i32,
+) -> Value {
     if depth > max {
         return json!({"name": "...", "type": "truncated"});
     }
@@ -1115,12 +1122,15 @@ fn serialize_tree(n: &godot::prelude::Gd<Node>, depth: i32, max: i32) -> Value {
         .map(|r| r.get_path().to_string())
         .unwrap_or_default();
     let children: Vec<Value> = (0..n.get_child_count())
-        .filter_map(|i| n.get_child(i).map(|c| serialize_tree(&c, depth + 1, max)))
+        .filter_map(|i| {
+            n.get_child(i)
+                .map(|c| serialize_tree(&c, root, depth + 1, max))
+        })
         .collect();
     json!({
         "name": n.get_name().to_string(),
         "type": n.get_class().to_string(),
-        "path": relative_path(n, &root),
+        "path": relative_path(n, root),
         "visible": visible,
         "child_count": children.len(),
         "script": if script_path.is_empty() { Value::Null } else { json!(script_path) },
