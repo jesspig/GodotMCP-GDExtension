@@ -74,10 +74,9 @@ Phases 1 and 2 (a+b) are fully shipped: 125 tools, 17 handler groups, cross-thre
 | 2b.3 | Editor Control | `play_current_scene`, `play_main_scene`, `stop_scene`, `is_scene_playing`, `refresh_filesystem`, `get_editor_info` (6) + server-side `godot_editor_*` (3) | ✅ Shipped |
 | 2b.4 | Project Management | `project_settings.rs` (7) + `project_settings_ext.rs` (10) + `input_map.rs` (4) + `plugin_management.rs` (2) | ✅ Shipped |
 | 2b.5 | Server registry sync | 125 tools visible in `list_tools` | ✅ Shipped |
-| 2b.6 | e2e tests | 5 representative tools (mock WS server + real server process) | ⏳ Not started |
-| 2b.7 | Documentation sync | parameter and response examples per tool | ⏳ Not started |
+| 2b.6 | e2e tests | MockGodotServer + 5 E2E tests (ping, params, error, offline, list_tools) | ✅ Shipped |
+| 2b.7 | Documentation sync | stale "99 commands" → 125, "23 tests" → 58, fix zh/ broken links | ✅ Shipped |
 
-Sub-page: [`phase-2b.md`](phase-2b.md) — 仅含待办项（2b.6 e2e 测试 + 2b.7 文档同步）。
 
 Shipped so far:
 - Cross-thread logging: `log_info`/`log_warn`/`log_error` → `mpsc` channel → `drain_to_console()` via pump; eprintln! mirror
@@ -98,7 +97,7 @@ Shipped so far:
 - Server registry at 125 tools; `package_addons.py` rewritten with flags
 - Wiki restructure (`.repo_wiki/`), bilingual README, AGENTS.md, License
 
-Still to do: 2b.6 (e2e tests), 2b.7 (docs).
+Phase 2b is fully shipped (all 7 sub-phases complete).
 
 ## Phase 3 — Dock UI polish
 
