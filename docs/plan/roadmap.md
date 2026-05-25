@@ -17,16 +17,15 @@ Phase 1 — Foundations                ✅ Shipped  ── workspace, EditorPlug
    │
    ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  Phase 2b — Scene Management      🛠 Partially shipped ──    │
+│  Phase 2b — Scene Management      ✅ Fully shipped ──        │
 │              `12fb1431` (feature/scene_manager → develop)    │
 │               tagged `v0.1.0` at `d1ee1fb3`                 │
-│  ✅ 2b.1 Scene Management (10 tools) + 21 utility tools      │
-│  ⏳ 2b.2 Script Management (8), 2b.3 Editor Ctrl (7)         │
-│  ⏳ 2b.4 Project Mgmt (6), e2e tests, docs                  │
+│  ✅ Scene/scene-file (16+22) + Script (5+6+3+lsp)            │
+│  ✅ Editor control (6+3) + Project/Input/Plugin (7+10+4+2)  │
 └──────────────────────────────────────────────────────────────┘
    │
    ▼
-NOW   ── 10 scene tools + 21 utility tools, dispatcher/pump/logging, Dock skeleton, stdio only
+NOW   ── 125 tools, 17 handler groups, LSP validation, C# build, stdio only
    │
    ▼
 Phase 3 — Dock UI polish              (1 week)   ── unblocks self-service tool toggling + client config
@@ -41,7 +40,7 @@ Phase 5 — Tool group expansion        (open)     ── runtime / asset / proj
 Phase 6 — Resilience                  (1 week)   ── once we have real-world usage, heartbeat + multi-client matter
 ```
 
-Phases 1 through 2b are shipped. Phases 3 and 4 are independent and can be parallelised; both build on top of today's foundations without touching the dispatcher / IPC layer. Phase 5 depends on Phase 4 only if we want the new tools accessible to HTTP-only clients. Phase 6 is best done after Phase 5 because the failure modes only show up under volume.
+Phases 1 and 2 (a+b) are fully shipped: 125 tools, 17 handler groups, cross-thread logging, LSP validation, C# build. Phases 3 and 4 are independent and can be parallelised; both build on top of today's foundations without touching the dispatcher / IPC layer. Phase 5 depends on Phase 4 only if we want the new tools accessible to HTTP-only clients. Phase 6 is best done after Phase 5 because the failure modes only show up under volume.
 
 ## Phase 1 — Foundations (✅ Shipped)
 
@@ -64,31 +63,41 @@ Phases 1 through 2b are shipped. Phases 3 and 4 are independent and can be paral
 - Dock UI: 4-panel `VBoxContainer` (status bar with green dot + Stop button, tool manager with 4 checkboxes, 12-client integration skeleton, settings with read-only ports)
 - Editor plugin lifecycle integration with dispatcher
 
-## Phase 2b — Scene Management (🛠 Partially shipped)
+## Phase 2b — Scene Management (✅ Fully shipped)
 
 **Goal**: full scene-tree manipulation + script editing + editor control + project config. Merged as `12fb1431`; tagged `v0.1.0`.
 
 | # | Sub-phase | Tools | Status |
 |---|-----------|-------|--------|
 | 2b.1 | Scene Management | `get_scene_tree`, `create_node`, `delete_node`, `modify_node_property`, `get_node_properties`, `move_node`, `duplicate_node`, `rename_node`, `set_node_script`, `find_nodes` (10) | ✅ Shipped |
-| 2b.2 | Script Management | GDScript 子组 (6) + C# 子组 (5) + 通用搜索 (2) = 13；含 LSP 接入 `validate_gdscript` 和 `dotnet build` 集成 | ⏳ Not started |
-| 2b.3 | Editor Control | `play`, `pause`, `stop`, `get_console`, `clear_console`, `refresh_project`, `execute_menu_item` (7) | ⏳ Not started |
-| 2b.4 | Project Management | `get_project_settings`, `update_project_settings`, `get_input_map`, `configure_input_map`, `list_scenes`, `run_tests` (6) | ⏳ Not started |
-| 2b.5 | Server registry sync | 31 tools visible in `list_tools` | ✅ Shipped |
-| 2b.6 | e2e tests | 5 representative tools (mock WS server + real server process) | ⏳ Not started |
-| 2b.7 | Documentation sync | parameter and response examples per tool | ⏳ Not started |
+| 2b.2 | Script Management | GDScript (5) + C# (6) + Search (3) + LSP validation | ✅ Shipped |
+| 2b.3 | Editor Control | `play_current_scene`, `play_main_scene`, `stop_scene`, `is_scene_playing`, `refresh_filesystem`, `get_editor_info` (6) + server-side `godot_editor_*` (3) | ✅ Shipped |
+| 2b.4 | Project Management | `project_settings.rs` (7) + `project_settings_ext.rs` (10) + `input_map.rs` (4) + `plugin_management.rs` (2) | ✅ Shipped |
+| 2b.5 | Server registry sync | 125 tools visible in `list_tools` | ✅ Shipped |
+| 2b.6 | e2e tests | MockGodotServer + 5 E2E tests (ping, params, error, offline, list_tools) | ✅ Shipped |
+| 2b.7 | Documentation sync | stale "99 commands" → 125, "23 tests" → 58, fix zh/ broken links | ✅ Shipped |
 
-Sub-page: [`phase-2b.md`](phase-2b.md)（含 2b.2 完整设计：LSP 子系统、内置模板、`dotnet build` spawn、文件清单）。
 
 Shipped so far:
 - Cross-thread logging: `log_info`/`log_warn`/`log_error` → `mpsc` channel → `drain_to_console()` via pump; eprintln! mirror
 - Main-thread pump: `Callable::from_fn` on `SceneTree::process_frame` (not `EditorPlugin::process`) — solves `bind_mut` re-entrancy (gdext issue #338)
-- 10 scene management commands from 2b.1 + remaining 21 scene-file/tab/utility commands (31 total in `handle_scene_tool`)
+- 125 tools across 17 gdext CommandHandler groups + 3 server-side editor control tools
+- Full GDScript toolchain: create, read, edit, validate (via LSP TCP), list
+- Full C# toolchain: create solution (Rust-level generation), create script, read, edit, build (`dotnet build`)
+- Search: `find_in_file`, `search_project`, `find_and_replace`
+- Editor control: play/stop/refresh + server-side open/close/restart
+- Project settings: get/set settings, autoloads, main scene, scene listing, display/physics/rendering/layer aggregate settings
+- Input map: list/add/set events/remove actions
+- Plugin management: list/set enabled
+- Collision helpers: circle + rectangle collision shapes
+- 3D property helpers: position, rotation, scale
+- Undo/redo support with property-level granularity
 - `j2v`/`v2j` JSON↔Variant helpers (Vector2/3/4, Color, Rect2, Quaternion, Resource); `resolve_node` for root aliases
-- Server registry expanded from 4→35 tools; `package_addons.py` rewritten with flags
-- Wiki restructure (14 pages), bilingual README, AGENTS.md, License
+- `lsp/` module for GDScript validation via short-lived TCP connections
+- Server registry at 125 tools; `package_addons.py` rewritten with flags
+- Wiki restructure (`.repo_wiki/`), bilingual README, AGENTS.md, License
 
-Still to do: 2b.2 through 2b.4 (26 new tools), 2b.6 (e2e tests), 2b.7 (docs).
+Phase 2b is fully shipped (all 7 sub-phases complete).
 
 ## Phase 3 — Dock UI polish
 
@@ -96,7 +105,7 @@ Still to do: 2b.2 through 2b.4 (26 new tools), 2b.6 (e2e tests), 2b.7 (docs).
 
 | Gap (visible in the current code) | Target |
 |-----------------------------------|--------|
-| `dock/tool_manager.rs` hardcodes `("ping", …, true)` × 4 and the header `"Tools (4/4)"` | Enumerate live from `MetaCommands::tool_names() + SceneCommands::tool_names()` (35 entries); header reflects `enabled/total` |
+| `dock/tool_manager.rs` hardcodes `("ping", …, true)` × 4 and the header `"Tools (4/4)"` | Enumerate live from `create_registry()` (125 tools in 17 groups); header reflects `enabled/total` |
 | `dock/integration.rs` builds 12 `Button` rows but never `.connect("pressed", …)` | Each button writes the matching MCP config file (see `.repo_wiki/reference/client-config.md`) and toasts success/failure |
 | `dock/settings.rs` LineEdits are `set_editable(false)` and read-only `9500` / `8900` | Writable inputs + Apply button that triggers `shutdown.notify_one()` and restarts `IpcWebSocketServer` on the new port |
 | `dock/status_bar.rs` ColorRect is always green | Reflect actual server state via the existing `broadcast_tx` (or a new state-changed notification) |
@@ -123,7 +132,7 @@ Sub-page: [`phase-4-http-transport.md`](phase-4-http-transport.md).
 
 **Goal**: cover the editor surface beyond scene/node mutation.
 
-Today's 31 scene tools cover scene-file management, node CRUD, properties, scripts, scene-tab control. The next batches are:
+Today's 125 tools cover scene management, node/property CRUD, GDScript/C# editing, project settings, editor control, input map, plugin management, and search. The next batches expand into new domains:
 
 | Group | Indicative tools | Why |
 |-------|------------------|-----|

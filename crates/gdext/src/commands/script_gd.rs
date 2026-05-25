@@ -37,8 +37,14 @@ impl CommandHandler for ScriptGdCommands {
     fn can_handle(&self, tool: &str) -> bool {
         TOOL_NAMES.contains(&tool)
     }
-    fn execute(&self, _args: &Value, _d: &MainThreadDispatcher) -> Result<Value, String> {
-        Err("ScriptGdCommands::execute should not be called directly".into())
+    fn handle<'a>(
+        &'a self,
+        tool: &'a str,
+        args: &'a Value,
+        d: &'a MainThreadDispatcher,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Value, String>> + Send + 'a>>
+    {
+        Box::pin(self.handle_script_gd_tool(tool, args, d))
     }
     fn group_name(&self) -> &str {
         "script_gd"
@@ -105,12 +111,10 @@ fn cmd_create_gdscript(args: &Value) -> Value {
                 };
                 format!("extends {}\n{}", base_class, cn)
             }
-            other => {
-                other
-                    .replace("_BASE_", &base_class)
-                    .replace("_CLASS_", &class_name)
-                    .replace("_TS_", ts)
-            }
+            other => other
+                .replace("_BASE_", &base_class)
+                .replace("_CLASS_", &class_name)
+                .replace("_TS_", ts),
         }
     } else {
         let cn = if class_name.is_empty() {
@@ -167,12 +171,20 @@ fn cmd_read_gdscript(args: &Value) -> Value {
 fn cmd_edit_gdscript(args: &Value) -> Value {
     let path = s(args, "path");
     let source = s(args, "source");
+    if !path.ends_with(".gd") {
+        return json!({"error": format!("path must end with .gd: {}", path)});
+    }
     if !FileAccess::file_exists(&GString::from(&path)) {
         return json!({"error": format!("File not found: {}. Use create_gdscript to create a new file.", path)});
     }
     if source.is_empty() {
         return json!({"error": "missing 'source'"});
     }
+    let source = if cfg!(target_os = "windows") {
+        source.replace("\r\n", "\n").replace('\n', "\r\n")
+    } else {
+        source
+    };
     match FileAccess::open(&GString::from(&path), ModeFlags::WRITE) {
         Some(mut f) => {
             f.store_string(&GString::from(&source));

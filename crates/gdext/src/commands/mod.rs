@@ -29,7 +29,12 @@ use crate::dispatcher::MainThreadDispatcher;
 
 pub trait CommandHandler: Send + Sync {
     fn can_handle(&self, tool: &str) -> bool;
-    fn execute(&self, args: &Value, dispatcher: &MainThreadDispatcher) -> Result<Value, String>;
+    fn handle<'a>(
+        &'a self,
+        tool: &'a str,
+        args: &'a Value,
+        dispatcher: &'a MainThreadDispatcher,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Value, String>> + Send + 'a>>;
     fn group_name(&self) -> &str;
     fn tool_names(&self) -> &[&str];
 }
@@ -38,12 +43,21 @@ pub fn create_registry() -> Vec<Box<dyn CommandHandler>> {
     vec![
         Box::new(meta::MetaCommands::new()),
         Box::new(node::NodeCommands::new()),
+        Box::new(property::PropertyCommands::new()),
+        Box::new(collision::CollisionCommands::new()),
+        Box::new(find::FindCommands::new()),
+        Box::new(script_helpers::ScriptHelpersCommands::new()),
+        Box::new(project_settings::ProjectSettingsCommands::new()),
         Box::new(scene::SceneCommands::new()),
         Box::new(script_gd::ScriptGdCommands::new()),
         Box::new(script_cs::ScriptCsCommands::new()),
         Box::new(search::SearchCommands::new()),
         Box::new(undo::UndoCommands::new()),
         Box::new(property_3d::Property3dCommands::new()),
+        Box::new(editor_control::EditorControlCommands::new()),
+        Box::new(project_settings_ext::ProjectSettingsExtCommands::new()),
+        Box::new(plugin_management::PluginManagementCommands::new()),
+        Box::new(input_map::InputMapCommands::new()),
     ]
 }
 
@@ -54,9 +68,10 @@ pub fn s(args: &Value, key: &str) -> String {
     args[key].as_str().unwrap_or("").to_string()
 }
 
-/// Convert an error-shaped JSON Value into Result<Value, String>.
-/// Used to pipe `cmd_*` outputs through to the route_tool_call layer.
-pub fn pipe(val: Value) -> Result<Value, String> {
+/// Flatten a dispatcher Result<Value, String> + JSON error check into a single Result.
+/// Dispatcher errors (e.g. panic on main thread) take priority over JSON-level errors.
+pub fn pipe(val: Result<Value, String>) -> Result<Value, String> {
+    let val = val?;
     if let Some(e) = val.get("error").and_then(|v| v.as_str()) {
         Err(e.into())
     } else {

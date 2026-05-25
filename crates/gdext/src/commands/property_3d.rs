@@ -33,8 +33,14 @@ impl super::CommandHandler for Property3dCommands {
     fn can_handle(&self, tool: &str) -> bool {
         TOOL_NAMES.contains(&tool)
     }
-    fn execute(&self, _args: &Value, _d: &MainThreadDispatcher) -> Result<Value, String> {
-        Err("Property3dCommands::execute should not be called directly".into())
+    fn handle<'a>(
+        &'a self,
+        tool: &'a str,
+        args: &'a Value,
+        d: &'a MainThreadDispatcher,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Value, String>> + Send + 'a>>
+    {
+        Box::pin(self.handle_property_3d_tool(tool, args, d))
     }
     fn group_name(&self) -> &str {
         "property_3d"
@@ -182,9 +188,18 @@ fn cmd_get_scale_3d(args: &Value) -> Value {
 
 fn cmd_set_scale_3d(args: &Value) -> Value {
     let p = s(args, "node_path");
-    let x = args["x"].as_f64().unwrap_or(1.0) as f32;
-    let y = args["y"].as_f64().unwrap_or(1.0) as f32;
-    let z = args["z"].as_f64().unwrap_or(1.0) as f32;
+    let x = args["scale_x"]
+        .as_f64()
+        .or(args["x"].as_f64())
+        .unwrap_or(1.0) as f32;
+    let y = args["scale_y"]
+        .as_f64()
+        .or(args["y"].as_f64())
+        .unwrap_or(1.0) as f32;
+    let z = args["scale_z"]
+        .as_f64()
+        .or(args["z"].as_f64())
+        .unwrap_or(1.0) as f32;
     let root = match get_root() {
         Ok(r) => r,
         Err(e) => return e,

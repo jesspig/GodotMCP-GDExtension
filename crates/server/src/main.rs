@@ -1,9 +1,7 @@
 use clap::Parser;
 use rmcp::ServiceExt;
 
-mod bridge;
-mod handler;
-mod tool_registry;
+use godot_mcp_server::handler;
 
 #[derive(Parser, Debug)]
 #[command(name = "godot-mcp-server")]
@@ -16,12 +14,10 @@ struct Cli {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    let handler = handler::GodotMcpHandler::new(cli.godot_port);
+    let h = handler::GodotMcpHandler::new(cli.godot_port);
 
     eprintln!("[MCP Server] Starting on stdio...");
-    let service = handler
-        .serve((tokio::io::stdin(), tokio::io::stdout()))
-        .await?;
+    let service = h.serve((tokio::io::stdin(), tokio::io::stdout())).await?;
     service.waiting().await?;
 
     Ok(())

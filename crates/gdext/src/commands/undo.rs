@@ -26,8 +26,14 @@ impl super::CommandHandler for UndoCommands {
     fn can_handle(&self, tool: &str) -> bool {
         TOOL_NAMES.contains(&tool)
     }
-    fn execute(&self, _args: &Value, _d: &MainThreadDispatcher) -> Result<Value, String> {
-        Err("UndoCommands::execute should not be called directly".into())
+    fn handle<'a>(
+        &'a self,
+        tool: &'a str,
+        args: &'a Value,
+        d: &'a MainThreadDispatcher,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Value, String>> + Send + 'a>>
+    {
+        Box::pin(self.handle_undo_tool(tool, args, d))
     }
     fn group_name(&self) -> &str {
         "undo"
@@ -70,8 +76,8 @@ fn cmd_undo(_args: &Value) -> Value {
     if !ur_obj.has_undo() {
         return json!({"success": false, "hint": "Nothing to undo"});
     }
-    let name = ur_obj.get_current_action_name().to_string();
     let result = ur_obj.undo();
+    let name = ur_obj.get_current_action_name().to_string();
     json!({"success": result, "action": name})
 }
 
@@ -92,8 +98,7 @@ fn cmd_redo(_args: &Value) -> Value {
     if !ur_obj.has_redo() {
         return json!({"success": false, "hint": "Nothing to redo"});
     }
-    // Align with cmd_undo: capture action name before executing redo.
-    let name = ur_obj.get_current_action_name().to_string();
     let result = ur_obj.redo();
+    let name = ur_obj.get_current_action_name().to_string();
     json!({"success": result, "action": name})
 }

@@ -18,6 +18,5 @@ futures-util = "0.3"
 uuid = { version = "1", features = ["v4"] }
 dashmap = "6"
 async-trait = "0.1"
-rmcp = { version = "=1.7", features = ["server", "macros", "schemars", "transport-io", "transport-streamable-http-server"] }
-axum = "0.8"
+rmcp = { version = "=1.7", features = ["server", "macros", "schemars", "transport-io"] }
 godot-mcp-core = { path = "../core" }

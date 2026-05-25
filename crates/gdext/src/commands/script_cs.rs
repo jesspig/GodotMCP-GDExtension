@@ -35,8 +35,14 @@ impl CommandHandler for ScriptCsCommands {
     fn can_handle(&self, tool: &str) -> bool {
         TOOL_NAMES.contains(&tool)
     }
-    fn execute(&self, _args: &Value, _d: &MainThreadDispatcher) -> Result<Value, String> {
-        Err("ScriptCsCommands::execute should not be called directly".into())
+    fn handle<'a>(
+        &'a self,
+        tool: &'a str,
+        args: &'a Value,
+        d: &'a MainThreadDispatcher,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Value, String>> + Send + 'a>>
+    {
+        Box::pin(self.handle_script_cs_tool(tool, args, d))
     }
     fn group_name(&self) -> &str {
         "script_cs"
@@ -156,6 +162,9 @@ fn cmd_read_csharp_script(args: &Value) -> Value {
 fn cmd_edit_csharp_script(args: &Value) -> Value {
     let path = s(args, "path");
     let source = s(args, "source");
+    if !path.ends_with(".cs") {
+        return json!({"error": format!("path must end with .cs: {}", path)});
+    }
     if !FileAccess::file_exists(&GString::from(&path)) {
         return json!({"error": format!("File not found: {}. Use create_csharp_script to create a new file.", path)});
     }
