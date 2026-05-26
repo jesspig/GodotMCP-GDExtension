@@ -9,6 +9,7 @@
 
 #include "editor_plugin.hpp"
 
+#include <godot_cpp/classes/editor_plugin.hpp>
 #include <godot_cpp/classes/editor_plugin_registration.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/defs.hpp>

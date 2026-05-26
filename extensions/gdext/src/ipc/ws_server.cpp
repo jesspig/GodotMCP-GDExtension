@@ -56,14 +56,15 @@ bool WsServer::start(int port, HandlerRegistry *registry) {
 }
 
 void WsServer::stop() {
-    // Close every peer cleanly so the Python side sees a proper FIN.
+    // Close every peer cleanly — only if STATE_OPEN to avoid the error.
     for (KeyValue<int, Ref<WebSocketPeer>> &kv : peers_) {
         Ref<WebSocketPeer> peer = kv.value;
-        if (peer.is_valid()) {
+        if (peer.is_valid() && peer->get_ready_state() == WebSocketPeer::STATE_OPEN) {
             peer->close(1000, "shutdown");
         }
     }
     peers_.clear();
+    greeted_.clear();
 
     if (tcp_server_.is_valid()) {
         tcp_server_->stop();
@@ -99,14 +100,11 @@ void WsServer::poll() {
         peers_[peer_id] = peer;
         log_info("ws", String("Peer #") + String::num_int64(peer_id) + String(" connected"));
 
-        // Tell the peer who we are. Send is deferred until the WS handshake
-        // completes, so push it now — WebSocketPeer queues the frame and
-        // emits it once STATE_OPEN is reached.
-        send_dict(peer, make_ready_notification());
+        // Do NOT send godot_ready here — the WS handshake hasn't completed yet.
+        // It will be sent once poll() sees STATE_OPEN below.
     }
 
     // --- Poll existing peers --------------------------------------------
-    // Collect dead peers first so we don't mutate the map while iterating.
     Vector<int> dead;
     for (KeyValue<int, Ref<WebSocketPeer>> &kv : peers_) {
         const int peer_id = kv.key;
@@ -122,18 +120,21 @@ void WsServer::poll() {
             dead.push_back(peer_id);
             continue;
         }
-        if (state != WebSocketPeer::STATE_OPEN) {
-            continue;  // Still handshaking.
-        }
-        while (peer->get_available_packet_count() > 0) {
-            const PackedByteArray pkt = peer->get_packet();
-            // We only accept text frames carrying JSON.
-            if (peer->was_string_packet()) {
-                const String text = pkt.get_string_from_utf8();
-                handle_packet(peer_id, peer, text);
-            } else {
-                log_warn("ws", String("Ignoring binary packet from peer #") +
-                                       String::num_int64(peer_id));
+        if (state == WebSocketPeer::STATE_OPEN) {
+            // Send godot_ready once when the handshake first completes.
+            if (!greeted_.has(peer_id)) {
+                send_dict(peer, make_ready_notification());
+                greeted_.insert(peer_id);
+            }
+            while (peer->get_available_packet_count() > 0) {
+                const PackedByteArray pkt = peer->get_packet();
+                if (peer->was_string_packet()) {
+                    const String text = pkt.get_string_from_utf8();
+                    handle_packet(peer_id, peer, text);
+                } else {
+                    log_warn("ws", String("Ignoring binary packet from peer #") +
+                                           String::num_int64(peer_id));
+                }
             }
         }
     }
@@ -174,17 +175,23 @@ void WsServer::handle_packet(int peer_id,
     const Error parse_err = json->parse(text);
     if (parse_err != OK) {
         log_warn("ws", String("Peer #") + String::num_int64(peer_id) +
-                               String(" sent invalid JSON: ") + json->get_error_message());
-        send_dict(peer,
-                  make_response(Variant(), make_error_result(kErrCodeInvalidRequest,
-                                                              json->get_error_message())));
+                                String(" sent invalid JSON: ") + json->get_error_message());
+        Dictionary flat;
+        flat["id"] = Variant();
+        flat["status"] = "error";
+        flat["code"] = kErrCodeInvalidRequest;
+        flat["message"] = json->get_error_message();
+        send_dict(peer, flat);
         return;
     }
     const Variant root_v = json->get_data();
     if (root_v.get_type() != Variant::DICTIONARY) {
-        send_dict(peer, make_response(Variant(),
-                                       make_error_result(kErrCodeInvalidRequest,
-                                                          "Request must be a JSON object")));
+        Dictionary flat;
+        flat["id"] = Variant();
+        flat["status"] = "error";
+        flat["code"] = kErrCodeInvalidRequest;
+        flat["message"] = "Request must be a JSON object";
+        send_dict(peer, flat);
         return;
     }
     const Dictionary req = root_v;
@@ -193,15 +200,21 @@ void WsServer::handle_packet(int peer_id,
     // --- Validate envelope ----------------------------------------------
     const String method = req.has("method") ? String(req["method"]) : String();
     if (method != "tool_call") {
-        send_dict(peer, make_response(req_id,
-                                       make_error_result(kErrCodeInvalidRequest,
-                                                          String("Unknown method: ") + method)));
+        Dictionary flat;
+        flat["id"] = req_id;
+        flat["status"] = "error";
+        flat["code"] = kErrCodeInvalidRequest;
+        flat["message"] = String("Unknown method: ") + method;
+        send_dict(peer, flat);
         return;
     }
     if (!req.has("params") || req["params"].get_type() != Variant::DICTIONARY) {
-        send_dict(peer, make_response(req_id,
-                                       make_error_result(kErrCodeInvalidRequest,
-                                                          "Missing or invalid 'params'")));
+        Dictionary flat;
+        flat["id"] = req_id;
+        flat["status"] = "error";
+        flat["code"] = kErrCodeInvalidRequest;
+        flat["message"] = "Missing or invalid 'params'";
+        send_dict(peer, flat);
         return;
     }
     const Dictionary params = req["params"];
@@ -211,24 +224,33 @@ void WsServer::handle_packet(int peer_id,
                                     : Dictionary();
 
     if (tool.is_empty()) {
-        send_dict(peer, make_response(req_id,
-                                       make_error_result(kErrCodeInvalidRequest,
-                                                          "Missing 'tool' name")));
+        Dictionary flat;
+        flat["id"] = req_id;
+        flat["status"] = "error";
+        flat["code"] = kErrCodeInvalidRequest;
+        flat["message"] = "Missing 'tool' name";
+        send_dict(peer, flat);
         return;
     }
 
     // --- Look up handler -------------------------------------------------
     if (!registry_) {
-        send_dict(peer, make_response(req_id,
-                                       make_error_result(kErrCodeInternal,
-                                                          "Registry is not initialised")));
+        Dictionary flat;
+        flat["id"] = req_id;
+        flat["status"] = "error";
+        flat["code"] = kErrCodeInternal;
+        flat["message"] = "Registry is not initialised";
+        send_dict(peer, flat);
         return;
     }
     const CommandFn *fn = registry_->find(tool);
     if (!fn) {
-        send_dict(peer, make_response(req_id,
-                                       make_error_result(kErrCodeUnknownTool,
-                                                          String("Unknown tool: ") + tool)));
+        Dictionary flat;
+        flat["id"] = req_id;
+        flat["status"] = "error";
+        flat["code"] = kErrCodeUnknownTool;
+        flat["message"] = String("Unknown tool: ") + tool;
+        send_dict(peer, flat);
         return;
     }
 
@@ -240,18 +262,31 @@ void WsServer::handle_packet(int peer_id,
     try {
         data = (*fn)(args);
     } catch (const std::exception &e) {
-        send_dict(peer, make_response(req_id,
-                                       make_error_result(kErrCodeToolFailed, String(e.what()))));
+        Dictionary flat;
+        flat["id"] = req_id;
+        flat["status"] = "error";
+        flat["code"] = kErrCodeToolFailed;
+        flat["message"] = String(e.what());
+        send_dict(peer, flat);
         return;
     }
 
     if (data.has("error")) {
         const String msg = data["error"];
-        send_dict(peer, make_response(req_id, make_error_result(kErrCodeToolFailed, msg)));
+        Dictionary flat;
+        flat["id"] = req_id;
+        flat["status"] = "error";
+        flat["code"] = kErrCodeToolFailed;
+        flat["message"] = msg;
+        send_dict(peer, flat);
         return;
     }
 
-    send_dict(peer, make_response(req_id, make_success_result(data)));
+    Dictionary flat;
+    flat["id"] = req_id;
+    flat["status"] = "success";
+    flat["data"] = data;
+    send_dict(peer, flat);
 }
 
 Dictionary WsServer::make_ready_notification() const {

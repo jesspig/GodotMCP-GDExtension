@@ -21,6 +21,7 @@
 #include <godot_cpp/classes/tcp_server.hpp>
 #include <godot_cpp/classes/web_socket_peer.hpp>
 #include <godot_cpp/templates/hash_map.hpp>
+#include <godot_cpp/templates/hash_set.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 
 namespace godot_mcp {
@@ -62,6 +63,7 @@ private:
 
     godot::Ref<godot::TCPServer> tcp_server_;
     godot::HashMap<int, godot::Ref<godot::WebSocketPeer>> peers_;
+    godot::HashSet<int> greeted_;
     int next_peer_id_ = 0;
     HandlerRegistry *registry_ = nullptr;
     int port_ = 0;

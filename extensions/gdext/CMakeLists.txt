@@ -34,6 +34,23 @@ set(GODOT_MCP_SOURCES
     src/commands/cmd_utils.cpp
     src/commands/cmd_utils_json.cpp
     src/commands/meta.cpp
+    src/commands/property.cpp
+    src/commands/property_3d.cpp
+    src/commands/undo.cpp
+    src/commands/collision.cpp
+    src/commands/find.cpp
+    src/commands/script_helpers.cpp
+    src/commands/editor_control.cpp
+    src/commands/plugin_management.cpp
+    src/commands/project_settings.cpp
+    src/commands/project_settings_ext.cpp
+    src/commands/script_gd.cpp
+    src/commands/input_map.cpp
+    src/commands/search.cpp
+    src/commands/node.cpp
+    src/commands/scene.cpp
+    src/commands/script_cs.cpp
+    src/lsp/client.cpp
 )
 
 add_library(godot_mcp_gdext SHARED ${GODOT_MCP_SOURCES})
@@ -42,6 +59,7 @@ target_link_libraries(godot_mcp_gdext PRIVATE godot-cpp)
 
 target_include_directories(godot_mcp_gdext PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${godot-cpp_SOURCE_DIR}/include
 )
 
 # Plugin version baked in for runtime reporting via get_plugin_version tool.
