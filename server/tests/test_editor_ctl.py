@@ -13,8 +13,8 @@ from godot_mcp_server.editor_ctl import (
     resolve_project_path,
 )
 
-_server_dir = Path(__file__).parent.parent
-with open(_server_dir / "pyproject.toml", "rb") as f:
+_project_root = Path(__file__).parent.parent.parent
+with open(_project_root / "pyproject.toml", "rb") as f:
     _expected_version = tomllib.load(f)["project"]["version"]
 
 

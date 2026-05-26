@@ -64,12 +64,12 @@ async def test_disabled_tool(handler):
 async def test_forward_tool_call_with_bridge(handler):
     mock_bridge = AsyncMock()
     mock_bridge.is_connected = True
-    mock_bridge.call = AsyncMock(return_value={"result": "ok"})
+    mock_bridge.call = AsyncMock(return_value={"message": "pong"})
     handler._bridge = mock_bridge
 
     result = await handler.handle_tool_call("ping", {})
     data = json.loads(result)
-    assert data == {"result": "ok"}
+    assert data == {"result": {"message": "pong"}}
     mock_bridge.call.assert_called_once_with(
         "ping", {}
     )
