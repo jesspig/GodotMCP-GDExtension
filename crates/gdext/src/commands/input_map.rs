@@ -1,5 +1,8 @@
+use std::collections::HashSet;
+
 use serde_json::{Value, json};
 
+use godot::builtin::Variant;
 use godot::classes::InputMap;
 use godot::classes::ProjectSettings;
 use godot::obj::{EngineEnum, NewGd, Singleton};
@@ -206,10 +209,17 @@ fn is_editor_builtin_action(name: &str) -> bool {
 fn cmd_list_input_actions(args: &Value) -> Value {
     let include_builtin = args["include_builtin"].as_bool().unwrap_or(false);
     let mut im = InputMap::singleton();
+
+    im.load_from_project_settings();
+
     let actions = im.get_actions();
     let mut result = Vec::new();
+    let mut seen = HashSet::new();
     for action in actions.iter_shared() {
         let name = GString::from(&action).to_string();
+        if !seen.insert(name.clone()) {
+            continue;
+        }
         if !include_builtin && is_editor_builtin_action(&name) {
             continue;
         }
@@ -232,17 +242,28 @@ fn cmd_add_input_action(args: &Value) -> Value {
         return json!({"error": "missing 'name'"});
     }
     let deadzone = args["deadzone"].as_f64().unwrap_or(0.5) as f32;
-    let mut im = InputMap::singleton();
-    let sn = godot::prelude::StringName::from(name.as_str());
-    if im.has_action(&sn) {
+    let key = format!("input/{}", name);
+
+    // Check if the action already exists in project settings
+    let mut ps = ProjectSettings::singleton();
+    if ps.has_setting(&key) {
         return json!({"error": format!("action '{}' already exists", name)});
     }
-    im.add_action(&sn);
-    im.action_set_deadzone(&sn, deadzone);
-    let mut ps = ProjectSettings::singleton();
+
+    // Build the action dictionary matching Godot's project.godot format
+    let mut action_dict = godot::builtin::Dictionary::<Variant, Variant>::new();
+    action_dict.set("deadzone", &Variant::from(deadzone));
+    action_dict.set("events", &Variant::from(godot::builtin::Array::<Variant>::new()));
+
+    ps.set_setting(key.as_str(), &Variant::from(action_dict));
     if ps.save() != godot::global::Error::OK {
-        return json!({"name": name, "deadzone": deadzone, "warning": "saved to memory but disk write failed"});
+        return json!({"name": name, "deadzone": deadzone, "warning": "disk write failed"});
     }
+
+    // Reload InputMap so list_input_actions sees the change immediately
+    let mut im = InputMap::singleton();
+    im.load_from_project_settings();
+
     json!({"name": name, "deadzone": deadzone})
 }
 
@@ -264,38 +285,50 @@ fn cmd_set_input_action_events(args: &Value) -> Value {
         }
     };
 
-    let mut im = InputMap::singleton();
-    let sn = godot::prelude::StringName::from(name.as_str());
-    if !im.has_action(&sn) {
+    let key = format!("input/{}", name);
+    let mut ps = ProjectSettings::singleton();
+    if !ps.has_setting(key.as_str()) {
         return json!({"error": format!("action '{}' not found", name)});
     }
 
+    // Read existing action dict from project settings
+    let existing = ps.get_setting(key.as_str());
+    let mut action_dict: godot::builtin::Dictionary<Variant, Variant> = existing.try_to().unwrap_or_default();
+
     match mode {
         "clear" => {
-            im.action_erase_events(&sn);
+            action_dict.set("events", &Variant::from(godot::builtin::Array::<Variant>::new()));
         }
-        "replace" => {
-            im.action_erase_events(&sn);
-            for ev in events {
-                if let Some(event) = deserialize_event(ev) {
-                    im.action_add_event(&sn, &event);
+        "replace" | "add" => {
+            let mut new_events = godot::builtin::Array::<Variant>::new();
+            if mode == "add" {
+                if let Some(events_v) = action_dict.get("events") {
+                    if let Ok(existing_events) = events_v.try_to::<godot::builtin::Array<Variant>>() {
+                        for e in existing_events.iter_shared() {
+                            new_events.push(&e);
+                        }
+                    }
                 }
             }
-        }
-        "add" => {
-            for ev in events {
-                if let Some(event) = deserialize_event(ev) {
-                    im.action_add_event(&sn, &event);
+            for ev_json in events {
+                if let Some(event_gd) = deserialize_event(ev_json) {
+                    new_events.push(&Variant::from(event_gd));
                 }
             }
+            action_dict.set("events", &Variant::from(new_events));
         }
         _ => return json!({"error": "mode must be 'replace', 'add', or 'clear'"}),
     }
 
-    let mut ps = ProjectSettings::singleton();
+    ps.set_setting(key.as_str(), &Variant::from(action_dict));
     if ps.save() != godot::global::Error::OK {
-        return json!({"name": name, "events_count": events.len(), "warning": "saved to memory but disk write failed"});
+        return json!({"name": name, "events_count": events.len(), "warning": "disk write failed"});
     }
+
+    // Reload InputMap so the changes are visible immediately
+    let mut im = InputMap::singleton();
+    im.load_from_project_settings();
+
     json!({"name": name, "events_count": events.len()})
 }
 
@@ -304,15 +337,20 @@ fn cmd_remove_input_action(args: &Value) -> Value {
     if name.is_empty() {
         return json!({"error": "missing 'name'"});
     }
-    let mut im = InputMap::singleton();
-    let sn = godot::prelude::StringName::from(name.as_str());
-    if !im.has_action(&sn) {
+    let key = format!("input/{}", name);
+    let mut ps = ProjectSettings::singleton();
+    if !ps.has_setting(key.as_str()) {
         return json!({"error": format!("action '{}' not found", name)});
     }
-    im.erase_action(&sn);
-    let mut ps = ProjectSettings::singleton();
+    // Clear the setting to remove it from project.godot
+    ps.set_setting(key.as_str(), &Variant::nil());
     if ps.save() != godot::global::Error::OK {
-        return json!({"name": name, "removed": true, "warning": "saved to memory but disk write failed"});
+        return json!({"name": name, "removed": true, "warning": "disk write failed"});
     }
+
+    // Reload InputMap so list_input_actions reflects removal
+    let mut im = InputMap::singleton();
+    im.load_from_project_settings();
+
     json!({"name": name, "removed": true})
 }
