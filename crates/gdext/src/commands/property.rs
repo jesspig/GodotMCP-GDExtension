@@ -285,13 +285,17 @@ fn cmd_set_node_modulate(args: &Value) -> Value {
     let (r, g, b, a) = if !color_str.is_empty() {
         match Color::from_string(&color_str) {
             Some(c) => (c.r, c.g, c.b, c.a),
-            None => return json!({"error": format!("Invalid color string: '{}'. Use hex like '#ff0000' or a color name.", color_str)}),
+            None => {
+                return json!({"error": format!("Invalid color string: '{}'. Use hex like '#ff0000' or a color name.", color_str)});
+            }
         }
     } else {
-        (args["r"].as_f64().unwrap_or(1.0) as f32,
-         args["g"].as_f64().unwrap_or(1.0) as f32,
-         args["b"].as_f64().unwrap_or(1.0) as f32,
-         args["a"].as_f64().unwrap_or(1.0) as f32)
+        (
+            args["r"].as_f64().unwrap_or(1.0) as f32,
+            args["g"].as_f64().unwrap_or(1.0) as f32,
+            args["b"].as_f64().unwrap_or(1.0) as f32,
+            args["a"].as_f64().unwrap_or(1.0) as f32,
+        )
     };
     let root = match get_root() {
         Ok(r) => r,

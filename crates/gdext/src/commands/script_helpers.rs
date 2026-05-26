@@ -151,16 +151,13 @@ fn get_declared_type_code(n: &godot::obj::Gd<Node>, name: &str) -> Option<i32> {
     let props = n.get_property_list();
     let name_gs = GString::from(name);
     for entry in props.iter_shared() {
-        if let Some(name_val) = entry.get("name") {
-            if let Ok(prop_name) = name_val.try_to::<GString>() {
-                if prop_name == name_gs {
-                    if let Some(type_val) = entry.get("type") {
-                        if let Ok(code) = type_val.try_to::<i64>() {
-                            return Some(code as i32);
-                        }
-                    }
-                }
-            }
+        if let Some(name_val) = entry.get("name")
+            && let Ok(prop_name) = name_val.try_to::<GString>()
+            && prop_name == name_gs
+            && let Some(type_val) = entry.get("type")
+            && let Ok(code) = type_val.try_to::<i64>()
+        {
+            return Some(code as i32);
         }
     }
     None

@@ -253,7 +253,10 @@ fn cmd_add_input_action(args: &Value) -> Value {
     // Build the action dictionary matching Godot's project.godot format
     let mut action_dict = godot::builtin::Dictionary::<Variant, Variant>::new();
     action_dict.set("deadzone", &Variant::from(deadzone));
-    action_dict.set("events", &Variant::from(godot::builtin::Array::<Variant>::new()));
+    action_dict.set(
+        "events",
+        &Variant::from(godot::builtin::Array::<Variant>::new()),
+    );
 
     ps.set_setting(key.as_str(), &Variant::from(action_dict));
     if ps.save() != godot::global::Error::OK {
@@ -293,21 +296,24 @@ fn cmd_set_input_action_events(args: &Value) -> Value {
 
     // Read existing action dict from project settings
     let existing = ps.get_setting(key.as_str());
-    let mut action_dict: godot::builtin::Dictionary<Variant, Variant> = existing.try_to().unwrap_or_default();
+    let mut action_dict: godot::builtin::Dictionary<Variant, Variant> =
+        existing.try_to().unwrap_or_default();
 
     match mode {
         "clear" => {
-            action_dict.set("events", &Variant::from(godot::builtin::Array::<Variant>::new()));
+            action_dict.set(
+                "events",
+                &Variant::from(godot::builtin::Array::<Variant>::new()),
+            );
         }
         "replace" | "add" => {
             let mut new_events = godot::builtin::Array::<Variant>::new();
-            if mode == "add" {
-                if let Some(events_v) = action_dict.get("events") {
-                    if let Ok(existing_events) = events_v.try_to::<godot::builtin::Array<Variant>>() {
-                        for e in existing_events.iter_shared() {
-                            new_events.push(&e);
-                        }
-                    }
+            if mode == "add"
+                && let Some(events_v) = action_dict.get("events")
+                && let Ok(existing_events) = events_v.try_to::<godot::builtin::Array<Variant>>()
+            {
+                for e in existing_events.iter_shared() {
+                    new_events.push(&e);
                 }
             }
             for ev_json in events {
