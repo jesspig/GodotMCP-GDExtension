@@ -18,7 +18,9 @@ build-backend = "setuptools.build_meta"
 
 [dependency-groups]
 dev = [
+    "cython>=3.2.5",
     "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
 ]
 
 [tool.setuptools]
@@ -30,3 +32,4 @@ godot_mcp_server = ["py.typed"]
 [tool.pytest.ini_options]
 minversion = "7.0"
 testpaths = ["tests"]
+asyncio_mode = "auto"
