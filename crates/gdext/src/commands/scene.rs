@@ -403,7 +403,9 @@ fn cmd_instantiate_scene(args: &Value) -> Value {
         None => return json!({"error": format!("Failed to instantiate scene from {}", sp)}),
     };
     let mut inst = inst;
-    if let Some(n) = name {
+    if let Some(ref n) = name
+        && !n.is_empty()
+    {
         inst.set_name(&StringName::from(n.as_str()));
     }
 

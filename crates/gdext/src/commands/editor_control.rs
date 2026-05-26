@@ -74,7 +74,7 @@ impl EditorControlCommands {
 
 fn cmd_play_current_scene() -> Value {
     let mut ei = EditorInterface::singleton();
-    ei.call_deferred(&godot::prelude::StringName::from("play_current_scene"), &[]);
+    ei.play_current_scene();
     json!({"playing": true})
 }
 
@@ -84,13 +84,13 @@ fn cmd_play_main_scene() -> Value {
         .get_setting("application/run/main_scene")
         .to::<GString>()
         .to_string();
-    ei.call_deferred(&godot::prelude::StringName::from("play_main_scene"), &[]);
+    ei.play_main_scene();
     json!({"playing": true, "main_scene": main_scene})
 }
 
 fn cmd_stop_scene() -> Value {
     let mut ei = EditorInterface::singleton();
-    ei.call_deferred(&godot::prelude::StringName::from("stop_playing_scene"), &[]);
+    ei.stop_playing_scene();
     json!({"stopped": true})
 }
 
