@@ -82,7 +82,10 @@ fn cmd_create_gdscript(args: &Value) -> Value {
         base_class
     };
     let class_name = s(args, "class_name");
-    let template = s(args, "template");
+    let template = {
+        let t = s(args, "template");
+        if !t.is_empty() { t } else { s(args, "content") }
+    };
     let overwrite = args["overwrite"].as_bool().unwrap_or(false);
 
     if path.is_empty() {

@@ -225,9 +225,9 @@ impl ToolRegistry {
             ),
             (
                 "set_node_modulate",
-                "设置节点调制颜色",
+                "设置节点调制颜色（支持 color 字符串或 r/g/b/a 数值）",
                 schema(
-                    r#"{"node_path":{"type":"string"},"r":{"type":"number"},"g":{"type":"number"},"b":{"type":"number"},"a":{"type":"number"}}"#,
+                    r#"{"node_path":{"type":"string"},"color":{"type":"string"},"r":{"type":"number"},"g":{"type":"number"},"b":{"type":"number"},"a":{"type":"number"}}"#,
                     &["node_path"],
                 ),
             ),
@@ -327,7 +327,7 @@ impl ToolRegistry {
             // ── Find (4) ───────────────────────────────────────────────
             (
                 "find_nodes_by_name",
-                "按名称子串搜索节点（大小写敏感，包含匹配）",
+                "按名称子串搜索节点（参数: pattern, 大小写敏感, 包含匹配）",
                 schema(
                     r#"{"pattern":{"type":"string"},"max_results":{"type":"integer"}}"#,
                     &["pattern"],
@@ -489,7 +489,7 @@ impl ToolRegistry {
                 "create_gdscript",
                 "创建 GDScript 文件",
                 schema(
-                    r#"{"path":{"type":"string"},"base_class":{"type":"string"},"class_name":{"type":"string"},"template":{"type":"string"},"overwrite":{"type":"boolean"}}"#,
+                    r#"{"path":{"type":"string"},"base_class":{"type":"string"},"class_name":{"type":"string"},"template":{"type":"string"},"content":{"type":"string"},"overwrite":{"type":"boolean"}}"#,
                     &["path", "base_class"],
                 ),
             ),
