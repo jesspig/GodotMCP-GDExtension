@@ -61,6 +61,7 @@ import mcp.server.stdio
 from mcp.types import TextContent, Tool
 
 from godot_mcp_server.handler import GodotMcpHandler
+from godot_mcp_server.editor_ctl import SERVER_VERSION
 
 
 def main() -> None:
@@ -87,7 +88,7 @@ def main() -> None:
     async def _run():
         options = InitializationOptions(
             server_name="godot-mcp-server",
-            server_version="0.1.4",
+            server_version=SERVER_VERSION,
             capabilities=server.get_capabilities(
                 notification_options=NotificationOptions(),
                 experimental_capabilities={},

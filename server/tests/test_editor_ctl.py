@@ -1,4 +1,6 @@
 import os
+import tomllib
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -11,9 +13,13 @@ from godot_mcp_server.editor_ctl import (
     resolve_project_path,
 )
 
+_server_dir = Path(__file__).parent.parent
+with open(_server_dir / "pyproject.toml", "rb") as f:
+    _expected_version = tomllib.load(f)["project"]["version"]
+
 
 def test_server_version():
-    assert SERVER_VERSION == "0.1.4"
+    assert SERVER_VERSION == _expected_version
 
 
 def test_resolve_godot_path_with_override():

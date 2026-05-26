@@ -1,6 +1,7 @@
 import os
 import platform
 import subprocess
+import tomllib
 from pathlib import Path
 
 GODOT_PATH_MISSING_ERROR = (
@@ -8,7 +9,10 @@ GODOT_PATH_MISSING_ERROR = (
     '"env": { "GODOT_PATH": "<path/to/godot.exe>" }'
 )
 
-SERVER_VERSION = "0.1.4"
+_server_dir = Path(__file__).parent.parent.parent
+with open(_server_dir / "pyproject.toml", "rb") as f:
+    _pyproject = tomllib.load(f)
+SERVER_VERSION = _pyproject["project"]["version"]
 
 
 def resolve_godot_path(override_path: str | None = None) -> str:
