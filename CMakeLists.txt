@@ -83,7 +83,7 @@ if(NOT NO_SERVER)
     find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
     set(_server_src   "${CMAKE_SOURCE_DIR}/server")
-    set(_server_entry "${_server_src}/entry.pyx")
+    set(_server_entry "${_server_src}/entry.py")
     set(_server_c     "${CMAKE_CURRENT_BINARY_DIR}/entry.c")
     set(_server_exe   "${CMAKE_CURRENT_BINARY_DIR}/godot-mcp-server.exe")
 
