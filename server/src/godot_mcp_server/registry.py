@@ -1,5 +1,4 @@
-# Auto-generated from crates/server/src/tool_registry.rs
-# Run: python tools/extract_schemas.py --write
+# Tool schemas registry - authoritative source for all MCP tools
 # flake8: noqa
 
 from typing import Any
