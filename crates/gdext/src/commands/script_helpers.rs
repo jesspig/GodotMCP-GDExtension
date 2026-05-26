@@ -1,5 +1,8 @@
 use serde_json::{Value, json};
 
+use godot::builtin::{GString, Variant};
+use godot::classes::Node;
+use godot::obj::EngineEnum;
 use godot::prelude::StringName;
 
 use super::{get_root, j2v, pipe, resolve_node, s, v2j};
@@ -144,6 +147,34 @@ fn cmd_get_variable(args: &Value) -> Value {
     }
 }
 
+fn get_declared_type_code(n: &godot::obj::Gd<Node>, name: &str) -> Option<i32> {
+    let props = n.get_property_list();
+    let name_gs = GString::from(name);
+    for entry in props.iter_shared() {
+        if let Some(name_val) = entry.get("name")
+            && let Ok(prop_name) = name_val.try_to::<GString>()
+            && prop_name == name_gs
+            && let Some(type_val) = entry.get("type")
+            && let Ok(code) = type_val.try_to::<i64>()
+        {
+            return Some(code as i32);
+        }
+    }
+    None
+}
+
+fn coerce_numeric_to(v: &Variant, target_type_code: i32) -> Variant {
+    let source_code = v.get_type().ord();
+    if source_code == target_type_code {
+        return v.clone();
+    }
+    match (source_code, target_type_code) {
+        (2, 3) => Variant::from(v.to::<i64>() as f64),
+        (3, 2) => Variant::from(v.to::<f64>() as i64),
+        _ => v.clone(),
+    }
+}
+
 fn cmd_set_variable(args: &Value) -> Value {
     let p = s(args, "node_path");
     let var_name = s(args, "variable");
@@ -160,7 +191,10 @@ fn cmd_set_variable(args: &Value) -> Value {
     };
     match resolve_node(&root, p.as_str()) {
         Some(mut n) => {
-            let gv = j2v(&val);
+            let mut gv = j2v(&val);
+            if let Some(target_type) = get_declared_type_code(&n, &var_name) {
+                gv = coerce_numeric_to(&gv, target_type);
+            }
             n.set(&StringName::from(var_name.as_str()), &gv);
             let actual = n.get(&StringName::from(var_name.as_str()));
             if actual.is_nil() {

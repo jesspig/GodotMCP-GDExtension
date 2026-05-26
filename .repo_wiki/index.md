@@ -1,6 +1,6 @@
 # Godot MCP — 项目知识库
 
-> Rust-only **Model Context Protocol** bridge 让 AI 客户端驱动 Godot 4.6+ 编辑器。双进程、三 crate 架构，125 个命令。
+> Python/Cython **MCP 服务器** + Rust GDExtension **cdylib** 双进程架构，通过 **125 条命令**将 Godot 4.6+ 编辑器暴露给 AI 工具。
 
 ## 快速导航
 
@@ -9,13 +9,13 @@
 | [架构总览](overview/architecture.md) | 双进程架构、三 crate 拆分、数据流图 |
 | [线程模型](overview/threading-model.md) | **接触 gdext 前必读**。tokio↔主线程分离、dispatcher、日志泵 |
 
-## 逐 crate 文档
+## 逐 crate / 模块文档
 
-| Crate | 文件 | 说明 |
-|-------|------|------|
-| [core](crates/core.md) | `crates/core/src/` | 共享协议类型 (IpcRequest, IpcResponse, ToolCallParams, ToolManifest) |
-| [server](crates/server.md) | `crates/server/src/` | MCP 服务端二进制：rmcp stdio 传输、工具注册表、WebSocket 桥接 |
-| [gdext](crates/gdext.md) | `crates/gdext/src/` | GDExtension cdylib：编辑器插件、WebSocket 服务端、125 个命令处理器 |
+| 文件 | 说明 |
+|------|------|
+| [core](crates/core.md) | `crates/core/src/` 共享协议类型 (IpcRequest, IpcResponse, ToolCallParams, ToolManifest) |
+| [server（Python）](crates/server.md) | `server/` 目录：Python/Cython MCP 服务器，编译为独立 exe |
+| [gdext](crates/gdext.md) | `crates/gdext/src/` GDExtension cdylib：编辑器插件、WebSocket 服务端、125 个命令处理器 |
 
 ## 模块文档
 
@@ -33,7 +33,7 @@
 | [输入映射](modules/input-map.md) | InputMap 命令：列出/添加/设置/移除输入动作 |
 | [插件管理](modules/plugin-management.md) | 列出/启用/禁用编辑器插件 |
 | [LSP 验证客户端](modules/lsp-client.md) | 通过 Godot LSP 服务器实现 GDScript 语法验证 |
-| [C# 解决方案生成](modules/csharp-solution.md) | 直接在 Rust 中生成 .sln + .csproj，无需启动第二个 Godot 进程 |
+| [C# 解决方案生成](modules/csharp-solution.md) | 直接在 gdext 中生成 .sln + .csproj，无需启动第二个 Godot 进程 |
 
 ## 参考文档
 

@@ -325,5 +325,6 @@ fn cmd_find_and_replace(args: &Value) -> Value {
         efs.update_file(&GString::from(&path));
     }
 
-    json!({"path": path, "replacements": count, "truncated": count >= max_replacements})
+    let reached_max = count >= max_replacements;
+    json!({"path": path, "replacements": count, "truncated": reached_max, "has_more_matches": reached_max})
 }

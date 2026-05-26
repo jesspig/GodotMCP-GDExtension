@@ -230,6 +230,12 @@ fn cmd_create_node(args: &Value) -> Value {
     let parent_p = s(args, "parent_path");
     let node_type = s(args, "node_type");
     let name = s(args, "name");
+    if name.is_empty() {
+        return json!({"error": "missing 'name'"});
+    }
+    if node_type.is_empty() {
+        return json!({"error": "missing 'node_type'"});
+    }
     let root = match get_root() {
         Ok(r) => r,
         Err(e) => return e,
@@ -319,6 +325,9 @@ fn cmd_delete_node(args: &Value) -> Value {
 fn cmd_rename_node(args: &Value) -> Value {
     let p = s(args, "node_path");
     let new_name = s(args, "new_name");
+    if new_name.is_empty() {
+        return json!({"error": "missing 'new_name'"});
+    }
     let root = match get_root() {
         Ok(r) => r,
         Err(e) => return e,
@@ -815,7 +824,9 @@ fn cmd_batch_set_property(args: &Value) -> Value {
     let results: Vec<Value> = paths
         .iter()
         .map(|p| match resolve_node(&root, p.as_str()) {
-            Some(n) => {
+            Some(mut n) => {
+                // Direct set first for immediate effect, then record via UndoRedo
+                n.set(&prop, &gv);
                 super::undoable_set(&n, &prop, &gv, &format!("Batch set {} for {}", prop, p));
                 let actual = n.get(&StringName::from(prop.as_str()));
                 json!({"node_path": p, "status": "ok", "value": v2j(&actual)})
@@ -907,7 +918,7 @@ fn cmd_set_node_transform_2d(args: &Value) -> Value {
         Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
-        Some(n) => {
+        Some(mut n) => {
             let old_pos: godot::builtin::Vector2 = n.get("position").try_to().unwrap_or_default();
             let old_rot: f64 = n.get("rotation_degrees").try_to().unwrap_or(0.0);
             let old_scale: godot::builtin::Vector2 = n.get("scale").try_to().unwrap_or_default();
@@ -918,37 +929,47 @@ fn cmd_set_node_transform_2d(args: &Value) -> Value {
             let sx = args["scale_x"].as_f64().unwrap_or(old_scale.x as f64) as f32;
             let sy = args["scale_y"].as_f64().unwrap_or(old_scale.y as f64) as f32;
 
+            let new_pos = godot::builtin::Vector2::new(x, y);
+            let new_rot = rot;
+            let new_scale = godot::builtin::Vector2::new(sx, sy);
+
+            // Apply values immediately for instant effect
+            n.set("position", &Variant::from(new_pos));
+            n.set("rotation_degrees", &Variant::from(new_rot));
+            n.set("scale", &Variant::from(new_scale));
+
+            // Record via UndoRedo for undo/redo support
             let mut ur = get_undo_redo();
             ur.create_action(&format!("Set 2D Transform for {}", p));
-            ur.add_do_property(
+            ur.add_do_method(
                 &n.clone(),
-                &StringName::from("position"),
-                &Variant::from(godot::builtin::Vector2::new(x, y)),
+                &StringName::from("set_position"),
+                &[Variant::from(new_pos)],
             );
-            ur.add_do_property(
+            ur.add_do_method(
                 &n.clone(),
-                &StringName::from("rotation_degrees"),
-                &Variant::from(rot),
+                &StringName::from("set_rotation_degrees"),
+                &[Variant::from(new_rot)],
             );
-            ur.add_do_property(
+            ur.add_do_method(
                 &n.clone(),
-                &StringName::from("scale"),
-                &Variant::from(godot::builtin::Vector2::new(sx, sy)),
+                &StringName::from("set_scale"),
+                &[Variant::from(new_scale)],
             );
-            ur.add_undo_property(
+            ur.add_undo_method(
                 &n.clone(),
-                &StringName::from("position"),
-                &Variant::from(old_pos),
+                &StringName::from("set_position"),
+                &[Variant::from(old_pos)],
             );
-            ur.add_undo_property(
+            ur.add_undo_method(
                 &n.clone(),
-                &StringName::from("rotation_degrees"),
-                &Variant::from(old_rot),
+                &StringName::from("set_rotation_degrees"),
+                &[Variant::from(old_rot)],
             );
-            ur.add_undo_property(
+            ur.add_undo_method(
                 &n.clone(),
-                &StringName::from("scale"),
-                &Variant::from(old_scale),
+                &StringName::from("set_scale"),
+                &[Variant::from(old_scale)],
             );
             ur.commit_action();
 
@@ -965,7 +986,7 @@ fn cmd_set_node_transform_3d(args: &Value) -> Value {
         Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
-        Some(n) => {
+        Some(mut n) => {
             if !n.is_class("Node3D") {
                 return json!({"error": format!("Node '{}' ({}) is not a Node3D.", p, n.get_class().to_string())});
             }
@@ -984,37 +1005,47 @@ fn cmd_set_node_transform_3d(args: &Value) -> Value {
             let sy = args["scale_y"].as_f64().unwrap_or(old_scale.y as f64) as f32;
             let sz = args["scale_z"].as_f64().unwrap_or(old_scale.z as f64) as f32;
 
+            let new_pos = godot::builtin::Vector3::new(px, py, pz);
+            let new_rot = godot::builtin::Vector3::new(rx, ry, rz);
+            let new_scale = godot::builtin::Vector3::new(sx, sy, sz);
+
+            // Apply values immediately for instant effect
+            n.set("position", &Variant::from(new_pos));
+            n.set("rotation_degrees", &Variant::from(new_rot));
+            n.set("scale", &Variant::from(new_scale));
+
+            // Record via UndoRedo for undo/redo support
             let mut ur = get_undo_redo();
             ur.create_action(&format!("Set 3D Transform for {}", p));
-            ur.add_do_property(
+            ur.add_do_method(
                 &n.clone(),
-                &StringName::from("position"),
-                &Variant::from(godot::builtin::Vector3::new(px, py, pz)),
+                &StringName::from("set_position"),
+                &[Variant::from(new_pos)],
             );
-            ur.add_do_property(
+            ur.add_do_method(
                 &n.clone(),
-                &StringName::from("rotation_degrees"),
-                &Variant::from(godot::builtin::Vector3::new(rx, ry, rz)),
+                &StringName::from("set_rotation_degrees"),
+                &[Variant::from(new_rot)],
             );
-            ur.add_do_property(
+            ur.add_do_method(
                 &n.clone(),
-                &StringName::from("scale"),
-                &Variant::from(godot::builtin::Vector3::new(sx, sy, sz)),
+                &StringName::from("set_scale"),
+                &[Variant::from(new_scale)],
             );
-            ur.add_undo_property(
+            ur.add_undo_method(
                 &n.clone(),
-                &StringName::from("position"),
-                &Variant::from(old_pos),
+                &StringName::from("set_position"),
+                &[Variant::from(old_pos)],
             );
-            ur.add_undo_property(
+            ur.add_undo_method(
                 &n.clone(),
-                &StringName::from("rotation_degrees"),
-                &Variant::from(old_rot),
+                &StringName::from("set_rotation_degrees"),
+                &[Variant::from(old_rot)],
             );
-            ur.add_undo_property(
+            ur.add_undo_method(
                 &n.clone(),
-                &StringName::from("scale"),
-                &Variant::from(old_scale),
+                &StringName::from("set_scale"),
+                &[Variant::from(old_scale)],
             );
             ur.commit_action();
 

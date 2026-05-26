@@ -6,8 +6,8 @@
 
 | 组 | 计数 | 路由 |
 |----|------|------|
-| [Editor Control（服务器端）](#editor-control-服务器端-3) | 3 | server-side (handler.rs) |
-| [get_server_version](#get_server_version) | 1 | server-side (handler.rs) |
+| [Editor Control（服务器端）](#editor-control-服务器端-3) | 3 | server-side (handler.py) |
+| [get_server_version](#get_server_version) | 1 | server-side (handler.py) |
 | [MetaCommands](#metacommands-3) | 3 | gdext |
 | [NodeCommands](#nodecommands-21) | 21 | gdext |
 | [PropertyCommands](#propertycommands-21) | 21 | gdext |

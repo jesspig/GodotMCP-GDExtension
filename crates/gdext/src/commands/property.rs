@@ -281,17 +281,30 @@ fn cmd_get_node_modulate(args: &Value) -> Value {
 
 fn cmd_set_node_modulate(args: &Value) -> Value {
     let p = s(args, "node_path");
-    let r = args["r"].as_f64().unwrap_or(1.0) as f32;
-    let g = args["g"].as_f64().unwrap_or(1.0) as f32;
-    let b = args["b"].as_f64().unwrap_or(1.0) as f32;
-    let a = args["a"].as_f64().unwrap_or(1.0) as f32;
+    let color_str = s(args, "color");
+    let (r, g, b, a) = if !color_str.is_empty() {
+        match Color::from_string(&color_str) {
+            Some(c) => (c.r, c.g, c.b, c.a),
+            None => {
+                return json!({"error": format!("Invalid color string: '{}'. Use hex like '#ff0000' or a color name.", color_str)});
+            }
+        }
+    } else {
+        (
+            args["r"].as_f64().unwrap_or(1.0) as f32,
+            args["g"].as_f64().unwrap_or(1.0) as f32,
+            args["b"].as_f64().unwrap_or(1.0) as f32,
+            args["a"].as_f64().unwrap_or(1.0) as f32,
+        )
+    };
     let root = match get_root() {
         Ok(r) => r,
         Err(e) => return e,
     };
     match resolve_node(&root, p.as_str()) {
-        Some(n) => {
+        Some(mut n) => {
             let val = Variant::from(Color::from_rgba(r, g, b, a));
+            n.set("modulate", &val);
             super::undoable_set(&n, "modulate", &val, &format!("Set modulate for {}", p));
             let actual: Color = n.get("modulate").try_to().unwrap_or_default();
             json!({"node_path": p, "property": "modulate", "r": actual.r, "g": actual.g, "b": actual.b, "a": actual.a})

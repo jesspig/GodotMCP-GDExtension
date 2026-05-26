@@ -335,7 +335,7 @@ pub fn get_undo_redo() -> godot::obj::Gd<godot::classes::EditorUndoRedoManager> 
         .expect("EditorUndoRedoManager should be available in editor mode")
 }
 
-/// Undoable property change: records old value and sets new value via the editor's undo system.
+/// Undoable property change: applies the new value immediately and records for undo/redo.
 pub fn undoable_set(
     node: &godot::obj::Gd<Node>,
     property: &str,
@@ -344,6 +344,10 @@ pub fn undoable_set(
 ) {
     let mut ur = get_undo_redo();
     let old_value = node.get(property);
+    // Apply immediately using a mutable clone for instant effect
+    let mut node_clone = node.clone();
+    node_clone.set(property, new_value);
+    // Record via UndoRedo for undo/redo support
     ur.create_action(action_name);
     ur.add_do_property(node, property, new_value);
     ur.add_undo_property(node, property, &old_value);

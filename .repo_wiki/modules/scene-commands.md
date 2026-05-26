@@ -6,36 +6,44 @@
 
 ### `j2v` 支持的转换
 
-| JSON 类型 | Godot 类型 | 注意 |
-|-----------|-----------|------|
-| `null` | `Variant::nil()` | |
-| `true`/`false` | `bool` | |
-| `number` | `f64` → `Variant` | |
-| `string` | `String` | Resource 路径需通过 `try_load` 加载 |
-| `array` | `Variant::array()` | 递归转换每个元素 |
-| `object` | `Dictionary` | |
-| 特殊格式 | | |
-| `{"__type":"Vector2","x":1,"y":2}` | `Vector2` | 三个坐标格式同理 |
-| `{"__type":"Color","r":1.0,"g":0.0,"b":0.0,"a":1.0}` | `Color` | |
-| `{"__type":"Rect2","x":0,"y":0,"w":10,"h":20}` | `Rect2` | |
-| `{"__type":"Quaternion","x":0,"y":0,"z":0,"w":1}` | `Quaternion` | |
-| `{"__type":"Resource","path":"res://..."}` | 通过 `try_load` 加载的资源 | 失败时使用占位符 |
+| JSON 输入 | Godot 类型 | 检测方式 |
+|-----------|-----------|----------|
+| `null` | `Variant::nil()` | 直接匹配 |
+| `true`/`false` | `bool` | `try_to::<bool>()` |
+| `number`（整数） | `i64` | `as_i64()` |
+| `number`（浮点） | `f64` | `as_f64()` |
+| `string` | `GString` | 默认 |
+| `"res://..."` / `"user://..."` | `Gd<Resource>`（通过 `try_load`） | 字符串前缀检查 |
+| `{"x":1,"y":2}` | `Vector2` | 精确 2 字段匹配 |
+| `{"x":1,"y":2,"z":3}` | `Vector3` | 精确 3 字段匹配 |
+| `{"x":1,"y":2,"z":3,"w":4}` | `Quaternion` | 精确 4 字段匹配 |
+| `{"r":1,"g":0,"b":0,"a":1}` | `Color` (RGBA) | 精确 4 字段匹配 |
+| `{"r":1,"g":0,"b":0}` | `Color` (RGB) | 精确 3 字段匹配 |
+| `{"position":{...},"size":{...}}` | `Rect2` | 精确 2 字段匹配 |
+| `{"resource_path":"res://..."}` | `Gd<Resource>`（通过 `try_load`） | 特定 key 匹配 |
+| `[1,2]` | `Vector2` | float 数组，len=2 |
+| `[1,2,3]` | `Vector3` | float 数组，len=3 |
+| `[1,2,3,4]` | `Color` | float 数组，len=4 |
+
+**注意**：旧版文档提到的 `{"__type":"Vector2",...}` 格式不再使用——改用纯字段名检测。
 
 ### `v2j` 支持的转换
 
-| Godot 类型 | JSON 类型 | 注意 |
-|-----------|-----------|------|
-| `i64`/`f64` | `number` | |
-| `bool` | `bool` | |
-| `String`/`StringName`/`NodePath` | `string` | |
-| `Vector2/3/4` | `{"__type":"VectorX",...}` | |
-| `Color` | `{"__type":"Color",...}` | |
-| `Rect2` | `{"__type":"Rect2",...}` | |
-| `Quaternion` | `{"__type":"Quaternion",...}` | |
-| `Resource` | `{"__type":"Resource","path":"..."}` | 仅导出路径 |
-| `Array` | `array` | |
-| `Dictionary` | `object` | |
-| `Variant::nil()` | `JSON::null()` | |
+| Godot 类型 | JSON 输出 |
+|-----------|-----------|
+| `nil` | `null` |
+| `bool` | `true`/`false` |
+| `i64` | `number` |
+| `f64` | `number` |
+| `GString` | `string` |
+| `Vector2` | `{"x":..., "y":...}` |
+| `Vector3` | `{"x":..., "y":..., "z":...}` |
+| `Vector4` | `{"x":..., "y":..., "z":..., "w":...}` |
+| `Color` | `{"r":..., "g":..., "b":..., "a":...}` |
+| `Rect2` | `{"position":{"x":...,"y":...},"size":{"x":...,"y":...}}` |
+| `Quaternion` | `{"x":..., "y":..., "z":..., "w":...}` |
+| `Gd<Resource>` | `{"resource_path":"res://..."}`（有路径时）或 string |
+| 其他 | `v.to_string()` 兜底 |
 
 ## 节点路径解析
 
@@ -135,3 +143,21 @@ dir.make_dir_recursive("new/subdir/path")?;
 ## 批量属性设置
 
 `batch_set_property` 接受节点路径列表、属性和值，对每个节点循环设置，全部在一个 undo action 中。
+
+## Undoable 属性设置
+
+`undoable_set(node, property, new_value, action_name)`:
+1. 读取旧值
+2. 立即应用新值（修改节点）
+3. 通过 `EditorUndoRedoManager` 记录 do/undo 操作
+
+## 共享工具函数
+
+| 函数 | 说明 |
+|------|------|
+| `ensure_parent_dir(path)` | 创建 `res://` 路径的父目录（**主线程调用**） |
+| `relative_path(node, root)` | 编辑器路径 → 场景相对路径 |
+| `get_root()` | 获取当前编辑场景根节点 |
+| `mark_dirty()` | 标记场景未保存 |
+| `fix_owners_recursive(node, owner)` | 递归修正节点 owner |
+| `node_replace_owner(base, old, new, ur, mode)` | UndoRedo 安全的 owner 替换 |

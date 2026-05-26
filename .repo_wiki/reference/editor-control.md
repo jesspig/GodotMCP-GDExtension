@@ -1,54 +1,80 @@
-# 编辑器控制
+# 编辑器控制（服务器端）
 
-> 3 个服务器端工具（`godot_editor_*`）在 `handler.rs` 中处理，从不发送到 gdext。
+> 4 个服务器端工具在 `handler.py`（Python）中处理，从不发送到 gdext。
 
 ```mermaid
 flowchart TD
     CLIENT["AI 客户端"] -->|call_tool("godot_editor_open")| SERVER["godot-mcp-server"]
-    SERVER -->|handler.rs 拦截| OPEN["编辑器控制"]
+    SERVER -->|handler.py 拦截| OPEN["编辑器控制"]
     
-    subgraph OPEN[Editor Control Handlers]
+    subgraph OPEN[Editor Control (Python)]
+        V["get_server_version"]
         O["godot_editor_open"]
         C["godot_editor_close"]
         R["godot_editor_restart"]
     end
     
-    O -->|"taskkill /F /IM godot.exe"| OS["操作系统"]
-    O -->|"启动新进程"| GODOT["Godot Editor"]
-    C -->|"taskkill /F /IM godot.exe"| OS
-    R -->|"kill + 500ms 等待 + respawn"| OS
+    V -->|"直接返回版本号"| CLIENT
+    O -->|"subprocess.Popen"| GODOT["Godot Editor"]
+    C -->|"taskkill / pkill"| OS["操作系统"]
+    R -->|"kill + 500ms + respawn"| OS
 ```
+
+## 实现位置
+
+所有 4 个服务器端工具在 `server/src/godot_mcp_server/` 中实现：
+
+| 文件 | 内容 |
+|------|------|
+| `handler.py` | 工具调用分发逻辑 |
+| `editor_ctl.py` | 编辑器进程管理（open/close/restart）和版本号 |
+
+## `get_server_version`
+
+- 直接返回 `editor_ctl.py` 中硬编码的 `SERVER_VERSION`（如 `"0.1.4"`）
+- 与 `Cargo.toml` 版本手动同步
+- 不涉及 WebSocket 或 gdext
 
 ## `godot_editor_open`
 
-- `project_path` 从 CWD 解析（默认 `./godot/`）
+```python
+# 简化流程
+godot_path = resolve_godot_path(override)  # GODOT_PATH 环境变量
+project_path = resolve_project_path(args)   # 默认 "example/"
+result = subprocess.Popen([godot_path, "--editor", "--path", project_path])
+return {"status": "opened", "pid": result.pid, ...}
+```
+
+- `project_path` 从 args 读取（默认 `example/`，相对于 CWD）
 - 解析 `GODOT_PATH` 环境变量——必需
-- 启动 Godot 编辑器进程
-- 等待 WebSocket 连接（最多约 60 秒）
-- 返回 `{"status": "ok"}`
+- 启动 Godot 编辑器进程（不等待连接）
 
 ## `godot_editor_close`
 
-- Windows: `taskkill /F /IM godot*.exe`（通配以匹配各种 Godot 可执行文件名）
-- Unix: `pkill -f Godot`
-- 返回 `{"status": "ok"}`
-
-**注意**: 响应直接从 server 进程发送——编辑器被终止时 WebSocket 连接关闭，gdext 无法返回任何内容。
+- Windows: `taskkill /F /IM <exe_name>`（使用实际的 exe 文件名）
+- Unix: `pkill -x <exe_name>`
+- 返回 `{"status": "closed"}` 或 `"not_running"`
 
 ## `godot_editor_restart`
 
-1. 调用 `close`（kill 编辑器进程）
-2. 等待 500ms（确保进程完全终止）
-3. 调用 `open`（使用 `project_path` 参数）
+1. 调用 `kill_process_by_name`（杀编辑器进程）
+2. 调用 `_disconnect()`（清理桥接状态）
+3. 等待 500ms
+4. 调用 `_open_editor()` 重新启动
 
 ## 环境变量
 
 | 变量 | 必需 | 说明 |
 |------|------|------|
-| `GODOT_PATH` | 是 | Godot 可执行文件的完整路径 |
+| `GODOT_PATH` | 是 | Godot 可执行文件的完整路径（必须在 MCP 客户端 `env` 中设置） |
 
-## 项目路径解析
+## `GODOT_PATH` 配置
 
-- 默认：`./godot/`（相对 CWD）
-- 用户可以传递绝对路径或相对路径
-- 路径解析发生在服务器进程中，使用 `std::env::current_dir()` 作为基础目录
+stdio 服务器不继承 shell 环境变量，因此 `GODOT_PATH` 必须在 MCP 客户端配置的 `env` 字段中显式设置：
+
+```json
+{
+  "env": {
+    "GODOT_PATH": "C:/Program Files/Godot/Godot_v4.6-stable_win64.exe"
+  }
+}

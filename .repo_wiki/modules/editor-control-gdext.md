@@ -16,7 +16,10 @@
 ## 实现细节
 
 - 所有工具通过 `EditorInterface::singleton()` 操作
-- `play_current_scene`/`play_main_scene`/`stop_scene` 使用 `call_deferred` 调用 Godot 方法（避免同步执行中的竞态条件）
+- 所有工具通过 `MainThreadDispatcher` 提交到主线程执行（`d.submit(cmd_*).await`）
+- `play_current_scene`/`play_main_scene` 直接调用编辑器方法（非 `call_deferred`）
+- `stop_scene` 调用 `EditorInterface::stop_playing_scene()`
+- `is_scene_playing` 返回 `playing` 布尔值和当前场景路径
 - `refresh_filesystem` 调用 `EditorFileSystem::scan()`
 - `get_editor_info` 返回引擎版本、编辑器缩放比例、语言以及编辑器路径（data_dir、config_dir、cache_dir、project_settings_dir）
 
@@ -38,7 +41,7 @@
 
 ## 与服务器端 EditorControl 的区别
 
-| | 服务器端 (handler.rs) | gdext 侧 (editor_control.rs) |
+| | 服务器端 (handler.py) | gdext 侧 (editor_control.rs) |
 |---|---|---|
 | 进程 | godot-mcp-server | godot_mcp_gdext.dll |
 | 工具 | `godot_editor_open`/`close`/`restart` | `play_*`/`stop_scene`/`refresh_filesystem`/`get_editor_info` |

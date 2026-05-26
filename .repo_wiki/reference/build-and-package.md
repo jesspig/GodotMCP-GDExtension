@@ -2,21 +2,40 @@
 
 ## 构建系统
 
-构建系统是 **CMake + Corrosion**（Rust-CMake 桥接）。提供了一个轻量 `build.py` 包装。
+构建系统是 **CMake + Corrosion**（Rust-CMake 桥接）+ **Cython --embed**（Python 服务器编译）。提供了轻量 `build.py` 包装。
 
 ```bash
 py -3 build.py                        # debug 构建 + addons.zip
 py -3 build.py --release              # release 构建 + addons.zip
 py -3 build.py --clean                # cargo clean + 清空 addons/bin/
 py -3 build.py --no-zip               # 跳过 addons.zip（快速迭代）
-py -3 build.py --no-server            # 只重建 dll
+py -3 build.py --no-server            # 只重建 dll（编辑器中快速迭代）
 ```
 
 CMake 自动处理：
 - 终止已运行的 `godot-mcp-server.exe`（`taskkill`/`pkill`）
 - 生成 `plugin.cfg` 和 `godot_mcp.gdextension`
-- 复制 dll 到 `godot/addons/godot_mcp/bin/`
+- 复制 dll 到 `example/addons/godot_mcp/bin/`
 - CPack 打包 → `addons.zip`
+
+## Python 服务器构建流程
+
+服务器（Python/Cython）构建由 CMake 在 `CMakeLists.txt` 中处理：
+
+1. **Cython `--embed`** 编译 `server/entry.pyx` → `build/entry.c`
+2. **Patch PYTHONHOME**: `tools/patch_entry_c.py` 将 Python home 路径嵌入 C 文件
+3. **C 编译**: 用系统 C 编译器编译 `entry_patched.c` → `build/godot-mcp-server.exe`
+4. **复制 DLL**: 复制 `python3xy.dll` 到 exe 同目录
+
+需要 `server/.venv`（含 Cython 包）。
+
+## Rust GDExtension 构建流程
+
+CMake 通过 Corrosion 集成 Cargo：
+
+1. Corrosion 导入 `crates/gdext`（cdylib）
+2. 根据 `--release` 选择 cargo profile
+3. 构建产物复制到 `example/addons/godot_mcp/bin/`
 
 ## 手动构建（跳过 build.py）
 
@@ -35,7 +54,7 @@ cargo fmt --check --all                       # 1. 格式化检查
 cargo clippy --workspace -- -D warnings       # 2. 严格 lint
 cmake -B build -S .                           # 3a. CMake 配置
 cmake --build build --config Debug            # 3b. 构建 gdext + server
-cargo test --workspace                        # 4. 测试（50 个，离线无 Godot）
+cargo test --workspace                        # 4. 测试（core + gdext，离线无 Godot）
 ```
 
 CI 只在 `master` 分支的 push 和 PR 上触发。
@@ -63,16 +82,16 @@ CI 只在 `master` 分支的 push 和 PR 上触发。
 
 ## 构建产物的 Git 忽略
 
-`godot/addons/godot_mcp/bin/*` 在 `.gitignore` 中（`.gitkeep` 除外）。**永远不要将构建产物检入版本控制。**
+`example/addons/godot_mcp/bin/*` 在 `.gitignore` 中（`.gitkeep` 除外）。**永远不要将构建产物检入版本控制。**
 
 ## 版本管理
 
 - 单版本源在 `Cargo.toml [workspace.package].version`
 - CMakeLists.txt 从 Cargo.toml 解析版本，生成 `plugin.cfg` 时自动填充
+- Python 侧 `SERVER_VERSION` 在 `editor_ctl.py` 中手动同步
 - 升级 cargo 版本即可；不需要手动编辑 `plugin.cfg`
 
 ## 依赖锁定
 
 - `godot = "=0.5"` — 严格锁定
-- `rmcp = "=1.7"` — 严格锁定
 - `Cargo.lock` 已提交（二进制 crate）；不要随意重新生成
