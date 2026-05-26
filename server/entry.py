@@ -21,22 +21,25 @@ def _setup_paths() -> None:
     pyhome_candidates: List[Optional[str]] = [
         os.environ.get("PYTHONHOME"),
         exe_dir,
-        os.path.join(exe_dir, "..", "..", "pythoncore-3.14-64"),
     ]
     for candidate in pyhome_candidates:
         if candidate and os.path.isdir(os.path.join(candidate, "Lib")):
             os.environ.setdefault("PYTHONHOME", candidate)
             break
 
-    server_dir = os.path.join(exe_dir, "..", "server")
-    if os.path.isdir(server_dir):
-        venv_site = os.path.join(server_dir, ".venv", "Lib", "site-packages")
-        if os.path.isdir(venv_site):
-            sys.path.insert(0, os.path.abspath(venv_site))
+    # exe lives in build/ (or wherever CMake puts it); project root is one level up.
+    project_dir = os.path.abspath(os.path.join(exe_dir, ".."))
+    server_dir = os.path.join(project_dir, "server")
 
-        src_dir = os.path.join(server_dir, "src")
-        if os.path.isdir(src_dir):
-            sys.path.insert(0, os.path.abspath(src_dir))
+    # Add .venv site-packages (at project root, NOT inside server/).
+    venv_site = os.path.join(project_dir, ".venv", "Lib", "site-packages")
+    if os.path.isdir(venv_site):
+        sys.path.insert(0, os.path.abspath(venv_site))
+
+    # Add server/src so godot_mcp_server package is importable.
+    src_dir = os.path.join(server_dir, "src")
+    if os.path.isdir(src_dir):
+        sys.path.insert(0, os.path.abspath(src_dir))
 
     pyhome = os.environ.get("PYTHONHOME")
     if pyhome:

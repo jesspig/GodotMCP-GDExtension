@@ -1,51 +1,27 @@
 cmake_minimum_required(VERSION 3.22)
-project(GodotMCP LANGUAGES C)
+project(GodotMCP LANGUAGES CXX C)
 
 # ---------------------------------------------------------------------------
-# Options (equivalent to package_addons.py flags)
+# Options
 # ---------------------------------------------------------------------------
-option(RELEASE    "Build with cargo --release profile" OFF)
-option(NO_SERVER  "Skip building godot-mcp-server"     OFF)
+option(RELEASE    "Build with Release configuration" OFF)
+option(NO_SERVER  "Skip building godot-mcp-server"   OFF)
 
-# ---------------------------------------------------------------------------
-# Version: single source of truth from Cargo.toml [workspace.package]
-# ---------------------------------------------------------------------------
-file(STRINGS "${CMAKE_SOURCE_DIR}/Cargo.toml" _cargo_lines)
-set(_in_workspace_pkg FALSE)
-foreach(_line ${_cargo_lines})
-    if(_line STREQUAL "[workspace.package]")
-        set(_in_workspace_pkg TRUE)
-    elseif(_line MATCHES "^\\[")
-        set(_in_workspace_pkg FALSE)
-    elseif(_in_workspace_pkg AND _line MATCHES "^version *= *\"([^\"]+)\"")
-        set(PROJECT_VERSION "${CMAKE_MATCH_1}")
-        break()
+# Default to Debug when single-config generator and nothing was requested.
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+    if(RELEASE)
+        set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+    else()
+        set(CMAKE_BUILD_TYPE "Debug"   CACHE STRING "" FORCE)
     endif()
-endforeach()
-if(NOT PROJECT_VERSION)
-    message(FATAL_ERROR "Cannot parse version from Cargo.toml [workspace.package]")
 endif()
-message(STATUS "Project version (from Cargo.toml): ${PROJECT_VERSION}")
 
 # ---------------------------------------------------------------------------
-# Corrosion: bridge between CMake and Cargo
+# Project version — maintained directly here (no more Cargo.toml parsing).
+# Bump when releasing.
 # ---------------------------------------------------------------------------
-include(FetchContent)
-FetchContent_Declare(
-    Corrosion
-    GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
-    GIT_TAG        v0.6
-)
-FetchContent_MakeAvailable(Corrosion)
-
-# ---------------------------------------------------------------------------
-# Cargo profile selection
-# ---------------------------------------------------------------------------
-if(RELEASE)
-    set(_cargo_profile "release")
-else()
-    set(_cargo_profile "dev")
-endif()
+set(PROJECT_VERSION "0.1.5-dev.1")
+message(STATUS "GodotMCP version: ${PROJECT_VERSION}")
 
 # ---------------------------------------------------------------------------
 # Kill running server process so the new binary can overwrite
@@ -65,20 +41,30 @@ if(NOT NO_SERVER)
 endif()
 
 # ---------------------------------------------------------------------------
-# Import Rust crates as CMake targets
+# Force .venv Python for ALL sub-projects (godot-cpp's internal find_package
+# would otherwise pick up the system Python and cache it first).
 # ---------------------------------------------------------------------------
-# GDExtension (cdylib) — always built via Cargo
-corrosion_import_crate(
-    MANIFEST_PATH "${CMAKE_SOURCE_DIR}/Cargo.toml"
-    CRATES        godot-mcp-gdext
-    PROFILE       ${_cargo_profile}
-)
+set(_venv_python "${CMAKE_SOURCE_DIR}/.venv/Scripts/python.exe")
+if(EXISTS "${_venv_python}")
+    set(Python3_EXECUTABLE "${_venv_python}" CACHE PATH "Python3 from .venv" FORCE)
+    message(STATUS "Using .venv Python: ${Python3_EXECUTABLE}")
+else()
+    message(STATUS ".venv Python not found, relying on system PATH")
+endif()
 
 # ---------------------------------------------------------------------------
-# Build Python MCP server via Cython --embed (replaces old Rust server)
+# C++ GDExtension (godot-cpp 10.0.0-rc1 via FetchContent)
+# ---------------------------------------------------------------------------
+add_subdirectory(extensions/gdext)
+
+# ---------------------------------------------------------------------------
+# Build Python MCP server via Cython --embed
 # ---------------------------------------------------------------------------
 set(_addon_dir "${CMAKE_SOURCE_DIR}/example/addons/godot_mcp")
 set(_gdext_bin_dir "${_addon_dir}/bin")
+file(MAKE_DIRECTORY "${_addon_dir}")
+file(MAKE_DIRECTORY "${_gdext_bin_dir}")
+
 if(NOT NO_SERVER)
     find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
@@ -87,37 +73,38 @@ if(NOT NO_SERVER)
     set(_server_c     "${CMAKE_CURRENT_BINARY_DIR}/entry.c")
     set(_server_exe   "${CMAKE_CURRENT_BINARY_DIR}/godot-mcp-server.exe")
 
-    # Step 1: Cython --embed → entry.c
     set(_patch_script "${_server_src}/tools/patch_entry_c.py")
     set(_server_c_patched "${CMAKE_CURRENT_BINARY_DIR}/entry_patched.c")
-    get_filename_component(_python3_home "${Python3_EXECUTABLE}" DIRECTORY)
-    # Use .venv Python (has Cython installed, now Python 3.14 matching system)
-    set(_venv_python "${_server_src}/.venv/Scripts/python.exe")
-    if(NOT EXISTS "${_venv_python}")
-        set(_venv_python "${Python3_EXECUTABLE}")
-    endif()
+    # Python DLL lives alongside python3*.exe in sys.base_prefix, NOT in venv\Scripts.
+    execute_process(
+        COMMAND "${Python3_EXECUTABLE}" -c "import sys; print(sys.base_prefix)"
+        OUTPUT_VARIABLE _python3_base_prefix
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    # Step 1: Cython --embed -> entry.c
     add_custom_command(
         OUTPUT  ${_server_c}
         COMMAND "${_venv_python}" -m cython
             --embed -o ${_server_c}
             ${_server_entry}
         DEPENDS ${_server_entry}
-        COMMENT "Generating entry.c via Cython --embed (${_server_entry})"
+        COMMENT "Generating entry.c via Cython --embed"
     )
 
-    # Step 2: Patch entry.c to embed PYTHONHOME
+    # Step 2: Patch PYTHONHOME into entry.c
     add_custom_command(
         OUTPUT  ${_server_c_patched}
         COMMAND "${Python3_EXECUTABLE}"
             ${_patch_script}
             ${_server_c}
             ${_server_c_patched}
-            "${_python3_home}"
+            "${_python3_base_prefix}"
         DEPENDS ${_server_c} ${_patch_script}
-        COMMENT "Patching entry.c with Python home: ${_python3_home}"
+        COMMENT "Patching entry.c with Python home"
     )
 
-    # Step 3: Compile patched C file → .exe
+    # Step 3: Compile patched C -> exe
     add_custom_command(
         OUTPUT  ${_server_exe}
         COMMAND ${CMAKE_C_COMPILER}
@@ -129,27 +116,21 @@ if(NOT NO_SERVER)
         COMMENT "Compiling godot-mcp-server.exe"
     )
 
-    add_custom_target(build-python-server ALL
-        DEPENDS ${_server_exe}
-    )
+    add_custom_target(build-python-server ALL DEPENDS ${_server_exe})
 
-    # Step 4: Copy python3 DLL alongside .exe so it can find it at runtime
+    # Step 4: Copy python3 DLL alongside the exe
     add_custom_command(
         TARGET build-python-server POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${_python3_home}/python314.dll"
+            "${_python3_base_prefix}/python314.dll"
             "${CMAKE_CURRENT_BINARY_DIR}/python314.dll"
         COMMENT "Copying python314.dll alongside server exe"
     )
 endif()
 
 # ---------------------------------------------------------------------------
-# Generate addon config files (at configure time)
+# Generate addon config files (plugin.cfg, .gdextension)
 # ---------------------------------------------------------------------------
-file(MAKE_DIRECTORY "${_addon_dir}")
-file(MAKE_DIRECTORY "${_gdext_bin_dir}")
-
-# plugin.cfg
 file(WRITE "${_addon_dir}/plugin.cfg"
     "[plugin]\n"
     "name=\"Godot MCP\"\n"
@@ -159,7 +140,6 @@ file(WRITE "${_addon_dir}/plugin.cfg"
     "script=\"\"\n"
 )
 
-# godot_mcp.gdextension
 file(WRITE "${_addon_dir}/godot_mcp.gdextension"
     "[configuration]\n"
     "\n"
@@ -180,9 +160,6 @@ file(WRITE "${_addon_dir}/godot_mcp.gdextension"
 # ---------------------------------------------------------------------------
 # Copy GDExtension library to addons/bin/ (post-build)
 # ---------------------------------------------------------------------------
-# Corrosion copies artifacts to ${CMAKE_CURRENT_BINARY_DIR}. The INTERFACE target
-# created for cdylib does not support POST_BUILD, so we use a separate custom target
-# that depends on the Corrosion-internal cargo build target.
 if(WIN32)
     set(_gdext_lib_name "godot_mcp_gdext.dll")
 elseif(APPLE)
@@ -193,7 +170,7 @@ endif()
 
 add_custom_target(copy-gdext ALL
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_BINARY_DIR}/${_gdext_lib_name}"
+        "$<TARGET_FILE:godot_mcp_gdext>"
         "${_gdext_bin_dir}/${_gdext_lib_name}"
     COMMENT "Copying GDExtension to addons/bin/"
 )
@@ -208,11 +185,10 @@ install(
     USE_SOURCE_PERMISSIONS
     PATTERN "bin/*.ilk" EXCLUDE
     PATTERN "bin/*.pdb" EXCLUDE
+    PATTERN "bin/*.exp" EXCLUDE
+    PATTERN "bin/*.lib" EXCLUDE
 )
 
-# ---------------------------------------------------------------------------
-# CPack configuration -> addons.zip
-# ---------------------------------------------------------------------------
 set(CPACK_GENERATOR "ZIP")
 set(CPACK_PACKAGE_FILE_NAME "addons")
 set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
@@ -223,9 +199,7 @@ include(CPack)
 # Utility targets
 # ---------------------------------------------------------------------------
 add_custom_target(deep-clean
-    COMMAND ${CMAKE_COMMAND} -E echo "Running cargo clean..."
-    COMMAND cargo clean
     COMMAND ${CMAKE_COMMAND} -E rm -rf "${_gdext_bin_dir}"
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    COMMENT "Cleaning cargo build artifacts and addons/bin/"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_CURRENT_BINARY_DIR}/_deps"
+    COMMENT "Cleaning addons/bin/ and FetchContent cache"
 )
