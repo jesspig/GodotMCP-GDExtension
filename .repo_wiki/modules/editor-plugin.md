@@ -1,8 +1,88 @@
 # 编辑器插件（`McpEditorPlugin`）
 
-> `godot_mcp_gdext.dll` 的生命周期管理。
+> `godot_mcp_gdext.dll` 的生命周期管理。**C++ 版本（当前）与 Rust 遗留版本差异显著**。
 
-## 生命周期
+## C++ 版本（当前）—— 极其简单
+
+### 生命周期
+
+```mermaid
+stateDiagram-v2
+    [*] --> EnterTree: Godot 加载插件
+    
+    EnterTree --> Initializing: _enter_tree()
+    
+    state Initializing {
+        [*] --> ReadVersion: 读取引擎版本 + 插件版本
+        ReadVersion --> RegisterTools: register_all_tools(registry_)
+        RegisterTools --> ReadPort: 读取端口（默认 9500 / GODOT_MCP_PORT 环境变量）
+        ReadPort --> StartWS: ws_server_.start(port, &registry_)
+        StartWS --> ConnectProcessFrame: connect("process_frame", callable_mp)
+        ConnectProcessFrame --> [*]
+    }
+    
+    Initializing --> Running: 插件就绪
+    
+    Running --> Processing: process_frame 信号触发
+    
+    state Processing {
+        [*] --> Poll: ws_server_.poll()
+        Poll --> [*]: 接受/处理/回复
+    }
+    
+    Processing --> Exiting: 编辑器卸载 / _exit_tree()
+    
+    state Exiting {
+        [*] --> Disconnect: disconnect process_frame
+        Disconnect --> StopWS: ws_server_.stop()
+        StopWS --> [*]
+    }
+    
+    Exiting --> [*]
+```
+
+### `_enter_tree()` 初始化
+
+```cpp
+void McpEditorPlugin::_enter_tree() {
+    if (!Engine::get_singleton()->is_editor_hint()) return;
+    
+    registry_.set_engine_version(...);     // 引擎版本
+    registry_.set_plugin_version(GODOT_MCP_PLUGIN_VERSION);  // 编译时版本
+    
+    register_all_tools(registry_);         // 注册 125 个工具
+    
+    int port = read_port_from_env();       // GODOT_MCP_PORT 或 9500
+    ws_server_.start(port, &registry_);    // 启动同步 WebSocket 服务器
+    
+    // process_frame 驱动轮询（生存游戏模式）
+    SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
+    tree->connect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
+}
+```
+
+### `_exit_tree()` 清理
+
+```cpp
+void McpEditorPlugin::_exit_tree() {
+    if (!started_) return;
+    // 断开 signal
+    tree->disconnect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
+    ws_server_.stop();    // 关闭所有连接
+}
+```
+
+### 关键设计
+
+- **端口**：通过 `GODOT_MCP_PORT` 环境变量覆盖，默认 9500
+- **`process_frame` 而非 `_process()`**：`EditorPlugin::_process()` 在场景播放时停止触发。`SceneTree::process_frame` 信号在场景播放时继续触发，确保实时工具（如 `play_current_scene`、`stop_scene`）正常工作
+- **启动条件**：`EditorPlugin::_enter_tree()` 首先检查 `Engine::get_singleton()->is_editor_hint()`——非编辑器模式直接返回
+
+---
+
+## Rust 版本（遗留）
+
+### 生命周期
 
 ```mermaid
 stateDiagram-v2
@@ -11,9 +91,8 @@ stateDiagram-v2
     EnterTree --> Initializing: enter_tree()
     
     state Initializing {
-        [*] --> ReadVersion: 读取引擎版本
+        [*] --> ReadVersion
         ReadVersion --> CreateRuntime: 创建 tokio 运行时 (2 workers)
-        CreateRuntime --> CreateState: Arc&lt;PluginState&gt;
         CreateRuntime --> CreateDispatcher: MainThreadDispatcher
         CreateRuntime --> CreateRegistry: create_registry() 17组 handler
         CreateDispatcher --> StartWS: IpcWebSocketServer::new(9500)
@@ -23,125 +102,26 @@ stateDiagram-v2
         AddDock --> [*]
     }
     
-    Initializing --> Ready: 加载完成
+    Initializing --> Running
     
-    Ready --> Processing: 编辑器正常运行
-    
-    state Processing {
-        [*] --> PumpDispatcher: 每帧泵 dispatcher
-        PumpDispatcher --> PumpLogs: 泵日志队列
-        PumpLogs --> [*]: 等待下一帧
-    }
-    
-    Processing --> Exiting: 编辑器卸载 / exit_tree()
+    Running --> Exiting: exit_tree()
     
     state Exiting {
-        [*] --> UninstallPump: 断开 process_frame 信号
-        UninstallPump --> RemoveDock: remove_control_from_docks
+        [*] --> UninstallPump
+        UninstallPump --> RemoveDock
         RemoveDock --> SendShutdown: shutdown.notify_one()
         SendShutdown --> WaitServer: sleep 200ms
         WaitServer --> CleanRuntime: drop runtime
         CleanRuntime --> [*]
     }
-    
-    Exiting --> [*]
 ```
 
-## `enter_tree()` 初始化
+### Rust 与 C++ 的关键区别
 
-```rust
-fn enter_tree(&mut self) {
-    let engine_version = Self::read_engine_version();
-    let plugin_version = env!("CARGO_PKG_VERSION");
-
-    // 1. 创建 tokio 运行时（2 worker threads）
-    let runtime = tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(2).enable_all().build();
-
-    // 2. PluginState 为 Arc（非静态变量）
-    let state = Arc::new(PluginState { engine_version, plugin_version });
-
-    // 3. 创建 dispatcher 和 WebSocket 服务器
-    let dispatcher = MainThreadDispatcher::new();
-    let shutdown = Arc::new(Notify::new());
-    let registry = commands::create_registry();
-    let server = IpcWebSocketServer::new(9500, state, shutdown, dispatcher, registry);
-
-    // 4. 在 tokio 上启动 WebSocket 服务器
-    runtime.spawn(async move { server.run().await });
-
-    // 5. 安装 process_frame 泵
-    install_main_thread_pump(dispatcher);
-
-    // 6. 添加 Dock UI
-    add_control_to_dock(RIGHT_UL, &dock);
-}
-```
-
-## `exit_tree()` 清理
-
-```rust
-fn exit_tree(&mut self) {
-    // 1. 断开 process_frame 信号
-    uninstall_main_thread_pump();
-
-    // 2. 移除 Dock UI
-    remove_control_from_docks(&dock);
-    dock.free();
-
-    // 3. 发送 WebSocket 服务器关闭信号
-    shutdown.notify_one();
-    std::thread::sleep(Duration::from_millis(200));
-
-    // 4. 清理其他字段
-    dispatcher = None;
-    runtime.take();
-    logging::drain_to_console();
-}
-```
-
-## 为什么不用 `EditorPlugin::_process()`（bind_mut 陷阱）
-
-`process_frame` 信号连接在 `SceneTree` 上，**不持有** `McpEditorPlugin` 的任何绑定：
-
-```rust
-let callable = Callable::from_fn("godot_mcp_pump", move |_args| {
-    dispatcher.process_pending();
-    logging::drain_to_console();
-    Variant::nil()
-});
-tree.connect("process_frame", &callable);
-```
-
-这样调用栈上不会产生 `bind_mut` 死锁。**不要**将此逻辑移回 `_process()`。
-
-**实现细节**：
-- `install_main_thread_pump()`：在 `enter_tree()` 中连接信号
-- `uninstall_main_thread_pump()`：在 `exit_tree()` 中断开信号
-- 两个函数都使用 Option 字段（`pump_callable`, `scene_tree`）来跟踪状态
-
-## `PluginState`
-
-`PluginState` 是简单的 Arc 共享结构体（不再是通过 `OnceLock` 访问的全局静态变量）：
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `engine_version` | `String` | Godot 引擎版本号（如 "4.6.0"） |
-| `plugin_version` | `String` | MCP 插件版本号（来自 CARGO_PKG_VERSION） |
-
-传递给 `IpcWebSocketServer`，用于 MetaCommands 的 `get_engine_version`。
-
-## Broadcast 通道
-
-`McpEditorPlugin` 持有 `broadcast::Sender<String>`，用于向所有连接的 WebSocket 客户端推送通知：
-
-```rust
-pub fn broadcast_tool_list_updated(&self, tools: Value) {
-    let notification = IpcNotification {
-        msg_type: "notification".into(),
-        event: "tool_list_updated".into(),
-        data: tools,
-    };
-    tx.send(serde_json::to_string(&notification).unwrap());
-}
-```
+| 方面 | C++（当前） | Rust（遗留） |
+|------|-----------|-------------|
+| 初始化复杂度 | 低——约 10 行代码 | 高——需要 tokio runtime、dispatcher、shutdown signal、Dock UI |
+| 每帧任务 | `ws_server_.poll()` | `dispatcher.process_pending()` + `logging::drain_to_console()` |
+| 端口配置 | 环境变量 `GODOT_MCP_PORT` 或默认 9500 | 硬编码 9500（仅通过 CLI arg） |
+| Dock UI | 未实现 | 通过 `add_control_to_dock` 添加 |
+| 关闭 | 简单：断开 signal + stop server | 复杂：通知 shutdown → sleep → drop runtime |

@@ -1,6 +1,6 @@
 # 工具目录
 
-> 全部 125 个 MCP 工具的描述、参数和返回值。按处理器分组，共 17 个 gdext 组 + 4 个服务器端拦截工具。
+> 全部 125 个 MCP 工具的描述、参数和返回值。按处理器分组，共 16 个 C++ gdext 组 + 4 个服务器端拦截工具（Rust 遗留版本有 17 个组——部分已合并）。
 
 ## 分组速览
 
@@ -8,7 +8,7 @@
 |----|------|------|
 | [Editor Control（服务器端）](#editor-control-服务器端-3) | 3 | server-side (handler.py) |
 | [get_server_version](#get_server_version) | 1 | server-side (handler.py) |
-| [MetaCommands](#metacommands-3) | 3 | gdext |
+| [MetaCommands](#metacommands-3) | 3 | gdext（C++: `cmd_meta.cpp` / Rust: `meta.rs`） |
 | [NodeCommands](#nodecommands-21) | 21 | gdext |
 | [PropertyCommands](#propertycommands-21) | 21 | gdext |
 | [CollisionCommands](#collisioncommands-2) | 2 | gdext |
@@ -26,6 +26,8 @@
 | [PluginManagementCommands](#pluginmanagementcommands-2) | 2 | gdext |
 | [InputMapCommands](#inputmapcommands-4) | 4 | gdext |
 | **总计** | **125** | |
+
+> **注意**：所有 gdext 工具在 C++（当前）和 Rust（遗留）中均有实现，路由入口仅实现文件名不同。C++ 实现在 `extensions/gdext/src/commands/` 中，Rust 在 `crates/gdext/src/commands/` 中。 |
 
 ---
 

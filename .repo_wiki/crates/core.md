@@ -1,6 +1,6 @@
 # `crates/core` — 共享协议类型
 
-> 被 `crates/gdext` 引用。不包含任何 Godot 或 MCP 运行时依赖。纯 serde JSON 类型。
+> **⚠️ 仅 Rust 遗留版本使用。** C++ 版本使用 Godot 原生 `Dictionary`/`Variant`/`JSON` 类，无需 serde 序列化/反序列化。此 crate 仅被 `crates/gdext` 引用，用于 `cargo test --workspace`。纯 serde JSON 类型，不包含任何 Godot 或 MCP 运行时依赖。
 
 ```mermaid
 classDiagram
@@ -80,8 +80,10 @@ classDiagram
 
 ### 为什么需要 `core` crate
 
-两侧通过 WebSocket 通信，使用 serde JSON 序列化/反序列化。共享类型确保两端格式严格一致。Python 侧 `protocol.py` 有对应的 Pydantic 模型与之匹配。
+**Rust 版本：** 两侧通过 WebSocket 通信，使用 serde JSON 序列化/反序列化。共享类型确保两端格式严格一致。Python 侧 `protocol.py` 有对应的 Pydantic 模型与之匹配。
+
+**C++ 版本：** 使用 Godot 原生 `JSON::stringify()`/`JSON::parse()` 进行序列化，类型通过 `Dictionary`/`Variant` 系统自动处理，无需共享 serde 类型定义。协议**线格式相同**（相同的 JSON schema）。
 
 ## 测试
 
-`cargo test --workspace` 运行 14 个测试用例，覆盖所有类型的序列化/反序列化往返。
+`cargo test --workspace` 运行 14 个测试用例，覆盖所有类型的序列化/反序列化往返。这些测试仍然可用（核心类型未修改），但**仅用于验证 Rust 遗留代码的兼容性**。

@@ -12,95 +12,95 @@ godot-mcp-server (Python) / handler.py
   ├─ else → _forward_tool_call(name, args)
   │
   ▼ (WebSocket :9500)
-godot_mcp_gdext / ws_server.rs → route_tool_call() → dispatch()
+godot_mcp_gdext / ws_server.cpp → handle_packet()
   │
-  ├─ dispatch(): MetaCommands.can_handle("get_node_position") → 否
-  ├─ dispatch(): 迭代 registry[0..16]
-  │   ├─ NodeCommands.can_handle("get_node_position") → 否
-  │   ├─ PropertyCommands.can_handle("get_node_position") → 是！
-  │   │   │
-  │   │   ▼
-  │   │   handler.handle() → dispatcher.submit(move || cmd_*()).await
-  │   │   │
-  │   │   ▼
-  │   │   (主线程 process_frame 泵)
-  │   │   cmd_get_node_position() → EditorInterface → Node API
-  │   │   │
-  │   │   ▼ (返回值)
-  │   │   WebSocket IPC 响应 (IpcResponse { status, data/error })
-  │   │
-  │   ▼
-  godot-mcp-server → JSON-RPC 响应（TextContent）
+  ├─ 解析 JSON → 验证 method=="tool_call" → 提取 tool + args
+  ├─ HandlerRegistry::find(tool) → 查找 CommandFn
+  │   ├─ 未找到 → 返回 "Unknown tool: ..." 错误
+  │   └─ 找到 → 执行 CommandFn(args) ← 主线程，同步
+  │       │
+  │       ▼
+  │       函数调用 EditorInterface → Node API
+  │       │
+  │       ▼ (返回值 Dictionary)
+  │       if data.has("error") → 返回错误响应
+  │       else → 返回成功响应 {"status":"success", "data": {...}}
+  │
+  ▼
+godot-mcp-server → JSON-RPC 响应（TextContent）
   │
   ▼
 AI 客户端 {"result": {"x": 100, "y": 200}}
 ```
 
-## 路由实现（`ws_server.rs` `dispatch()`）
+## 路由实现对比
 
-```rust
-// 1. MetaCommands 单独处理（同步，无需 MainThreadDispatcher）
-let meta = MetaCommands::new().with_engine_version(state.engine_version.clone());
-if meta.can_handle(tool) {
-    return meta.handle_meta_tool(tool);
-}
+### C++（当前）—— HandlerRegistry
 
-// 2. 迭代所有已注册的 CommandHandler
-for handler in registry {
-    if handler.can_handle(tool) {
-        return handler.handle(tool, args, dispatcher).await;
+```cpp
+// handler_registry.cpp
+void handle_packet(...) {
+    const CommandFn *fn = registry_->find(tool);
+    if (!fn) {
+        // 返回 "Unknown tool" 错误
+        return;
     }
+    Dictionary data = (*fn)(args);  // 同步执行，主线程
+    // 检查 error 字段并返回响应
 }
-
-// 3. 未知工具
-Err(format!("Unknown tool: {}", tool))
 ```
 
-**17 组 handler，全部在 `create_registry()` 中注册**：
+- `CommandFn = std::function<Dictionary(const Dictionary &)>`（函数指针）
+- `HandlerRegistry` 本质上是 `HashMap<String, CommandFn>`
+- `register_all_tools()` 调用 17 个 `register_<group>()` 自由函数来填充注册表
 
-| 索引 | 组名 | 工具数 | 同步/异步 |
-|------|------|--------|----------|
-| - | MetaCommands（dispatch 外独立） | 3 | 同步，无需 dispatcher |
-| 0 | NodeCommands | 17 | 异步，通过 dispatcher |
-| 1 | PropertyCommands | 19 | 异步 |
-| 2 | CollisionCommands | 2 | 异步 |
-| 3 | FindCommands | 4 | 异步 |
-| 4 | ScriptHelpersCommands | 3 | 异步 |
-| 5 | ProjectSettingsCommands | 7 | 异步 |
-| 6 | SceneCommands | 15 | 异步 |
-| 7 | ScriptGdCommands | 5 | 异步 |
-| 8 | ScriptCsCommands | 6 | 异步 |
-| 9 | SearchCommands | 3 | 异步 |
-| 10 | UndoCommands | 2 | 异步 |
-| 11 | Property3dCommands | 6 | 异步 |
-| 12 | EditorControlCommands | 6 | 异步 |
-| 13 | ProjectSettingsExtCommands | 10 | 异步 |
-| 14 | PluginManagementCommands | 2 | 异步 |
-| 15 | InputMapCommands | 4 | 异步 |
+### Rust（遗留）—— CommandHandler trait + dispatch()
 
-**注意**：`ws_server.rs` 的 `handle_request()` 首先检查 `method == "tool_call"`，提取 `ToolCallParams`，然后调用 `route_tool_call(&params.tool, &params.args, ...)`。如果 `method` 不是 `tool_call`，直接将 `method` 作为工具名、`params` 作为参数调用。
+```rust
+// ws_server.rs
+async fn dispatch(tool, args, state, dispatcher, registry) {
+    let meta = MetaCommands::new().with_engine_version(state.engine_version.clone());
+    if meta.can_handle(tool) {
+        return meta.handle_meta_tool(tool);  // 同步，无需 dispatcher
+    }
+    for handler in registry {
+        if handler.can_handle(tool) {
+            return handler.handle(tool, args, dispatcher).await;  // 通过 dispatcher
+        }
+    }
+    Err(format!("Unknown tool: {}", tool))
+}
+```
 
-## 服务器端 vs gdext 工具
+- `CommandHandler` trait：`can_handle()` + `handle()` + `group_name()` + `tool_names()`
+- MetaCommands（3 个工具）在 dispatch 外部单独处理（同步，无需 `MainThreadDispatcher`）
+- 其余 17 组通过 `dispatcher.submit()` 提交到主线程
 
-| 处理位置 | 工具 |
-|---------|------|
-| handler.py（Python 服务器端） | `get_server_version`, `godot_editor_open`, `godot_editor_close`, `godot_editor_restart` |
-| gdext dispatch()（121 个） | 其余所有工具 |
+## 16 组 C++ 处理器
 
-## 新增工具流程
+| # | 文件 | 工具数 | 工具前缀 |
+|---|------|--------|----------|
+| 1 | `meta.cpp` | 3 | ping, get_engine/plugin_version |
+| 2 | `node.cpp` | 17 | create/delete/rename/duplicate/move_node, attach/detach_script, set_as_root, reset_parent, batch_set_property, add/remove_node_from_group, get_node_path |
+| 3 | `property.cpp` | 19 | get/set_node_position/rotation/scale/visible/modulate/z_index/text/collision_layer/mask, set_node_unique_name |
+| 4 | `property_3d.cpp` | 6 | get/set_node_position/rotation/scale_3d |
+| 5 | `collision.cpp` | 2 | add_circle/rectangle_collision |
+| 6 | `find.cpp` | 4 | find_nodes_by_name/type/group/script |
+| 7 | `scene.cpp` | 15 | create/delete/rename_scene, branch_to_scene, scene_to_branch, instantiate_scene, open/close/save/save_as/save_all/reload_scene, get_open_scenes/roots, mark_scene_unsaved |
+| 8 | `script_gd.cpp` | 5 | create/read/edit/list_gdscript, validate_gdscript |
+| 9 | `script_cs.cpp` | 6 | create/read/edit/list_csharp_script, csharp_build, csharp_create_solution |
+| 10 | `script_helpers.cpp` | 3 | call_method, get/set_variable |
+| 11 | `project_settings.cpp` | 7 | get/set_project_setting, set_main_scene, list/remove/add_autoload, list_scenes |
+| 12 | `project_settings_ext.cpp` | 10 | get/set_display/physics/rendering_settings, get/set_project_info, get/set_layer_names |
+| 13 | `editor_control.cpp` | 6 | play_current/main_scene, stop_scene, is_scene_playing, refresh_filesystem, get_editor_info |
+| 14 | `input_map.cpp` | 4 | list/add/remove_input_action, set_input_action_events |
+| 15 | `plugin_management.cpp` | 2 | list_plugins, set_plugin_enabled |
+| 16 | `undo.cpp` | 2 | undo, redo |
+| 17 | `search.cpp` | 3 | find_in_file, search_project, find_and_replace |
 
-### 服务器侧（Python `server/`）
+## 注意事项
 
-| 文件 | 修改 |
-|------|------|
-| `src/godot_mcp_server/registry.py` | 在 `_TOOLS` 列表中添加工具名、描述、JSON Schema |
-| `src/godot_mcp_server/handler.py` | 如果是服务器端工具（`godot_editor_*`），添加处理分支 |
-
-### gdext 侧（Rust `crates/gdext/`）
-
-| 文件 | 修改 |
-|------|------|
-| `src/commands/xx.rs` | 实现 `cmd_your_tool()` 函数 |
-| `src/commands/mod.rs` | 将 `YourToolHandler` 加入 `create_registry()` 的返回列表 |
-
-**`ws_server.rs` 不需要修改**——`dispatch()` 自动遍历所有已注册的 handler。
+- `get_server_version`、`godot_editor_open/close/restart` 在 Python 服务器端处理，不转发到 gdext
+- C++ 版本：所有命令在主线程同步执行，godot-cpp API 直接调用无限制
+- Rust 版本：所有命令通过 `MainThreadDispatcher` 提交到主线程（MetaCommands 除外）
+- 添加新工具时，`ws_server.cpp` **不需要修改**——`HandlerRegistry::find()` 自动覆盖注册的工具
