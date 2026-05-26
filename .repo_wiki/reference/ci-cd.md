@@ -21,9 +21,9 @@ flowchart LR
 |------|------|------|
 | Formatting | `cargo fmt --check --all` | Rust 代码格式检查 |
 | Lint | `cargo clippy --workspace -- -D warnings` | 静态分析，告警报错 |
-| Configure | `cmake -B build -S .` | CMake 配置（含 Corrosion） |
-| Build | `cmake --build build --config Debug` | 编译所有 crate |
-| Test | `cargo test --workspace` | 运行 50 个离线测试（无需 Godot） |
+| Configure | `cmake -B build -S .` | CMake 配置（含 Corrosion + Cython server 编译） |
+| Build | `cmake --build build --config Debug` | 编译所有 Rust crate + Python 服务器 |
+| Test | `cargo test --workspace` | 运行离线测试（core + gdext，无需 Godot） |
 
 ## Release (`.github/workflows/release.yml`)
 
@@ -36,7 +36,7 @@ flowchart TD
         M[macos-latest]
         W[windows-latest]
     end
-    subgraph Package["打包"]
+    subgraph Package["打包 (Ubuntu)"]
         P[组装 addons.zip]
         R[创建 GitHub Release]
     end
@@ -61,6 +61,8 @@ flowchart TD
 **发布产物**：
 - `addons.zip`：跨平台的 Godot 插件包（含三个平台的 GDExt 库）
 - 各平台的 `godot-mcp-server` 二进制文件
+
+**注意**：服务器二进制是 Python/Cython 编译产物，与 GDExtension Rust 编译在同一 CMake 流程中。
 
 ## 本地等价命令
 
