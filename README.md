@@ -17,7 +17,7 @@ graph LR
     end
 
     subgraph ServerProc["godot-mcp-server"]
-        Stdio["rmcp stdio Transport"]
+        Stdio["MCP stdio Transport"]
         Handler["GodotMcpHandler"]
         Registry["ToolRegistry<br/>(125 tool schemas)"]
         Bridge["GodotBridge<br/>(WS client)"]
@@ -55,7 +55,7 @@ Godot MCP exposes the Godot 4.6+ editor to AI tools through **125 commands** —
 
 ```
 AI Assistant ──► godot-mcp-server ──► godot_mcp_gdext
-   (stdio)       (Rust binary)    ws://127.0.0.1:9500   (GDExtension plugin)
+   (stdio)      (Python/Cython)  ws://127.0.0.1:9500   (GDExtension plugin)
 ```
 
 1. Your AI client launches `godot-mcp-server` and speaks to it over stdio (MCP protocol).
@@ -81,7 +81,7 @@ py -3 build.py
 
 This produces:
 - `addons.zip` — extract into any Godot project to install the editor plugin
-- `target/debug/godot-mcp-server.exe` (Windows) or `godot-mcp-server` (Unix)
+- `build/godot-mcp-server.exe` (Windows) or `build/godot-mcp-server` (Unix)
 
 > **On Windows**, always use `py -3` instead of `python` — the Microsoft Store stubs hang silently.
 
@@ -188,8 +188,11 @@ See the [Tool Catalog](.repo_wiki/en/reference/tools-catalog.md) for detailed ar
 ```
 crates/
 ├── core/          Shared protocol types (IpcRequest, IpcResponse, ToolCallParams)
-├── server/        MCP server binary — rmcp stdio transport, tool registry, WS client
 └── gdext/         GDExtension cdylib — editor plugin, WS server, 122 command handlers
+
+server/
+├── src/           Python MCP server — MCP stdio transport, tool registry, WS client
+└── entry.pyx      Cython entry point compiled to executable
 ```
 
 ### CI Gates
@@ -221,11 +224,11 @@ py -3 build.py --no-server                    # DLL only (editor changes)
 
 ### Key Constraints
 
-- **Pinned deps**: `godot = "=0.5"`, `rmcp = "=1.7"`. Don't bump without testing.
+- **Pinned deps**: `godot = "=0.5"`. Don't bump without testing.
 - **Rust channel**: `stable` (via `rust-toolchain.toml`).
 - **`Cargo.lock`** is committed (binary crate).
 - **Version** auto-syncs from `Cargo.toml` → `plugin.cfg` via CMake. Bump cargo version only.
-- **Adding a tool** requires registering the schema in `tool_registry.rs` AND adding a routing arm in `ws_server.rs::route_tool_call`. Update both `total == 125` assertions in tests.
+- **Adding a tool** requires registering the schema in `server/src/godot_mcp_server/registry.py` AND adding a routing arm in `ws_server.rs::route_tool_call`.
 
 ## Documentation
 

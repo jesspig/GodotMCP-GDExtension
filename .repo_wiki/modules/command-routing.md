@@ -6,103 +6,101 @@
 AI 客户端 call_tool("get_node_position", {"node_path": "Player"})
   │
   ▼
-godot-mcp-server / handler.rs
+godot-mcp-server (Python) / handler.py
   ├─ match "get_server_version" → 直接返回（不转发）
   ├─ match "godot_editor_*" → 服务器端处理（不转发到 gdext）
-  ├─ else → forward_tool_call(name, args)
+  ├─ else → _forward_tool_call(name, args)
   │
   ▼ (WebSocket :9500)
-godot_mcp_gdext / ws_server.rs → route_tool_call()
+godot_mcp_gdext / ws_server.rs → route_tool_call() → dispatch()
   │
-  ├─ MetaCommands → can_handle("get_node_position") → 否
-  ├─ NodeCommands → can_handle("get_node_position") → 否
-  ├─ PropertyCommands → can_handle("get_node_position") → 是！
+  ├─ dispatch(): MetaCommands.can_handle("get_node_position") → 否
+  ├─ dispatch(): 迭代 registry[0..16]
+  │   ├─ NodeCommands.can_handle("get_node_position") → 否
+  │   ├─ PropertyCommands.can_handle("get_node_position") → 是！
+  │   │   │
+  │   │   ▼
+  │   │   handler.handle() → dispatcher.submit(move || cmd_*()).await
+  │   │   │
+  │   │   ▼
+  │   │   (主线程 process_frame 泵)
+  │   │   cmd_get_node_position() → EditorInterface → Node API
+  │   │   │
+  │   │   ▼ (返回值)
+  │   │   WebSocket IPC 响应 (IpcResponse { status, data/error })
   │   │
   │   ▼
-  │   dispatcher.submit(move || cmd_get_node_position(args)).await
-  │   │
-  │   ▼
-  │   (主线程 process_frame 泵)
-  │   cmd_get_node_position() → EditorInterface → Node API
-  │   │
-  │   ▼ (返回值)
-  │   WebSocket IPC 响应
-  │
-  ▼
-godot-mcp-server → JSON-RPC 响应
+  godot-mcp-server → JSON-RPC 响应（TextContent）
   │
   ▼
 AI 客户端 {"result": {"x": 100, "y": 200}}
 ```
 
-## 路由链（`ws_server.rs` `dispatch()`）
+## 路由实现（`ws_server.rs` `dispatch()`）
 
 ```rust
-// 检查顺序（17 组，全部在 create_registry() 中注册）
-MetaCommands(3)              // ping, get_engine_version, get_plugin_version
-NodeCommands(21)             // get_scene_tree, get_node_path, create_node, ... + transforms, info, script vars
-PropertyCommands(21)         // get/set position, rotation, scale, visible, modulate, z_index, text, ...
-CollisionCommands(2)         // add_circle_collision, add_rectangle_collision
-FindCommands(4)              // find_nodes_by_name/type/group/script
-ScriptHelpersCommands(3)     // call_method, get_variable, set_variable
-ProjectSettingsCommands(3)   // get/set_project_setting, set_main_scene
-SceneCommands(16)            // create/delete/rename scene, open/close/save, ... + is_scene_dirty
-ScriptGdCommands(5)          // create/read/edit/validate/list GDScript
-ScriptCsCommands(6)          // create/read/edit/list C#, csharp_build, csharp_create_solution
-SearchCommands(3)            // find_in_file, search_project, find_and_replace
-UndoCommands(2)              // undo, redo
-Property3dCommands(6)        // get/set position/rotation/scale 3D
-EditorControlCommands(6)     // play_current_scene, play_main_scene, stop_scene, is_scene_playing, refresh, get_editor_info
-ProjectSettingsExtCommands(10) // display, physics, rendering, project info, layer names
-PluginManagementCommands(2)  // list_plugins, set_plugin_enabled
-InputMapCommands(4)          // list/add/set/remove input actions
+// 1. MetaCommands 单独处理（同步，无需 MainThreadDispatcher）
+let meta = MetaCommands::new().with_engine_version(state.engine_version.clone());
+if meta.can_handle(tool) {
+    return meta.handle_meta_tool(tool);
+}
+
+// 2. 迭代所有已注册的 CommandHandler
+for handler in registry {
+    if handler.can_handle(tool) {
+        return handler.handle(tool, args, dispatcher).await;
+    }
+}
+
+// 3. 未知工具
+Err(format!("Unknown tool: {}", tool))
 ```
 
-**注意**：
-- `NodeCommands` 包含了原有的 NodeConvenience 工具（`set_node_transform_2d/3d`、`get_node_info`、`get_script_variables`）
-- `SceneCommands` 包含了原有的 SceneInfo 工具（`is_scene_dirty`）
-- `MetaCommands` 的 `get_server_version` 在 `handler.rs` 中服务器端直接处理，不会到达 gdext
+**17 组 handler，全部在 `create_registry()` 中注册**：
+
+| 索引 | 组名 | 工具数 | 同步/异步 |
+|------|------|--------|----------|
+| - | MetaCommands（dispatch 外独立） | 3 | 同步，无需 dispatcher |
+| 0 | NodeCommands | 17 | 异步，通过 dispatcher |
+| 1 | PropertyCommands | 19 | 异步 |
+| 2 | CollisionCommands | 2 | 异步 |
+| 3 | FindCommands | 4 | 异步 |
+| 4 | ScriptHelpersCommands | 3 | 异步 |
+| 5 | ProjectSettingsCommands | 7 | 异步 |
+| 6 | SceneCommands | 15 | 异步 |
+| 7 | ScriptGdCommands | 5 | 异步 |
+| 8 | ScriptCsCommands | 6 | 异步 |
+| 9 | SearchCommands | 3 | 异步 |
+| 10 | UndoCommands | 2 | 异步 |
+| 11 | Property3dCommands | 6 | 异步 |
+| 12 | EditorControlCommands | 6 | 异步 |
+| 13 | ProjectSettingsExtCommands | 10 | 异步 |
+| 14 | PluginManagementCommands | 2 | 异步 |
+| 15 | InputMapCommands | 4 | 异步 |
+
+**注意**：`ws_server.rs` 的 `handle_request()` 首先检查 `method == "tool_call"`，提取 `ToolCallParams`，然后调用 `route_tool_call(&params.tool, &params.args, ...)`。如果 `method` 不是 `tool_call`，直接将 `method` 作为工具名、`params` 作为参数调用。
 
 ## 服务器端 vs gdext 工具
 
 | 处理位置 | 工具 |
 |---------|------|
-| handler.rs（服务器端） | `get_server_version`, `godot_editor_open`, `godot_editor_close`, `godot_editor_restart` |
-| gdext route_tool_call（122 个） | 其余所有工具 |
+| handler.py（Python 服务器端） | `get_server_version`, `godot_editor_open`, `godot_editor_close`, `godot_editor_restart` |
+| gdext dispatch()（121 个） | 其余所有工具 |
 
-## 新增工具清单
+## 新增工具流程
 
-添加新工具需要修改以下位置：
-
-### 服务器侧（`crates/server/`）
+### 服务器侧（Python `server/`）
 
 | 文件 | 修改 |
 |------|------|
-| `src/tool_registry.rs` | 在 `register_defaults()` 中添加工具的 JSON Schema |
-| `src/handler.rs` | 如果是服务器端工具（`godot_editor_*`），添加处理分支 |
-| 测试 | `tool_registry.rs` 的 `total == 125` 断言需要更新 |
-| 测试 | `handler.rs` 的 `total == 125` 断言也需要更新 |
+| `src/godot_mcp_server/registry.py` | 在 `_TOOLS` 列表中添加工具名、描述、JSON Schema |
+| `src/godot_mcp_server/handler.py` | 如果是服务器端工具（`godot_editor_*`），添加处理分支 |
 
-### gdext 侧（`crates/gdext/`）
+### gdext 侧（Rust `crates/gdext/`）
 
 | 文件 | 修改 |
 |------|------|
-| `src/commands/xx.rs` | 实现 `cmd_your_tool()` 函数 + 在 `TOOL_NAMES` 中添加工具名 |
-| `src/commands/mod.rs` | 将 `YourToolHandler` 加入 `create_registry()` 的返回列表（若为新的组） |
-| `src/ipc/ws_server.rs` | 不需要修改——`dispatch()` 自动遍历所有已注册的 handler |
+| `src/commands/xx.rs` | 实现 `cmd_your_tool()` 函数 |
+| `src/commands/mod.rs` | 将 `YourToolHandler` 加入 `create_registry()` 的返回列表 |
 
-### 现有组 vs 新组
-
-- **已有组**：如果新工具属于已有命令组（如 `NodeCommands`），只需在组内添加 `cmd_*` 函数并在 `TOOL_NAMES` 中注册
-- **新组**：如果创建新命令组，需要在 `commands/mod.rs` 的 `create_registry()` 中注册。`ws_server.rs` 的 `dispatch()` 使用通用循环，无需额外修改
-
-## 测试
-
-- `handler.rs` 断言 `total == 125`（服务器侧工具数）
-- `tool_registry.rs` 断言 `total == 125`（注册表工具数）
-- 离线测试（无 Godot）：不能测试真实工具调用，但可以测试 schema 注册、工具列表查询、错误处理
-
-## 注意
-
-- 新增工具后**两者计数必须同步更新**，否则测试会失败
-- `create_registry()` 和 `route_tool_call()` 现在完全通过通用机制同步，不再需要手动维护两组路由列表
+**`ws_server.rs` 不需要修改**——`dispatch()` 自动遍历所有已注册的 handler。

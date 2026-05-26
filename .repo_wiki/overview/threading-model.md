@@ -102,7 +102,9 @@ tree.connect("process_frame", &callable);
 
 ## 新增工具的规则
 
-1. 在 `ws_server.rs::route_tool_call` 中添加路由分支
-2. 该分支调用 `d.submit(move || cmd_your_tool(&a)).await`
-3. 实际的 `cmd_your_tool` 通过 `dispatcher` 由主线程执行
-4. 用 `pipe()` 包裹返回值：`pipe(d.submit(...).await)` 将 `json!({"error": "..."})` 转为 `Err`
+1. 在 `commands/xx.rs` 中实现 `cmd_your_tool()` 函数
+2. 在组内添加 `TOOL_NAMES` 和 `can_handle()` 匹配
+3. 在 `commands/mod.rs::create_registry()` 中注册新组（或现有组的 handler）
+4. 每个工具在 `handler.handle()` 中调用 `d.submit(move || cmd_*()).await`
+5. 用 `pipe()` 包裹返回值：`pipe(d.submit(...).await)` 将 `json!({"error": "..."})` 转为 `Err`
+6. `ws_server.rs` 的 `dispatch()` 自动遍历所有已注册的 handler——无需修改

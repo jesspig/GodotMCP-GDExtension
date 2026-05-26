@@ -6,7 +6,7 @@
 
 **状态**：已接受  
 **日期**：初始项目设置  
-**背景**：GDExtension CDyLib 允许我们加载到 Godot 编辑器中访问原生 API，但不能作为独立的 MCP 服务器。同时，MCP 服务器（一个标准的 Rust 二进制文件）可以处理 stdio、rmcp 和 AI 客户端交互，但不能调用 Godot API。  
+**背景**：GDExtension CDyLib 允许我们加载到 Godot 编辑器中访问原生 API，但不能作为独立的 MCP 服务器。同时，MCP 服务器需要处理 stdio 和 AI 客户端交互，但不能调用 Godot API。  
 **决策**：将系统拆分为两个进程，通过 WebSocket 连接。  
 **后果**：
 - 正面：清晰的关注点分离；可以分别开发、测试两个组件
