@@ -16,7 +16,7 @@ set(GODOTCPP_API_VERSION "4.6" CACHE STRING "Godot API version to target")
 
 FetchContent_Declare(
     godot-cpp
-    URL https://ghproxy.net/https://github.com/godotengine/godot-cpp/archive/refs/tags/10.0.0-rc1.zip
+    URL https://github.com/godotengine/godot-cpp/archive/refs/tags/10.0.0-rc1.zip
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
