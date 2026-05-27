@@ -112,10 +112,28 @@ Dictionary LspClient::validate(const String &path,
     if (tcp->get_status() != StreamPeerSocket::STATUS_CONNECTED) { Dictionary r; r["ok"] = false; r["error"] = "LSP connection timed out"; return r; }
 
     // --- Initialize ----------------------------------------------------
+    // Godot LSP bug (#78764): may send publishDiagnostics BEFORE initialize response.
+    // Loop reading messages, skip notifications (no "id"), wait for response with id=1.
     String init_req = String("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{") +
                       String("\"processId\":null,\"rootUri\":\"") + root_uri + String("\",\"capabilities\":{}}}");
     if (!send_message(tcp, init_req)) { tcp->disconnect_from_host(); Dictionary r; r["ok"] = false; r["error"] = "Failed to send initialize"; return r; }
-    String init_resp = read_message(tcp, timeout_ms);
+
+    String init_resp;
+    int init_elapsed = 0;
+    while (init_elapsed < timeout_ms) {
+        String msg = read_message(tcp, timeout_ms - init_elapsed);
+        if (msg.is_empty()) { init_elapsed = timeout_ms; break; }
+        Ref<JSON> json; json.instantiate();
+        if (json->parse(msg) == OK) {
+            Variant data = json->get_data();
+            if (data.get_type() == Variant::DICTIONARY) {
+                Dictionary d = data;
+                if (d.has("id")) { init_resp = msg; break; }
+                // No "id" → notification (e.g. publishDiagnostics), skip and keep reading
+            }
+        }
+        init_elapsed += 50;
+    }
     if (init_resp.is_empty()) { tcp->disconnect_from_host(); Dictionary r; r["ok"] = false; r["error"] = "No response to initialize"; return r; }
 
     // --- initialized notification + didOpen ----------------------------
