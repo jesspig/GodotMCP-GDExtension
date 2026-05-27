@@ -1,49 +1,46 @@
-# cython: language_level=3
-"""Cython --embed entry point for godot-mcp-server.
+"""Entry point for godot-mcp-server.
 
-Compiled to a standalone .exe via:
-    cython entry.pyx --embed -o entry.c
+Compiled to a standalone .exe via Cython --embed:
+    cython entry.py --embed -o entry.c
     <cc> entry.c -o godot-mcp-server.exe -I<include> -L<lib> -lpython3
 """
 
+# cython: language_level=3
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: nonecheck=False
+
 import os
 import sys
+from typing import Optional, List, Dict, Any
 
 
 def _setup_paths() -> None:
-    """Configure Python search paths for embedded mode.
-
-    The compiled exe needs to locate:
-    1. Python standard library (PYTHONHOME)
-    2. Third-party packages in .venv site-packages
-    3. The godot_mcp_server package
-    """
     exe_dir = os.path.dirname(os.path.abspath(sys.executable))
 
-    # Step 1: Set PYTHONHOME if not already set
-    # Try locating Python home relative to python314.dll (next to exe)
-    pyhome_candidates = [
+    pyhome_candidates: List[Optional[str]] = [
         os.environ.get("PYTHONHOME"),
-        exe_dir,  # dll copied next to exe in build/
-        os.path.join(exe_dir, "..", "..", "pythoncore-3.14-64"),
+        exe_dir,
     ]
     for candidate in pyhome_candidates:
         if candidate and os.path.isdir(os.path.join(candidate, "Lib")):
             os.environ.setdefault("PYTHONHOME", candidate)
             break
 
-    # Step 2: Add .venv site-packages to sys.path for third-party modules
-    server_dir = os.path.join(exe_dir, "..", "server")
-    if os.path.isdir(server_dir):
-        venv_site = os.path.join(server_dir, ".venv", "Lib", "site-packages")
-        if os.path.isdir(venv_site):
-            sys.path.insert(0, os.path.abspath(venv_site))
+    # exe lives in build/ (or wherever CMake puts it); project root is one level up.
+    project_dir = os.path.abspath(os.path.join(exe_dir, ".."))
+    server_dir = os.path.join(project_dir, "server")
 
-        src_dir = os.path.join(server_dir, "src")
-        if os.path.isdir(src_dir):
-            sys.path.insert(0, os.path.abspath(src_dir))
+    # Add .venv site-packages (at project root, NOT inside server/).
+    venv_site = os.path.join(project_dir, ".venv", "Lib", "site-packages")
+    if os.path.isdir(venv_site):
+        sys.path.insert(0, os.path.abspath(venv_site))
 
-    # Step 3: Also try finding site-packages relative to PYTHONHOME
+    # Add server/src so godot_mcp_server package is importable.
+    src_dir = os.path.join(server_dir, "src")
+    if os.path.isdir(src_dir):
+        sys.path.insert(0, os.path.abspath(src_dir))
+
     pyhome = os.environ.get("PYTHONHOME")
     if pyhome:
         site_packages = os.path.join(pyhome, "Lib", "site-packages")
@@ -69,7 +66,7 @@ def main() -> None:
     handler = GodotMcpHandler(port=9500)
 
     @server.list_tools()
-    async def handle_list_tools():
+    async def handle_list_tools() -> List[Tool]:
         infos = handler.registry.get_all_tools()
         return [
             Tool(
@@ -81,11 +78,11 @@ def main() -> None:
         ]
 
     @server.call_tool()
-    async def handle_call_tool(name: str, arguments: dict | None):
+    async def handle_call_tool(name: str, arguments: Optional[Dict[str, Any]]):
         text = await handler.handle_tool_call(name, arguments or {})
         return [TextContent(type="text", text=text)]
 
-    async def _run():
+    async def _run() -> None:
         options = InitializationOptions(
             server_name="godot-mcp-server",
             server_version=SERVER_VERSION,

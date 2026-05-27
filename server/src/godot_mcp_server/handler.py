@@ -106,7 +106,7 @@ class GodotMcpHandler:
             return json.dumps({"error": offline_msg})
         try:
             result = await bridge.call(name, args)
-            return json.dumps(result)
+            return json.dumps({"result": result})
         except Exception as e:
             await self._disconnect()
             return json.dumps({"error": f"Godot 通信失败: {e}"})

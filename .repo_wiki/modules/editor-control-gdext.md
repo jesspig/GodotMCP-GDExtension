@@ -1,6 +1,6 @@
 # Editor Control 命令（gdext 侧）
 
-> `crates/gdext/src/commands/editor_control.rs` — 6 个编辑器控制工具，在 gdext 进程内执行（区别于 server 侧的 `godot_editor_open/close/restart`）。
+> **C++（`extensions/gdext/src/commands/editor_control.cpp`）和 Rust 遗留（`crates/gdext/src/commands/editor_control.rs`）逻辑相同。** 6 个编辑器控制工具，在 gdext 进程内执行（区别于 server 侧的 `godot_editor_open/close/restart`）。
 
 ## 工具列表
 
@@ -12,16 +12,6 @@
 | `is_scene_playing` | 查询场景是否正在播放 | `{"playing": bool, "scene_path": Value}` |
 | `refresh_filesystem` | 刷新编辑器文件系统扫描 | `{"scanning": true}` |
 | `get_editor_info` | 获取编辑器信息 | 见下方 |
-
-## 实现细节
-
-- 所有工具通过 `EditorInterface::singleton()` 操作
-- 所有工具通过 `MainThreadDispatcher` 提交到主线程执行（`d.submit(cmd_*).await`）
-- `play_current_scene`/`play_main_scene` 直接调用编辑器方法（非 `call_deferred`）
-- `stop_scene` 调用 `EditorInterface::stop_playing_scene()`
-- `is_scene_playing` 返回 `playing` 布尔值和当前场景路径
-- `refresh_filesystem` 调用 `EditorFileSystem::scan()`
-- `get_editor_info` 返回引擎版本、编辑器缩放比例、语言以及编辑器路径（data_dir、config_dir、cache_dir、project_settings_dir）
 
 ## `get_editor_info` 返回值
 
@@ -41,7 +31,7 @@
 
 ## 与服务器端 EditorControl 的区别
 
-| | 服务器端 (handler.py) | gdext 侧 (editor_control.rs) |
+| | 服务器端 (handler.py) | gdext 侧 (editor_control.cpp) |
 |---|---|---|
 | 进程 | godot-mcp-server | godot_mcp_gdext.dll |
 | 工具 | `godot_editor_open`/`close`/`restart` | `play_*`/`stop_scene`/`refresh_filesystem`/`get_editor_info` |

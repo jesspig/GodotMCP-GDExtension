@@ -1,6 +1,6 @@
 # Project Settings Extensions
 
-> `crates/gdext/src/commands/project_settings_ext.rs` — 10 个聚合设置工具，将分散在 `ProjectSettings` 中的相关属性打包为 get/set 对。
+> **C++（`extensions/gdext/src/commands/project_settings_ext.cpp`）和 Rust 遗留（`crates/gdext/src/commands/project_settings_ext.rs`）逻辑相同。** 10 个聚合设置工具，将分散在 `ProjectSettings` 中的相关属性打包为 get/set 对。
 
 ## 工具列表
 

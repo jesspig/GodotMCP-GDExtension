@@ -140,6 +140,6 @@ CMake 自动处理（`CMakeLists.txt`）：
 
 - **125 个工具注册在 Python 侧**，与 gdext 侧无硬性同步——如果 WebSocket 收到未知工具，gdext 返回错误
 - **不验证**工具是否存在于 gdext 端
-- `SERVER_VERSION = "0.1.4"` 在 `editor_ctl.py` 中硬编码（与 `Cargo.toml` 手动同步）
+- `SERVER_VERSION = "0.1.5-dev.1"` 在 `editor_ctl.py` 中硬编码（与 `CMakeLists.txt` `PROJECT_VERSION` 手动同步）
 - 服务器使用 `asyncio` 事件循环，所有 I/O 操作异步
-- 独立于 tokio 运行时（tokio 仅在 gdext DLL 内部使用）
+- 独立于 tokio 运行时（tokio 仅在遗留 Rust gdext DLL 内部使用，C++ 版本无需 tokio）

@@ -2,40 +2,42 @@
 
 ## 构建系统
 
-构建系统是 **CMake + Corrosion**（Rust-CMake 桥接）+ **Cython --embed**（Python 服务器编译）。提供了轻量 `build.py` 包装。
+构建系统是 **CMake**（C++ GDExtension → godot-cpp 10.0.0-rc1 通过 FetchContent）+ **Cython --embed**（Python 服务器编译）。提供了轻量 `build.py` 包装。
 
 ```bash
 py -3 build.py                        # debug 构建 + addons.zip
 py -3 build.py --release              # release 构建 + addons.zip
-py -3 build.py --clean                # cargo clean + 清空 addons/bin/
+py -3 build.py --clean                # 清空 addons/bin/ + FetchContent 缓存
 py -3 build.py --no-zip               # 跳过 addons.zip（快速迭代）
-py -3 build.py --no-server            # 只重建 dll（编辑器中快速迭代）
+py -3 build.py --no-server            # 只重建 gdext dll（编辑器中快速迭代）
 ```
 
 CMake 自动处理：
 - 终止已运行的 `godot-mcp-server.exe`（`taskkill`/`pkill`）
+- `FetchContent` 拉取 `godot-cpp 10.0.0-rc1`
 - 生成 `plugin.cfg` 和 `godot_mcp.gdextension`
-- 复制 dll 到 `example/addons/godot_mcp/bin/`
+- 复制 dll/dylib/so 到 `example/addons/godot_mcp/bin/`
 - CPack 打包 → `addons.zip`
 
 ## Python 服务器构建流程
 
 服务器（Python/Cython）构建由 CMake 在 `CMakeLists.txt` 中处理：
 
-1. **Cython `--embed`** 编译 `server/entry.pyx` → `build/entry.c`
+1. **Cython `--embed`** 编译 `server/entry.py` → `build/entry.c`
 2. **Patch PYTHONHOME**: `tools/patch_entry_c.py` 将 Python home 路径嵌入 C 文件
 3. **C 编译**: 用系统 C 编译器编译 `entry_patched.c` → `build/godot-mcp-server.exe`
 4. **复制 DLL**: 复制 `python3xy.dll` 到 exe 同目录
 
 需要 `server/.venv`（含 Cython 包）。
 
-## Rust GDExtension 构建流程
+## C++ GDExtension 构建流程
 
-CMake 通过 Corrosion 集成 Cargo：
+CMake 通过 `add_subdirectory(extensions/gdext)` 构建 godot-cpp + gdext 源文件：
 
-1. Corrosion 导入 `crates/gdext`（cdylib）
-2. 根据 `--release` 选择 cargo profile
-3. 构建产物复制到 `example/addons/godot_mcp/bin/`
+1. FetchContent 拉取 `godot-cpp 10.0.0-rc1`
+2. 添加 `/extensions/gdext/src/` 下的所有源文件
+3. 链接 godot-cpp 静态库 → `godot_mcp_gdext.dll`
+4. 后处理：复制到 `example/addons/godot_mcp/bin/`
 
 ## 手动构建（跳过 build.py）
 
@@ -50,11 +52,9 @@ cmake --build build --config Debug --target package  # 打包
 `.github/workflows/ci.yml`（在 Ubuntu 上运行）：
 
 ```bash
-cargo fmt --check --all                       # 1. 格式化检查
-cargo clippy --workspace -- -D warnings       # 2. 严格 lint
-cmake -B build -S .                           # 3a. CMake 配置
-cmake --build build --config Debug            # 3b. 构建 gdext + server
-cargo test --workspace                        # 4. 测试（core + gdext，离线无 Godot）
+cmake -B build -S .                           # 1. CMake 配置
+cmake --build build --config Debug            # 2. 构建 gdext + server
+cargo test --workspace                        # 3. Rust 测试（core + 遗留 gdext，离线无 Godot）
 ```
 
 CI 只在 `master` 分支的 push 和 PR 上触发。
@@ -64,7 +64,7 @@ CI 只在 `master` 分支的 push 和 PR 上触发。
 `.github/workflows/release.yml` 在 tag `v*` 推送时触发：
 
 - 矩阵构建：ubuntu / macOS / Windows
-- 使用 `cmake -DRELEASE=ON`
+- 使用 `cmake --build --config Release`
 - 分别上传 GDExtension 库和 Server 二进制到 Release artifacts
 - 在 Ubuntu 上组装跨平台 `addons.zip`（包含三个平台的 dll/so/dylib）
 
@@ -86,12 +86,11 @@ CI 只在 `master` 分支的 push 和 PR 上触发。
 
 ## 版本管理
 
-- 单版本源在 `Cargo.toml [workspace.package].version`
-- CMakeLists.txt 从 Cargo.toml 解析版本，生成 `plugin.cfg` 时自动填充
-- Python 侧 `SERVER_VERSION` 在 `editor_ctl.py` 中手动同步
-- 升级 cargo 版本即可；不需要手动编辑 `plugin.cfg`
+- 单版本源在 `CMakeLists.txt`：`set(PROJECT_VERSION "0.1.5-dev.1")`
+- CMake 生成 `plugin.cfg` 时自动填充此版本号（不再使用 Cargo.toml）
+- 升级 CMake 版本即可；不需要手动编辑 `plugin.cfg` 或 `Cargo.toml`
 
 ## 依赖锁定
 
-- `godot = "=0.5"` — 严格锁定
-- `Cargo.lock` 已提交（二进制 crate）；不要随意重新生成
+- `godot-cpp 10.0.0-rc1`：通过 FetchContent 固定标签
+- `Cargo.lock` 已提交（用于 `cargo test --workspace`）；不要随意重新生成

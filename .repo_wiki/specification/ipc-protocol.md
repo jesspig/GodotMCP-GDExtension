@@ -1,6 +1,6 @@
 # IPC 协议规范
 
-> `godot-mcp-server`（Python） ↔ `godot_mcp_gdext.dll`（Rust）之间通过 WebSocket 的通信协议。
+> `godot-mcp-server`（Python） ↔ `godot_mcp_gdext.dll`（C++ 当前 / Rust 遗留）之间通过 WebSocket 的通信协议。**双方协议格式完全一致，无论实现语言。**
 
 ## 传输
 
@@ -12,7 +12,9 @@
 
 ## 类型定义
 
-所有 Rust 类型定义在 `crates/core/src/protocol.rs` 中。Python 侧对应的 Pydantic 模型在 `server/src/godot_mcp_server/protocol.py` 中。
+**Rust 版本：** 类型定义在 `crates/core/src/protocol.rs` 中。Python 侧对应的 Pydantic 模型在 `server/src/godot_mcp_server/protocol.py` 中。
+
+**C++ 版本：** 使用 Godot 原生 `Dictionary`/`Variant`/`String` 在 JSON 与内部类型之间转换，无独立协议类型定义。线格式完整保留。
 
 ### IpcRequest（Server → GDExt）
 

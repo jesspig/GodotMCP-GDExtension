@@ -1,8 +1,14 @@
 # Dispatcher（`MainThreadDispatcher`）
 
-> 使 tokio 工作线程能够安全地调用 Godot API 的关键基础设施。
+> **⚠️ 仅 Rust 遗留版本需要。** C++ 版本不存在跨线程问题，无需 dispatcher。
 
-## 设计
+## 为什么 C++ 版本不需要
+
+C++ 版本的 `extensions/gdext/` 在 Godot 主线程上运行所有代码——`_on_process_frame()` 通过 `process_frame` 信号每帧被调用，在此上下文中执行 `WsServer::poll()`，后者同步处理 WebSocket 消息并执行 `CommandFn`。没有工作线程，没有跨线程通信，没有 dispatcher。
+
+## Rust 遗留版本的设计
+
+[Rust 版本]使 tokio 工作线程能够安全地调用 Godot API 的关键基础设施。
 
 ```mermaid
 flowchart TB
@@ -40,15 +46,10 @@ struct DispatcherJob {
     closure: Box<dyn FnOnce() -> Value + Send>,
     response: oneshot::Sender<Result<Value, String>>,
 }
-
 pub struct MainThreadDispatcher {
     queue: Arc<Mutex<VecDeque<DispatcherJob>>>,
 }
 ```
-
-- `queue` 是 `Mutex<VecDeque<...>>` —— tokio 工作线程写，主线程读
-- 每个 job 包含一个闭包和一个 `oneshot::Sender<Result<Value, String>>`
-- `submit()` 返回 `impl Future<Output = Result<Value, String>>`，工作线程可以 `.await` 它
 
 ## 调用流程
 
@@ -59,20 +60,10 @@ pub struct MainThreadDispatcher {
 5. 每个闭包执行完后通过 `Sender` 发送 `Ok(result)`
 6. **工作线程**：`Receiver` 收到结果，继续执行
 
-## 响应类型
+## 注意事项
 
-`submit()` 返回 `Result<Value, String>`：
-- `Ok(value)` — 闭包在主线程正常执行完毕并返回 JSON value
-- `Err(msg)` — oneshot 被丢弃（主线程 panic 或插件卸载）
-
-## 关键细节
-
-- **闭包必须 `Send`**——`DispatcherJob` 包含 `Box<dyn FnOnce() -> Value + Send>`
-- 闭包**应该捕获需要的值**（通过 `move`），而不是捕获引用来共享状态
+- **闭包必须 `Send`**
+- 闭包**必须 `move` 捕获值**，不能捕获引用
 - `process_pending()` 先取出所有 jobs 再逐一执行（锁不持续保持）
-- 使用 `process_frame` 信号而非 `EditorPlugin::_process()` 来泵队列——避免 `bind_mut` 死锁
-- 所有 Godot API 调用必须在闭包内部进行，闭包运行在主线程上
-
-## 与旧的差异
-
-旧版 `MainThreadDispatcher` 使用 `oneshot::Sender<Value>`，新版改为 `oneshot::Sender<Result<Value, String>>`，使主线程错误能通过 `Err` 传播回工作线程。
+- 使用 `process_frame` 信号而非 `EditorPlugin::_process()`——避免 `bind_mut` 死锁
+- 所有 Godot API 调用**必须在闭包内部进行**，闭包运行在主线程上

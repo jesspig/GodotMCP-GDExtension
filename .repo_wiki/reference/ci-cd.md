@@ -7,23 +7,18 @@
 ```mermaid
 flowchart LR
     A[git push / PR] --> B[Checkout]
-    B --> C[dtolnay/rust-toolchain]
-    C --> D[Swatinem/rust-cache]
-    D --> E[apt install libclang-dev]
-    E --> F[cargo fmt --check --all]
-    F --> G[cargo clippy -- -D warnings]
-    G --> H[cmake -B build -S .]
-    H --> I[cmake --build build]
-    I --> J[cargo test --workspace]
+    B --> C[cmake -B build -S .]
+    C --> D[cmake --build build --config Debug]
+    D --> E[cargo test --workspace]
 ```
 
 | 步骤 | 命令 | 作用 |
 |------|------|------|
-| Formatting | `cargo fmt --check --all` | Rust 代码格式检查 |
-| Lint | `cargo clippy --workspace -- -D warnings` | 静态分析，告警报错 |
-| Configure | `cmake -B build -S .` | CMake 配置（含 Corrosion + Cython server 编译） |
-| Build | `cmake --build build --config Debug` | 编译所有 Rust crate + Python 服务器 |
-| Test | `cargo test --workspace` | 运行离线测试（core + gdext，无需 Godot） |
+| Configure | `cmake -B build -S .` | CMake 配置（拉取 godot-cpp FetchContent + Cython server 编译） |
+| Build | `cmake --build build --config Debug` | 编译 C++ GDExtension + Python/Cython 服务器 |
+| Test | `cargo test --workspace` | 运行 Rust 离线测试（core + 遗留 gdext，无需 Godot） |
+
+**注意**：CI 不再运行 `cargo fmt --check` / `cargo clippy`，因为当前实现使用 C++（不在 Cargo workspace 中）。Rust 遗留代码仅通过 `cargo test` 验证。
 
 ## Release (`.github/workflows/release.yml`)
 
@@ -52,24 +47,22 @@ flowchart TD
 
 **构建矩阵**：
 
-| 平台 | 目标 triple | GDExt 库 | 服务端二进制 |
-|------|-------------|----------|-------------|
-| Ubuntu | `x86_64-unknown-linux-gnu` | `libgodot_mcp_gdext.so` | `godot-mcp-server_linux` |
-| macOS | `x86_64-apple-darwin` | `libgodot_mcp_gdext.dylib` | `godot-mcp-server_macos` |
-| Windows | `x86_64-pc-windows-msvc` | `godot_mcp_gdext.dll` | `godot-mcp-server_windows.exe` |
+| 平台 | GDExt 库 | 服务端二进制 |
+|------|----------|-------------|
+| Ubuntu | `libgodot_mcp_gdext.so` | `godot-mcp-server_linux` |
+| macOS | `libgodot_mcp_gdext.dylib` | `godot-mcp-server_macos` |
+| Windows | `godot_mcp_gdext.dll` | `godot-mcp-server_windows.exe` |
 
 **发布产物**：
 - `addons.zip`：跨平台的 Godot 插件包（含三个平台的 GDExt 库）
 - 各平台的 `godot-mcp-server` 二进制文件
 
-**注意**：服务器二进制是 Python/Cython 编译产物，与 GDExtension Rust 编译在同一 CMake 流程中。
+**注意**：服务器二进制是 Python/Cython 编译产物，与 GDExtension C++ 编译在同一 CMake 流程中。
 
 ## 本地等价命令
 
 ```bash
 # CI 流程
-cargo fmt --check --all
-cargo clippy --workspace -- -D warnings
 cmake -B build -S .
 cmake --build build --config Debug
 cargo test --workspace

@@ -9,8 +9,9 @@ GODOT_PATH_MISSING_ERROR = (
     '"env": { "GODOT_PATH": "<path/to/godot.exe>" }'
 )
 
-_server_dir = Path(__file__).parent.parent.parent
-with open(_server_dir / "pyproject.toml", "rb") as f:
+# pyproject.toml is at the project root (one level above the server/ dir).
+_project_root = Path(__file__).parent.parent.parent.parent
+with open(_project_root / "pyproject.toml", "rb") as f:
     _pyproject = tomllib.load(f)
 SERVER_VERSION = _pyproject["project"]["version"]
 

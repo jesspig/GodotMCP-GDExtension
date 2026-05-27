@@ -45,44 +45,62 @@
 - 负面：两次注册（服务器和 gdext）必须保持同步——添加/删除工具时需要在两侧更新
 - 负面：测试依赖 `total == 125` 的硬编码断言
 
-## ADR-005: 使用 CMake + Corrosion 构建（非独立 Cargo）
+## ADR-005: 使用 CMake 构建（C++ GDExtension 通过 FetchContent）
 
-**状态**：已接受  
-**背景**：项目需要构建一个 Rust CDyLib（`godot_mcp_gdext.dll`）和一个 Rust 二进制（`godot-mcp-server.exe`）。构建后还涉及复制 DLL、生成 `plugin.cfg`、打包 `addons.zip` 等操作。  
-**决策**：使用 CMake 作为顶级构建系统，通过 Corrosion 集成 Rust。  
+**状态**：重新考虑 → **已废弃（原 Rust 版）** / **已接受（C++ 版）**  
+**背景**：原版使用 CMake + Corrosion 集成 Rust。C++ 重写后，godot-cpp 通过 FetchContent 拉取，不再需要 Corrosion。  
+**决策**：使用 CMake 作为顶级构建系统，通过 `add_subdirectory(extensions/gdext)` 构建 C++ GDExtension + Cython --embed 编译服务器。  
 **后果**：
 - 正面：统一的构建入口——`cmake --build`
+- 正面：不再需要 Corrosion（减少了 CMake 模块依赖）
 - 正面：CMake 处理跨平台任务（进程终止、文件操作、CPack 打包）
-- 负面：需要 CMake + Corrosion——不是纯粹的 Cargo 工作流
 - 负面：`build.py` 包装器是必要的，但不是必需的
 
 ## ADR-006: C# Solution 直接生成（不启动第二个 Godot 进程）
 
-**状态**：已接受  
+**状态**：已接受（C++ 和 Rust 版本均实现）  
 **背景**：Godot 的 `--generate-mono-solution` 标志启动一个新的编辑器进程，与我们的 gdext 插件竞争 WebSocket 端口 9500。  
-**决策**：直接在 Rust 中生成 `.sln` 和 `.csproj` 文件，无需启动编辑器进程。  
+**决策**：直接在 gdext 中生成 `.sln` 和 `.csproj` 文件，无需启动编辑器进程。  
 **后果**：
 - 正面：无端口冲突
 - 正面：速度更快（无进程开销）
 - 负面：需要维护与 Godot 4.6 .NET SDK 格式兼容的模板
 - 负面：`.sln` 和 `.csproj` 生成的逻辑需要跟踪 Godot .NET SDK 版本的变化
 
-## ADR-007: 跨线程日志使用 mpsc + eprintln 镜像
+## ADR-007: 跨线程日志使用 mpsc + eprintln 镜像（已废弃）
 
-**状态**：已接受  
+**状态**：**已废弃**（C++ 版本有更好的替代实现）  
 **背景**：Godot 的 `godot_print!` 宏如果从非主线程调用会发生未定义行为（通常崩溃）。  
-**决策**：tokio 工作线程调用 `log_info/log_warn/log_error` → 消息进入 mpsc 通道 + `eprintln!` 到终端。主线程从 `process_frame` 信号泵中转发到 `godot_print!`。  
-**后果**：
+**决策**（Rust 遗留）：tokio 工作线程调用 `log_info/log_warn/log_error` → 消息进入 mpsc 通道 + `eprintln!` 到终端。主线程从 `process_frame` 信号泵中转发到 `godot_print!`。  
+**后果**（Rust 遗留）：
 - 正面：工作线程上的日志调用可靠且立即
 - 正面：日志最终出现在 Godot 控制台和客户端终端中
 - 负面：Godot 控制台中的日志最多延迟一帧
 
+**C++ 实现**：所有代码在主线程运行，直接调用 `UtilityFunctions::print/push_warning/push_error`，无需 mpsc 通道。
+
 ## ADR-008: `call_method` 使用 `Object::call()`（不通过 Deferred/Callable）
 
-**状态**：已接受  
+**状态**：已接受（两版本相同）  
 **背景**：需要一个通用的方式来调用节点上的任何方法。  
 **决策**：使用 `node.call(method, &args)` 直接调用。  
 **后果**：
 - 正面：支持任意方法签名
 - 正面：立即执行（gdext 端已经运行在主线程上）
 - 负面：如果方法预期参数与实际传递的类型不匹配，可能在运行时失败
+
+## ADR-009: C++ GDExtension 重写（取代 Rust 实现）
+
+**状态**：已接受  
+**日期**：2025-2026  
+**背景**：Rust 的 `gdext` crate（v0.5）存在严重的线程复杂性问题——需要 `MainThreadDispatcher`、MPSC 日志通道、tokio 运行时等复杂基础设施。约 50% 的代码用于处理跨线程通信而不是实际逻辑。  
+**决策**：使用 C++ 和 `godot-cpp 10.0.0-rc1` 重写 GDExtension。利用 Godot C++ API 在主线程直接运行，消除所有跨线程基础设施。  
+**后果**：
+- 正面：消除整个 dispatcher 层（~300 行 Rust 删除）
+- 正面：日志直接调用 `UtilityFunctions::print`（28 行 vs 137 行）
+- 正面：WebSocket 使用 Godot 内置 `TCPServer` + `WebSocketPeer`（无 tokio 依赖）
+- 正面：JSON↔Variant 转换使用 Godot 原生 `Dictionary`/`JSON`（无 serde 依赖）
+- 正面：构建系统简化——无 Corrosion，无 tokio
+- 正面：编译速度显著提升（C++ 比 Rust gdext 编译快得多）
+- 负面：C++ 缺乏 Rust 的所有权和生命周期保证
+- 负面：维护两套构建系统（CMake + Cargo）用于测试遗留 Rust 代码
