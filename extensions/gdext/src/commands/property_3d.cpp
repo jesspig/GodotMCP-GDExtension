@@ -41,7 +41,9 @@ Dictionary cmd_get_rotation_3d(const Dictionary &a) {
 }
 Dictionary cmd_set_rotation_3d(const Dictionary &a) {
     String p = args_string(a, "node_path");
-    double x = args_float(a, "x", 0), y = args_float(a, "y", 0), z = args_float(a, "z", 0);
+    double x = args_float(a, "rot_x", args_float(a, "x", 0));
+    double y = args_float(a, "rot_y", args_float(a, "y", 0));
+    double z = args_float(a, "rot_z", args_float(a, "z", 0));
     Node *root = get_root(); if (!root) return make_error("no scene");
     Node *n = resolve_node(root, p); if (!n) return make_error("node not found: " + p);
     Dictionary e = check_node3d(n, p); if (e.has("error")) return e;

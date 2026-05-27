@@ -148,8 +148,11 @@ bool args_bool(const Dictionary &args, const String &key, bool default_value) {
 // ---------------------------------------------------------------------
 
 String relative_path(Node *root, Node *node) {
-    if (!root || !node || root == node) {
+    if (!root || !node) {
         return String();
+    }
+    if (root == node) {
+        return String(".");
     }
     // Build the path piece by piece walking up the tree.
     Node *cur = node;

@@ -53,10 +53,10 @@ Dictionary do_collision_shape(const Dictionary &a, bool circle) {
     EditorUndoRedoManager *ur = get_undo_redo();
     if (ur) {
         ur->create_action("Add collision shape");
-        ur->add_do_method(target, "add_child", Array::make(Variant(shape_node)));
-        ur->add_do_method(shape_node, "set_owner", Array::make(Variant(root)));
+        ur->add_do_method(target, "add_child", Variant(shape_node));
+        ur->add_do_method(shape_node, "set_owner", Variant(root));
         ur->add_do_reference(shape_node);
-        ur->add_undo_method(target, "remove_child", Array::make(Variant(shape_node)));
+        ur->add_undo_method(target, "remove_child", Variant(shape_node));
         ur->commit_action();
     }
     Dictionary r; r["node_path"] = p; r["shape"] = circle ? "CircleShape2D" : "RectangleShape2D"; r["mode"] = "created_child"; return r;

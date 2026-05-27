@@ -20,6 +20,17 @@ using namespace godot;
 namespace godot_mcp {
 namespace {
 
+// --- Helper: record undo/redo version as saved marker ---
+void save_version_marker(Node *root, EditorInterface *ei) {
+    EditorUndoRedoManager *ur = ei->get_editor_undo_redo();
+    if (!ur) return;
+    int64_t hid = ur->get_object_history_id(root);
+    UndoRedo *undo_redo = ur->get_history_undo_redo((uint32_t)hid);
+    if (!undo_redo) return;
+    uint64_t ver = undo_redo->get_version();
+    root->set_meta("__mcp_saved_version", Variant((int64_t)ver));
+}
+
 // --- Helper: warn about owner-null nodes ---
 Array collect_owner_warnings(Node *root) {
     Array warnings;
@@ -115,8 +126,8 @@ Dictionary cmd_branch_to_scene(const Dictionary &a) {
     EditorUndoRedoManager *ur = get_undo_redo();
     if (ur) {
         ur->create_action("Branch to Scene: " + sp);
-        ur->add_undo_method(parent, "add_child", Array::make(Variant(saved)));
-        ur->add_undo_method(saved, "set_owner", Array::make(Variant(root)));
+        ur->add_undo_method(parent, "add_child", Variant(saved));
+        ur->add_undo_method(saved, "set_owner", Variant(root));
         ur->add_undo_reference(saved);
         ur->commit_action(false);
     }
@@ -134,8 +145,8 @@ Dictionary cmd_scene_to_branch(const Dictionary &a) {
     EditorUndoRedoManager *ur = get_undo_redo();
     if (ur) {
         ur->create_action("Make Local");
-        ur->add_do_method(n, "set_scene_file_path", Array::make(Variant("")));
-        ur->add_undo_method(n, "set_scene_file_path", Array::make(Variant(sf)));
+        ur->add_do_method(n, "set_scene_file_path", Variant(""));
+        ur->add_undo_method(n, "set_scene_file_path", Variant(sf));
         ur->commit_action();
     }
     n->set_scene_file_path("");
@@ -155,10 +166,10 @@ Dictionary cmd_instantiate_scene(const Dictionary &a) {
     EditorUndoRedoManager *ur = get_undo_redo();
     if (ur) {
         ur->create_action("Instantiate Scene: " + sp);
-        ur->add_do_method(parent, "add_child", Array::make(Variant(inst)));
-        ur->add_do_method(inst, "set_owner", Array::make(Variant(root)));
+        ur->add_do_method(parent, "add_child", Variant(inst));
+        ur->add_do_method(inst, "set_owner", Variant(root));
         ur->add_do_reference(inst);
-        ur->add_undo_method(parent, "remove_child", Array::make(Variant(inst)));
+        ur->add_undo_method(parent, "remove_child", Variant(inst));
         ur->commit_action();
     }
     Dictionary r; r["path"] = relative_path(root, inst); r["parent"] = relative_path(root, parent); return r;
@@ -183,6 +194,7 @@ Dictionary cmd_save_scene(const Dictionary &) {
     Error err = ei->save_scene();
     if (err != OK) return make_error("save_scene failed; use save_scene_as first");
     String path; if (root) path = root->get_scene_file_path();
+    if (root) save_version_marker(root, ei);
     Dictionary r; r["saved"] = path;
     if (warnings.size() > 0) r["warning"] = warnings;
     return r;
@@ -194,13 +206,21 @@ Dictionary cmd_save_scene_as(const Dictionary &a) {
     Node *root = ei->get_edited_scene_root();
     Array warnings; if (root) warnings = collect_owner_warnings(root);
     ei->save_scene_as(sp);
+    if (root) save_version_marker(root, ei);
     Dictionary r; r["saved"] = sp;
     if (warnings.size() > 0) r["warning"] = warnings;
     return r;
 }
 Dictionary cmd_save_all_scenes(const Dictionary &) {
-    int64_t before = EditorInterface::get_singleton()->get_open_scenes().size();
-    EditorInterface::get_singleton()->save_all_scenes();
+    EditorInterface *ei = EditorInterface::get_singleton();
+    int64_t before = ei->get_open_scenes().size();
+    ei->save_all_scenes();
+    // Mark all open scene roots as saved
+    Array roots = ei->get_open_scene_roots();
+    for (int i = 0; i < roots.size(); i++) {
+        Node *rn = Object::cast_to<Node>(roots[i]);
+        if (rn) save_version_marker(rn, ei);
+    }
     Dictionary r; r["count"] = before; return r;
 }
 Dictionary cmd_reload_scene(const Dictionary &a) {

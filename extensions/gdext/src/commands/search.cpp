@@ -79,7 +79,7 @@ Dictionary cmd_search_project(const Dictionary &a) {
     bool lit = args_bool(a, "literal", false);
     Array exts;
     if (a.has("extensions") && a["extensions"].get_type() == Variant::ARRAY) exts = a["extensions"];
-    else { exts.append(String("gd")); exts.append(String("cs")); exts.append(String("tscn")); exts.append(String("tres")); }
+    else { exts.append(String("gd")); exts.append(String("cs")); exts.append(String("tscn")); exts.append(String("tres")); exts.append(String("godot")); }
     String root = args_string(a, "root", "res://");
     bool inc = args_bool(a, "include_addons", false);
     int64_t max_m = args_int(a, "max_matches", 500), max_f = args_int(a, "max_files", 5000);

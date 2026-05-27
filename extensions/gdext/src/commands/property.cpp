@@ -178,8 +178,8 @@ Dictionary cmd_set_node_unique_name(const Dictionary &a) {
     bool old = n->is_unique_name_in_owner();
     n->set("unique_name_in_owner", unique);
     ur->create_action("Set unique_name for " + p);
-    ur->add_do_method(n, "set_unique_name_in_owner", Array::make(unique));
-    ur->add_undo_method(n, "set_unique_name_in_owner", Array::make(old));
+    ur->add_do_method(n, "set_unique_name_in_owner", Variant(unique));
+    ur->add_undo_method(n, "set_unique_name_in_owner", Variant(old));
     ur->commit_action(false);
     Dictionary r; r["node_path"] = p; r["unique_name_in_owner"] = unique; return r;
 }

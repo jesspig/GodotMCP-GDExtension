@@ -20,10 +20,22 @@ Dictionary cmd_call_method(const Dictionary &a) {
         Array raw = a["args"];
         for (int i = 0; i < raw.size(); i++) call_args.append(json_to_variant(raw[i]));
     }
-    Variant result = n->call(method, call_args);
+    Variant result;
+    bool call_ok = true;
+    String error_msg;
+    try {
+        result = n->call(method, call_args);
+    } catch (const std::exception &e) {
+        call_ok = false;
+        error_msg = String("Exception in method '") + method + String("': ") + String(e.what());
+    } catch (...) {
+        call_ok = false;
+        error_msg = String("Unknown exception in method '") + method + String("'");
+    }
+    if (!call_ok) return make_error(error_msg);
     bool is_nil = result.get_type() == Variant::NIL;
     Dictionary r; r["node_path"] = p; r["method"] = method; r["result"] = variant_to_json(result);
-    r["type"] = result.get_type(); // int type code
+    r["type"] = (int64_t)result.get_type();
     if (is_nil) r["hint"] = "Method returned null. Use @tool script for editor-time custom methods.";
     return r;
 }

@@ -4,13 +4,12 @@
 #include "handler_registry.hpp"
 #include <godot_cpp/classes/dir_access.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/editor_settings.hpp>
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/gd_script.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/resource_saver.hpp>
 #include "../lsp/client.hpp"
-#include <godot_cpp/classes/resource_loader.hpp>
-#include <godot_cpp/classes/resource_saver.hpp>
 #include <godot_cpp/variant/packed_string_array.hpp>
 using namespace godot;
 
@@ -59,10 +58,7 @@ Dictionary cmd_edit_gdscript(const Dictionary &a) {
     if (f.is_null()) return make_error("Cannot open file: " + path);
     f->store_string(source);
     notify_file_changed(path);
-    bool reloaded = false;
-    Ref<GDScript> script = ResourceLoader::get_singleton()->load(path);
-    if (script.is_valid()) { script->set_source_code(source); reloaded = (script->reload() == OK); }
-    Dictionary r; r["path"] = path; r["bytes"] = (int64_t)source.length(); r["reloaded"] = reloaded; return r;
+    Dictionary r; r["path"] = path; r["bytes"] = (int64_t)source.length(); return r;
 }
 Dictionary cmd_validate_gdscript(const Dictionary &a) {
     String path = args_string(a, "path");
@@ -75,12 +71,38 @@ Dictionary cmd_validate_gdscript(const Dictionary &a) {
 
     // Read LSP port from editor settings
     int64_t port = 6005;
-    // We can't easily read EditorSettings from here, but 6005 is the default
+    Ref<EditorSettings> es = EditorInterface::get_singleton()->get_editor_settings();
+    if (es.is_valid()) {
+        Variant v = es->get_setting("network/language_server/remote_port");
+        if (v.get_type() != Variant::NIL) {
+            port = (int64_t)v;
+        }
+    }
 
+    // Try LSP first for detailed diagnostics (line, column, severity, message)
     LspClient client;
     Dictionary result = client.validate(path, source, file_uri, root_uri, (uint16_t)port, 5000);
-    result["path"] = path;
-    return result;
+    if (result.get("ok", false)) {
+        result["path"] = path;
+        return result;
+    }
+
+    // LSP failed — fall back to GDScript::reload() for basic ok/fail check
+    Ref<GDScript> script;
+    script.instantiate();
+    script->set_path(path);
+    script->set_source_code(source);
+    Error err = script->reload();
+
+    Dictionary r;
+    r["path"] = path;
+    r["ok"] = (err == OK);
+    if (err != OK) {
+        r["diagnostics"] = Array();
+        String lsp_err = result.has("error") ? String(result["error"]) : String("LSP unavailable");
+        r["note"] = "LSP connection failed (" + lsp_err + "). Fell back to compile check only — no detailed errors available. The LSP server starts automatically with the Godot editor on port " + String::num_int64(port) + ".";
+    }
+    return r;
 }
 void list_gd_rec(const String &dir, bool inc_addons, int64_t max, Array &out) {
     if (out.size() >= max) return;
