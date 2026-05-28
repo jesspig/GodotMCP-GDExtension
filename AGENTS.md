@@ -51,7 +51,7 @@ CMake 构建流：`extensions/gdext/` 的 C++ GDExtension + 通过 Cython `--emb
 - 重建后需重启 MCP 客户端——它持有旧的 `godot-mcp-server.exe`。CMake 会自动 `taskkill`/`pkill`；手动操作则先 `taskkill`/`pkill`。
 - Godot 编辑器加载插件时 `godot_mcp_gdext.dll` 被锁定。重建前需关闭编辑器或禁用插件。
 - GDExtension 入口符号：`gdext_rust_init`（`register_types.cpp` 中的 C++ 代码的遗留名称——**不要修改** `.gdextension` 文件）。
-- 版本在 `CMakeLists.txt` 中设置：`set(PROJECT_VERSION "0.1.5-dev2")`。仅在此处更改版本，**不**在 `plugin.cfg` 中（后者由 CMake 生成）。
+- 版本在 `CMakeLists.txt` 中设置：`set(PROJECT_VERSION "0.1.5-dev3")`。仅在此处更改版本，**不**在 `plugin.cfg` 中（后者由 CMake 生成）。
 - godot-cpp 固定为 `10.0.0-rc1`（`extensions/gdext/CMakeLists.txt` 中的 FetchContent）。升级需充分测试。
 
 ## 工具注册约定
