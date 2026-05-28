@@ -1,6 +1,6 @@
 # C# 解决方案生成
 
-> **C++（当前）和 Rust（遗留）均有实现，逻辑基本相同：** 直接在 gdext 中生成 `.sln` + `.csproj` 文件，无需启动第二个 Godot 进程（避免端口 9500 冲突）。
+> 直接在 gdext 中生成 `.sln` + `.csproj` 文件，无需启动第二个 Godot 进程（避免端口 9500 冲突）。实现在 `extensions/gdext/src/commands/script_cs.cpp`。
 
 ## 文件结构
 
@@ -69,10 +69,4 @@ flowchart LR
 - `.csproj` 使用 UTF-8 **无** BOM；`.sln` 使用 UTF-8 **有** BOM（VS 要求）
 - NativeAOT 支持通过 `enable_nativeaot` 参数启用（实验性）
 
-## 实现位置
 
-| 实现 | 文件 |
-|------|------|
-| **C++（当前）** | `extensions/gdext/src/commands/script_cs.cpp` |
-| Rust（遗留） | `crates/gdext/src/commands/script_cs.rs` |
-| Python（server） | `server/src/godot_mcp_server/handler.py`（仅路由，不生成） |

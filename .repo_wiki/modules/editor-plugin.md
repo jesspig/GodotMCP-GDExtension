@@ -1,8 +1,6 @@
 # 编辑器插件（`McpEditorPlugin`）
 
-> `godot_mcp_gdext.dll` 的生命周期管理。**C++ 版本（当前）与 Rust 遗留版本差异显著**。
-
-## C++ 版本（当前）—— 极其简单
+> `godot_mcp_gdext.dll` 的生命周期管理。
 
 ### 生命周期
 
@@ -80,48 +78,4 @@ void McpEditorPlugin::_exit_tree() {
 
 ---
 
-## Rust 版本（遗留）
 
-### 生命周期
-
-```mermaid
-stateDiagram-v2
-    [*] --> EnterTree: Godot 加载插件
-    
-    EnterTree --> Initializing: enter_tree()
-    
-    state Initializing {
-        [*] --> ReadVersion
-        ReadVersion --> CreateRuntime: 创建 tokio 运行时 (2 workers)
-        CreateRuntime --> CreateDispatcher: MainThreadDispatcher
-        CreateRuntime --> CreateRegistry: create_registry() 17组 handler
-        CreateDispatcher --> StartWS: IpcWebSocketServer::new(9500)
-        StartWS --> SpawnServer: runtime.spawn(server.run())
-        SpawnServer --> InstallPump: process_frame 信号安装
-        InstallPump --> AddDock: add_control_to_dock RIGHT_UL
-        AddDock --> [*]
-    }
-    
-    Initializing --> Running
-    
-    Running --> Exiting: exit_tree()
-    
-    state Exiting {
-        [*] --> UninstallPump
-        UninstallPump --> RemoveDock
-        RemoveDock --> SendShutdown: shutdown.notify_one()
-        SendShutdown --> WaitServer: sleep 200ms
-        WaitServer --> CleanRuntime: drop runtime
-        CleanRuntime --> [*]
-    }
-```
-
-### Rust 与 C++ 的关键区别
-
-| 方面 | C++（当前） | Rust（遗留） |
-|------|-----------|-------------|
-| 初始化复杂度 | 低——约 10 行代码 | 高——需要 tokio runtime、dispatcher、shutdown signal、Dock UI |
-| 每帧任务 | `ws_server_.poll()` | `dispatcher.process_pending()` + `logging::drain_to_console()` |
-| 端口配置 | 环境变量 `GODOT_MCP_PORT` 或默认 9500 | 硬编码 9500（仅通过 CLI arg） |
-| Dock UI | 未实现 | 通过 `add_control_to_dock` 添加 |
-| 关闭 | 简单：断开 signal + stop server | 复杂：通知 shutdown → sleep → drop runtime |

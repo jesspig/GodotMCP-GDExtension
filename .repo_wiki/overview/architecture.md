@@ -1,11 +1,6 @@
 # 架构总览
 
-项目包含两种 GDExtension 实现，但只有一种（C++）在实际运行中使用：
-
-| 实现 | 路径 | 状态 |
-|------|------|------|
-| **C++** (godot-cpp) | `extensions/gdext/` | **当前活跃**——CMake 构建的主产物 |
-| Rust (godot crate) | `crates/gdext/` | **遗留**——仅用于 `cargo test` |
+项目包含一个 C++ GDExtension 实现和一个 Python MCP 服务器，双进程架构。
 
 ## 双进程设计
 
@@ -15,12 +10,10 @@ AI 客户端 ── stdio ──► godot-mcp-server.exe ── WebSocket :9500 
 
 server/ ── Python 服务器，通过 Cython --embed 编译为独立 exe
           registry.py 是工具 schema 的唯一权威来源
-extensions/gdext/ ── C++ GDExtension（当前活跃实现）
-crates/gdext/ ── Rust GDExtension（遗留，仅用于测试）
-crates/core/ ── Rust 共享协议类型（遗留，仅用于测试）
+extensions/gdext/ ── C++ GDExtension（唯一实现）
 ```
 
-## 架构图（C++ 当前实现）
+## 架构图
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -33,7 +26,7 @@ crates/core/ ── Rust 共享协议类型（遗留，仅用于测试）
 │ godot-mcp-server.exe               (server/, Python/Cython)          │
 │                                                                      │
 │ ┌──────────┐  ┌────────────┐  ┌────────────┐  ┌─────────────────┐   │
-│ │entry.pyx │→│handler.py  │→│bridge.py   │  │registry.py      │   │
+ │ │entry.py   │→│handler.py  │→│bridge.py   │  │registry.py      │   │
 │ │(asyncio) │  │(dispatch)  │  │(WebSocket)  │  │125 tools schema │   │
 │ └──────────┘  └─────┬──────┘  └──────┬──────┘  └─────────────────┘   │
 │                     │editor_ctl.py   │editor_ctl.py                   │
@@ -86,35 +79,22 @@ sequenceDiagram
     S-->>AI: stdio JSON-RPC 响应
 ```
 
-## 架构特征对比
-
-| 特征 | C++（当前） | Rust（遗留） |
-|------|------------|-------------|
-| **执行线程** | 纯 Godot 主线程 | tokio 工作线程 + 主线程 dispatcher |
-| **WebSocket** | Godot 内置 `TCPServer` + `WebSocketPeer` | tokio-tungstenite |
-| **JSON 解析** | `JSON::parse()` + `Dictionary` | serde_json |
-| **日志** | 直接 `UtilityFunctions::print` | mpsc 通道 + `godot_print!` 泵 |
-| **GDExtension 绑定** | godot-cpp 10.0.0-rc1 | `godot = "=0.5"` crate |
-| **入口符号** | `gdext_rust_init`（遗留名称） | `gdext_rust_init` |
-| **命令注册** | `HandlerRegistry` + `CommandFn` | `CommandHandler` trait + `dispatch()` |
-| **初始化级别** | `MODULE_INITIALIZATION_LEVEL_EDITOR` | `InitLevel::Editor` |
-
 ## 关键属性
 
 - **stdio 是唯一**启用的 MCP 传输
 - **IPC 线路格式**: JSON-RPC 风格的 `IpcRequest`（`method`+`params`）/`IpcResponse`（`status` tag），Python 端 `protocol.py` 有 Pydantic 模型，C++ 端 `ipc_types.hpp` 有构造辅助
 - **125 个工具**: 121 个通过 gdext 执行，4 个服务器端（`get_server_version` + 3 个 `godot_editor_*`）在 `handler.py` 中拦截
-- **工具注册表**: Python 侧 `registry.py` 是权威来源；C++ 侧 `handler_registry.cpp` 中的 `register_all_tools()` 注册所有 CommandFn
+- **工具注册表**: Python 侧 `registry.py` 是权威来源；C++ 侧 `handler_registry.cpp` 中的 `register_all_tools()` 注册 17 组 CommandFn
 - **服务器端断言**: Python 侧 `total == 125`；C++ 侧 `registry_.size()` 用于诊断
 
 ## 当前目录布局
 
 ```
-extensions/gdext/              # C++ GDExtension（当前活跃）
+extensions/gdext/              # C++ GDExtension（唯一实现）
 └── src/
     ├── register_types.cpp     # GDExtension 入口 (gdext_rust_init)
     ├── editor_plugin.cpp/.hpp # McpEditorPlugin 生命周期
-    ├── commands/              # 16 组命令处理器
+    ├── commands/              # 17 组命令处理器
     │   ├── handler_registry.cpp/.hpp  # 注册表
     │   ├── cmd_utils.cpp/.hpp/.json   # 共享工具函数
     │   └── *.cpp              # 各命令组
@@ -134,10 +114,6 @@ server/                        # Python/Cython MCP 服务器
 │   ├── registry.py            # ToolRegistry (125 tools)
 │   ├── editor_ctl.py          # 编辑器进程管理
 │   └── protocol.py            # Pydantic IPC 协议模型
-
-crates/                        # Rust 遗留代码（仅测试）
-├── core/                      # 共享协议类型
-└── gdext/                     # 旧版 Rust GDExtension
 ```
 
 ## 双进程启动顺序

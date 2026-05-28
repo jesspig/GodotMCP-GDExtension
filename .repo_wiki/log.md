@@ -12,6 +12,17 @@
 - CI/CD 页面更新（无 cargo fmt/clippy）
 - Workspace 页面更新（C++ 中心项目结构）
 
+## 2026-05-28 — 全面清理 Rust 遗留引用，对齐实际代码
+
+- **删除** 4 个纯 Rust 遗留页面：`crates/core.md`、`crates/gdext.md`、`modules/dispatcher.md`、`specification/workspace.md`
+- **新增** `modules/server.md`（从 `crates/server.md` 重写，移除 Rust 引用）
+- **新增** `specification/project-structure.md`（替换 `workspace.md`，移除 Cargo 引用）
+- **全量更新** 所有页面统一版本号为 `0.1.5-dev2`
+- **修复** 工具计数：17 组 C++ 处理器（含 search），修正 tool counts 与实际 `registry.py` 一致
+- **清理** 所有页面中的 Rust 语言/架构对比/代码示例引用
+- **修复** 事实错误：`editor_ctl.py` 版本源（pyproject.toml 非硬编码）、`entry.py`（非 `.pyx`）、IPC 错误码字符串值、CI/CD `cargo test` → `pytest`
+- **更新** `design/decisions.md` 中 ADR 以反映 Rust 代码已被完全移除
+
 ## 初始版本
 
 - 使用 Rust `gdext` crate（v0.5）创建初始 Wiki 文档

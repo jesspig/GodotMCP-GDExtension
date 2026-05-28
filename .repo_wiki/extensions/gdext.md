@@ -1,6 +1,6 @@
 # `extensions/gdext` — GDExtension C++ 实现（当前活跃）
 
-> 加载到 Godot 编辑器内的本机插件。使用 godot-cpp 10.0.0-rc1 构建。**这是项目当前活跃的 GDExtension 实现**（Rust `crates/gdext/` 是遗留实现，仅用于测试）。
+> 加载到 Godot 编辑器内的本机插件。使用 godot-cpp 10.0.0-rc1 构建。**这是项目唯一的 GDExtension 实现**。
 
 ```mermaid
 flowchart LR
@@ -24,17 +24,6 @@ flowchart LR
     CMDS -.->|Godot API| EP
     EP -.->|process_frame| IP
 ```
-
-## 与 Rust 遗留实现的关键区别
-
-| 方面 | C++（当前） | Rust（遗留） |
-|------|-----------|-------------|
-| 线程模型 | **纯主线程**——`process_frame` → `WsServer::poll()` 同步执行 | tokio 工作线程 + `MainThreadDispatcher` |
-| 日志 | 直接 `UtilityFunctions::print` / `push_warning` | mpsc 通道 + `eprintln!` + `drain_to_console()` |
-| WebSocket | Godot 内置 `TCPServer` + `WebSocketPeer`（poll 驱动） | tokio-tungstenite（spawn 处理每个连接） |
-| JSON↔Variant | Godot 原生 `Dictionary`/`JSON::stringify`/`JSON::parse` | 手写 `j2v`/`v2j` 自由函数 |
-| 命令路由 | `HandlerRegistry` + `CommandFn` 函数指针 | `CommandHandler` trait + `dispatch()` + `pipe()` |
-| 依赖 | godot-cpp 10.0.0-rc1（FetchContent） | `godot = "=0.5"` crate |
 
 ## 文件结构
 
@@ -99,6 +88,8 @@ src/
 | 17 | search | `register_search` | `search.cpp` | 3 |
 
 **总计：121 个 gdext 工具 + 4 个服务器端工具 = 125**
+
+> 注：`list_autoloads`、`add_autoload`、`remove_autoload`、`list_scenes` 4 个工具实现在 `node.cpp` 中，因注册时按功能归类在 `register_node()` 内。
 
 ## `cmd_utils.hpp` 共享工具函数
 

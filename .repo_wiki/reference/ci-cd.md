@@ -9,16 +9,14 @@ flowchart LR
     A[git push / PR] --> B[Checkout]
     B --> C[cmake -B build -S .]
     C --> D[cmake --build build --config Debug]
-    D --> E[cargo test --workspace]
+    D --> E[cd server && pytest]
 ```
 
 | 步骤 | 命令 | 作用 |
 |------|------|------|
 | Configure | `cmake -B build -S .` | CMake 配置（拉取 godot-cpp FetchContent + Cython server 编译） |
 | Build | `cmake --build build --config Debug` | 编译 C++ GDExtension + Python/Cython 服务器 |
-| Test | `cargo test --workspace` | 运行 Rust 离线测试（core + 遗留 gdext，无需 Godot） |
-
-**注意**：CI 不再运行 `cargo fmt --check` / `cargo clippy`，因为当前实现使用 C++（不在 Cargo workspace 中）。Rust 遗留代码仅通过 `cargo test` 验证。
+| Test | `cd server && pytest` | 运行 Python 服务器测试（58 个离线测试，无需 Godot） |
 
 ## Release (`.github/workflows/release.yml`)
 
@@ -65,7 +63,7 @@ flowchart TD
 # CI 流程
 cmake -B build -S .
 cmake --build build --config Debug
-cargo test --workspace
+cd server && pytest
 
 # Release 构建
 cmake -B build -S . -DRELEASE=ON

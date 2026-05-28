@@ -1,6 +1,6 @@
 # `server/` — MCP 服务器（Python/Cython）
 
-> Python 实现的 MCP 服务器，通过 Cython `--embed` 编译为独立 `.exe`。取代了曾经存在的 `crates/server` Rust 实现。
+> Python 实现的 MCP 服务器，通过 Cython `--embed` 编译为独立 `.exe`。
 
 ```mermaid
 flowchart LR
@@ -10,7 +10,7 @@ flowchart LR
     end
     
     subgraph Server["godot-mcp-server.exe (Python/Cython)"]
-        ENTRY["entry.pyx<br/>asyncio main"]
+        ENTRY["entry.py<br/>asyncio main"]
         HANDLER["handler.py<br/>GodotMcpHandler"]
         REG["registry.py<br/>ToolRegistry (125 tools)"]
         BRIDGE["bridge.py<br/>GodotBridge (WebSocket)"]
@@ -34,13 +34,13 @@ flowchart LR
 
 ## 文件
 
-### `entry.pyx`
+### `entry.py`
 
 Cython 入口文件，编译为 `entry.c` → `godot-mcp-server.exe`：
 
 - `_setup_paths()`: 配置 PYTHONHOME、添加 `.venv/site-packages` 和 `src/` 到 `sys.path`
 - `main()`: 创建 `mcp.Server("godot-mcp-server")`，注册 `list_tools`/`call_tool` 回调，通过 `mcp.server.stdio.stdio_server()` 启动事件循环
-- 使用 Python `mcp` 包（社区 MCP SDK），而非 Rust `rmcp`
+- 使用 Python `mcp` 包（社区 MCP SDK）
 
 ### `handler.py`
 
@@ -81,13 +81,6 @@ class GodotBridge:
 
 `ToolRegistry` — 工具 Schema 的唯一权威来源：
 
-```python
-_TOOLS: list[tuple[str, str, dict]] = [
-    ("ping", "检测与 Godot 编辑器的连接状态...", {"type": "object", ...}),
-    # ... 共 125 个工具
-]
-```
-
 | 方法 | 说明 |
 |------|------|
 | `get_all_tools()` | 返回所有 `ToolInfo` |
@@ -111,9 +104,11 @@ _TOOLS: list[tuple[str, str, dict]] = [
 
 `GODOT_PATH` 环境变量**必须**在 MCP 客户端 `env` 配置中设置（stdio 服务器不继承 shell 环境变量）。
 
+版本号从 `pyproject.toml` 读取：`SERVER_VERSION = _pyproject["project"]["version"]`
+
 ### `protocol.py`
 
-Pydantic 模型，匹配 `crates/core/src/protocol.rs` 的 Rust 类型：
+Pydantic 模型，定义 WebSocket IPC 协议类型：
 
 | 类 | 字段 | 说明 |
 |-----|------|------|
@@ -129,8 +124,8 @@ Pydantic 模型，匹配 `crates/core/src/protocol.rs` 的 Rust 类型：
 
 CMake 自动处理（`CMakeLists.txt`）：
 
-1. Cython `--embed` 编译 `entry.pyx` → `entry.c`
-2. Patch `entry.c` 嵌入 PYTHONHOME
+1. Cython `--embed` 编译 `entry.py` → `entry.c`
+2. Patch `entry.c` 嵌入 PYTHONHOME（`tools/patch_entry_c.py`）
 3. 用系统 C 编译器编译 `entry.c` → `godot-mcp-server.exe`
 4. 复制 `python3xy.dll` 到 exe 同目录
 
@@ -140,6 +135,4 @@ CMake 自动处理（`CMakeLists.txt`）：
 
 - **125 个工具注册在 Python 侧**，与 gdext 侧无硬性同步——如果 WebSocket 收到未知工具，gdext 返回错误
 - **不验证**工具是否存在于 gdext 端
-- `SERVER_VERSION = "0.1.5-dev.1"` 在 `editor_ctl.py` 中硬编码（与 `CMakeLists.txt` `PROJECT_VERSION` 手动同步）
 - 服务器使用 `asyncio` 事件循环，所有 I/O 操作异步
-- 独立于 tokio 运行时（tokio 仅在遗留 Rust gdext DLL 内部使用，C++ 版本无需 tokio）

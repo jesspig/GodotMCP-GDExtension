@@ -54,7 +54,7 @@ cmake --build build --config Debug --target package  # 打包
 ```bash
 cmake -B build -S .                           # 1. CMake 配置
 cmake --build build --config Debug            # 2. 构建 gdext + server
-cargo test --workspace                        # 3. Rust 测试（core + 遗留 gdext，离线无 Godot）
+cd server && pytest                           # 3. Python 服务器测试
 ```
 
 CI 只在 `master` 分支的 push 和 PR 上触发。
@@ -86,11 +86,11 @@ CI 只在 `master` 分支的 push 和 PR 上触发。
 
 ## 版本管理
 
-- 单版本源在 `CMakeLists.txt`：`set(PROJECT_VERSION "0.1.5-dev.1")`
-- CMake 生成 `plugin.cfg` 时自动填充此版本号（不再使用 Cargo.toml）
-- 升级 CMake 版本即可；不需要手动编辑 `plugin.cfg` 或 `Cargo.toml`
+- 单版本源在 `CMakeLists.txt`：`set(PROJECT_VERSION "0.1.5-dev2")`
+- CMake 生成 `plugin.cfg` 时自动填充此版本号
+- 升级 CMake 版本即可；不需要手动编辑 `plugin.cfg`
+- `pyproject.toml` 中的 `version` 需手动同步
 
 ## 依赖锁定
 
 - `godot-cpp 10.0.0-rc1`：通过 FetchContent 固定标签
-- `Cargo.lock` 已提交（用于 `cargo test --workspace`）；不要随意重新生成

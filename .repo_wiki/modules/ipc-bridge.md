@@ -1,8 +1,8 @@
 # IPC 桥接（WebSocket）
 
-> 连接 `godot-mcp-server`（Python）和 `godot_mcp_gdext`（C++ 当前 / Rust 遗留）的通信桥梁。
+> 连接 `godot-mcp-server`（Python）和 `godot_mcp_gdext`（C++）的通信桥梁。
 
-## C++（当前）—— 同步 WebSocket
+## 同步 WebSocket
 
 ```mermaid
 sequenceDiagram
@@ -71,43 +71,7 @@ void WsServer::handle_packet(int peer_id, Ref<WebSocketPeer> peer, const String 
 }
 ```
 
-## Rust（遗留）—— 异步 tokio-tungstenite
-
-```mermaid
-sequenceDiagram
-    participant Server as godot-mcp-server (Python)
-    participant GDExt as godot_mcp_gdext (Rust)
-    
-    Note over Server,GDExt: 启动阶段
-    
-    GDExt->>GDExt: TcpListener::bind("127.0.0.1:9500")
-    GDExt->>GDExt: accept → accept_async → WebSocketStream
-    GDExt-->>Server: IpcNotification{"godot_ready"}
-    
-    Note over Server,GDExt: 心跳
-    
-    loop 30s
-        GDExt->>GDExt: 发送 Ping
-        Server-->>GDExt: Pong
-    end
-    
-    Note over Server,GDExt: 工具调用 + 通知
-    
-    Server->>GDExt: IpcRequest JSON
-    GDExt->>GDExt: handle_request → route_tool_call → dispatch
-    GDExt-->>Server: IpcResponse JSON
-    
-    GDExt--)Server: IpcNotification (broadcast)
-```
-
-Rust 版本使用 tokio-tungstenite：
-
-- **异步架构**：每个连接 `spawn` 一个独立任务
-- **心跳**：30 秒 Ping 间隔，90 秒超时断开
-- **广播**：通过 `broadcast::channel` 向所有连接推送通知
-- **多线程**：tokio 工作线程（2 核）+ 主线程 dispatcher
-
-## 线路格式（两版本通用）
+## 线路格式
 
 ### 请求（Server → GDExt）
 
@@ -140,16 +104,6 @@ Rust 版本使用 tokio-tungstenite：
 {"type": "notification", "event": "godot_ready", "data": {"engine_version": "4.6.0", "plugin_version": "0.1.5-dev.1"}}
 ```
 
-## 传输细节对比
-
-| 方面 | C++（当前） | Rust（遗留） |
-|------|-----------|-------------|
-| 库 | Godot 内置 `TCPServer` + `WebSocketPeer` | tokio-tungstenite |
-| 架构 | 同步 poll，主线程 | 异步，tokio 工作线程 |
-| 心跳 | 无（当前版本） | 30s Ping / 90s 超时 |
-| 广播 | 无（当前版本） | broadcast::channel |
-| 端口 | 9500（默认），`GODOT_MCP_PORT` 环境变量可覆盖 | 9500（硬编码） |
-
 ## 类型定义
 
 ### C++（`protocol/ipc_types.hpp`）
@@ -166,10 +120,6 @@ constexpr const char *kErrCodeInternal = "INTERNAL_ERROR";
 - `make_success_result(data)` / `make_error_result(code, message)`
 - `make_response(id, result)` / `make_notification(event, data)`
 
-### Rust 遗留（`crates/core/src/protocol.rs`）
-
-Pydantic 风格 serde 类型：`IpcRequest`、`IpcResponse`、`IpcResult`（带 status tag）、`IpcNotification`、`ToolCallParams`。
-
 ### Python（`server/src/godot_mcp_server/protocol.py`）
 
 ```python
@@ -179,12 +129,12 @@ class IpcNotification(BaseModel): type: str; event: str; data: dict
 class ToolCallParams(BaseModel): tool: str; args: dict = {}
 ```
 
-## 错误码对比
+## 错误码
 
-| 错误场景 | C++ | Rust |
-|----------|-----|------|
-| 无效 JSON | `INVALID_REQUEST` | 静默跳过或返回 error |
-| 未知 method | `INVALID_REQUEST` | 回退将 method 当 tool 名 |
-| 未知工具 | `UNKNOWN_TOOL` | `IpcResult::Error { code: -1 }` |
-| 执行失败 | `TOOL_FAILED` | `IpcResult::Error { code: -2 }` |
-| 内部错误 | `INTERNAL_ERROR` | `IpcResult::Error { code: -3 }` |
+| 错误场景 | C++ 错误码 |
+|----------|-----------|
+| 无效 JSON | `INVALID_REQUEST` |
+| 未知 method | `INVALID_REQUEST` |
+| 未知工具 | `UNKNOWN_TOOL` |
+| 执行失败 | `TOOL_FAILED` |
+| 内部错误 | `INTERNAL_ERROR` |

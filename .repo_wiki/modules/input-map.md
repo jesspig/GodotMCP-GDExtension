@@ -1,6 +1,6 @@
 # Input Map 命令
 
-> **C++（`extensions/gdext/src/commands/input_map_ext.cpp`）和 Rust 遗留（`crates/gdext/src/commands/input_map.rs`）逻辑相同。** 4 个工具，管理 Godot 的输入动作映射（InputMap）。
+> 4 个工具，管理 Godot 的输入动作映射（InputMap）。实现在 `extensions/gdext/src/commands/input_map.cpp`。
 
 ## 工具列表
 
