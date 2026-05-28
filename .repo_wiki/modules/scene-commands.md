@@ -1,8 +1,8 @@
 # Scene / Node / Property 命令模式
 
-## C++ 版本（当前）—— Godot 原生 Dictionary/JSON
+## Godot 原生 Dictionary/JSON
 
-C++ 版本**无需**手写 `j2v`/`v2j` 转换函数。Godot 的 `Dictionary`/`Variant`/`JSON` 类原生支持所有类型转换：
+Godot 的 `Dictionary`/`Variant`/`JSON` 类原生支持所有类型转换，无需手写序列化函数：
 
 ```cpp
 // C++: 使用 Godot 原生类型
@@ -23,50 +23,7 @@ parser->parse(text);
 Dictionary data = parser->get_data();
 ```
 
-## Rust 遗留版本（Crates）—— j2v/v2j 转换
-
-Rust 版本使用手写的 `j2v` (JSON→Variant) 和 `v2j` (Variant→JSON) 自由函数：
-
-### `j2v` 支持的转换
-
-| JSON 输入 | Godot 类型 | 检测方式 |
-|-----------|-----------|----------|
-| `null` | `Variant::nil()` | 直接匹配 |
-| `true`/`false` | `bool` | `try_to::<bool>()` |
-| `number`（整数） | `i64` | `as_i64()` |
-| `number`（浮点） | `f64` | `as_f64()` |
-| `string` | `GString` | 默认 |
-| `"res://..."` / `"user://..."` | `Gd<Resource>`（通过 `try_load`） | 字符串前缀检查 |
-| `{"x":1,"y":2}` | `Vector2` | 精确 2 字段匹配 |
-| `{"x":1,"y":2,"z":3}` | `Vector3` | 精确 3 字段匹配 |
-| `{"x":1,"y":2,"z":3,"w":4}` | `Quaternion` | 精确 4 字段匹配 |
-| `{"r":1,"g":0,"b":0,"a":1}` | `Color` (RGBA) | 精确 4 字段匹配 |
-| `{"r":1,"g":0,"b":0}` | `Color` (RGB) | 精确 3 字段匹配 |
-| `{"position":{...},"size":{...}}` | `Rect2` | 精确 2 字段匹配 |
-| `{"resource_path":"res://..."}` | `Gd<Resource>`（通过 `try_load`） | 特定 key 匹配 |
-| `[1,2]` | `Vector2` | float 数组，len=2 |
-| `[1,2,3]` | `Vector3` | float 数组，len=3 |
-| `[1,2,3,4]` | `Color` | float 数组，len=4 |
-
-### `v2j` 支持的转换
-
-| Godot 类型 | JSON 输出 |
-|-----------|-----------|
-| `nil` | `null` |
-| `bool` | `true`/`false` |
-| `i64` | `number` |
-| `f64` | `number` |
-| `GString` | `string` |
-| `Vector2` | `{"x":..., "y":...}` |
-| `Vector3` | `{"x":..., "y":..., "z":...}` |
-| `Vector4` | `{"x":..., "y":..., "z":..., "w":...}` |
-| `Color` | `{"r":..., "g":..., "b":..., "a":...}` |
-| `Rect2` | `{"position":{"x":...,"y":...},"size":{"x":...,"y":...}}` |
-| `Quaternion` | `{"x":..., "y":..., "z":..., "w":...}` |
-| `Gd<Resource>` | `{"resource_path":"res://..."}`（有路径时）或 string |
-| 其他 | `v.to_string()` 兜底 |
-
-## 节点路径解析（两版本通用）
+## 节点路径解析
 
 `resolve_node(root, path)` 支持多种路径格式：
 
@@ -79,7 +36,7 @@ Rust 版本使用手写的 `j2v` (JSON→Variant) 和 `v2j` (Variant→JSON) 自
 | `"RootName/Child/Grandchild"` | 前缀自动剥离后从根节点开始查找 |
 | 任意 `NodePath` | 正常的 Godot NodePath 解析 |
 
-## 场景文件操作（两版本通用）
+## 场景文件操作
 
 ### EditorInterface 场景方法
 
@@ -110,7 +67,7 @@ save_scene() / save_scene_as(path)
 close_scene() → 关闭标签页
 ```
 
-## 文件系统通知（两版本通用）
+## 文件系统通知
 
 写入文件后调用，让编辑器检测文件变化：
 

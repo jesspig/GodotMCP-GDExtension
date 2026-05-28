@@ -1,6 +1,6 @@
 # Editor Control 命令（gdext 侧）
 
-> **C++（`extensions/gdext/src/commands/editor_control.cpp`）和 Rust 遗留（`crates/gdext/src/commands/editor_control.rs`）逻辑相同。** 6 个编辑器控制工具，在 gdext 进程内执行（区别于 server 侧的 `godot_editor_open/close/restart`）。
+> 6 个编辑器控制工具，在 gdext 进程内执行（区别于 server 侧的 `godot_editor_open/close/restart`）。实现在 `extensions/gdext/src/commands/editor_control.cpp`。
 
 ## 工具列表
 

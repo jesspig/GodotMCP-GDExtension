@@ -119,13 +119,19 @@ if(NOT NO_SERVER)
     add_custom_target(build-python-server ALL DEPENDS ${_server_exe})
 
     # Step 4: Copy python3 DLL alongside the exe
-    add_custom_command(
-        TARGET build-python-server POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${_python3_base_prefix}/python314.dll"
-            "${CMAKE_CURRENT_BINARY_DIR}/python314.dll"
-        COMMENT "Copying python314.dll alongside server exe"
-    )
+    # Python DLL naming: python{major}{minor}.dll (e.g., python314.dll for 3.14.x)
+    if(WIN32)
+        string(REGEX MATCH "^([0-9]+)\\.([0-9]+)" _python_ver_match "${Python3_VERSION}")
+        set(_python_dll_name "python${CMAKE_MATCH_1}${CMAKE_MATCH_2}.dll")
+        set(_python_dll_src "${_python3_base_prefix}/${_python_dll_name}")
+        add_custom_command(
+            TARGET build-python-server POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${_python_dll_src}"
+                "${CMAKE_CURRENT_BINARY_DIR}/${_python_dll_name}"
+            COMMENT "Copying ${_python_dll_name} alongside server exe"
+        )
+    endif()
 endif()
 
 # ---------------------------------------------------------------------------

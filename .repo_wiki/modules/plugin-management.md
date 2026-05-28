@@ -1,6 +1,6 @@
 # 插件管理
 
-> **C++（`extensions/gdext/src/commands/plugin_management.cpp`）和 Rust 遗留（`crates/gdext/src/commands/plugin_management.rs`）逻辑相同。** 2 个工具，管理 `res://addons/` 中的编辑器插件。
+> 2 个工具，管理 `res://addons/` 中的编辑器插件。实现在 `extensions/gdext/src/commands/plugin_management.cpp`。
 
 ## 工具列表
 

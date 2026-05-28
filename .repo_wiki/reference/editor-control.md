@@ -31,8 +31,8 @@ flowchart TD
 
 ## `get_server_version`
 
-- 直接返回 `editor_ctl.py` 中硬编码的 `SERVER_VERSION`（如 `"0.1.4"`）
-- 与 `Cargo.toml` 版本手动同步
+- 返回 `editor_ctl.py` 从 `pyproject.toml` 读取的 `SERVER_VERSION`（如 `"0.1.5-dev2"`）
+- 与 `CMakeLists.txt` 版本手动同步
 - 不涉及 WebSocket 或 gdext
 
 ## `godot_editor_open`

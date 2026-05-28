@@ -8,6 +8,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PYTHON_VERSION: "3.14"
 
 jobs:
   check:
@@ -16,20 +17,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          components: rustfmt, clippy
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - uses: Swatinem/rust-cache@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
 
-      - name: Install Linux dependencies
-        run: sudo apt-get update && sudo apt-get install -y libclang-dev
-
-      - name: Check formatting
-        run: cargo fmt --check --all
-
-      - name: Clippy
-        run: cargo clippy --workspace -- -D warnings
+      - name: Create virtual environment
+        run: |
+          uv venv .venv
+          uv pip install -e ".[dev]"
 
       - name: Configure CMake
         run: cmake -B build -S .
@@ -37,5 +36,7 @@ jobs:
       - name: Build
         run: cmake --build build --config Debug
 
-      - name: Test
-        run: cargo test --workspace
+      - name: Run Python tests
+        run: |
+          source .venv/bin/activate
+          pytest

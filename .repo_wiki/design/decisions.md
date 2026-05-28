@@ -24,13 +24,13 @@
 - 正面：也容易用 wscat 等工具调试
 - 负面：如果用户同时打开多个 Godot 实例，有端口冲突风险
 
-## ADR-003: `process_frame` 而非 `EditorPlugin::_process()` 用于泵调度
+## ADR-003: `process_frame` 而非 `EditorPlugin::_process()` 用于驱动
 
 **状态**：已接受  
-**背景**：`EditorPlugin` trait 提供了 `_process(&mut self, delta)` 方法，但我们发现如果在该上下文中调用某些 Godot API（如 `EditorInterface`），会遇到 `Gd::bind_mut()` 死锁。  
-**决策**：使用 `Callable::from_fn` 连接 `SceneTree::process_frame` 信号来泵 dispatcher 和日志队列，而不是重写 `_process()`。  
+**背景**：`EditorPlugin::_process()` 在场景播放时停止触发，不适合需要持续轮询的 WebSocket 服务器。  
+**决策**：使用 `SceneTree::process_frame` 信号来驱动 `WsServer::poll()`，而不是重写 `_process()`。  
 **后果**：
-- 正面：完全避免 `bind_mut` 死锁
+- 正面：`process_frame` 在场景播放时继续触发，确保实时工具正常工作
 - 正面：`McpEditorPlugin::_process()` 被有意留空——清楚表明不在此处运行逻辑
 - 负面：增加了一层间接
 
@@ -45,20 +45,19 @@
 - 负面：两次注册（服务器和 gdext）必须保持同步——添加/删除工具时需要在两侧更新
 - 负面：测试依赖 `total == 125` 的硬编码断言
 
-## ADR-005: 使用 CMake 构建（C++ GDExtension 通过 FetchContent）
+## ADR-005: 使用 CMake 构建（GDExtension + 服务器）
 
-**状态**：重新考虑 → **已废弃（原 Rust 版）** / **已接受（C++ 版）**  
-**背景**：原版使用 CMake + Corrosion 集成 Rust。C++ 重写后，godot-cpp 通过 FetchContent 拉取，不再需要 Corrosion。  
+**状态**：已接受  
+**背景**：godot-cpp 通过 FetchContent 拉取，Cython --embed 编译服务器。  
 **决策**：使用 CMake 作为顶级构建系统，通过 `add_subdirectory(extensions/gdext)` 构建 C++ GDExtension + Cython --embed 编译服务器。  
 **后果**：
 - 正面：统一的构建入口——`cmake --build`
-- 正面：不再需要 Corrosion（减少了 CMake 模块依赖）
 - 正面：CMake 处理跨平台任务（进程终止、文件操作、CPack 打包）
-- 负面：`build.py` 包装器是必要的，但不是必需的
+- 正面：`build.py` 是便捷包装，但 CMake 可直接使用
 
 ## ADR-006: C# Solution 直接生成（不启动第二个 Godot 进程）
 
-**状态**：已接受（C++ 和 Rust 版本均实现）  
+**状态**：已接受  
 **背景**：Godot 的 `--generate-mono-solution` 标志启动一个新的编辑器进程，与我们的 gdext 插件竞争 WebSocket 端口 9500。  
 **决策**：直接在 gdext 中生成 `.sln` 和 `.csproj` 文件，无需启动编辑器进程。  
 **后果**：
@@ -67,21 +66,18 @@
 - 负面：需要维护与 Godot 4.6 .NET SDK 格式兼容的模板
 - 负面：`.sln` 和 `.csproj` 生成的逻辑需要跟踪 Godot .NET SDK 版本的变化
 
-## ADR-007: 跨线程日志使用 mpsc + eprintln 镜像（已废弃）
+## ADR-007: 放弃跨线程日志方案，采用直接 GDExtension API
 
-**状态**：**已废弃**（C++ 版本有更好的替代实现）  
-**背景**：Godot 的 `godot_print!` 宏如果从非主线程调用会发生未定义行为（通常崩溃）。  
-**决策**（Rust 遗留）：tokio 工作线程调用 `log_info/log_warn/log_error` → 消息进入 mpsc 通道 + `eprintln!` 到终端。主线程从 `process_frame` 信号泵中转发到 `godot_print!`。  
-**后果**（Rust 遗留）：
-- 正面：工作线程上的日志调用可靠且立即
-- 正面：日志最终出现在 Godot 控制台和客户端终端中
-- 负面：Godot 控制台中的日志最多延迟一帧
-
-**C++ 实现**：所有代码在主线程运行，直接调用 `UtilityFunctions::print/push_warning/push_error`，无需 mpsc 通道。
+**状态**：已接受  
+**背景**：C++ 版本所有代码在主线程运行，没有跨线程日志需求。  
+**决策**：直接调用 `UtilityFunctions::print/push_warning/push_error`，28 行实现覆盖所有日志需求。  
+**后果**：
+- 正面：日志即时输出，无延迟
+- 正面：28 行代码 vs Rust 版本的 137 行
 
 ## ADR-008: `call_method` 使用 `Object::call()`（不通过 Deferred/Callable）
 
-**状态**：已接受（两版本相同）  
+**状态**：已接受  
 **背景**：需要一个通用的方式来调用节点上的任何方法。  
 **决策**：使用 `node.call(method, &args)` 直接调用。  
 **后果**：
@@ -102,5 +98,5 @@
 - 正面：JSON↔Variant 转换使用 Godot 原生 `Dictionary`/`JSON`（无 serde 依赖）
 - 正面：构建系统简化——无 Corrosion，无 tokio
 - 正面：编译速度显著提升（C++ 比 Rust gdext 编译快得多）
+- 正面：Rust 遗留代码（`crates/`）已被完全移除——Cargo workspace、`cargo test`、`Cargo.lock` 等均不再存在
 - 负面：C++ 缺乏 Rust 的所有权和生命周期保证
-- 负面：维护两套构建系统（CMake + Cargo）用于测试遗留 Rust 代码

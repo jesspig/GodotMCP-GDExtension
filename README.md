@@ -1,7 +1,8 @@
 # Godot MCP
 
-[![Version](https://img.shields.io/badge/version-0.1.2-blue?logo=github)](https://github.com/jessp/godot-mcp)
-[![Rust](https://img.shields.io/badge/Rust-2024%20edition-orange?logo=rust)](https://www.rust-lang.org)
+[![Version](https://img.shields.io/badge/version-0.1.5--dev2-blue?logo=github)](https://github.com/jessp/godot-mcp)
+[![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=c%2B%2B)](https://isocpp.org)
+[![Python](https://img.shields.io/badge/Python-3.13%2B-3776AB?logo=python)](https://python.org)
 [![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?logo=godot%20engine)](https://godotengine.org)
 [![MCP](https://badge.mcpx.dev/?type=plugin&plugin_id=github.com/jessp/godot-mcp&logo=true)](https://modelcontextprotocol.io)
 [![License](https://img.shields.io/badge/License-MIT-green?logo=open-source-initiative)](License)
@@ -26,7 +27,7 @@ graph LR
     subgraph GodotProc["Godot Editor"]
         WS["IpcWebSocketServer"]
         Dispatcher["MainThreadDispatcher"]
-        Commands["17 handler groups<br/>122 gdext commands"]
+        Commands["17 handler groups<br/>121 gdext commands"]
         Editor["EditorInterface /<br/>SceneTree / Node API"]
     end
 
@@ -45,22 +46,22 @@ Godot MCP exposes the Godot 4.6+ editor to AI tools through **125 commands** —
 ## Features
 
 - **125 Editor Commands** — Scene/node manipulation, properties, search, undo/redo, collision shapes, GDScript/C# script management, LSP validation, file search/replace, project settings, multi-scene operations
-- **Dual-Process Architecture** — stdio MCP server + in-editor GDExtension plugin, connected via local WebSocket
-- **Thread-Safe Design** — Async tokio runtime paired with a main-thread dispatcher for safe Godot API access
+- **Dual-Process Architecture** — Python/Cython MCP server + C++ GDExtension plugin (godot-cpp 10.0.0-rc1), connected via local WebSocket
+- **Thread-Safe Design** — Async Python runtime paired with a main-thread dispatcher for safe Godot API access
 - **12 AI Client Support** — Claude Code, OpenCode, Cursor, GitHub Copilot, Codex, Trae, and more (stdio transport)
 - **Cross-Platform** — Windows, macOS, and Linux
-- **58 Offline Tests** — Protocol round-trips, tool registry correctness, and E2E handler tests (no Godot needed)
+- **36 Offline Tests** — Protocol round-trips, tool registry correctness, handler dispatch, and editor control tests (no Godot needed)
 
 ## How It Works
 
 ```
-AI Assistant ──► godot-mcp-server ──► godot_mcp_gdext
-   (stdio)      (Python/Cython)  ws://127.0.0.1:9500   (GDExtension plugin)
+AI Assistant ──► godot-mcp-server ──► godot_mcp_gdext.dll
+   (stdio)      (Python/Cython)  ws://127.0.0.1:9500   (C++ GDExtension plugin)
 ```
 
 1. Your AI client launches `godot-mcp-server` and speaks to it over stdio (MCP protocol).
 2. The server forwards tool calls to the Godot editor plugin via WebSocket on `localhost:9500`.
-3. The plugin dispatches each call to the Godot main thread, executes editor APIs safely, and returns results.
+3. The plugin dispatches each call to the Godot main thread via `EditorPlugin::_on_process_frame()`, executes editor APIs safely, and returns results.
 4. The server relays results back to the AI client as MCP responses.
 
 ## Installation
@@ -68,8 +69,9 @@ AI Assistant ──► godot-mcp-server ──► godot_mcp_gdext
 ### Prerequisites
 
 - [Godot 4.6+](https://godotengine.org/download)
-- [Rust](https://rustup.rs) (stable channel, via `rustup`)
-- [Python 3](https://www.python.org) (for the build script)
+- [CMake 3.22+](https://cmake.org/download)
+- [Python 3.13+](https://www.python.org)
+- [Visual Studio 2022](https://visualstudio.microsoft.com) (Windows) with C++ toolchain, or equivalent on macOS/Linux
 
 ### Build
 
@@ -80,14 +82,14 @@ py -3 build.py
 ```
 
 This produces:
-- `addons.zip` — extract into any Godot project to install the editor plugin
+- `build/addons.zip` — extract into any Godot project to install the editor plugin
 - `build/godot-mcp-server.exe` (Windows) or `build/godot-mcp-server` (Unix)
 
 > **On Windows**, always use `py -3` instead of `python` — the Microsoft Store stubs hang silently.
 
 ### Install the Plugin in Godot
 
-1. Extract `addons.zip` into your Godot project root.
+1. Extract `build/addons.zip` into your Godot project root.
 2. Open the project in Godot.
 3. Go to **Project → Project Settings → Plugins** and enable **Godot MCP**.
 4. You should see `[Godot MCP] Plugin loaded!` in the Output panel.
@@ -186,25 +188,38 @@ See the [Tool Catalog](.repo_wiki/en/reference/tools-catalog.md) for detailed ar
 ### Project Structure
 
 ```
-crates/
-├── core/          Shared protocol types (IpcRequest, IpcResponse, ToolCallParams)
-└── gdext/         GDExtension cdylib — editor plugin, WS server, 122 command handlers
+server/                     Python MCP server (Cython --embed → .exe)
+├── src/godot_mcp_server/
+│   ├── protocol.py         IPC protocol models
+│   ├── registry.py         Tool schema authority (125 tools)
+│   ├── handler.py          GodotMcpHandler — tool call dispatch
+│   ├── bridge.py           GodotBridge — WebSocket client
+│   └── editor_ctl.py       Editor process control
+├── tests/                  36 offline tests
+└── entry.py                Cython entry point
 
-server/
-├── src/           Python MCP server — MCP stdio transport, tool registry, WS client
-└── entry.pyx      Cython entry point compiled to executable
+extensions/gdext/           C++ GDExtension plugin (godot-cpp 10.0.0-rc1)
+├── CMakeLists.txt
+└── src/
+    ├── register_types.cpp  GDExtension entry (symbol: gdext_rust_init)
+    ├── editor_plugin.cpp   EditorPlugin — WS poll via _on_process_frame()
+    ├── ipc/ws_server.cpp   WebSocket server (TCPServer + WebSocketPeer)
+    ├── lsp/client.cpp      Godot LSP client (GDScript validation)
+    ├── protocol/ipc_types.hpp
+    └── commands/           17 handler groups + utilities
+        ├── handler_registry.cpp/hpp
+        ├── cmd_utils.cpp/hpp
+        └── cmd_<group>.cpp  (17 groups)
 ```
 
 ### CI Gates
 
-Run these in order before pushing:
-
 ```bash
-cargo fmt --check --all                       # Formatting
-cargo clippy --workspace -- -D warnings       # Linting (strict)
 cmake -B build -S .                           # Configure CMake
 cmake --build build --config Debug            # Build gdext + server
-cargo test --workspace                        # Tests (58, all offline, no Godot)
+cd server && pytest                           # 36 tests (offline, no Godot)
+ruff check server/src                         # Lint
+mypy server/src --strict                      # Type check
 ```
 
 ### Build Flags
@@ -212,7 +227,7 @@ cargo test --workspace                        # Tests (58, all offline, no Godot
 ```bash
 py -3 build.py                                # Debug + addons.zip
 py -3 build.py --release                      # Release + addons.zip
-py -3 build.py --clean                        # cargo clean + wipe addons/bin/
+py -3 build.py --clean                        # Clear CMake cache (keeps _deps/)
 py -3 build.py --no-zip                       # Skip zip (fast iteration)
 py -3 build.py --no-server                    # DLL only (editor changes)
 ```
@@ -224,16 +239,16 @@ py -3 build.py --no-server                    # DLL only (editor changes)
 
 ### Key Constraints
 
-- **Pinned deps**: `godot = "=0.5"`. Don't bump without testing.
-- **Rust channel**: `stable` (via `rust-toolchain.toml`).
-- **`Cargo.lock`** is committed (binary crate).
-- **Version** auto-syncs from `Cargo.toml` → `plugin.cfg` via CMake. Bump cargo version only.
-- **Adding a tool** requires registering the schema in `server/src/godot_mcp_server/registry.py` AND adding a routing arm in `ws_server.rs::route_tool_call`.
+- **Pinned deps**: `godot-cpp` at `10.0.0-rc1` (FetchContent). Don't bump without testing.
+- **Python**: `>=3.13`, dependency management via `uv`.
+- **`godot_mcp.gdextension`**: entry symbol `gdext_rust_init`, `compatibility_minimum = "4.6"`.
+- **Version** maintained in `CMakeLists.txt` (`set(PROJECT_VERSION "0.1.5-dev2")`). Only change there — `plugin.cfg` is generated by CMake.
+- **Adding a tool** requires registering the schema in `server/src/godot_mcp_server/registry.py` AND adding a `register_<group>()` function in `extensions/gdext/src/commands/handler_registry.cpp`.
 
 ## Documentation
 
-- [Architecture Overview](.repo_wiki/en/overview/architecture.md) — Two-process, three-crate design
-- [Threading Model](.repo_wiki/en/overview/threading-model.md) — tokio ↔ main-thread split and dispatcher pattern
+- [Architecture Overview](.repo_wiki/en/overview/architecture.md) — Dual-process, Python server + C++ GDExtension
+- [Threading Model](.repo_wiki/en/overview/threading-model.md) — Main-thread dispatcher pattern
 - [Tool Catalog](.repo_wiki/en/reference/tools-catalog.md) — All 125 tools with args and return shapes
 - [Client Configuration](.repo_wiki/en/reference/client-config.md) — 12 AI client config templates
 - [Build & Package](.repo_wiki/en/reference/build-and-package.md) — Build flags, CI gates, gotchas

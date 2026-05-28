@@ -1,8 +1,8 @@
 # 线程模型
 
-> C++ 版本极其简单：**一切都在 Godot 主线程上运行**。Rust 遗留版本需要复杂的 tokio↔主线程分离。
+> **一切都在 Godot 主线程上运行**——是项目最简单可靠的架构决策。
 
-## C++（当前）—— 纯主线程
+## 纯主线程
 
 ```mermaid
 flowchart LR
@@ -26,31 +26,11 @@ C++ 版本**没有任何工作线程**。所有操作（WebSocket 接受、JSON 
 - 无 `bind_mut` 死锁风险
 - 所有 `cmd_*` 函数可以直接调用 Godot API
 
-## Rust（遗留）—— tokio + 主线程 dispatcher
+## 为何选择纯主线程
 
-```
-┌──────────────────────────────┐     ┌──────────────────────────────┐
-│ tokio 工作线程 (2核)          │     │ Godot 主线程                 │
-│                              │     │                              │
-│ route_tool_call()            │     │ process_frame 泵             │
-│   └─ dispatcher.submit() ───►│     │   ├─ process_pending()       │
-│                              │ ──► │   └─ drain_to_console()      │
-│ log_info/log_warn/log_error ─┤     │                              │
-│   (mpsc 通道 + eprintln!)    │     │ godot_print!/godot_warn!     │
-└──────────────────────────────┘     └──────────────────────────────┘
-```
+Godot GDExtension API 要求所有 API 调用发生在主线程。C++ godot-cpp 绑定没有额外的线程借用检查机制，因此只要保证所有代码跑在主线程即可。`extensions/gdext/` 通过 `_on_process_frame` 确保这一点。
 
-**核心问题**：`godot` Rust crate 要求所有 Godot API 调用必须从主线程进行。从 tokio 工作线程调用 `godot_print!` 会触发未定义行为（通常崩溃）。
-
-**两个跨线程机制**：
-1. **MainThreadDispatcher**：工作线程提交闭包 → `VecDeque` → 主线程每帧排空并执行
-2. **mpsc 日志通道**：工作线程调用 `log_info` → mpsc 通道（+ `eprintln!` 镜像到 stderr）→ 主线程每帧排空到 `godot_print!`
-
-两个队列都通过 `Callable::from_fn` 挂载在 `SceneTree::process_frame` 信号上——**不在** `EditorPlugin::_process()` 中，以避免 `bind_mut` 死锁。
-
-## 为什么 C++ 如此简单？
-
-Rust 的 `godot` crate 使用独特的 `Gd<T>::bind_mut()` 借用机制，该机制在运行时检查绑定是否已被借用——从非主线程调用时会 panic。godot-cpp （C++ 版本使用的）没有这种机制：它是一个普通的 C++ 类库，所有 API 调用仅是正常函数调用，没有线程借用检查。GDExtension API 本身确实要求在主线程调用，但`extensions/gdext/`中的所有代码都保证在主线程上运行（由 `_on_process_frame` 保证），因此无需额外基础设施。
+相比之下，Rust 的 `gdext` crate 的 `Gd<T>::bind_mut()` 借用机制增加了线程复杂性，是项目从 Rust 迁移到 C++ 的关键动因之一。
 
 ## 实现细节（C++）
 
@@ -74,11 +54,4 @@ void McpEditorPlugin::_on_process_frame() {
 }
 ```
 
-## 处理 Rust 遗留代码时应避免的问题
 
-当修改或审查 `crates/gdext/`（Rust）中的代码时：
-
-1. 绝不在 tokio 工作线程上调用 `godot_print!`、`godot_warn!`、`godot_error!`
-2. 所有 `cmd_*` 函数必须通过 `dispatcher.submit()` 调用
-3. 使用 `pipe()` 包装 dispatcher 结果以正确传播 JSON 级的错误
-4. 闭包必须 `move` 捕获值，而非引用
