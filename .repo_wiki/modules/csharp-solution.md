@@ -1,6 +1,6 @@
 # C# 解决方案生成
 
-> 直接在 gdext 中生成 `.sln` + `.csproj` 文件，无需启动第二个 Godot 进程（避免端口 9500 冲突）。实现在 `extensions/gdext/src/commands/script_cs.cpp`。
+> 直接在 gdext 中生成 `.sln` + `.csproj` 文件，无需启动第二个 Godot 进程。实现在 `extensions/gdext/src/commands/script_cs.cpp`。
 
 ## 文件结构
 

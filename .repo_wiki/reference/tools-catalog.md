@@ -1,13 +1,11 @@
 # 工具目录
 
-> 全部 125 个 MCP 工具的描述、参数和返回值。按处理器分组，共 17 个 C++ gdext 文件（16 组活跃注册 115 个工具）+ 4 个服务器端拦截工具。
+> 全部 121 个 MCP 工具的描述、参数和返回值。按处理器分组，共 17 个 C++ gdext 文件（16 组活跃注册 115 个工具）。
 
 ## 分组速览
 
 | 组 | 计数 | 路由 |
 |----|------|------|
-| [Editor Control（服务器端）](#editor-control-服务器端-3) | 3 | server-side (handler.py) |
-| [get_server_version](#get_server_version) | 1 | server-side (handler.py) |
 | [MetaCommands](#metacommands-3) | 3 | gdext（`meta.cpp`） |
 | [NodeCommands](#nodecommands-21) | 21 | gdext（`node.cpp`） |
 | [PropertyCommands](#propertycommands-21) | 21 | gdext（`property.cpp`） |
@@ -25,45 +23,9 @@
 | [ProjectSettingsExtCommands](#projectsettingsextcommands-10) | 10 | gdext（`project_settings_ext.cpp`） |
 | [PluginManagementCommands](#pluginmanagementcommands-2) | 2 | gdext（`plugin_management.cpp`） |
 | [InputMapCommands](#inputmapcommands-4) | 4 | gdext（`input_map.cpp`） |
-| **总计** | **125** | |
+| **总计** | **121** | |
 
 > **注**：ScriptCsCommands（6 个 C# 工具）在 `handler_registry.cpp` 中已声明但未在 `register_all_tools()` 中调用，运行时不可用。`list_autoloads`、`add_autoload`、`remove_autoload`、`list_scenes` 注册在 `project_settings.cpp` 的 `register_project_settings()` 中。
-
----
-
-## Editor Control（服务器端, 3）
-
-需要 `GODOT_PATH` 环境变量。
-
-### `godot_editor_open`
-启动 Godot 编辑器并打开项目。
-
-| 参数 | 类型 | 必须 | 默认 |
-|------|------|------|------|
-| `project_path` | string | 否 | `example/` |
-
-**返回**: `{"status": "opened", "pid": ..., "godot_path": "...", "project_path": "..."}`
-
-### `godot_editor_close`
-关闭 Godot 编辑器进程。
-
-**返回**: `{"status": "closed" | "not_running", "process_name": "..."}`
-
-### `godot_editor_restart`
-重启 Godot 编辑器。
-
-| 参数 | 类型 | 必须 | 默认 |
-|------|------|------|------|
-| `project_path` | string | 否 | `example/` |
-
-**返回**: `{"status": "restarted", "pid": ..., "was_running": bool, ...}`
-
----
-
-### `get_server_version`
-获取 godot-mcp-server 版本号。
-
-**返回**: `SERVER_VERSION`（从 `pyproject.toml` 读取）
 
 ---
 

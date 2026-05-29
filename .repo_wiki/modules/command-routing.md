@@ -2,41 +2,6 @@
 
 ## 完整的调用链路
 
-### 路径 A: Legacy stdio → WebSocket
-
-```
-AI 客户端 call_tool("get_node_position", {"node_path": "Player"})
-  │
-  ▼
-godot-mcp-server (Python) / handler.py
-  ├─ match "get_server_version" → 直接返回（不转发）
-  ├─ match "godot_editor_*" → 服务器端处理（不转发到 gdext）
-  ├─ else → _forward_tool_call(name, args)
-  │
-  ▼ (WebSocket :9500)
-godot_mcp_gdext / ws_server.cpp → handle_packet()
-  │
-  ├─ 解析 JSON → 验证 method=="tool_call" → 提取 tool + args
-  ├─ HandlerRegistry::find(tool) → 查找 CommandFn
-  │   ├─ 未找到 → 返回 "Unknown tool: ..." 错误
-  │   └─ 找到 → 执行 CommandFn(args) ← 主线程，同步
-  │       │
-  │       ▼
-  │       函数调用 EditorInterface → Node API
-  │       │
-  │       ▼ (返回值 Dictionary)
-  │       if data.has("error") → 返回错误响应
-  │       else → 返回成功响应 {"status":"success", "data": {...}}
-  │
-  ▼
-godot-mcp-server → JSON-RPC 响应（TextContent）
-  │
-  ▼
-AI 客户端 {"result": {"x": 100, "y": 200}}
-```
-
-### 路径 B: MCP Streamable HTTP
-
 ```
 AI 客户端 HTTP POST /mcp {"method": "tools/call", "params": {"name": "get_node_position", "arguments": {...}}}
   │
@@ -49,7 +14,6 @@ godot_mcp_gdext / http_server.cpp → handle_post()
   ▼
 mcp_handler.cpp → handle_tools_call()
   │
-  ├─ 检查 server-only 工具 → 返回空结果（由 stdio 服务器处理）
   ├─ HandlerRegistry::find(tool) → 查找 CommandFn
   │   └─ 执行 CommandFn(args) ← 主线程，同步
   │       │
@@ -94,10 +58,7 @@ AI 客户端
 
 **总计**：17 个文件定义 121 个工具，16 组在 `register_all_tools()` 中活跃注册（115 个），`register_script_cs`（6 个 C# 工具）已声明但未调用。
 
-Python 侧 `registry.py` 注册全部 125 个工具 schema（含 4 个服务器端 + 121 个 gdext），不区分 gdext 侧是否活跃。
-
 ## 注意事项
 
-- `get_server_version`、`godot_editor_open/close/restart` 在 Python 服务器端处理，不转发到 gdext
 - 所有命令在主线程同步执行，godot-cpp API 直接调用无限制
-- 添加新工具时，`ws_server.cpp` 和 `http_server.cpp` **都不需要修改**——`HandlerRegistry::find()` 自动覆盖注册的工具
+- 添加新工具时，`http_server.cpp` **不需要修改**——`HandlerRegistry::find()` 自动覆盖注册的工具

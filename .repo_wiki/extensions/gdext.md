@@ -7,7 +7,6 @@ flowchart LR
     subgraph Godot["Godot Editor Process"]
         subgraph DLL["godot_mcp_gdext.dll"]
             EP["editor_plugin.cpp<br/>McpEditorPlugin"]
-            WS["ipc/ws_server.cpp<br/>WsServer (:9500)"]
             HTTP["ipc/http_server.cpp<br/>HttpServer (:9600)"]
             MCP["mcp/mcp_handler.cpp<br/>McpHandler"]
             REG["commands/handler_registry.cpp<br/>HandlerRegistry"]
@@ -16,22 +15,15 @@ flowchart LR
         end
     end
     
-    subgraph Server["godot-mcp-server.exe (Python)"]
-        WSCL["WebSocket Client"]
-    end
-    
     subgraph AIClient["AI 客户端"]
         HTTPCL["HTTP Client"]
     end
     
-    Server <-->|tool_call IPC| WS
     AIClient <-->|MCP JSON-RPC| HTTP
     HTTP --> MCP
     MCP --> REG
-    WS --> REG
     REG --> CMDS
     CMDS -.->|Godot API| EP
-    EP -.->|process_frame| WS
     EP -.->|process_frame| HTTP
 ```
 
@@ -63,12 +55,11 @@ src/
 │   ├── input_map.cpp               # 输入动作管理 (4)
 │   └── plugin_management.cpp       # 列出/启用/禁用插件 (2)
 ├── ipc/
-│   ├── ws_server.cpp/.hpp          # Legacy WebSocket 服务器 (:9500)
 │   └── http_server.cpp/.hpp        # MCP Streamable HTTP 服务器 (:9600)
 ├── mcp/
 │   └── mcp_handler.cpp/.hpp        # MCP JSON-RPC 2.0 会话管理
 ├── protocol/
-│   └── ipc_types.hpp               # IPC 协议格式常量 + 构造辅助
+│       └── ipc_types.hpp               # 错误码常量
 ├── lsp/
 │   └── client.cpp/.hpp             # GDScript LSP 验证 (StreamPeerTCP)
 └── logging.hpp                     # 日志 inline 函数（print/push_warning/push_error）
@@ -99,8 +90,6 @@ src/
 | 17 | search | `register_search` | `search.cpp` | 活跃 | 3 |
 
 **总计**：17 个文件定义 121 个工具。16 组活跃注册共 115 个工具。`register_script_cs`（6 个 C# 工具）在 `handler_registry.cpp` 中已声明但未在 `register_all_tools()` 中调用。
-
-Python 侧 `registry.py` 注册全部 125 个工具 schema（含 4 个服务器端）。
 
 ## `cmd_utils.hpp` 共享工具函数
 

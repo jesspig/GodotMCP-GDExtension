@@ -2,6 +2,30 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-05-30 — 移除 Python 服务器，统一为单进程架构
+
+- **删除** `modules/server.md`（Python/Cython MCP 服务器文档）
+- **删除** `reference/editor-control.md`（服务器端编辑器控制工具文档）
+- **重写** `overview/architecture.md`：双进程 → 单进程（C++ GDExtension only，MCP Streamable HTTP :9600）
+- **重写** `overview/threading-model.md`：移除 WsServer，仅保留 HttpServer poll
+- **重写** `modules/ipc-bridge.md`：移除 WebSocket 路径 A，仅保留 MCP Streamable HTTP
+- **重写** `specification/ipc-protocol.md`：移除 WebSocket IPC 协议，仅保留 HTTP JSON-RPC 2.0
+- **重写** `reference/client-config.md`：stdio → streamable-http 配置
+- **重写** `design/decisions.md`：更新 ADR 反映单进程架构
+- **更新** `index.md`：移除 Python 服务器引用，更新描述
+- **更新** `modules/editor-plugin.md`：移除 ws_server_ 引用
+- **更新** `modules/command-routing.md`：移除 stdio/WebSocket 路径
+- **更新** `modules/lsp-client.md`：移除 Python 服务器中转
+- **更新** `modules/editor-control-gdext.md`：移除服务器端对比
+- **更新** `modules/dock-ui.md`：WebSocket → HTTP
+- **更新** `modules/csharp-solution.md`：移除端口 9500 引用
+- **更新** `specification/project-structure.md`：移除 server/ 目录
+- **更新** `reference/ci-cd.md`：移除 Python/Cython/server 引用
+- **更新** `reference/build-and-package.md`：移除 Python 服务器构建流程
+- **更新** `reference/tools-catalog.md`：移除服务器端工具（125 → 121）
+- **更新** `reference/client-quirks.md`：更新为 Streamable HTTP
+- **更新** `extensions/gdext.md`：移除 WsServer 和 Python 客户端引用
+
 ## 2026-05-29 — 全面更新：HTTP 服务器、工具计数修正、架构文档重构
 
 - **新增记录**: MCP Streamable HTTP 传输（`HttpServer` :9600 + `McpHandler` JSON-RPC 2.0 会话管理）
