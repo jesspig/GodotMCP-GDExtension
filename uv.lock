@@ -188,7 +188,7 @@ wheels = [
 
 [[package]]
 name = "godot-mcp"
-version = "0.1.5.dev2"
+version = "0.1.5.dev3"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
