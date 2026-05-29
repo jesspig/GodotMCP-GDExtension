@@ -17,11 +17,12 @@
 ## ADR-002: WebSocket 而非 Unix Domain Socket / Named Pipe
 
 **状态**：已接受  
-**背景**：需要跨平台 IPC 解决方案。Unix 域套接字在 Windows 上不好用（Named Pipes 更合适但在 Rust 中比较麻烦）。  
-**决策**：使用 WebSocket（ws://127.0.0.1:9500），跨平台可靠且在 Rust 生态系统中支持良好。  
+**背景**：需要跨平台 IPC 解决方案。Unix 域套接字在 Windows 上不好用（Named Pipes 更合适但复杂）。  
+**决策**：使用 WebSocket（`ws://127.0.0.1:9500`），利用 Godot 内置 `TCPServer` + `WebSocketPeer` 实现。  
 **后果**：
-- 正面：`tokio-tungstenite` 在 Windows、macOS、Linux 上开箱即用
+- 正面：Godot 内置 WebSocket 支持在 Windows、macOS、Linux 上开箱即用
 - 正面：也容易用 wscat 等工具调试
+- 正面：无第三方依赖（无 tokio-tungstenite）
 - 负面：如果用户同时打开多个 Godot 实例，有端口冲突风险
 
 ## ADR-003: `process_frame` 而非 `EditorPlugin::_process()` 用于驱动
@@ -100,3 +101,26 @@
 - 正面：编译速度显著提升（C++ 比 Rust gdext 编译快得多）
 - 正面：Rust 遗留代码（`crates/`）已被完全移除——Cargo workspace、`cargo test`、`Cargo.lock` 等均不再存在
 - 负面：C++ 缺乏 Rust 的所有权和生命周期保证
+
+## ADR-010: 新增 MCP Streamable HTTP 传输
+
+**状态**：已接受  
+**日期**：2026  
+**背景**：Legacy WebSocket IPC 路径需要 Python 服务器中转（stdio → Python → WebSocket → C++），增加了延迟和部署复杂度。MCP 规范定义了 Streamable HTTP 传输，支持 AI 客户端直接连接。  
+**决策**：在 gdext 中实现 `HttpServer`（HTTP + SSE）和 `McpHandler`（JSON-RPC 2.0 会话管理），监听 `:9600`，支持 AI 客户端直接通过 HTTP 连接。  
+**后果**：
+- 正面：消除 Python 中转层延迟（可选完全绕过 godot-mcp-server.exe）
+- 正面：符合 MCP 规范的标准化传输
+- 正面：支持 SSE 服务器推送事件
+- 负面：两个端口需要管理（9500 legacy + 9600 HTTP）
+- 负面：增加了 HTTP 解析和会话管理代码量
+
+## ADR-011: `register_script_cs` 声明但未注册
+
+**状态**：已接受  
+**背景**：C# 脚本工具（`script_cs.cpp`，6 个工具）已实现并通过 `register_script_cs` 注册函数定义，但 `register_all_tools()` 中未调用。  
+**决策**：保持声明但不调用，直到 C# 支持经过完整测试。  
+**后果**：
+- 正面：避免暴露未充分测试的工具
+- 负面：Python 侧 registry.py 注册了这 6 个工具的 schema，但运行时不可用
+- 负面：需要跟踪此状态以避免混淆

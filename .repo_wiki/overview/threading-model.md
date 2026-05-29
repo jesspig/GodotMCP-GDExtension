@@ -10,14 +10,17 @@ flowchart LR
         direction TB
         A["EditorPlugin::_on_process_frame()<br/>(通过 process_frame 信号每帧调用)"]
         B["WsServer::poll()"]
-        C["接受新连接 → 处理 JSON 请求 → 查找 HandlerRegistry → 执行 CommandFn"]
+        C["HttpServer::poll()"]
+        D["接受连接 → 解析请求 → 查找 HandlerRegistry → 执行 CommandFn"]
     end
     
     A --> B
-    B --> C
+    A --> C
+    B --> D
+    C --> D
 ```
 
-C++ 版本**没有任何工作线程**。所有操作（WebSocket 接受、JSON 解析、命令执行、Godot API 调用）都在 `EditorPlugin::_on_process_frame()` 中同步完成，该函数通过 `SceneTree::process_frame` 信号每帧调用。
+C++ 版本**没有任何工作线程**。所有操作（WebSocket 接受、HTTP 解析、JSON 处理、命令执行、Godot API 调用）都在 `EditorPlugin::_on_process_frame()` 中同步完成，该函数通过 `SceneTree::process_frame` 信号每帧调用。
 
 这意味着：
 - **无需** `MainThreadDispatcher`
@@ -41,17 +44,21 @@ void McpEditorPlugin::_enter_tree() {
     registry_.set_plugin_version(String(GODOT_MCP_PLUGIN_VERSION));
     register_all_tools(registry_);
     
-    ws_server_.start(port, &registry_);
+    ws_server_.start(ws_port, &registry_);
+    http_server_.start(http_port, &registry_, &mcp_handler_);
+    mcp_handler_.set_registry(&registry_);
     
-    // connect to SceneTree::process_frame
     SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
     tree->connect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
 }
 
 void McpEditorPlugin::_on_process_frame() {
     if (!started_) return;
-    ws_server_.poll();  // 接受连接 + 处理消息 + 执行命令, 全部同步
+    ws_server_.poll();    // WebSocket legacy: 接受连接 + 处理消息 + 执行命令
+    http_server_.poll();  // HTTP: 解析请求 + MCP 会话 + SSE 刷新
 }
 ```
 
-
+两个服务器共享同一个 `HandlerRegistry`，但路径不同：
+- `WsServer` 直接通过 `HandlerRegistry::find()` 分发（扁平 IPC 协议）
+- `HttpServer` 通过 `McpHandler` 分发（标准 MCP JSON-RPC 2.0 会话管理）

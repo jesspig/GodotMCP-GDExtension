@@ -2,21 +2,22 @@
 
 ## CI (`.github/workflows/ci.yml`)
 
-在 Ubuntu 上运行，触发条件：push/PR 到 master 分支。
+在 Ubuntu 上运行，触发条件：push/PR 到 master 分支。Python 3.14，使用 `uv` 管理依赖。
 
 ```mermaid
 flowchart LR
     A[git push / PR] --> B[Checkout]
     B --> C[cmake -B build -S .]
     C --> D[cmake --build build --config Debug]
-    D --> E[cd server && pytest]
+    D --> E[pytest]
 ```
 
 | 步骤 | 命令 | 作用 |
 |------|------|------|
-| Configure | `cmake -B build -S .` | CMake 配置（拉取 godot-cpp FetchContent + Cython server 编译） |
+| Setup | `uv venv .venv && uv pip install -e ".[dev]"` | 创建 venv 并安装依赖 |
+| Configure | `cmake -B build -S .` | CMake 配置（拉取 godot-cpp FetchContent + 配置 Cython server 编译） |
 | Build | `cmake --build build --config Debug` | 编译 C++ GDExtension + Python/Cython 服务器 |
-| Test | `cd server && pytest` | 运行 Python 服务器测试（58 个离线测试，无需 Godot） |
+| Test | `pytest` | 运行 Python 服务器测试（离线测试，无需 Godot） |
 
 ## Release (`.github/workflows/release.yml`)
 
@@ -63,7 +64,7 @@ flowchart TD
 # CI 流程
 cmake -B build -S .
 cmake --build build --config Debug
-cd server && pytest
+pytest
 
 # Release 构建
 cmake -B build -S . -DRELEASE=ON

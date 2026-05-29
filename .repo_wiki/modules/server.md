@@ -1,6 +1,6 @@
 # `server/` — MCP 服务器（Python/Cython）
 
-> Python 实现的 MCP 服务器，通过 Cython `--embed` 编译为独立 `.exe`。
+> Python 实现的 MCP 服务器，通过 Cython `--embed` 编译为独立 `.exe`。这是 Legacy stdio 路径的中转层。
 
 ```mermaid
 flowchart LR
@@ -61,25 +61,9 @@ handle_tool_call(name, args)
 - `_OFFLINE_MESSAGES`：ping/get_engine_version/get_plugin_version 有中文离线消息
 - `_disconnect()`: WebSocket 断开时清理 bridge 状态
 
-### `bridge.py`
-
-`GodotBridge` — WebSocket 客户端（`websockets` 库）：
-
-```python
-class GodotBridge:
-    async def connect()          # ws://127.0.0.1:{port}
-    async def close()            # 取消 reader_task + 关闭 ws
-    async def call(tool, args)   # 发送 IpcRequest，等待 IpcResponse
-```
-
-- 使用 `asyncio.Future` 做请求-响应匹配（`_pending: dict[str, asyncio.Future]`）
-- `_reader_loop()`: 后台读取 WebSocket 消息，分派到 notification/response 处理
-- `_handle_response()`: 按 `id` 匹配 pending future，设置 result 或 error
-- `_handle_notification()`: 处理 `tool_list_updated` 通知 → 更新 registry
-
 ### `registry.py`
 
-`ToolRegistry` — 工具 Schema 的唯一权威来源：
+`ToolRegistry` — 工具 Schema 的唯一权威来源（125 个工具）：
 
 | 方法 | 说明 |
 |------|------|
@@ -104,7 +88,7 @@ class GodotBridge:
 
 `GODOT_PATH` 环境变量**必须**在 MCP 客户端 `env` 配置中设置（stdio 服务器不继承 shell 环境变量）。
 
-版本号从 `pyproject.toml` 读取：`SERVER_VERSION = _pyproject["project"]["version"]`
+版本号从项目根目录 `pyproject.toml` 读取：`SERVER_VERSION = _pyproject["project"]["version"]`
 
 ### `protocol.py`
 
@@ -125,11 +109,11 @@ Pydantic 模型，定义 WebSocket IPC 协议类型：
 CMake 自动处理（`CMakeLists.txt`）：
 
 1. Cython `--embed` 编译 `entry.py` → `entry.c`
-2. Patch `entry.c` 嵌入 PYTHONHOME（`tools/patch_entry_c.py`）
-3. 用系统 C 编译器编译 `entry.c` → `godot-mcp-server.exe`
+2. Patch `entry.c` 嵌入 PYTHONHOME（`server/tools/patch_entry_c.py`）
+3. 用系统 C 编译器编译 `entry_patched.c` → `godot-mcp-server.exe`
 4. 复制 `python3xy.dll` 到 exe 同目录
 
-需要 `server/.venv`（含 Cython 包）。
+需要项目根目录下的 `.venv`（含 Cython 包）。
 
 ## 关键细节
 
