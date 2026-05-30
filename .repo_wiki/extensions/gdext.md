@@ -58,8 +58,7 @@ src/
 │   └── http_server.cpp/.hpp        # MCP Streamable HTTP 服务器 (:9600)
 ├── mcp/
 │   └── mcp_handler.cpp/.hpp        # MCP JSON-RPC 2.0 会话管理
-├── protocol/
-│       └── ipc_types.hpp               # 错误码常量
+
 ├── lsp/
 │   └── client.cpp/.hpp             # GDScript LSP 验证 (StreamPeerTCP)
 └── logging.hpp                     # 日志 inline 函数（print/push_warning/push_error）

@@ -98,8 +98,6 @@ extensions/gdext/              # C++ GDExtension（唯一代码库）
     │   └── http_server.cpp/.hpp      # MCP Streamable HTTP 服务器
     ├── mcp/
     │   └── mcp_handler.cpp/.hpp      # JSON-RPC 2.0 会话管理
-    ├── protocol/
-    │   └── ipc_types.hpp      # 错误码常量
     ├── lsp/
     │   └── client.cpp/.hpp    # GDScript LSP 验证
     └── logging.hpp            # 日志（直接 print/push_warning）

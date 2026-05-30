@@ -48,7 +48,7 @@
 | `initialize` | 创建会话，协商协议版本 |
 | `notifications/initialized` | 确认初始化完成 |
 | `ping` | 保活 |
-| `tools/list` | 列出可用工具（分页，50/页） |
+| `tools/list` | 列出可用工具（返回全部，无分页） |
 | `tools/call` | 执行工具 |
 | `resources/list` | 空数组（不支持） |
 | `prompts/list` | 空数组（不支持） |
@@ -74,8 +74,12 @@ data: {"jsonrpc":"2.0","method":"notifications/message","params":{...}}
 
 | 情况 | 行为 |
 |------|------|
-| 无效 JSON | Godot `JSON::parse` 失败，返回 `INVALID_REQUEST` |
-| 无效 tool_call 参数 | 返回 `INVALID_REQUEST` |
-| 未知工具 | `HandlerRegistry::find()` 返回 `UNKNOWN_TOOL` |
-| HTTP Origin 无效 | 拒绝非 `127.0.0.1`/`localhost`/`null` 来源 |
-| HTTP 会话无效 | 返回 400/401 |
+| 场景 | 行为 | 错误码 |
+|------|------|--------|
+| 无效 JSON | Godot `JSON::parse` 失败，返回 Parse Error | `kParseError` (-32700) |
+| 无效 method 或缺少字段 | 返回 Invalid Request | `kInvalidRequest` (-32600) |
+| 未知 JSON-RPC method | 返回 Method Not Found | `kMethodNotFound` (-32601) |
+| tools/call 参数错误或未知工具 | 返回 Invalid Params | `kInvalidParams` (-32602) |
+| 工具执行抛异常 | 捕获异常，返回 Internal Error | `kInternalError` (-32603) |
+| HTTP Origin 无效 | 拒绝非 `127.0.0.1`/`localhost`/`null` 来源 | HTTP 403 |
+| HTTP 会话无效 | 拒绝非 `127.0.0.1`/`localhost`/`null` 来源 | HTTP 400/401 |

@@ -34,13 +34,13 @@ Godot GDExtension API 要求所有 API 调用发生在主线程。C++ godot-cpp 
 
 ```cpp
 // editor_plugin.cpp
+// McpHandler 的 registry 指针通过构造函数传入：McpHandler mcp_handler_{&registry_}
 void McpEditorPlugin::_enter_tree() {
     registry_.set_engine_version(Engine::get_singleton()->get_version_info().get("string", ""));
     registry_.set_plugin_version(String(GODOT_MCP_PLUGIN_VERSION));
     register_all_tools(registry_);
     
-    http_server_.start(http_port, &registry_, &mcp_handler_);
-    mcp_handler_.set_registry(&registry_);
+    http_server_.start(http_port, &mcp_handler_);  // start(port, McpHandler*)
     
     SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
     tree->connect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));

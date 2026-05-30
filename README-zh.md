@@ -1,6 +1,6 @@
 # Godot MCP
 
-[![Version](https://img.shields.io/badge/version-0.1.5--dev3-blue?logo=github)](https://github.com/jessp/godot-mcp)
+[![Version](https://img.shields.io/badge/version-0.1.5-blue?logo=github)](https://github.com/jessp/godot-mcp)
 [![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=c%2B%2B)](https://isocpp.org)
 [![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?logo=godot%20engine)](https://godotengine.org)
 [![MCP](https://badge.mcpx.dev/?type=plugin&plugin_id=github.com/jessp/godot-mcp&logo=true)](https://modelcontextprotocol.io)
@@ -18,7 +18,7 @@ graph LR
 
     subgraph GodotProc["Godot 编辑器"]
         HTTP["C++ GDExtension<br/>HTTP Server :9600<br/>MCP Streamable HTTP"]
-        Registry["HandlerRegistry<br/>(122 个活跃命令)"]
+        Registry["HandlerRegistry<br/>(工具注册表)"]
         Editor["EditorInterface /<br/>SceneTree / Node API"]
     end
 
@@ -27,11 +27,11 @@ graph LR
     Registry --> Editor
 ```
 
-Godot MCP 通过 **122 个编辑器命令**将 Godot 4.6+ 编辑器暴露给 AI 工具——创建节点、修改属性、管理场景、遍历场景树、编辑 GDScript/C# 文件等。
+Godot MCP 通过 **115+ 个编辑器命令**将 Godot 4.6+ 编辑器暴露给 AI 工具——创建节点、修改属性、管理场景、遍历场景树、编辑 GDScript/C# 文件等。
 
 ## 特性
 
-- **122 个编辑器命令** — 场景/节点操控、属性编辑、搜索、撤销/重做、碰撞体、GDScript/C# 脚本管理、LSP 验证、文件搜索替换、项目设置、多场景操作
+- **115+ 个编辑器命令** — 场景/节点操控、属性编辑、搜索、撤销/重做、碰撞体、GDScript/C# 脚本管理、LSP 验证、文件搜索替换、项目设置、多场景操作
 - **单进程架构** — 纯 C++ GDExtension 插件（godot-cpp 10.0.0-rc1），运行在 Godot 编辑器进程内
 - **Streamable HTTP 传输** — MCP Streamable HTTP 协议（`:9600`），支持 SSE 服务器推送事件
 - **纯主线程 C++** — 无工作线程、无 tokio、无锁。所有代码通过 `process_frame` 在 Godot 主线程运行
@@ -125,11 +125,11 @@ py -3 build.py
 "给 Player 节点挂载脚本 res://player.gd"
 ```
 
-### 可用工具（共 122 个）
+### 可用工具
 
 | 分类 | 数量 | 工具 |
 |------|------|------|
-| 元命令 | 4 | `ping`、`get_engine_version`、`get_plugin_version`、`get_server_version` |
+| 元命令 | 3 | `ping`、`get_engine_version`、`get_plugin_version` |
 | 节点：读取 | 4 | `get_scene_tree`、`get_node_path`、`get_property`、`get_property_list` |
 | 节点：写入 | 13 | 创建/删除/重命名/复制/移动节点、`set_property`、重设父节点、设置根节点、批量设置属性、挂载/卸载脚本、添加/移除节点分组 |
 | 2D 属性 | 21 | 位置/旋转/缩放的 get/set、可见性/调制/Z 轴/文本/碰撞层/碰撞掩码的 get/set、纹理 get/set、唯一名称设置 |
@@ -143,7 +143,7 @@ py -3 build.py
 | GDScript | 5 | 创建/编辑/读取/列出脚本、LSP 语法验证 |
 | C# | 6 | 生成 Solution、创建/编辑/读取/列出脚本、dotnet build |
 | 搜索 | 3 | `find_in_file`、`search_project`、`find_and_replace` |
-| 编辑器控制（gdext 端） | 6 | `play_current_scene`、`play_main_scene`、`stop_scene`、`is_scene_playing`、`refresh_filesystem`、`get_editor_info` |
+| 编辑器控制（gdext 端） | 7 | `play_current_scene`、`play_main_scene`、`stop_scene`、`is_scene_playing`、`refresh_filesystem`、`get_editor_info`、`godot_editor_restart` |
 | 撤销/重做 | 2 | `undo`、`redo` |
 | 节点便捷操作 | 4 | `set_node_transform_2d/3d`、`get_node_info`、`get_script_variables` |
 | 场景信息 | 1 | `is_scene_dirty` |
@@ -155,7 +155,7 @@ py -3 build.py
 | 插件管理 | 2 | `list_plugins`、`set_plugin_enabled` |
 | 输入映射 | 4 | `list/add/remove_input_action`、`set_input_action_events` |
 
-详细的参数格式和返回值请参阅[工具目录](.repo_wiki/reference/tools-catalog.md)。
+详细的参数格式和返回值请参阅[工具目录](docs/reference/tools-catalog.md)。
 
 ## 开发
 
@@ -192,6 +192,7 @@ py -3 build.py                                # Debug + addons.zip
 py -3 build.py --release                      # Release + addons.zip
 py -3 build.py --clean                        # 清空 CMake 缓存（保留 _deps/）
 py -3 build.py --no-zip                       # 跳过打包（快速迭代）
+cmake --build build --target deep-clean       # 同时删除 _deps/（FetchContent 缓存）
 ```
 
 ### 文件锁定问题
@@ -207,10 +208,16 @@ py -3 build.py --no-zip                       # 跳过打包（快速迭代）
 
 ## 文档
 
-- [架构概览](.repo_wiki/overview/architecture.md) — 单进程 C++ GDExtension 架构
-- [线程模型](.repo_wiki/overview/threading-model.md) — 纯主线程，HTTP 服务器轮询
-- [工具目录](.repo_wiki/reference/tools-catalog.md) — 全部 122 个工具的参数与返回值
-- [IPC 协议](.repo_wiki/specification/ipc-protocol.md) — MCP Streamable HTTP 通信格式
-- [客户端配置](.repo_wiki/reference/client-config.md) — AI 客户端配置模板
-- [构建与打包](.repo_wiki/reference/build-and-package.md) — 构建选项、CI 流程、常见问题
-- [设计决策](.repo_wiki/design/decisions.md) — 已记录的架构选择
+| 文档 | 内容 |
+|------|------|
+| [快速开始](docs/guide/getting-started.md) | 安装、配置、基本使用 |
+| [架构概览](docs/guide/architecture.md) | 单进程 C++ GDExtension 架构 |
+| [构建与打包](docs/guide/building.md) | 构建系统、版本管理 |
+| [工具目录](docs/reference/tools-catalog.md) | 全部 122 个工具列表 |
+| [客户端配置](docs/reference/client-config.md) | 各 AI 客户端的配置方式 |
+| [通信协议](docs/reference/protocol.md) | MCP Streamable HTTP 协议 |
+| [常见问题](docs/reference/faq.md) | 常见问题解答 |
+| [注意事项](docs/reference/client-quirks.md) | 已知问题与限制 |
+| [LSP 验证](docs/reference/lsp-client.md) | GDScript 语法验证流程 |
+| [C# 解决方案](docs/reference/csharp-solution.md) | 自动生成 .sln/.csproj |
+| [项目设置映射](docs/reference/project-settings-ext.md) | 显示/物理/渲染键映射 |

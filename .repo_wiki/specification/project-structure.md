@@ -4,15 +4,15 @@
 
 ```
 GodotMCP/
+├── .opencode/              # OpenCode 配置
 ├── .repo_wiki/             # 项目知识库
 ├── extensions/
 │   └── gdext/              # C++ GDExtension（唯一代码库）
 │       ├── src/
 │       │   ├── commands/   # 工具处理器（17 个文件，16 组活跃注册）
 │       │   ├── ipc/        # HttpServer
-│       │   ├── mcp/        # McpHandler（JSON-RPC 2.0 会话管理）
+│       │   ├── mcp/        # McpHandler（JSON-RPC 2.0 会话管理 + 错误码）
 │       │   ├── lsp/        # LSP 验证客户端
-│       │   ├── protocol/   # 错误码常量
 │       │   ├── register_types.cpp  # GDExtension 入口
 │       │   ├── editor_plugin.cpp   # McpEditorPlugin 生命周期
 │       │   └── logging.hpp         # 日志 inline 函数

@@ -36,7 +36,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| [工具目录](reference/tools-catalog.md) | 全部 121 个工具的 JSON Schema、参数、返回值 |
+| [工具目录](reference/tools-catalog.md) | 全部工具的 JSON Schema、参数、返回值 |
 | [客户端配置](reference/client-config.md) | Streamable HTTP 配置模板（opencode / Claude Code / Cursor / JetBrains） |
 | [客户端 quirks](reference/client-quirks.md) | 各客户端配置怪癖速查表 |
 | [CI/CD 流水线](reference/ci-cd.md) | GitHub Actions 工作流：CI 门禁 + 跨平台 Release 发布 |

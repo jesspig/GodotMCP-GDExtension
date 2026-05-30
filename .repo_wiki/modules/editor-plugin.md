@@ -43,20 +43,22 @@ stateDiagram-v2
 ### `_enter_tree()` 初始化
 
 ```cpp
+// McpEditorPlugin 的 McpHandler 通过构造函数传入 registry_ 指针：
+// McpHandler mcp_handler_{&registry_};
+
 void McpEditorPlugin::_enter_tree() {
     if (!Engine::get_singleton()->is_editor_hint()) return;
     
     registry_.set_engine_version(...);     // 引擎版本
     registry_.set_plugin_version(GODOT_MCP_PLUGIN_VERSION);  // 编译时版本
     
-    register_all_tools(registry_);         // 注册 16 组活跃工具 (115 个)
+    register_all_tools(registry_);         // 注册所有工具
     
     load_tool_schemas();                   // 从 tool_schemas.json 加载描述和 schema
     
     int http_port = read_env("GODOT_MCP_HTTP_PORT", 9600);
     
-    mcp_handler_.set_registry(&registry_);
-    http_server_.start(http_port, &registry_, &mcp_handler_);
+    http_server_.start(http_port, &mcp_handler_);  // 只传 McpHandler 指针
     
     SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
     tree->connect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
