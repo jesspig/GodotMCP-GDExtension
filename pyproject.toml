@@ -1,26 +1,7 @@
-[tool.ruff]
-line-length = 88
-select = ["E", "W", "F", "I", "B", "C", "N"]
-ignore = [
-    "E501",
-    "B008",
-]
-target-version = "py313"
-exclude = [
-    "**/__pycache__",
-    "**/*.pyc",
-    ".git",
-    "target",
-    "build",
-]
-
-[tool.ruff.lint]
-fixable = ["A", "B", "C", "E", "F", "I", "N", "W"]
-fix = false
-
-[tool.mypy]
-python_version = "3.13"
-strict = true
-show_error_codes = true
-ignore_missing_imports = true
-follow_imports = "silent"
+[project]
+name = "godot-mcp"
+version = "0.1.5"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []
