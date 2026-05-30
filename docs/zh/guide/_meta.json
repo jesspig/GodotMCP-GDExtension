@@ -1,0 +1,13 @@
+[{
+    "type": "file",
+    "name": "getting-started",
+    "label": "gettingStarted"
+}, {
+    "type": "file",
+    "name": "architecture",
+    "label": "architecture"
+}, {
+    "type": "file",
+    "name": "building",
+    "label": "building"
+}]

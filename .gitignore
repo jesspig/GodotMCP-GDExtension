@@ -96,6 +96,12 @@ pip-log.txt
 .mypy_cache/
 
 # ==============================
+# Node.js / Rspress docs
+# ==============================
+node_modules/
+doc_build/
+
+# ==============================
 # Temporary files
 # ==============================
 *.tmp
