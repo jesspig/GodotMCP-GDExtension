@@ -2,40 +2,29 @@
 
 ## 构建系统
 
-构建系统是 **CMake + Corrosion**（Rust-CMake 桥接）+ **Cython --embed**（Python 服务器编译）。提供了轻量 `build.py` 包装。
+构建系统是 **CMake**（C++ GDExtension → godot-cpp 10.0.0-rc1 通过 FetchContent）。提供了轻量 `build.py` 包装。
 
 ```bash
 py -3 build.py                        # debug 构建 + addons.zip
 py -3 build.py --release              # release 构建 + addons.zip
-py -3 build.py --clean                # cargo clean + 清空 addons/bin/
+py -3 build.py --clean                # 清空 CMake 缓存（保留 _deps/godot-cpp）
 py -3 build.py --no-zip               # 跳过 addons.zip（快速迭代）
-py -3 build.py --no-server            # 只重建 dll（编辑器中快速迭代）
 ```
 
 CMake 自动处理：
-- 终止已运行的 `godot-mcp-server.exe`（`taskkill`/`pkill`）
+- `FetchContent` 拉取 `godot-cpp 10.0.0-rc1`
 - 生成 `plugin.cfg` 和 `godot_mcp.gdextension`
-- 复制 dll 到 `example/addons/godot_mcp/bin/`
+- 复制 dll/dylib/so 到 `example/addons/godot_mcp/bin/`
 - CPack 打包 → `addons.zip`
 
-## Python 服务器构建流程
+## C++ GDExtension 构建流程
 
-服务器（Python/Cython）构建由 CMake 在 `CMakeLists.txt` 中处理：
+CMake 通过 `add_subdirectory(extensions/gdext)` 构建 godot-cpp + gdext 源文件：
 
-1. **Cython `--embed`** 编译 `server/entry.pyx` → `build/entry.c`
-2. **Patch PYTHONHOME**: `tools/patch_entry_c.py` 将 Python home 路径嵌入 C 文件
-3. **C 编译**: 用系统 C 编译器编译 `entry_patched.c` → `build/godot-mcp-server.exe`
-4. **复制 DLL**: 复制 `python3xy.dll` 到 exe 同目录
-
-需要 `server/.venv`（含 Cython 包）。
-
-## Rust GDExtension 构建流程
-
-CMake 通过 Corrosion 集成 Cargo：
-
-1. Corrosion 导入 `crates/gdext`（cdylib）
-2. 根据 `--release` 选择 cargo profile
-3. 构建产物复制到 `example/addons/godot_mcp/bin/`
+1. FetchContent 拉取 `godot-cpp 10.0.0-rc1`
+2. 添加 `/extensions/gdext/src/` 下的所有源文件
+3. 链接 godot-cpp 静态库 → `godot_mcp_gdext.dll`
+4. 后处理：复制到 `example/addons/godot_mcp/bin/`
 
 ## 手动构建（跳过 build.py）
 
@@ -43,6 +32,7 @@ CMake 通过 Corrosion 集成 Cargo：
 cmake -B build -S .                          # 配置
 cmake --build build --config Debug           # 构建
 cmake --build build --config Debug --target package  # 打包
+cmake --build build --target deep-clean      # 同时删除 _deps/（FetchContent 缓存）
 ```
 
 ## CI 门禁
@@ -50,11 +40,8 @@ cmake --build build --config Debug --target package  # 打包
 `.github/workflows/ci.yml`（在 Ubuntu 上运行）：
 
 ```bash
-cargo fmt --check --all                       # 1. 格式化检查
-cargo clippy --workspace -- -D warnings       # 2. 严格 lint
-cmake -B build -S .                           # 3a. CMake 配置
-cmake --build build --config Debug            # 3b. 构建 gdext + server
-cargo test --workspace                        # 4. 测试（core + gdext，离线无 Godot）
+cmake -B build -S .                           # 1. CMake 配置
+cmake --build build --config Debug            # 2. 构建 gdext
 ```
 
 CI 只在 `master` 分支的 push 和 PR 上触发。
@@ -64,34 +51,34 @@ CI 只在 `master` 分支的 push 和 PR 上触发。
 `.github/workflows/release.yml` 在 tag `v*` 推送时触发：
 
 - 矩阵构建：ubuntu / macOS / Windows
-- 使用 `cmake -DRELEASE=ON`
-- 分别上传 GDExtension 库和 Server 二进制到 Release artifacts
+- 使用 `cmake --build --config Release`
+- 分别上传 GDExtension 库到 Release artifacts
 - 在 Ubuntu 上组装跨平台 `addons.zip`（包含三个平台的 dll/so/dylib）
 
 ### Windows 注意事项
 
 - `python`/`python3` 是 Microsoft Store 存根，会静默挂起——务必使用 **`py -3`**
-- Release 构建中的 server 二进制被重命名为 `godot-mcp-server_windows.exe`
+- `build.py` 自动检测 `MSB4019`/`VCTargetsPath`/`CMAKE_C_COMPILER` 等 stale cache 错误并清空重试
+- `build.py --clean` 仅清除 CMake 缓存文件，保留 `_deps/`（godot-cpp FetchContent 缓存）
 
 ## GDExtension 文件锁
 
 | 文件 | 被谁锁定 | 如何处理 |
 |------|---------|----------|
-| `godot-mcp-server.exe` | 正在运行的 MCP 客户端 | CMake `execute_process(taskkill)` 自动杀；手动构建需先 `taskkill /F /IM godot-mcp-server.exe` |
 | `godot_mcp_gdext.dll` | Godot 编辑器（插件已加载） | 关闭编辑器或禁用插件后重建 |
 
 ## 构建产物的 Git 忽略
 
-`example/addons/godot_mcp/bin/*` 在 `.gitignore` 中（`.gitkeep` 除外）。**永远不要将构建产物检入版本控制。**
+`example/addons/godot_mcp/bin/*` 在 `.gitignore` 中。**永远不要将构建产物检入版本控制。**
 
 ## 版本管理
 
-- 单版本源在 `Cargo.toml [workspace.package].version`
-- CMakeLists.txt 从 Cargo.toml 解析版本，生成 `plugin.cfg` 时自动填充
-- Python 侧 `SERVER_VERSION` 在 `editor_ctl.py` 中手动同步
-- 升级 cargo 版本即可；不需要手动编辑 `plugin.cfg`
+- 单版本源在 `CMakeLists.txt`：`set(PROJECT_VERSION "0.1.5")`
+- CMake 生成 `plugin.cfg` 时自动填充此版本号
+- 升级 CMake 版本即可；不需要手动编辑 `plugin.cfg`
+- `pyproject.toml` 中的 `version` 需手动同步（仅保留构建工具依赖）
 
 ## 依赖锁定
 
-- `godot = "=0.5"` — 严格锁定
-- `Cargo.lock` 已提交（二进制 crate）；不要随意重新生成
+- `godot-cpp 10.0.0-rc1`：通过 FetchContent 固定标签
+- Python 依赖：`uv.lock` 锁定

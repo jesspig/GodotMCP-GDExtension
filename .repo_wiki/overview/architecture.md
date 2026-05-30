@@ -1,14 +1,17 @@
 # 架构总览
 
-## 双进程设计
+项目是一个 C++ GDExtension 单进程架构，通过 MCP Streamable HTTP 直接暴露给 AI 客户端。
+
+## 单进程设计
 
 ```
-AI 客户端 ── stdio ──► godot-mcp-server.exe ── WebSocket :9500 ──► godot_mcp_gdext.dll
-                        (Python/Cython)                              (crates/gdext, cdylib)
+AI 客户端 ── Streamable HTTP :9600 ──► godot_mcp_gdext.dll（C++ GDExtension）
+                                           │
+                                           ├── MCP Session 管理
+                                           ├── JSON-RPC 2.0 处理
+                                           └── HandlerRegistry（CommandFn）
 
-crates/core ── 共享协议类型 (Rust lib)
-server/ ── Python 服务器，通过 Cython --embed 编译为独立 exe
-          registry.py 是工具 schema 的唯一权威来源
+extensions/gdext/ ── C++ GDExtension（唯一的代码库）
 ```
 
 ## 架构图
@@ -16,49 +19,30 @@ server/ ── Python 服务器，通过 Cython --embed 编译为独立 exe
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │ AI 客户端 (Claude Code / OpenCode / Cursor / Copilot / Codex / …)   │
-│ 标准输入输出 (stdio) JSON-RPC (MCP 协议)                              │
-└───────────────┬─────────────────────────────────────────────────────┘
-                │ stdio
-                ▼
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │ HTTP POST/GET /mcp (JSON-RPC 2.0)
+                               ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│ godot-mcp-server.exe               (server/, Python/Cython)          │
+│ godot_mcp_gdext.dll (extensions/gdext/, C++)                        │
 │                                                                      │
-│ ┌──────────┐  ┌────────────┐  ┌────────────┐  ┌─────────────────┐   │
-│ │entry.pyx │→│handler.py  │→│bridge.py   │  │registry.py      │   │
-│ │(asyncio) │  │(dispatch)  │  │(WebSocket)  │  │125 tools schema │   │
-│ └──────────┘  └─────┬──────┘  └──────┬──────┘  └─────────────────┘   │
-│                     │editor_ctl.py   │editor_ctl.py                   │
-│                     │(open/close/    │(restart)                       │
-│                     │ get_version)   │                                │
-└─────────────────────┼────────────────┼────────────────────────────────┘
-                      │ WebSocket ws://127.0.0.1:9500
-                      │ tool_call IPC 请求
-                      ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│ godot_mcp_gdext.dll            (crates/gdext, cdylib)               │
-│                                                                     │
-│ ┌──────────┐  ┌────────────┐  ┌───────────────────────────────┐    │
-│ │lib.rs    │→│editor_plugin│→│IpcWebSocketServer              │    │
-│ │(#![gdext])│  │McpEditorPlugin│  (crates/gdext/src/ipc/)      │    │
-│ └──────────┘  └────────────┘  └───────────────┬───────────────┘    │
-│                                               │                     │
-│                        ┌──────────────────────▼──────────────┐      │
-│                        │ route_tool_call → dispatch()         │      │
-│                        │ MetaCommands(先) → 17组 handler 链式 │      │
-│                        └──────────┬───────────┬──────────────┘      │
-│                                   │           │                     │
-│                          ┌────────▼───┐ ┌─────▼─────────┐          │
-│                          │dispatcher  │ │logging (mpsc) │          │
-│                          │submit()    │ │log_info/warn  │          │
-│                          │process_pend│ │drain_to_consol│          │
-│                          └───────┬────┘ └───────┬────────┘          │
-│                                  │               │                  │
-│                          ┌───────▼───────────────▼────────┌         │
-│                          │ process_frame (SceneTree 信号)   │         │
-│                          │ 主线程泵（非 plugin .process()） │         │
-│                          └────────────────────────────────┘         │
-│                                                                     │
-│                          Godot EditorInterface / Node / Scene API   │
+│ ┌──────────────┐  ┌──────────────────┐                               │
+│ │HttpServer    │  │McpHandler        │                               │
+│ │(:9600, SSE)  │→ │(sessions,        │                               │
+│ └──────────────┘  │ JSON-RPC 2.0)    │                               │
+│                    └────────┬─────────┘                               │
+│                             │                                         │
+│                 ┌────────────▼──────────┐                             │
+│                 │ HandlerRegistry        │                             │
+│                 │ CommandFn 函数指针表    │                             │
+│                 │ 16 组活跃 (115 工具)    │                             │
+│                 └────────────────────────┘                             │
+│                                                                      │
+│  ┌───────────────────────────────┐                                    │
+│  │ 所有代码在 Godot 主线程上运行    │                                    │
+│  │ process_frame hook 驱动 poll()  │                                    │
+│  └───────────────────────────────┘                                    │
+│                                                                      │
+│  Godot EditorInterface / Node API                                    │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -67,64 +51,54 @@ server/ ── Python 服务器，通过 Cython --embed 编译为独立 exe
 ```mermaid
 sequenceDiagram
     participant AI as AI 客户端
-    participant S as godot-mcp-server (Python)
-    participant G as godot_mcp_gdext (Rust)
+    participant H as HttpServer (C++)
+    participant M as McpHandler (C++)
+    participant G as HandlerRegistry (C++)
     
-    AI->>S: stdio JSON-RPC (call_tool)
-    S->>S: handler.py: handle_tool_call()
-    S->>S: 匹配服务器端工具 (godot_editor_* / get_server_version)
-    S->>G: WebSocket tool_call IPC
-    G->>G: ws_server.rs: route_tool_call() → dispatch()
-    G->>G: dispatcher.submit() → 主线程队列
-    G->>G: process_frame 泵 → 执行 cmd_*
-    G-->>S: WebSocket IPC 响应
-    S-->>AI: stdio JSON-RPC 响应
+    AI->>H: HTTP POST /mcp (initialize)
+    H->>M: handle_initialize()
+    M-->>H: Session UUID + capabilities
+    H-->>AI: 200 + MCP-Session-Id header
+    
+    AI->>H: GET /mcp (SSE stream)
+    H-->>AI: 200 text/event-stream
+    
+    AI->>H: POST /mcp (notifications/initialized)
+    H-->>AI: 202 Accepted
+    
+    Note over AI,G: 工具调用
+    
+    AI->>H: HTTP POST /mcp (tools/call)
+    H->>M: handle_message()
+    M->>G: tools/call → find(tool) → CommandFn
+    G-->>M: Dictionary result
+    M-->>H: JSON-RPC response (MCP content array)
+    H-->>AI: HTTP 200 application/json
 ```
 
 ## 关键属性
 
-- **stdio 是唯一**启用的 MCP 传输
-- **IPC 线路格式**: JSON-RPC 风格的 `IpcRequest`（`method`+`params`）/`IpcResponse`（`status` tag），类型定义在 `crates/core/src/protocol.rs`，Python 侧 `server/src/godot_mcp_server/protocol.py` 有对应的 Pydantic 模型
-- **125 个工具**: 121 个通过 gdext 执行，4 个服务器端（`get_server_version` + 3 个 `godot_editor_*`）在 `handler.py` 中拦截
-- **工具注册表**: Python 侧 `registry.py` 是权威来源；gdext 侧 `commands/mod.rs::create_registry()` 提供 17 个 CommandHandler 用于路由
-- **服务器端断言**: Python 侧 `total == 125`；gdext 侧无计数器（通过路由匹配实现）
+- **单进程**: C++ GDExtension 加载到 Godot 编辑器内，无额外进程
+- **MCP Streamable HTTP**: 唯一传输方式，AI 客户端直连 gdext（端口 9600）
+- **121 个工具**: 17 个处理器文件定义，16 组活跃注册（115 个），`register_script_cs` 已声明但未调用
+- **端口**: HTTP `:9600`（MCP Streamable HTTP）
 
-## 目录布局
-
-```
-crates/
-├── core/          # 共享类型: protocol.rs, tool_manifest.rs (Rust lib)
-└── gdext/         # GDExtension cdylib (Rust)
-    └── src/
-        ├── lib.rs           # gdextension 入口
-        ├── editor_plugin.rs # McpEditorPlugin 生命周期
-        ├── dispatcher.rs    # MainThreadDispatcher
-        ├── logging.rs       # 跨线程日志
-        ├── commands/        # 17 个命令处理模块
-        ├── ipc/             # WebSocket 服务器
-        │   ├── ws_server.rs # IpcWebSocketServer + route_tool_call
-        │   └── plugin_state.rs
-        ├── lsp/             # GDScript LSP 客户端
-        └── dock/            # 编辑器右侧 Dock UI
-
-server/                      # Python/Cython MCP 服务器
-├── entry.pyx                # Cython --embed 入口
-├── src/godot_mcp_server/
-│   ├── handler.py           # GodotMcpHandler 分发器
-│   ├── bridge.py            # GodotBridge WebSocket 客户端
-│   ├── registry.py          # ToolRegistry (125 tools)
-│   ├── editor_ctl.py        # 编辑器进程管理
-│   └── protocol.py          # Pydantic IPC 协议模型
-```
-
-## 双进程启动顺序
+## 当前目录布局
 
 ```
-1. AI 客户端启动 → godot-mcp-server.exe（stdio 子进程）
-2. server 注册 125 个工具的 Schema，监听 stdio
-3. AI 客户端调用 godot_editor_open → server 启动 Godot 编辑器
-4. 编辑器加载插件 → gdext 初始化 → 启动 WebSocket 服务器 :9500
-5. server 的 bridge.py 连接到 WebSocket
-6. 连接建立 → gdext 发送 godot_ready 通知
-7. 后续工具调用的完整链路开始工作
+extensions/gdext/              # C++ GDExtension（唯一代码库）
+└── src/
+    ├── register_types.cpp     # GDExtension 入口 (gdext_rust_init)
+    ├── editor_plugin.cpp/.hpp # McpEditorPlugin 生命周期
+    ├── commands/              # 17 个命令处理器文件，16 组活跃注册
+    │   ├── handler_registry.cpp/.hpp  # 注册表 + register_all_tools()
+    │   ├── cmd_utils.cpp/.hpp/.json   # 共享工具函数
+    │   └── *.cpp              # 各命令组
+    ├── ipc/
+    │   └── http_server.cpp/.hpp      # MCP Streamable HTTP 服务器
+    ├── mcp/
+    │   └── mcp_handler.cpp/.hpp      # JSON-RPC 2.0 会话管理
+    ├── lsp/
+    │   └── client.cpp/.hpp    # GDScript LSP 验证
+    └── logging.hpp            # 日志（直接 print/push_warning）
 ```

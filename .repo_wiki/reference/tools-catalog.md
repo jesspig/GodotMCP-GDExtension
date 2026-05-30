@@ -1,67 +1,31 @@
 # 工具目录
 
-> 全部 125 个 MCP 工具的描述、参数和返回值。按处理器分组，共 17 个 gdext 组 + 4 个服务器端拦截工具。
+> 全部 121 个 MCP 工具的描述、参数和返回值。按处理器分组，共 17 个 C++ gdext 文件（16 组活跃注册 115 个工具）。
 
 ## 分组速览
 
 | 组 | 计数 | 路由 |
 |----|------|------|
-| [Editor Control（服务器端）](#editor-control-服务器端-3) | 3 | server-side (handler.py) |
-| [get_server_version](#get_server_version) | 1 | server-side (handler.py) |
-| [MetaCommands](#metacommands-3) | 3 | gdext |
-| [NodeCommands](#nodecommands-21) | 21 | gdext |
-| [PropertyCommands](#propertycommands-21) | 21 | gdext |
-| [CollisionCommands](#collisioncommands-2) | 2 | gdext |
-| [FindCommands](#findcommands-4) | 4 | gdext |
-| [ScriptHelpersCommands](#scripthelperscommands-3) | 3 | gdext |
-| [ProjectSettingsCommands](#projectsettingscommands-7) | 7 | gdext |
-| [SceneCommands](#scenecommands-16) | 16 | gdext |
-| [ScriptGdCommands](#scriptgdcommands-5) | 5 | gdext |
-| [ScriptCsCommands](#scriptcscommands-6) | 6 | gdext |
-| [SearchCommands](#searchcommands-3) | 3 | gdext |
-| [UndoCommands](#undocommands-2) | 2 | gdext |
-| [Property3dCommands](#property3dcommands-6) | 6 | gdext |
-| [EditorControlCommands（gdext）](#editorcontrolcommands-gdext-6) | 6 | gdext |
-| [ProjectSettingsExtCommands](#projectsettingsextcommands-10) | 10 | gdext |
-| [PluginManagementCommands](#pluginmanagementcommands-2) | 2 | gdext |
-| [InputMapCommands](#inputmapcommands-4) | 4 | gdext |
-| **总计** | **125** | |
+| [MetaCommands](#metacommands-3) | 3 | gdext（`meta.cpp`） |
+| [NodeCommands](#nodecommands-21) | 21 | gdext（`node.cpp`） |
+| [PropertyCommands](#propertycommands-21) | 21 | gdext（`property.cpp`） |
+| [CollisionCommands](#collisioncommands-2) | 2 | gdext（`collision.cpp`） |
+| [FindCommands](#findcommands-4) | 4 | gdext（`find.cpp`） |
+| [ScriptHelpersCommands](#scripthelperscommands-3) | 3 | gdext（`script_helpers.cpp`） |
+| [ProjectSettingsCommands](#projectsettingscommands-7) | 7 | gdext（`project_settings.cpp`） |
+| [SceneCommands](#scenecommands-16) | 16 | gdext（`scene.cpp`） |
+| [ScriptGdCommands](#scriptgdcommands-5) | 5 | gdext（`script_gd.cpp`） |
+| [ScriptCsCommands](#scriptcscommands-6) | 6 | gdext（`script_cs.cpp`）**⚠ 未注册** |
+| [SearchCommands](#searchcommands-3) | 3 | gdext（`search.cpp`） |
+| [UndoCommands](#undocommands-2) | 2 | gdext（`undo.cpp`） |
+| [Property3dCommands](#property3dcommands-6) | 6 | gdext（`property_3d.cpp`） |
+| [EditorControlCommands（gdext）](#editorcontrolcommands-gdext-6) | 6 | gdext（`editor_control.cpp`） |
+| [ProjectSettingsExtCommands](#projectsettingsextcommands-10) | 10 | gdext（`project_settings_ext.cpp`） |
+| [PluginManagementCommands](#pluginmanagementcommands-2) | 2 | gdext（`plugin_management.cpp`） |
+| [InputMapCommands](#inputmapcommands-4) | 4 | gdext（`input_map.cpp`） |
+| **总计** | **121** | |
 
----
-
-## Editor Control（服务器端, 3）
-
-需要 `GODOT_PATH` 环境变量。
-
-### `godot_editor_open`
-启动 Godot 编辑器并打开项目。
-
-| 参数 | 类型 | 必须 | 默认 |
-|------|------|------|------|
-| `project_path` | string | 否 | `example/` |
-
-**返回**: `{"status": "opened", "pid": ..., "godot_path": "...", "project_path": "..."}`
-
-### `godot_editor_close`
-关闭 Godot 编辑器进程。
-
-**返回**: `{"status": "closed" | "not_running", "process_name": "..."}`
-
-### `godot_editor_restart`
-重启 Godot 编辑器。
-
-| 参数 | 类型 | 必须 | 默认 |
-|------|------|------|------|
-| `project_path` | string | 否 | `example/` |
-
-**返回**: `{"status": "restarted", "pid": ..., "was_running": bool, ...}`
-
----
-
-### `get_server_version`
-获取 godot-mcp-server 版本号。
-
-**返回**: `SERVER_VERSION`（`CARGO_PKG_VERSION`）
+> **注**：ScriptCsCommands（6 个 C# 工具）在 `handler_registry.cpp` 中已声明但未在 `register_all_tools()` 中调用，运行时不可用。`list_autoloads`、`add_autoload`、`remove_autoload`、`list_scenes` 注册在 `project_settings.cpp` 的 `register_project_settings()` 中。
 
 ---
 
@@ -86,167 +50,8 @@
 
 ## NodeCommands (21)
 
-### `get_scene_tree`
-获取当前场景节点树。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `max_depth` | integer | 否 |
-
-**返回**: 嵌套节点树 JSON
-
-### `get_node_path`
-获取节点路径。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-
-### `get_property_list`
-获取节点所有属性列表。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-
-### `get_property`
-获取节点指定属性值。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-| `property` | string | 是 |
-
-### `create_node`
-创建新节点。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `parent_path` | string | 是 |
-| `node_type` | string | 是 |
-| `name` | string | 是 |
-
-### `delete_node`
-删除节点。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-
-### `rename_node`
-重命名节点。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-| `new_name` | string | 是 |
-
-### `set_property`
-修改节点属性值（通用兜底）。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-| `property` | string | 是 |
-| `value` | any | 是 |
-
-### `duplicate_node`
-复制节点。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-
-### `move_node`
-移动节点到新父节点。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-| `new_parent_path` | string | 是 |
-
-### `attach_script`
-为节点挂载脚本。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-| `script_path` | string | 是 |
-
-### `detach_script`
-卸载节点脚本。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-
-### `reset_parent`
-重设父节点 (reparent)。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-| `new_parent_path` | string | 是 |
-
-### `set_as_root`
-设置节点为场景根。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-
-### `batch_set_property`
-批量修改多个节点同名属性。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_paths` | array | 是 |
-| `property` | string | 是 |
-| `value` | any | 是 |
-
-### `add_node_to_group`
-添加节点到组。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-| `group` | string | 是 |
-
-### `remove_node_from_group`
-从组中移除节点。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-| `group` | string | 是 |
-
-### `set_node_transform_2d`
-一次性设置 2D 节点的 position + rotation + scale（单个 undo action）。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-
-### `set_node_transform_3d`
-一次性设置 3D 节点的 position + rotation + scale（单个 undo action）。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-
-### `get_node_info`
-返回节点的完整信息：类型、脚本路径、可见性、组、子节点数、owner、unique_name、是否为实例化场景。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-
-### `get_script_variables`
-列出节点脚本上的所有 @export 变量名、类型和当前值。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
+NodeCommands 包含 21 个工具，覆盖节点 CRUD、属性读写、脚本挂载、分组管理和 transform 设置：
+`get_scene_tree`, `get_node_path`, `get_property_list`, `get_property`, `create_node`, `delete_node`, `rename_node`, `set_property`, `duplicate_node`, `move_node`, `attach_script`, `detach_script`, `reset_parent`, `set_as_root`, `batch_set_property`, `add_node_to_group`, `remove_node_from_group`, `set_node_transform_2d`, `set_node_transform_3d`, `get_node_info`, `get_script_variables`
 
 ---
 
@@ -414,7 +219,7 @@
 | `texture_path` | string | 是 |
 | `property` | string | 否（默认 `"texture"`） |
 
-**注意**: 非 CollisionObject2D/3D 节点调用碰撞层/掩码工具会报错。`TextureButton` 支持 `texture_normal/pressed/hover/disabled/focused` 属性；`TextureProgressBar` 支持 `texture_under/over/progress`。
+**注意**: 非 CollisionObject2D/3D 节点调用碰撞层/掩码工具会报错。`TextureButton` 支持 `texture_normal/pressed/hover/disabled/focused` 属性；`TextureProgressBar` 支持 `texture_under/over/progress`。`set_node_position`/`set_node_rotation`/`set_node_scale` 的 x/y 参数不设置为保持原值。
 
 ---
 
@@ -530,7 +335,6 @@
 |------|------|------|
 | `name` | string | 是 |
 | `path` | string | 是 |
-| `singleton` | boolean | 否（默认 true） |
 
 ### `remove_autoload`
 移除 Autoload 单例。
@@ -542,107 +346,13 @@
 ### `list_scenes`
 列出项目中所有场景文件 (.tscn/.scn)。
 
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `root` | string | 否 |
-| `max_results` | integer | 否 |
-
 ---
 
 ## SceneCommands (16)
 
-### `create_scene`
-创建新场景文件。
+包含 `create_scene`, `delete_scene`, `rename_scene`, `branch_to_scene`, `scene_to_branch`, `instantiate_scene`, `open_scene`, `close_scene`, `save_scene`, `save_scene_as`, `save_all_scenes`, `reload_scene`, `get_open_scenes`, `get_open_scene_roots`, `mark_scene_unsaved`, `is_scene_dirty`。
 
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `path` | string | 是 |
-| `root_type` | string | 否 |
-| `root_name` | string | 否 |
-
-### `delete_scene`
-删除场景文件。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `path` | string | 是 |
-
-### `rename_scene`
-重命名/移动场景文件。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `source_path` | string | 是 |
-| `dest_path` | string | 是 |
-
-**注意**: 目标已打开但不是活动标签页时会报错。
-
-### `branch_to_scene`
-将节点分支转为场景文件。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-| `scene_path` | string | 是 |
-
-### `scene_to_branch`
-将实例化场景转为本地分支。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `node_path` | string | 是 |
-
-### `instantiate_scene`
-实例化子场景。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `scene_path` | string | 是 |
-| `parent_path` | string | 是 |
-
-### `open_scene`
-在编辑器中打开场景文件。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `scene_path` | string | 是 |
-| `set_inherited` | boolean | 否 |
-
-### `close_scene`
-关闭当前编辑场景标签。
-
-### `save_scene`
-保存当前编辑场景到原文件。
-
-### `save_scene_as`
-将当前编辑场景另存为新路径。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `scene_path` | string | 是 |
-| `with_preview` | boolean | 否 |
-
-### `save_all_scenes`
-保存所有已打开的场景。
-
-### `reload_scene`
-从磁盘重新加载指定场景。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `scene_path` | string | 是 |
-
-### `get_open_scenes`
-列出所有已打开的场景文件路径。
-
-### `get_open_scene_roots`
-列出所有已打开场景的根节点信息。
-
-### `mark_scene_unsaved`
-标记当前编辑场景为未保存。
-
-### `is_scene_dirty`
-查询当前场景是否有未保存的变更。
+所有场景文件操作必须使用 `EditorInterface` API——编辑器看不到直接的 `.tscn` 文件写入。写入文件后需调用 `EditorInterface::get_singleton()->get_resource_filesystem()->update_file()` 让编辑器感知变更。
 
 ---
 
@@ -682,7 +392,7 @@
 |------|------|------|
 | `path` | string | 是 |
 
-**注意**: 需要编辑器设置 → 网络 → Language Server → 启用。会创建临时 tokio 运行时。
+**注意**: 需要编辑器设置 → 网络 → Language Server → 启用。通过 `StreamPeerTCP` 同步连接 LSP 服务器，不创建额外线程。
 
 ### `list_gdscripts`
 列出项目所有 GDScript 文件。
@@ -696,6 +406,8 @@
 ---
 
 ## ScriptCsCommands (6)
+
+> **⚠ 未注册**：`register_script_cs` 在 `handler_registry.cpp` 中已声明但未在 `register_all_tools()` 中调用。运行时不可用。
 
 ### `create_csharp_script`
 创建 C# 脚本文件（需先执行 `csharp_create_solution`）。
@@ -739,10 +451,6 @@
 
 ### `csharp_create_solution`
 创建 C# Solution 文件。
-
-| 参数 | 类型 | 必须 |
-|------|------|------|
-| `enable_nativeaot` | boolean | 否 |
 
 ---
 

@@ -1,0 +1,33 @@
+[{
+    "type": "file",
+    "name": "tools-catalog",
+    "label": "toolsCatalog"
+}, {
+    "type": "file",
+    "name": "client-config",
+    "label": "clientConfig"
+}, {
+    "type": "file",
+    "name": "protocol",
+    "label": "protocol"
+}, {
+    "type": "file",
+    "name": "faq",
+    "label": "faq"
+}, {
+    "type": "file",
+    "name": "client-quirks",
+    "label": "clientQuirks"
+}, {
+    "type": "file",
+    "name": "lsp-client",
+    "label": "lspClient"
+}, {
+    "type": "file",
+    "name": "project-settings-ext",
+    "label": "projectSettingsExt"
+}, {
+    "type": "file",
+    "name": "csharp-solution",
+    "label": "csharpSolution"
+}]

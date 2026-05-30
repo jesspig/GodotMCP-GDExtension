@@ -1,10 +1,6 @@
 # C# 解决方案生成
 
-> `crates/gdext/src/commands/script_cs.rs` — 不使用外部工具，直接在 Rust 中生成 `.sln` + `.csproj` 文件。
-
-## 设计动机
-
-避免启动第二个 Godot 进程（否则会因端口 9500 冲突）。所有 C# 项目文件直接由 Rust 代码构造。
+> 直接在 gdext 中生成 `.sln` + `.csproj` 文件，无需启动第二个 Godot 进程。实现在 `extensions/gdext/src/commands/script_cs.cpp`。
 
 ## 文件结构
 
@@ -72,3 +68,5 @@ flowchart LR
 - `csharp_create_solution` 必须在创建 C# 脚本前执行
 - `.csproj` 使用 UTF-8 **无** BOM；`.sln` 使用 UTF-8 **有** BOM（VS 要求）
 - NativeAOT 支持通过 `enable_nativeaot` 参数启用（实验性）
+
+

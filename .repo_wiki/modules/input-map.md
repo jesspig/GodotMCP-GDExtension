@@ -1,6 +1,6 @@
 # Input Map 命令
 
-> `crates/gdext/src/commands/input_map.rs` — 4 个工具，管理 Godot 的输入动作映射（InputMap）。
+> 4 个工具，管理 Godot 的输入动作映射（InputMap）。实现在 `extensions/gdext/src/commands/input_map.cpp`。
 
 ## 工具列表
 

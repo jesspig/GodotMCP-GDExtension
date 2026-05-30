@@ -1,6 +1,6 @@
 # Project Settings Extensions
 
-> `crates/gdext/src/commands/project_settings_ext.rs` — 10 个聚合设置工具，将分散在 `ProjectSettings` 中的相关属性打包为 get/set 对。
+> 10 个聚合设置工具，将分散在 `ProjectSettings` 中的相关属性打包为 get/set 对。实现在 `extensions/gdext/src/commands/project_settings_ext.cpp`。
 
 ## 工具列表
 
@@ -21,10 +21,10 @@
 
 所有工具遵循同一模式：
 
-```rust
-// 通过 ProjectSettings::singleton().get_setting("key") 读取
-// 通过 ProjectSettings::singleton().set_setting("key", value) 写入
-// 设置后调用 ProjectSettings::singleton().save() 持久化
+```cpp
+// 通过 ProjectSettings::get_singleton()->get_setting("key") 读取
+// 通过 ProjectSettings::get_singleton()->set_setting("key", value) 写入
+// 设置后调用 ProjectSettings::get_singleton()->save() 持久化
 ```
 
 ```mermaid

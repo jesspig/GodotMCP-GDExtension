@@ -1,12 +1,13 @@
 name: Release
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   push:
     tags:
       - "v*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -14,33 +15,23 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
             gdext_lib: libgodot_mcp_gdext.so
-            server_bin: godot-mcp-server
-            server_name: godot-mcp-server_linux
           - os: macos-latest
-            target: x86_64-apple-darwin
             gdext_lib: libgodot_mcp_gdext.dylib
-            server_bin: godot-mcp-server
-            server_name: godot-mcp-server_macos
           - os: windows-latest
-            target: x86_64-pc-windows-msvc
             gdext_lib: godot_mcp_gdext.dll
-            server_bin: godot-mcp-server.exe
-            server_name: godot-mcp-server_windows.exe
 
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Cache godot-cpp
+        uses: actions/cache@v4
         with:
-          targets: ${{ matrix.target }}
-
-      - name: Install Linux dependencies
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libclang-dev
+          path: build/_deps
+          key: godot-cpp-${{ runner.os }}-10.0.0-rc1
 
       - name: Configure CMake
         run: cmake -B build -S . -DRELEASE=ON
@@ -54,56 +45,30 @@ jobs:
           name: gdext-${{ matrix.os }}
           path: build/${{ matrix.gdext_lib }}
 
-      - name: Rename Server binary
-        run: |
-          mv build/${{ matrix.server_bin }} build/${{ matrix.server_name }}
-        shell: bash
-
-      - name: Upload Server binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-${{ matrix.os }}
-          path: build/${{ matrix.server_name }}
-
   package:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Download GDExtension artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: gdext-*
           path: libs
 
-      - name: Download Server artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: server-*
-          path: servers
-
       - name: Assemble addons.zip
         run: |
           mkdir -p godot/addons/godot_mcp/bin
-
           cp libs/gdext-windows-latest/godot_mcp_gdext.dll godot/addons/godot_mcp/bin/
           cp libs/gdext-ubuntu-latest/libgodot_mcp_gdext.so godot/addons/godot_mcp/bin/
           cp libs/gdext-macos-latest/libgodot_mcp_gdext.dylib godot/addons/godot_mcp/bin/
-
           cd godot/addons
           zip -r ../../addons.zip godot_mcp/
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: |
-            addons.zip
-            servers/server-ubuntu-latest/godot-mcp-server_linux
-            servers/server-macos-latest/godot-mcp-server_macos
-            servers/server-windows-latest/godot-mcp-server_windows.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: addons.zip

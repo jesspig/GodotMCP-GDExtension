@@ -1,110 +1,55 @@
 # 线程模型
 
-> **接触 gdext 前必读。** 这是项目中最容易出问题的部分。
+> **一切都在 Godot 主线程上运行**——是项目最简单可靠的架构决策。
 
-## 核心问题
-
-工具路由运行在 tokio 工作线程上。**几乎所有 Godot API 如果在非主线程调用都会 panic**（崩溃）。
-
-项目有两个机制来处理这个问题——以及为什么不能直接用 `EditorPlugin::process()`。
-
-## 机制 1: MainThreadDispatcher
+## 纯主线程
 
 ```mermaid
 flowchart LR
-    subgraph Tokio["tokio 工作线程"]
-        T1["route_tool_call()"]
-        T2["submit(|| cmd_*())"]
+    subgraph MAIN["Godot 主线程"]
+        direction TB
+        A["EditorPlugin::_on_process_frame()<br/>(通过 process_frame 信号每帧调用)"]
+        C["HttpServer::poll()"]
+        D["接受连接 → 解析请求 → 查找 HandlerRegistry → 执行 CommandFn"]
     end
     
-    subgraph Queue["VecDeque<DispatcherJob>"]
-        Q1["(closure, oneshot Sender)"]
-        Q2["(closure, oneshot Sender)"]
-    end
-    
-    subgraph Main["Godot 主线程"]
-        M1["process_frame 泵"]
-        M2["process_pending()"]
-        M3["执行闭包 → Godot API"]
-    end
-    
-    T1 -->|参数 clone| T2
-    T2 -->|push_back| Q1
-    T2 -->|push_back| Q2
-    M1 -->|每帧| M2
-    M2 -->|drain| Q1
-    M2 -->|drain| Q2
-    Q1 -->|运行| M3
-    Q2 -->|运行| M3
-    M3 -->|oneshot.send| T1
+    A --> C
+    C --> D
 ```
 
-- 工作线程调用 `dispatcher.submit(move || { /* Godot API */ })`，返回一个 `oneshot` future
-- 提交的内容是一个 `Box<dyn FnOnce() -> Value + Send>` 闭包，被推送到 `VecDeque`
-- 主线程通过 `process_pending()` 取出并执行所有排队的闭包
-- 所有 `cmd_*` 函数都通过此机制调用，无一例外（MetaCommands 也不除外——`handle_meta_tool` 不调用 Godot API 所以可以直接在主线程上下文调用，但它仍然是**从主线程**运行的）
+C++ 版本**没有任何工作线程**。所有操作（HTTP 解析、JSON 处理、命令执行、Godot API 调用）都在 `EditorPlugin::_on_process_frame()` 中同步完成，该函数通过 `SceneTree::process_frame` 信号每帧调用。
 
-## 机制 2: 跨线程日志
+这意味着：
+- **无需** `MainThreadDispatcher`
+- **无需** 跨线程日志（直接调用 `UtilityFunctions::print`）
+- **无需** tokio 运行时
+- 无 `bind_mut` 死锁风险
+- 所有 `cmd_*` 函数可以直接调用 Godot API
 
-```mermaid
-flowchart LR
-    subgraph Worker["tokio 工作线程"]
-        W["log_info()"]
-    end
+## 为何选择纯主线程
+
+Godot GDExtension API 要求所有 API 调用发生在主线程。C++ godot-cpp 绑定没有额外的线程借用检查机制，因此只要保证所有代码跑在主线程即可。`extensions/gdext/` 通过 `_on_process_frame` 确保这一点。
+
+## 实现细节（C++）
+
+```cpp
+// editor_plugin.cpp
+// McpHandler 的 registry 指针通过构造函数传入：McpHandler mcp_handler_{&registry_}
+void McpEditorPlugin::_enter_tree() {
+    registry_.set_engine_version(Engine::get_singleton()->get_version_info().get("string", ""));
+    registry_.set_plugin_version(String(GODOT_MCP_PLUGIN_VERSION));
+    register_all_tools(registry_);
     
-    subgraph Channel["mpsc 通道"]
-        C1["(INFO, tool, msg)"]
-        C2["(WARN, tool, msg)"]
-    end
+    http_server_.start(http_port, &mcp_handler_);  // start(port, McpHandler*)
     
-    subgraph Main["主线程"]
-        M["drain_to_console()"]
-        O["godot_print! / godot_warn!"]
-    end
-    
-    W -->|send| C1
-    W -->|send| C2
-    M -->|drain try_iter| C1
-    M -->|drain try_iter| C2
-    C1 --> O
-    C2 --> O
-    
-    W2["eprintln! (镜像)"] -.->|备用| Terminal["终端 stderr"]
+    SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
+    tree->connect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
+}
+
+void McpEditorPlugin::_on_process_frame() {
+    if (!started_) return;
+    http_server_.poll();  // HTTP: 解析请求 + MCP 会话 + SSE 刷新
+}
 ```
 
-- 工作线程调用 `log_info/log_warn/log_error` → 消息进入 mpsc 通道 + `eprintln!` 镜像
-- 主线程调用 `drain_to_console()` → 转发到 `godot_print!`/`godot_warn!`/`godot_error!`
-- **绝不要在 tokio 工作线程上调用 `godot_print!`**
-
-## 为什么不用 `EditorPlugin::process()`（bind_mut 陷阱）
-
-```
-EditorPlugin::process(&mut self)  ← 持有 self 的独占借用 (bind_mut)
-  └─ 调用某个 Godot API
-      └─ 该 API 同步触发信号
-          └─ 信号回调试图访问编辑器插件
-              └─ Gd<T>::bind_mut() 崩溃: "already bound"
-```
-
-两个队列都通过 `Callable::from_fn` 挂载在 `SceneTree::process_frame` 信号上：
-
-```rust
-// editor_plugin.rs (简化)
-let callable = Callable::from_fn("godot_mcp_pump", move |_args| {
-    dispatcher.process_pending();
-    logging::drain_to_console();
-    Variant::nil()
-});
-tree.connect("process_frame", &callable);
-```
-
-这样调用栈上**不持有** `McpEditorPlugin` 的任何绑定，Godot API 可安全重入。
-
-## 新增工具的规则
-
-1. 在 `commands/xx.rs` 中实现 `cmd_your_tool()` 函数
-2. 在组内添加 `TOOL_NAMES` 和 `can_handle()` 匹配
-3. 在 `commands/mod.rs::create_registry()` 中注册新组（或现有组的 handler）
-4. 每个工具在 `handler.handle()` 中调用 `d.submit(move || cmd_*()).await`
-5. 用 `pipe()` 包裹返回值：`pipe(d.submit(...).await)` 将 `json!({"error": "..."})` 转为 `Err`
-6. `ws_server.rs` 的 `dispatch()` 自动遍历所有已注册的 handler——无需修改
+`HttpServer` 通过 `McpHandler` 分发请求（标准 MCP JSON-RPC 2.0 会话管理），最终调用 `HandlerRegistry::find()` 查找并执行对应的 `CommandFn`。
