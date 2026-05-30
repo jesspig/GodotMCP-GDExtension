@@ -84,6 +84,9 @@ Dictionary cmd_delete_scene(const Dictionary &a) {
 }
 Dictionary cmd_rename_scene(const Dictionary &a) {
     String src = args_string(a, "source_path"), dst = args_string(a, "dest_path");
+    if (src == dst) return make_error("source_path and dest_path are the same");
+    if (!FileAccess::file_exists(src)) return make_error("source_path '" + src + "' does not exist (check arguments: source_path -> dest_path)");
+    if (FileAccess::file_exists(dst)) return make_error("dest_path '" + dst + "' already exists");
     EditorInterface *ei = EditorInterface::get_singleton();
     Array scenes = ei->get_open_scenes();
     bool is_open = false;
@@ -95,7 +98,7 @@ Dictionary cmd_rename_scene(const Dictionary &a) {
     }
     Ref<DirAccess> d = DirAccess::open("res://");
     if (d.is_null()) return make_error("Cannot open res://");
-    if (d->rename(src, dst) != OK) return make_error("Failed to rename");
+    if (d->rename(src, dst) != OK) return make_error("Failed to rename '" + src + "' to '" + dst + "'");
     notify_file_changed(dst);
     if (is_open) ei->open_scene_from_path(dst);
     Dictionary r; r["source"] = src; r["destination"] = dst; if (is_open) r["tab_reopened"] = true; return r;
@@ -144,7 +147,7 @@ Dictionary cmd_scene_to_branch(const Dictionary &a) {
     if (sf.is_empty()) return make_error("Node is not an instanced scene; use branch_to_scene");
     EditorUndoRedoManager *ur = get_undo_redo();
     if (ur) {
-        ur->create_action("Make Local");
+        ur->create_action("Scene to Branch: " + p);
         ur->add_do_method(n, "set_scene_file_path", Variant(""));
         ur->add_undo_method(n, "set_scene_file_path", Variant(sf));
         ur->commit_action();
@@ -179,7 +182,10 @@ Dictionary cmd_open_scene(const Dictionary &a) {
     if (sp.is_empty()) return make_error("missing 'scene_path'");
     if (!FileAccess::file_exists(sp)) return make_error("Scene file does not exist: " + sp);
     bool inherited = args_bool(a, "set_inherited", false);
-    EditorInterface::get_singleton()->open_scene_from_path(sp);
+    EditorInterface *ei = EditorInterface::get_singleton();
+    ei->open_scene_from_path(sp);
+    Node *root = ei->get_edited_scene_root();
+    if (root) save_version_marker(root, ei);
     Dictionary r; r["opened"] = sp; r["loaded"] = true; return r;
 }
 Dictionary cmd_close_scene(const Dictionary &) {
@@ -230,8 +236,12 @@ Dictionary cmd_reload_scene(const Dictionary &a) {
     Dictionary r; r["reloaded"] = sp; return r;
 }
 Dictionary cmd_get_open_scenes(const Dictionary &) {
-    Array scenes = EditorInterface::get_singleton()->get_open_scenes();
-    Dictionary r; r["scenes"] = scenes; return r;
+    Array paths = EditorInterface::get_singleton()->get_open_scenes();
+    Array out;
+    for (int i = 0; i < paths.size(); i++) {
+        Dictionary e; e["path"] = paths[i]; out.append(e);
+    }
+    Dictionary r; r["scenes"] = out; return r;
 }
 Dictionary cmd_get_open_scene_roots(const Dictionary &) {
     Array roots = EditorInterface::get_singleton()->get_open_scene_roots();

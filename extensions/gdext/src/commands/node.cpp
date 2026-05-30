@@ -3,9 +3,12 @@
 #include "cmd_utils.hpp"
 #include "handler_registry.hpp"
 #include <godot_cpp/classes/engine.hpp>
+#include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/resource_saver.hpp>
+#include <godot_cpp/classes/editor_file_system.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/gd_script.hpp>
 #include <godot_cpp/classes/script.hpp>
 #include <godot_cpp/classes/class_db_singleton.hpp>
 #include <godot_cpp/classes/scene_tree.hpp>
@@ -199,13 +202,28 @@ Dictionary cmd_attach_script(const Dictionary &a) {
     String p = args_string(a, "node_path"), sp = args_string(a, "script_path");
     Node *root = get_root(); if (!root) return make_error("no scene");
     Node *n = resolve_node(root, p); if (!n) return make_error("node not found: " + p);
+
+    // Force filesystem to process the script file before loading
+    EditorFileSystem *fs = EditorInterface::get_singleton()->get_resource_filesystem();
+    if (fs) fs->update_file(sp);
+
     Ref<Script> script = ResourceLoader::get_singleton()->load(sp);
     if (script.is_null()) return make_error("Script '" + sp + "' could not be loaded");
+
+    // Force GDScript to parse and register @export properties
+    Ref<GDScript> gdscript = Object::cast_to<GDScript>(script.ptr());
+    if (gdscript.is_valid()) {
+        const String src = FileAccess::get_file_as_string(sp);
+        gdscript->set_source_code(src);
+        gdscript->reload();
+    }
+
     Variant old = n->get("script");
     EditorUndoRedoManager *ur = get_undo_redo();
     if (ur) { ur->create_action("Attach Script: " + sp);
         ur->add_do_property(n, "script", script); ur->add_undo_property(n, "script", old); ur->commit_action(); }
     else n->set("script", script);
+    n->notify_property_list_changed();
     Dictionary r; r["node_path"] = p; r["script_path"] = sp; return r;
 }
 Dictionary cmd_detach_script(const Dictionary &a) {
@@ -435,11 +453,7 @@ Dictionary cmd_get_script_variables(const Dictionary &a) {
     Array pl = n->get_property_list(); Array out;
     for (int i = 0; i < pl.size(); i++) {
         Dictionary d = pl[i]; int64_t usage = (int64_t)d.get("usage", 0);
-        // Match Rust: include SCRIPT_VARIABLE (0x1000) OR EDITOR (0x00000004).
-        // @export variables have EDITOR but not SCRIPT_VARIABLE.
-        // Built-in properties have DEFAULT (STORAGE|EDITOR) but not SCRIPT_VARIABLE.
-        // This filter catches both script-defined and @export variables.
-        if ((usage & 0x00001000) == 0 && (usage & 0x00000004) == 0) continue;
+        if ((usage & 0x00001000) == 0) continue;
         // Skip groups/categories (usage & 0x00000040 or 0x00000080)
         if (usage & 0x00000040) continue;
         if (usage & 0x00000080) continue;
