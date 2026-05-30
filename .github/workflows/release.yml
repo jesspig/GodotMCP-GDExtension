@@ -2,7 +2,6 @@ name: Release
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  PYTHON_VERSION: "3.14"
 
 on:
   push:
@@ -16,34 +15,15 @@ jobs:
         include:
           - os: ubuntu-latest
             gdext_lib: libgodot_mcp_gdext.so
-            server_bin: godot-mcp-server
-            server_name: godot-mcp-server_linux
           - os: macos-latest
             gdext_lib: libgodot_mcp_gdext.dylib
-            server_bin: godot-mcp-server
-            server_name: godot-mcp-server_macos
           - os: windows-latest
             gdext_lib: godot_mcp_gdext.dll
-            server_bin: godot-mcp-server.exe
-            server_name: godot-mcp-server_windows.exe
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Create virtual environment
-        run: |
-          uv venv .venv
-          uv pip install -e ".[dev]"
 
       - name: Configure CMake
         run: cmake -B build -S . -DRELEASE=ON
@@ -56,17 +36,6 @@ jobs:
         with:
           name: gdext-${{ matrix.os }}
           path: build/${{ matrix.gdext_lib }}
-
-      - name: Rename Server binary
-        run: |
-          mv build/${{ matrix.server_bin }} build/${{ matrix.server_name }}
-        shell: bash
-
-      - name: Upload Server binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-${{ matrix.os }}
-          path: build/${{ matrix.server_name }}
 
   package:
     needs: build
@@ -82,12 +51,6 @@ jobs:
         with:
           pattern: gdext-*
           path: libs
-
-      - name: Download Server artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: server-*
-          path: servers
 
       - name: Assemble addons.zip
         run: |
@@ -105,8 +68,5 @@ jobs:
         with:
           files: |
             addons.zip
-            servers/server-ubuntu-latest/godot-mcp-server_linux
-            servers/server-macos-latest/godot-mcp-server_macos
-            servers/server-windows-latest/godot-mcp-server_windows.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

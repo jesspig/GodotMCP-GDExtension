@@ -143,7 +143,7 @@ Variant variant_to_json(const Variant &v) {
         case Variant::OBJECT: {
             // Encode Resources by their res:// path so the other side can
             // round-trip the value via json_to_variant.
-            Object *obj = (Object *)v;
+            Object *obj = v;
             if (!obj) {
                 return Variant();
             }

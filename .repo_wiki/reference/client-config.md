@@ -1,22 +1,15 @@
 # 客户端配置
 
-> `godot-mcp-server` 只支持 **stdio 传输**。所有 AI 客户端必须通过 stdio 配置。
+> 所有 AI 客户端通过 **MCP Streamable HTTP** 连接，URL 为 `http://localhost:9600/mcp`。
 
 ## 通用配置结构
-
-所有客户端都需要两样东西：
-1. `command` — 指向 `godot-mcp-server.exe` 的路径
-2. `env.GODOT_PATH` — Godot 编辑器可执行文件的路径
 
 ```json
 {
   "mcpServers": {
-    "godot-mcp": {
-      "command": "/absolute/path/to/godot-mcp-server",
-      "args": [],
-      "env": {
-        "GODOT_PATH": "/absolute/path/to/godot/Godot_v4.6-stable_win64.exe"
-      }
+    "godot": {
+      "type": "streamable-http",
+      "url": "http://localhost:9600/mcp"
     }
   }
 }
@@ -24,15 +17,17 @@
 
 ## 示例配置
 
-### VS Code (Roo Code / Continue)
+### opencode
 
-**`~/.config/Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/cline_customMCPServers.json`**
+在 `opencode.json` 或 `opencode.jsonc` 中配置：
 
 ```json
 {
-  "command": "C:\\Tools\\godot-mcp-server.exe",
-  "env": {
-    "GODOT_PATH": "C:\\Godot\\Godot_v4.6-stable_win64.exe"
+  "mcpServers": {
+    "godot": {
+      "type": "streamable-http",
+      "url": "http://localhost:9600/mcp"
+    }
   }
 }
 ```
@@ -48,11 +43,9 @@
 ```json
 {
   "mcpServers": {
-    "godot-mcp": {
-      "command": "C:/Tools/godot-mcp-server.exe",
-      "env": {
-        "GODOT_PATH": "C:/Godot/Godot_v4.6-stable_win64.exe"
-      }
+    "godot": {
+      "type": "streamable-http",
+      "url": "http://localhost:9600/mcp"
     }
   }
 }
@@ -60,11 +53,11 @@
 
 ### JetBrains
 
-在 IDE 中的 MCP 配置面板设置。
+在 IDE 中的 MCP 配置面板设置 Streamable HTTP URL。
 
 ## 注意事项
 
-- **Windows 路径**: 使用前向斜杠 (`/`) 或双反斜杠 (`\\`)
-- `GODOT_PATH` **不能**从 shell profile 继承——stdio 服务器不继承终端环境变量
+- **Godot 编辑器必须先启动并加载插件**，客户端才能连接
+- **端口**：默认 9600，可通过 `GODOT_MCP_HTTP_PORT` 环境变量覆盖
 - **重启编辑器/客户端**: 修改配置后必须重启使用 MCP 的编辑器
-- **重启后重建**: 如果重建了 `godot-mcp-server.exe`，必须重启使用 MCP 的编辑器进程
+- **重建后**: 如果重建了 `godot_mcp_gdext.dll`，需要关闭并重新打开 Godot 编辑器

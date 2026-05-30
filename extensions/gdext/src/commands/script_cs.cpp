@@ -10,6 +10,8 @@
 #include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/variant/array.hpp>
+#include <cstdio>
+#include <random>
 using namespace godot;
 
 namespace godot_mcp {
@@ -57,9 +59,18 @@ String sanitize_identifier(const String &name) {
     return r;
 }
 String generate_uuid() {
-    uint64_t t = (uint64_t)Time::get_singleton()->get_unix_time_from_system();
-    String s = String::num_int64(t, 16);
-    return s.substr(0, 8) + "-" + s.substr(0, 4) + "-4" + s.substr(0, 3) + "-8" + s.substr(0, 3) + "-" + s.substr(0, 12);
+    static std::mt19937_64 rng(std::random_device{}());
+    static std::uniform_int_distribution<uint64_t> dist;
+    char buf[37];
+    const uint64_t hi = dist(rng);
+    const uint64_t lo = dist(rng);
+    std::sprintf(buf, "%08x-%04x-4%03x-%04x-%012llx",
+                 (unsigned)(hi >> 32),
+                 (unsigned)(hi >> 16) & 0xffff,
+                 (unsigned)(hi & 0x0fff),
+                 (unsigned)(lo >> 48) & 0x3fff | 0x8000,
+                 (unsigned long long)(lo & 0x0000ffffffffffffULL));
+    return String(buf);
 }
 String get_sdk_version() {
     Dictionary vi = Engine::get_singleton()->get_version_info();

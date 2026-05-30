@@ -1,6 +1,6 @@
 # Editor Control 命令（gdext 侧）
 
-> 6 个编辑器控制工具，在 gdext 进程内执行（区别于 server 侧的 `godot_editor_open/close/restart`）。实现在 `extensions/gdext/src/commands/editor_control.cpp`。
+> 6 个编辑器控制工具，在 gdext 进程内执行。实现在 `extensions/gdext/src/commands/editor_control.cpp`。
 
 ## 工具列表
 
@@ -28,11 +28,3 @@
   }
 }
 ```
-
-## 与服务器端 EditorControl 的区别
-
-| | 服务器端 (handler.py) | gdext 侧 (editor_control.cpp) |
-|---|---|---|
-| 进程 | godot-mcp-server | godot_mcp_gdext.dll |
-| 工具 | `godot_editor_open`/`close`/`restart` | `play_*`/`stop_scene`/`refresh_filesystem`/`get_editor_info` |
-| 功能 | 启动/关闭/重启编辑器进程 | 控制编辑器内的场景播放、文件系统、查询 |

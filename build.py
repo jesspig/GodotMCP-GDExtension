@@ -5,7 +5,6 @@ Usage:
     py -3 build.py                # debug build + addons.zip
     py -3 build.py --release      # release build + addons.zip
     py -3 build.py --no-zip       # build only, skip zip
-    py -3 build.py --no-server    # skip building godot-mcp-server
     py -3 build.py --clean        # wipe build cache before building
 """
 
@@ -82,15 +81,12 @@ def main():
     parser.add_argument("--release", action="store_true", help="Build with Release configuration")
     parser.add_argument("--clean", action="store_true", help="Wipe build/ directory before configuring")
     parser.add_argument("--no-zip", action="store_true", help="Skip producing addons.zip")
-    parser.add_argument("--no-server", action="store_true", help="Skip building godot-mcp-server")
     args = parser.parse_args()
 
     config = "Release" if args.release else "Debug"
     cmake_defs = []
     if args.release:
         cmake_defs += ["-DRELEASE=ON"]
-    if args.no_server:
-        cmake_defs += ["-DNO_SERVER=ON"]
 
     if args.clean and BUILD_DIR.exists():
         print(f"\n[CLEAN] Removing CMake cache in {BUILD_DIR}", flush=True)

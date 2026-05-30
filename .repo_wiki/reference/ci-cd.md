@@ -9,14 +9,12 @@ flowchart LR
     A[git push / PR] --> B[Checkout]
     B --> C[cmake -B build -S .]
     C --> D[cmake --build build --config Debug]
-    D --> E[cd server && pytest]
 ```
 
 | 步骤 | 命令 | 作用 |
 |------|------|------|
-| Configure | `cmake -B build -S .` | CMake 配置（拉取 godot-cpp FetchContent + Cython server 编译） |
-| Build | `cmake --build build --config Debug` | 编译 C++ GDExtension + Python/Cython 服务器 |
-| Test | `cd server && pytest` | 运行 Python 服务器测试（58 个离线测试，无需 Godot） |
+| Configure | `cmake -B build -S .` | CMake 配置（拉取 godot-cpp FetchContent） |
+| Build | `cmake --build build --config Debug` | 编译 C++ GDExtension |
 
 ## Release (`.github/workflows/release.yml`)
 
@@ -37,25 +35,22 @@ flowchart TD
     A[git tag v*] --> L
     A --> M
     A --> W
-    L -->|libgodot_mcp_gdext.so + server| P
-    M -->|libgodot_mcp_gdext.dylib + server| P
-    W -->|godot_mcp_gdext.dll + server| P
-    P -->|addons.zip + server binaries| R
+    L -->|libgodot_mcp_gdext.so| P
+    M -->|libgodot_mcp_gdext.dylib| P
+    W -->|godot_mcp_gdext.dll| P
+    P -->|addons.zip| R
 ```
 
 **构建矩阵**：
 
-| 平台 | GDExt 库 | 服务端二进制 |
-|------|----------|-------------|
-| Ubuntu | `libgodot_mcp_gdext.so` | `godot-mcp-server_linux` |
-| macOS | `libgodot_mcp_gdext.dylib` | `godot-mcp-server_macos` |
-| Windows | `godot_mcp_gdext.dll` | `godot-mcp-server_windows.exe` |
+| 平台 | GDExt 库 |
+|------|----------|
+| Ubuntu | `libgodot_mcp_gdext.so` |
+| macOS | `libgodot_mcp_gdext.dylib` |
+| Windows | `godot_mcp_gdext.dll` |
 
 **发布产物**：
 - `addons.zip`：跨平台的 Godot 插件包（含三个平台的 GDExt 库）
-- 各平台的 `godot-mcp-server` 二进制文件
-
-**注意**：服务器二进制是 Python/Cython 编译产物，与 GDExtension C++ 编译在同一 CMake 流程中。
 
 ## 本地等价命令
 
@@ -63,7 +58,6 @@ flowchart TD
 # CI 流程
 cmake -B build -S .
 cmake --build build --config Debug
-cd server && pytest
 
 # Release 构建
 cmake -B build -S . -DRELEASE=ON

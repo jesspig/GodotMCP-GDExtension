@@ -29,7 +29,8 @@ FetchContent_MakeAvailable(godot-cpp)
 set(GODOT_MCP_SOURCES
     src/register_types.cpp
     src/editor_plugin.cpp
-    src/ipc/ws_server.cpp
+    src/ipc/http_server.cpp
+    src/mcp/mcp_handler.cpp
     src/commands/handler_registry.cpp
     src/commands/cmd_utils.cpp
     src/commands/cmd_utils_json.cpp

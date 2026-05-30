@@ -7,12 +7,10 @@
 ```mermaid
 sequenceDiagram
     participant AI as AI 客户端
-    participant Server as godot-mcp-server
     participant GDExt as godot_mcp_gdext (C++)
     participant LSP as Godot LSP Server
     
-    AI->>Server: validate_gdscript(path)
-    Server->>GDExt: WebSocket tool_call
+    AI->>GDExt: validate_gdscript(path)
     GDExt->>GDExt: HandlerRegistry → script_gd 组
     GDExt->>GDExt: StreamPeerTCP::connect("127.0.0.1", 6005)
     
@@ -34,8 +32,7 @@ sequenceDiagram
         GDExt->>LSP: shutdown + exit
     end
     
-    GDExt-->>Server: 诊断结果
-    Server-->>AI: 诊断数组
+    GDExt-->>AI: 诊断结果
 ```
 
 ### key 细节

@@ -24,7 +24,14 @@ Dictionary cmd_call_method(const Dictionary &a) {
     bool call_ok = true;
     String error_msg;
     try {
-        result = n->call(method, call_args);
+        const int argc = call_args.size();
+        if (argc == 0) result = n->call(method);
+        else if (argc == 1) result = n->call(method, call_args[0]);
+        else if (argc == 2) result = n->call(method, call_args[0], call_args[1]);
+        else if (argc == 3) result = n->call(method, call_args[0], call_args[1], call_args[2]);
+        else if (argc == 4) result = n->call(method, call_args[0], call_args[1], call_args[2], call_args[3]);
+        else if (argc == 5) result = n->call(method, call_args[0], call_args[1], call_args[2], call_args[3], call_args[4]);
+        else return make_error("call_method supports at most 5 arguments");
     } catch (const std::exception &e) {
         call_ok = false;
         error_msg = String("Exception in method '") + method + String("': ") + String(e.what());
