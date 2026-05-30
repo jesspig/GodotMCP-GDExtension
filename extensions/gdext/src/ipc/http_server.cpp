@@ -36,17 +36,17 @@ bool HttpServer::start(int port, McpHandler *mcp_handler) {
     port_ = port;
 
     tcp_server_.instantiate();
-    const Error err = tcp_server_->listen((uint16_t)port, "127.0.0.1");
+    const Error err = tcp_server_->listen((uint16_t)port, kBindAddress);
     if (err != OK) {
-        log_error("http", String("Failed to listen on 127.0.0.1:") +
-                              String::num_int64(port) +
+        log_error("http", String("Failed to listen on ") + String(kBindAddress) +
+                              String(":") + String::num_int64(port) +
                               String(" (err=") + String::num_int64((int64_t)err) + String(")"));
         tcp_server_.unref();
         return false;
     }
 
     log_info("http",
-             String("MCP Streamable HTTP on 127.0.0.1:") + String::num_int64(port));
+             String("MCP Streamable HTTP on ") + String(kBindAddress) + String(":") + String::num_int64(port));
     return true;
 }
 
@@ -107,6 +107,10 @@ void HttpServer::poll() {
 
         // SSE stream: flush events
         if (conn.is_sse_stream) {
+            if (conn.sse_write_errored) {
+                dead.push_back(conn_id);
+                continue;
+            }
             flush_sse(conn_id, conn);
             const int64_t avail = conn.tcp->get_available_bytes();
             if (avail < 0) {
@@ -134,8 +138,13 @@ void HttpServer::poll() {
 
             ParseResult pr = parse_headers(conn);
             if (pr == ERROR_PARSE) {
-                send_response(conn_id, conn, 400, "Bad Request", "text/plain",
-                              "400 Bad Request", "Connection: close\r\n");
+                if (conn.content_length > kMaxBodyLength) {
+                    send_response(conn_id, conn, 413, "Payload Too Large", "text/plain",
+                                  "413 Payload Too Large", "Connection: close\r\n");
+                } else {
+                    send_response(conn_id, conn, 400, "Bad Request", "text/plain",
+                                  "400 Bad Request", "Connection: close\r\n");
+                }
                 dead.push_back(conn_id);
                 continue;
             }
@@ -153,7 +162,10 @@ void HttpServer::poll() {
             // Headers already done: read body data directly from socket
             if (conn.content_length > 0 && conn.body.size() < conn.content_length) {
                 const int remaining = conn.content_length - conn.body.size();
-                const int to_read = (int)avail < remaining ? (int)avail : remaining;
+                const int max_read = kMaxBodyLength - conn.body.size();
+                int to_read = (int)avail < remaining ? (int)avail : remaining;
+                if (to_read > max_read) to_read = max_read;
+                if (to_read <= 0) { dead.push_back(conn_id); continue; }
                 const Array read_result = conn.tcp->get_data(to_read);
                 if ((Error)(int)read_result[0] != OK) {
                     dead.push_back(conn_id); continue;
@@ -213,7 +225,7 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
     conn.header_end_pos = header_end + 4;
 
     String header_section;
-header_section.parse_utf8((const char *)buf.ptr(), header_end);
+    header_section.parse_utf8((const char *)buf.ptr(), header_end);
 
     // Status line
     const int first_lf = header_section.find("\r\n");
@@ -228,14 +240,19 @@ header_section.parse_utf8((const char *)buf.ptr(), header_end);
     if (sp2 < 0) return ERROR_PARSE;
     conn.path = status_line.substr(sp1 + 1, sp2 - sp1 - 1);
 
-    // Parse headers
+    // Parse headers (max kMaxHeaders)
     int line_start = first_lf + 2;
+    int header_count = 0;
     while (line_start < header_end) {
         const int line_end = header_section.find("\r\n", line_start);
         if (line_end < 0) break;
         const String line = header_section.substr(line_start, line_end - line_start);
         const int colon = line.find(":");
         if (colon > 0) {
+            if (++header_count > kMaxHeaders) {
+                log_warn("http", "Too many headers (> " + String::num_int64(kMaxHeaders) + ")");
+                return ERROR_PARSE;
+            }
             String key = line.substr(0, colon).to_lower().strip_edges();
             String value = line.substr(colon + 1).strip_edges();
             conn.headers[key] = value;
@@ -247,11 +264,19 @@ header_section.parse_utf8((const char *)buf.ptr(), header_end);
     auto cl_it = conn.headers.find("content-length");
     if (cl_it != conn.headers.end()) {
         conn.content_length = (int)cl_it->value.to_int();
+        if (conn.content_length > kMaxBodyLength) {
+            log_warn("http", String("Content-Length ") + String::num_int64(conn.content_length) +
+                                 String(" exceeds max ") + String::num_int64(kMaxBodyLength));
+            return ERROR_PARSE;
+        }
     }
 
     // If no Content-Length but body data exists after headers, infer length from buffer
     if (conn.content_length <= 0 && conn.header_end_pos < conn.read_buf.size()) {
         conn.content_length = conn.read_buf.size() - conn.header_end_pos;
+        if (conn.content_length > kMaxBodyLength) {
+            conn.content_length = kMaxBodyLength;
+        }
     }
 
     // Connection
@@ -275,11 +300,17 @@ void HttpServer::try_read_body(Connection &conn) {
     const int remaining = conn.content_length - conn.body.size();
     if (remaining <= 0) return;
 
+    if (conn.body.size() >= kMaxBodyLength) return;
+
     const int64_t avail = conn.tcp->get_available_bytes();
     if (avail <= 0) return;
 
+    const int max_read = kMaxBodyLength - conn.body.size();
     const int to_read = (int)avail < remaining ? (int)avail : remaining;
-    const Array read_result = conn.tcp->get_data(to_read);
+    const int safe_read = to_read < max_read ? to_read : max_read;
+    if (safe_read <= 0) return;
+
+    const Array read_result = conn.tcp->get_data(safe_read);
     if ((Error)(int)read_result[0] != OK) return;
 
     const PackedByteArray chunk = read_result[1];
@@ -514,12 +545,11 @@ void HttpServer::handle_delete(int conn_id, Connection &conn) {
 }
 
 void HttpServer::handle_options(int conn_id, Connection &conn) {
-    String cors_headers =
-        "Access-Control-Allow-Origin: *\r\n"
+    String cors_headers = String("Access-Control-Allow-Origin: *\r\n") +
         "Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS\r\n"
         "Access-Control-Allow-Headers: Content-Type, Accept, MCP-Session-Id, Last-Event-ID, MCP-Protocol-Version\r\n"
-        "Access-Control-Max-Age: 86400\r\n"
-        "Access-Control-Expose-Headers: MCP-Session-Id, Last-Event-ID, MCP-Protocol-Version\r\n";
+        "Access-Control-Max-Age: " + String::num_int64(kCorsMaxAgeSeconds) +
+        "\r\nAccess-Control-Expose-Headers: MCP-Session-Id, Last-Event-ID, MCP-Protocol-Version\r\n";
     send_response(conn_id, conn, 204, "No Content", "text/plain", "", cors_headers);
 }
 
@@ -527,14 +557,14 @@ void HttpServer::handle_options(int conn_id, Connection &conn) {
 // Response helpers
 // -------------------------------------------------------------------------
 void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
-                                const char *status_text, const char *content_type,
+                                const String &status_text, const String &content_type,
                                 const String &body, const String &extra_headers) {
     String response = String("HTTP/1.1 ") + String::num_int64(status_code) +
-                      String(" ") + String(status_text) + String("\r\n");
+                      String(" ") + status_text + String("\r\n");
 
     const PackedByteArray body_bytes = body.to_utf8_buffer();
 
-    response += String("Content-Type: ") + String(content_type) + String("\r\n");
+    response += String("Content-Type: ") + content_type + String("\r\n");
     response += String("Content-Length: ") + String::num_int64(body_bytes.size()) + String("\r\n");
 
     if (conn.keep_alive && !conn.is_sse_stream) {
@@ -567,7 +597,6 @@ void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
             log_warn("http", String("Send failed (err=") + String::num_int64((int64_t)send_err) + String(")"));
         }
     }
-    conn.response_sent = true;
 }
 
 void HttpServer::send_sse_headers(int conn_id, Connection &conn) {
@@ -585,7 +614,15 @@ void HttpServer::send_sse_headers(int conn_id, Connection &conn) {
     response += String("\r\n");
 
     const PackedByteArray out = response.to_utf8_buffer();
-    if (conn.tcp.is_valid()) tcp_send(conn.tcp, out);
+    if (conn.tcp.is_valid()) {
+        conn.tcp->poll();
+        const Error err = tcp_send(conn.tcp, out);
+        if (err != OK) {
+            log_warn("http", String("SSE header send failed (err=") + String::num_int64((int64_t)err) + String(")"));
+            conn.sse_write_errored = true;
+            return;
+        }
+    }
 
     send_sse_comment(conn_id, conn, "retry:5000");
 }
@@ -599,13 +636,27 @@ void HttpServer::send_sse_event(int conn_id, Connection &conn,
     event += String("\r\n");
 
     const PackedByteArray out = event.to_utf8_buffer();
-    if (conn.tcp.is_valid()) tcp_send(conn.tcp, out);
+    if (conn.tcp.is_valid()) {
+        conn.tcp->poll();
+        const Error err = tcp_send(conn.tcp, out);
+        if (err != OK) {
+            log_warn("http", String("SSE send event failed (err=") + String::num_int64((int64_t)err) + String(")"));
+            conn.sse_write_errored = true;
+        }
+    }
 }
 
 void HttpServer::send_sse_comment(int conn_id, Connection &conn, const String &comment) {
     const String msg = String(": ") + comment + String("\r\n\r\n");
     const PackedByteArray out = msg.to_utf8_buffer();
-    if (conn.tcp.is_valid()) tcp_send(conn.tcp, out);
+    if (conn.tcp.is_valid()) {
+        conn.tcp->poll();
+        const Error err = tcp_send(conn.tcp, out);
+        if (err != OK) {
+            log_warn("http", String("SSE send comment failed (err=") + String::num_int64((int64_t)err) + String(")"));
+            conn.sse_write_errored = true;
+        }
+    }
 }
 
 void HttpServer::flush_sse(int conn_id, Connection &conn) {
@@ -623,6 +674,8 @@ void HttpServer::flush_sse(int conn_id, Connection &conn) {
     }
 
     while (mcp_handler_->has_pending_events(conn.session_id)) {
+        if (conn.sse_write_errored) return;
+
         Dictionary event = mcp_handler_->consume_event(conn.session_id);
         const String method = event.get("method", "");
         const Variant params = event.get("params", Variant());
@@ -679,10 +732,6 @@ bool HttpServer::validate_origin(const Connection &conn) const {
     }
     log_warn("http", String("Blocked origin: ") + origin);
     return false;
-}
-
-String HttpServer::build_http_date() {
-    return String("Thu, 01 Jan 2026 00:00:00 GMT");
 }
 
 } // namespace godot_mcp

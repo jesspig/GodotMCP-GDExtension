@@ -21,6 +21,10 @@ public:
     bool is_listening() const;
 
     static constexpr int kMaxConnections = 32;
+    static constexpr int kMaxBodyLength = 1048576; // 1 MB — prevent OOM on oversized payloads
+    static constexpr int kMaxHeaders = 100;
+    static constexpr const char *kBindAddress = "127.0.0.1";
+    static constexpr int kCorsMaxAgeSeconds = 86400;
 
 private:
     struct Connection {
@@ -38,9 +42,9 @@ private:
         int header_end_pos = -1;
 
         bool is_sse_stream = false;
+        bool sse_write_errored = false;
         int sse_event_id = 0;
         bool keep_alive = true;
-        bool response_sent = false;
     };
 
     enum ParseResult { NEED_MORE, COMPLETE, ERROR_PARSE };
@@ -55,7 +59,7 @@ private:
     void handle_options(int conn_id, Connection &conn);
 
     void send_response(int conn_id, Connection &conn, int status_code,
-                       const char *status_text, const char *content_type,
+                       const godot::String &status_text, const godot::String &content_type,
                        const godot::String &body,
                        const godot::String &extra_headers = "");
     void send_sse_headers(int conn_id, Connection &conn);
@@ -67,8 +71,6 @@ private:
     void close_connection(int conn_id);
     void check_timeouts();
     bool validate_origin(const Connection &conn) const;
-
-    static godot::String build_http_date();
 
     godot::Ref<godot::TCPServer> tcp_server_;
     godot::HashMap<int, Connection> connections_;

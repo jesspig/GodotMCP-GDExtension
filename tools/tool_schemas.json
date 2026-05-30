@@ -27,15 +27,6 @@
     }
   },
   {
-    "name": "get_server_version",
-    "description": "获取 godot-mcp-server 版本号",
-    "input_schema": {
-      "type": "object",
-      "properties": {},
-      "required": []
-    }
-  },
-  {
     "name": "get_scene_tree",
     "description": "获取当前场景节点树",
     "input_schema": {
@@ -1329,7 +1320,7 @@
   },
   {
     "name": "search_project",
-    "description": "在项目中全文搜索 (递归)",
+    "description": "在项目中全文搜索 (递归，默认大小写敏感。pattern 为正则，设 literal=true 则为字面量搜索)",
     "input_schema": {
       "type": "object",
       "properties": {
@@ -1358,24 +1349,6 @@
       "required": [
         "pattern"
       ]
-    }
-  },
-  {
-    "name": "godot_editor_open",
-    "description": "启动 Godot 编辑器并打开项目",
-    "input_schema": {
-      "type": "object",
-      "properties": {},
-      "required": []
-    }
-  },
-  {
-    "name": "godot_editor_close",
-    "description": "关闭 Godot 编辑器进程",
-    "input_schema": {
-      "type": "object",
-      "properties": {},
-      "required": []
     }
   },
   {
@@ -1779,10 +1752,27 @@
   },
   {
     "name": "set_display_settings",
-    "description": "设置显示/窗口相关设置",
+    "description": "设置显示/窗口相关设置（可选参数，仅传入需要修改的字段）",
     "input_schema": {
       "type": "object",
-      "properties": {},
+      "properties": {
+        "viewport_width": {"type": "integer"},
+        "viewport_height": {"type": "integer"},
+        "window_width_override": {"type": "integer"},
+        "window_height_override": {"type": "integer"},
+        "mode": {"type": "integer"},
+        "resizable": {"type": "boolean"},
+        "borderless": {"type": "boolean"},
+        "transparent": {"type": "boolean"},
+        "always_on_top": {"type": "boolean"},
+        "stretch_mode": {"type": "string"},
+        "stretch_aspect": {"type": "string"},
+        "stretch_scale": {"type": "number"},
+        "stretch_scale_mode": {"type": "string"},
+        "vsync_mode": {"type": "integer"},
+        "keep_screen_on": {"type": "boolean"},
+        "orientation": {"type": "integer"}
+      },
       "required": []
     }
   },
@@ -1815,10 +1805,21 @@
   },
   {
     "name": "set_physics_settings",
-    "description": "设置物理引擎参数",
+    "description": "设置物理引擎参数（可选参数，仅传入需要修改的字段）",
     "input_schema": {
       "type": "object",
-      "properties": {},
+      "properties": {
+        "gravity_2d": {"type": "number"},
+        "gravity_vector_2d": {"type": "object"},
+        "linear_damp_2d": {"type": "number"},
+        "angular_damp_2d": {"type": "number"},
+        "gravity_3d": {"type": "number"},
+        "gravity_vector_3d": {"type": "object"},
+        "linear_damp_3d": {"type": "number"},
+        "angular_damp_3d": {"type": "number"},
+        "physics_ticks_per_second": {"type": "integer"},
+        "max_physics_steps_per_frame": {"type": "integer"}
+      },
       "required": []
     }
   },
@@ -1833,10 +1834,19 @@
   },
   {
     "name": "set_rendering_settings",
-    "description": "设置渲染参数",
+    "description": "设置渲染参数（可选参数，仅传入需要修改的字段）",
     "input_schema": {
       "type": "object",
-      "properties": {},
+      "properties": {
+        "rendering_method": {"type": "string"},
+        "default_clear_color": {"type": "object"},
+        "msaa_2d": {"type": "integer"},
+        "msaa_3d": {"type": "integer"},
+        "screen_space_aa": {"type": "integer"},
+        "snap_2d_transforms_to_pixel": {"type": "boolean"},
+        "snap_2d_vertices_to_pixel": {"type": "boolean"},
+        "use_occlusion_culling": {"type": "boolean"}
+      },
       "required": []
     }
   },

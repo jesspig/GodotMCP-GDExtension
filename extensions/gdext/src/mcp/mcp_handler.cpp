@@ -79,11 +79,6 @@ McpHandler::Session *McpHandler::find_session(const String &id) {
     return it != sessions_.end() ? &it->value : nullptr;
 }
 
-void McpHandler::set_log_level(const String &session_id, int level) {
-    Session *s = find_session(session_id);
-    if (s) s->log_level = level;
-}
-
 // -------------------------------------------------------------------------
 // SSE event queue
 // -------------------------------------------------------------------------
@@ -471,7 +466,7 @@ Dictionary McpHandler::handle_logging_setLevel(const String &session_id, const D
                                                  const Variant &id) {
     const String level_str = params.get("level", "");
     // RFC 5424: debug=7, info=6, notice=5, warning=4, error=3, critical=2, alert=1, emergency=0
-    static HashMap<String, int> level_map = {
+    static const HashMap<String, int> level_map = {
         {"emergency", 0}, {"alert", 1}, {"critical", 2}, {"error", 3},
         {"warning", 4}, {"notice", 5}, {"info", 6}, {"debug", 7}
     };
@@ -522,26 +517,10 @@ void McpHandler::handle_cancelled(const Dictionary &params) {
 }
 
 // -------------------------------------------------------------------------
-// notifications/progress
+// notifications/progress — MCP progress tracking (reserved for future use)
 // -------------------------------------------------------------------------
 void McpHandler::handle_progress(const Dictionary &params) {
-}
-
-// -------------------------------------------------------------------------
-// Send logging message to client via SSE
-// -------------------------------------------------------------------------
-void McpHandler::send_log_message(const String &session_id, const String &level,
-                                   const String &logger, const Variant &data) {
-    Session *s = find_session(session_id);
-    if (!s) return;
-
-    Dictionary params;
-    params["level"] = level;
-    params["logger"] = logger;
-    params["data"] = data;
-
-    Dictionary notif = make_notification("notifications/message", params);
-    enqueue_event(session_id, notif);
+    (void)params; // notification received, progress tracking TBD
 }
 
 } // namespace godot_mcp

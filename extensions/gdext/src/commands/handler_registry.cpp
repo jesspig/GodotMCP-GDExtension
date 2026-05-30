@@ -12,18 +12,6 @@ void HandlerRegistry::register_tool(const String &name, CommandFn fn) {
     table_[name] = std::move(fn);
 }
 
-void HandlerRegistry::register_tool_info(const String &name, const String &description,
-                                          const Dictionary &input_schema) {
-    if (!tool_info_.has(name)) {
-        ToolInfo info;
-        info.name = name;
-        info.description = description;
-        info.input_schema = input_schema;
-        info.enabled = true;
-        tool_info_[name] = info;
-    }
-}
-
 void HandlerRegistry::load_schemas_from_json(const String &json_text) {
     Ref<JSON> json;
     json.instantiate();
@@ -127,6 +115,7 @@ void register_all_tools(HandlerRegistry &reg) {
     register_find(reg);
     register_scene(reg);
     register_script_gd(reg);
+    register_script_cs(reg);
     register_script_helpers(reg);
     register_project_settings(reg);
     register_project_settings_ext(reg);

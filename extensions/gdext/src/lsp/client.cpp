@@ -156,7 +156,7 @@ Dictionary LspClient::validate(const String &path,
         Variant root_v = json->get_data();
         if (root_v.get_type() != Variant::DICTIONARY) continue;
         Dictionary msg_dict = root_v;
-        if (msg_dict.has("method") && (String)msg_dict["method"] == "textDocument/publishDiagnostics") {
+        if (msg_dict.has("method") && String(msg_dict["method"]) == "textDocument/publishDiagnostics") {
             Dictionary params = msg_dict["params"];
             Array diags = params.get("diagnostics", Array());
             for (int i = 0; i < diags.size(); i++) {

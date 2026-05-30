@@ -1,8 +1,7 @@
 #include "editor_plugin.hpp"
-
 #include "logging.hpp"
-
 #include <godot_cpp/classes/engine.hpp>
+#include <limits>
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
@@ -33,7 +32,7 @@ int McpEditorPlugin::read_port_from_env(const String &env_var, int default_port)
     const String raw = os->get_environment(env_var);
     if (raw.is_empty()) return default_port;
     const int64_t parsed = raw.to_int();
-    if (parsed < 1 || parsed > 65535) {
+    if (parsed < 1 || parsed > std::numeric_limits<uint16_t>::max()) {
         log_warn("plugin", String("Ignoring invalid ") + env_var + String("=") + raw);
         return default_port;
     }

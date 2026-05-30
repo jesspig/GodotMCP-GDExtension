@@ -23,8 +23,6 @@ public:
     HandlerRegistry();
 
     void register_tool(const godot::String &name, CommandFn fn);
-    void register_tool_info(const godot::String &name, const godot::String &description,
-                            const godot::Dictionary &input_schema);
     void load_schemas_from_json(const godot::String &json_text);
 
     const CommandFn *find(const godot::String &name) const;

@@ -9,9 +9,8 @@
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/variant.hpp>
 
-using namespace godot;
-
 namespace godot_mcp {
+using namespace godot;
 
 class McpHandler {
 public:
@@ -30,8 +29,6 @@ public:
 
     bool has_pending_events(const String &session_id) const;
     Dictionary consume_event(const String &session_id);
-
-    void set_log_level(const String &session_id, int level);
 
     // Utility: parse a MCP-Protocol-Version header and return a compatible version.
     static String negotiate_protocol_version(const String &header_value);
@@ -95,10 +92,6 @@ private:
     // Notifications (no return value needed)
     void handle_cancelled(const Dictionary &params);
     void handle_progress(const Dictionary &params);
-
-    // Send a logging notification via SSE
-    void send_log_message(const String &session_id, const String &level,
-                          const String &logger, const Variant &data);
 
     HandlerRegistry *registry_;
     HashMap<String, Session> sessions_;
