@@ -2,6 +2,16 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-05-30 — Wiki 代码对齐修复
+
+- **修复** 多处与实际代码不一致的地方
+- **修复** `editor-plugin.md`：将不存在的 `mcp_handler_.set_registry()` 改为构造函数传递，修正 `http_server_.start()` 签名（只接受 port + McpHandler*）
+- **修复** `ipc-bridge.md`：错误码改为 `mcp_handler.hpp` 中的实际常量（kParseError/kInvalidRequest/kMethodNotFound/kInvalidParams/kInternalError/kResourceNotFound/kServerTerminated）；移除未实现的分页声明
+- **修复** `threading-model.md`：修正 `_enter_tree()` 代码片段
+- **修复** `specification/project-structure.md` / `extensions/gdext.md` / `overview/architecture.md`：移除已不存在的 `protocol/` 目录引用
+- **修复** `specification/ipc-protocol.md`：移除分页声明；错误处理表改用实际常量
+- **补充** `reference/build-and-package.md`：添加 `deep-clean` CMake target 和 `build.py` stale cache 自动恢复说明
+
 ## 2026-05-30 — 移除 Python 服务器，统一为单进程架构
 
 - **删除** `modules/server.md`（Python/Cython MCP 服务器文档）

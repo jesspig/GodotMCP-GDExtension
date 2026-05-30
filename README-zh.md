@@ -18,7 +18,7 @@ graph LR
 
     subgraph GodotProc["Godot 编辑器"]
         HTTP["C++ GDExtension<br/>HTTP Server :9600<br/>MCP Streamable HTTP"]
-        Registry["HandlerRegistry<br/>(122 个活跃命令)"]
+        Registry["HandlerRegistry<br/>(工具注册表)"]
         Editor["EditorInterface /<br/>SceneTree / Node API"]
     end
 
@@ -27,11 +27,11 @@ graph LR
     Registry --> Editor
 ```
 
-Godot MCP 通过 **122 个编辑器命令**将 Godot 4.6+ 编辑器暴露给 AI 工具——创建节点、修改属性、管理场景、遍历场景树、编辑 GDScript/C# 文件等。
+Godot MCP 通过 **115+ 个编辑器命令**将 Godot 4.6+ 编辑器暴露给 AI 工具——创建节点、修改属性、管理场景、遍历场景树、编辑 GDScript/C# 文件等。
 
 ## 特性
 
-- **122 个编辑器命令** — 场景/节点操控、属性编辑、搜索、撤销/重做、碰撞体、GDScript/C# 脚本管理、LSP 验证、文件搜索替换、项目设置、多场景操作
+- **115+ 个编辑器命令** — 场景/节点操控、属性编辑、搜索、撤销/重做、碰撞体、GDScript/C# 脚本管理、LSP 验证、文件搜索替换、项目设置、多场景操作
 - **单进程架构** — 纯 C++ GDExtension 插件（godot-cpp 10.0.0-rc1），运行在 Godot 编辑器进程内
 - **Streamable HTTP 传输** — MCP Streamable HTTP 协议（`:9600`），支持 SSE 服务器推送事件
 - **纯主线程 C++** — 无工作线程、无 tokio、无锁。所有代码通过 `process_frame` 在 Godot 主线程运行
@@ -125,11 +125,11 @@ py -3 build.py
 "给 Player 节点挂载脚本 res://player.gd"
 ```
 
-### 可用工具（共 122 个）
+### 可用工具
 
 | 分类 | 数量 | 工具 |
 |------|------|------|
-| 元命令 | 4 | `ping`、`get_engine_version`、`get_plugin_version`、`get_server_version` |
+| 元命令 | 3 | `ping`、`get_engine_version`、`get_plugin_version` |
 | 节点：读取 | 4 | `get_scene_tree`、`get_node_path`、`get_property`、`get_property_list` |
 | 节点：写入 | 13 | 创建/删除/重命名/复制/移动节点、`set_property`、重设父节点、设置根节点、批量设置属性、挂载/卸载脚本、添加/移除节点分组 |
 | 2D 属性 | 21 | 位置/旋转/缩放的 get/set、可见性/调制/Z 轴/文本/碰撞层/碰撞掩码的 get/set、纹理 get/set、唯一名称设置 |
@@ -192,6 +192,7 @@ py -3 build.py                                # Debug + addons.zip
 py -3 build.py --release                      # Release + addons.zip
 py -3 build.py --clean                        # 清空 CMake 缓存（保留 _deps/）
 py -3 build.py --no-zip                       # 跳过打包（快速迭代）
+cmake --build build --target deep-clean       # 同时删除 _deps/（FetchContent 缓存）
 ```
 
 ### 文件锁定问题
@@ -209,7 +210,7 @@ py -3 build.py --no-zip                       # 跳过打包（快速迭代）
 
 - [架构概览](.repo_wiki/overview/architecture.md) — 单进程 C++ GDExtension 架构
 - [线程模型](.repo_wiki/overview/threading-model.md) — 纯主线程，HTTP 服务器轮询
-- [工具目录](.repo_wiki/reference/tools-catalog.md) — 全部 122 个工具的参数与返回值
+- [工具目录](.repo_wiki/reference/tools-catalog.md) — 全部工具的参数与返回值
 - [IPC 协议](.repo_wiki/specification/ipc-protocol.md) — MCP Streamable HTTP 通信格式
 - [客户端配置](.repo_wiki/reference/client-config.md) — AI 客户端配置模板
 - [构建与打包](.repo_wiki/reference/build-and-package.md) — 构建选项、CI 流程、常见问题

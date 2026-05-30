@@ -44,9 +44,9 @@ sequenceDiagram
 ## MCP 会话管理
 
 - 会话通过 `initialize` 请求创建，UUID v4 标识
-- 支持协议版本 `"2025-11-25"` 和 `"2025-03-26"`
+- 支持协议版本 `"2025-11-25"` 和 `"2025-03-26"`，默认回复 `"2025-03-26"`
 - 每个 session 维护独立的 SSE 事件队列
-- `tools/list` 支持分页（50 个/页）
+- `tools/list` 返回全部工具（无分页实现）
 - 30 秒空闲超时，最大 32 个并发连接
 
 ## SSE 事件推送
@@ -59,12 +59,14 @@ event: message
 data: <json>
 ```
 
-## 错误码
+## JSON-RPC 错误码（定义在 `mcp_handler.hpp`）
 
-| 错误场景 | C++ 错误码 |
-|----------|-----------|
-| 无效 JSON | `INVALID_REQUEST` |
-| 未知 method | `INVALID_REQUEST` |
-| 未知工具 | `UNKNOWN_TOOL` |
-| 执行失败 | `TOOL_FAILED` |
-| 内部错误 | `INTERNAL_ERROR` |
+| 常量 | 值 | 场景 |
+|------|-----|------|
+| `kParseError` | -32700 | JSON 解析失败 |
+| `kInvalidRequest` | -32600 | 无效 method 或缺少必要字段 |
+| `kMethodNotFound` | -32601 | 未知 JSON-RPC method |
+| `kInvalidParams` | -32602 | tools/call 缺少参数或参数错误 |
+| `kInternalError` | -32603 | 工具执行抛出异常或返回 error 字段 |
+| `kResourceNotFound` | -32002 | resources/read 指定了不存在的资源 |
+| `kServerTerminated` | -32001 | 请求被客户端取消（notifications/cancelled） |

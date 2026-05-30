@@ -18,7 +18,7 @@ graph LR
 
     subgraph GodotProc["Godot Editor"]
         HTTP["HttpServer + McpHandler<br/>(:9600, MCP Streamable HTTP)"]
-        Registry["HandlerRegistry<br/>(125 tool schemas)"]
+        Registry["HandlerRegistry<br/>(tool schemas)"]
         Editor["EditorInterface /<br/>SceneTree / Node API"]
     end
 
@@ -27,11 +27,11 @@ graph LR
     Registry --> Editor
 ```
 
-Godot MCP exposes the Godot 4.6+ editor to AI tools through **125 commands** — create nodes, modify properties, manage scenes, inspect the scene tree, edit GDScript/C# files, and more.
+Godot MCP exposes the Godot 4.6+ editor to AI tools through **115+ commands** — create nodes, modify properties, manage scenes, inspect the scene tree, edit GDScript/C# files, and more.
 
 ## Features
 
-- **125 Editor Commands** — Scene/node manipulation, properties, search, undo/redo, collision shapes, GDScript/C# script management, LSP validation, file search/replace, project settings, multi-scene operations
+- **115+ Editor Commands** — Scene/node manipulation, properties, search, undo/redo, collision shapes, GDScript/C# script management, LSP validation, file search/replace, project settings, multi-scene operations
 - **Streamable HTTP Transport** — Direct MCP Streamable HTTP (`:9600`) into the GDExtension
 - **Single-Process Architecture** — C++ GDExtension plugin (godot-cpp 10.0.0-rc1) running inside the Godot editor
 - **Pure Main-Thread C++** — No worker threads, no tokio, no locks. Everything runs on Godot's main thread via `process_frame`
@@ -122,11 +122,11 @@ Add this to your MCP client config:
 "attach the script res://player.gd to the Player node"
 ```
 
-### Available Tools (125 total)
+### Available Tools
 
 | Category | Count | Tools |
 |----------|-------|-------|
-| Meta | 4 | `ping`, `get_engine_version`, `get_plugin_version`, `get_server_version` |
+| Meta | 3 | `ping`, `get_engine_version`, `get_plugin_version` |
 | Node: Read | 4 | `get_scene_tree`, `get_node_path`, `get_property`, `get_property_list` |
 | Node: Write | 13 | `create/delete/rename/duplicate/move` node, `set_property`, `reset_parent`, `set_as_root`, `batch_set_property`, `attach/detach_script`, `add/remove_node_from_group` |
 | 2D Properties | 21 | `get/set_node_position/rotation/scale`, `get/set_node_visible/modulate/z_index/text`, `get/set_node_collision_layer/mask`, `get/set_node_texture`, `set_node_unique_name` |
@@ -185,10 +185,11 @@ cmake --build build --config Debug
 ### Build Flags
 
 ```bash
-py -3 build.py              # Debug + addons.zip
-py -3 build.py --release    # Release + addons.zip
-py -3 build.py --clean      # Clear CMake cache (keeps _deps/)
-py -3 build.py --no-zip     # Skip zip (fast iteration)
+py -3 build.py                        # Debug + addons.zip
+py -3 build.py --release              # Release + addons.zip
+py -3 build.py --clean                # Clear CMake cache (keeps _deps/)
+py -3 build.py --no-zip               # Skip zip (fast iteration)
+cmake --build build --target deep-clean  # Also wipes _deps/ (FetchContent cache)
 ```
 
 ### File Lock Tips
@@ -206,7 +207,7 @@ py -3 build.py --no-zip     # Skip zip (fast iteration)
 
 - [Architecture Overview](.repo_wiki/overview/architecture.md) — C++ GDExtension architecture
 - [Threading Model](.repo_wiki/overview/threading-model.md) — Pure main-thread HTTP poll
-- [Tool Catalog](.repo_wiki/reference/tools-catalog.md) — All 125 tools with args and return shapes
+- [Tool Catalog](.repo_wiki/reference/tools-catalog.md) — All tools with args and return shapes
 - [IPC Protocol](.repo_wiki/specification/ipc-protocol.md) — MCP Streamable HTTP wire format
 - [Client Configuration](.repo_wiki/reference/client-config.md) — AI client config templates
 - [Build & Package](.repo_wiki/reference/build-and-package.md) — Build flags, CI gates, gotchas
