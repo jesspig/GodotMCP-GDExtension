@@ -5,7 +5,6 @@
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/os.hpp>
-#include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/scene_tree.hpp>
 #include <godot_cpp/variant/string.hpp>
@@ -42,8 +41,6 @@ int McpEditorPlugin::read_port_from_env(const String &env_var, int default_port)
 }
 
 void McpEditorPlugin::load_tool_schemas() {
-    // Try to load the schema JSON from the addon directory.
-    // The JSON file is bundled with the plugin by the build system.
     static const Vector<String> kCandidatePaths = {
         "res://addons/godot_mcp/tool_schemas.json",
     };
@@ -53,7 +50,6 @@ void McpEditorPlugin::load_tool_schemas() {
             const String content = f->get_as_text();
             f->close();
             registry_.load_schemas_from_json(content);
-            log_info("plugin", String("Loaded tool schemas from ") + kCandidatePaths[i]);
             return;
         }
     }
@@ -67,38 +63,24 @@ void McpEditorPlugin::_enter_tree() {
     registry_.set_plugin_version(String(GODOT_MCP_PLUGIN_VERSION));
     register_all_tools(registry_);
 
-    // Load schemas from bundled JSON file (adds descriptions + input schemas to registry)
     load_tool_schemas();
 
-    log_info("plugin", String("Registered ") + String::num_int64(registry_.size()) +
-                           String(" tool(s) with ") +
-                           String::num_int64(registry_.get_all_tools().size()) +
-                           String(" schema(s)"));
-
-    ws_port_ = read_port_from_env("GODOT_MCP_PORT", 9500);
     http_port_ = read_port_from_env("GODOT_MCP_HTTP_PORT", 9600);
 
-    // Start WebSocket server (legacy, for Python stdio server compatibility)
-    if (!ws_server_.start(ws_port_, &registry_)) {
-        log_error("plugin", "Failed to start WebSocket server");
-    }
-
-    // Start HTTP Streamable MCP server
     if (!http_server_.start(http_port_, &mcp_handler_)) {
         log_error("plugin", "Failed to start HTTP server");
+        return;
     }
 
     started_ = true;
 
-    // Use SceneTree::process_frame so polling survives play mode.
     SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
     if (tree) {
         tree->connect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
     }
 
-    log_info("plugin", String("Godot MCP ready (v") + String(GODOT_MCP_PLUGIN_VERSION) +
-                           String(") — WS :") + String::num_int64(ws_port_) +
-                           String(", HTTP :") + String::num_int64(http_port_));
+    log_info("plugin", String("Godot MCP v") + String(GODOT_MCP_PLUGIN_VERSION) +
+                           String(" ready on HTTP :") + String::num_int64(http_port_));
 }
 
 void McpEditorPlugin::_exit_tree() {
@@ -110,15 +92,12 @@ void McpEditorPlugin::_exit_tree() {
     }
 
     http_server_.stop();
-    ws_server_.stop();
     started_ = false;
     log_info("plugin", "Godot MCP shut down");
 }
 
 void McpEditorPlugin::_on_process_frame() {
     if (!started_) return;
-
-    ws_server_.poll();
     http_server_.poll();
 }
 
