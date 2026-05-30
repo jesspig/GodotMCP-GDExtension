@@ -93,19 +93,7 @@ void HttpServer::poll() {
         conn.tcp = tcp;
         conn.tcp->set_no_delay(true);
         conn.last_activity_msec = Time::get_singleton()->get_ticks_msec();
-
-        // Check if data already arrived on the freshly accepted socket
-        const int64_t initial_avail = conn.tcp->get_available_bytes();
-        if (initial_avail > 0) {
-            log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                                 String(" accepted with ") + String::num_int64(initial_avail) +
-                                 String(" bytes already buffered"));
-        }
-
         connections_[conn_id] = conn;
-        log_info("http", String("Connection #") + String::num_int64(conn_id) +
-                             String(" accepted (total ") + String::num_int64(connections_.size()) +
-                             String(" active)"));
     }
 
     // Poll existing connections
@@ -120,12 +108,8 @@ void HttpServer::poll() {
         // SSE stream: flush events
         if (conn.is_sse_stream) {
             flush_sse(conn_id, conn);
-            // Check if SSE connection needs to be closed
             const int64_t avail = conn.tcp->get_available_bytes();
             if (avail < 0) {
-                log_info("http", String("SSE conn #") + String::num_int64(conn_id) +
-                                     String(" disconnected (avail=") + String::num_int64(avail) +
-                                     String(")"));
                 dead.push_back(conn_id);
             }
             continue;
@@ -134,59 +118,33 @@ void HttpServer::poll() {
         // --- Non-SSE: read available bytes ---
         const int64_t avail = conn.tcp->get_available_bytes();
         if (avail < 0) {
-            log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                                 String(" dead (avail=") + String::num_int64(avail) +
-                                 String(")"));
-            dead.push_back(conn_id); continue; 
+            dead.push_back(conn_id); continue;
         }
         if (avail == 0) continue;
 
         conn.last_activity_msec = Time::get_singleton()->get_ticks_msec();
 
         if (!conn.headers_done) {
-            // Read into read_buf for header parsing
             const Array read_result = conn.tcp->get_data((int)avail);
             if ((Error)(int)read_result[0] != OK) {
-                log_warn("http", String("Conn #") + String::num_int64(conn_id) +
-                                     String(" read error on get_data"));
-                dead.push_back(conn_id); continue; 
+                dead.push_back(conn_id); continue;
             }
             const PackedByteArray chunk = read_result[1];
-            log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                                 String(" read ") + String::num_int64(chunk.size()) +
-                                 String(" bytes (buf=") + String::num_int64(conn.read_buf.size() + chunk.size()) + String(")"));
             for (int i = 0; i < chunk.size(); ++i) conn.read_buf.push_back(chunk[i]);
 
             ParseResult pr = parse_headers(conn);
             if (pr == ERROR_PARSE) {
-                log_warn("http", String("Conn #") + String::num_int64(conn_id) +
-                                      String(" header parse ERROR — buf[0..32]=") +
-                                      String::utf8((const char *)conn.read_buf.ptr(), 
-                                          conn.read_buf.size() < 32 ? conn.read_buf.size() : 32));
                 send_response(conn_id, conn, 400, "Bad Request", "text/plain",
                               "400 Bad Request", "Connection: close\r\n");
                 dead.push_back(conn_id);
                 continue;
             }
             if (pr == NEED_MORE) {
-                log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                                     String(" partial header (buf=") +
-                                     String::num_int64(conn.read_buf.size()) +
-                                     String("), waiting for more"));
                 continue;
             }
 
-            log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                                 String(" headers complete: ") + conn.method +
-                                 String(" ") + conn.path +
-                                 String(" content-length=") + String::num_int64(conn.content_length));
-
             // Headers complete: copy any body bytes that arrived with headers
             if (conn.content_length > 0 && conn.header_end_pos < conn.read_buf.size()) {
-                const int body_bytes = conn.read_buf.size() - conn.header_end_pos;
-                log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                                     String(" body bytes in header chunk: ") +
-                                     String::num_int64(body_bytes));
                 for (int i = conn.header_end_pos; i < conn.read_buf.size(); ++i) {
                     conn.body.push_back(conn.read_buf[i]);
                 }
@@ -198,16 +156,9 @@ void HttpServer::poll() {
                 const int to_read = (int)avail < remaining ? (int)avail : remaining;
                 const Array read_result = conn.tcp->get_data(to_read);
                 if ((Error)(int)read_result[0] != OK) {
-                    log_warn("http", String("Conn #") + String::num_int64(conn_id) +
-                                         String(" body read error"));
                     dead.push_back(conn_id); continue;
                 }
                 const PackedByteArray read_chunk = read_result[1];
-                log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                                     String(" body chunk ") + String::num_int64(read_chunk.size()) +
-                                     String(" bytes (have ") + String::num_int64(conn.body.size()) +
-                                     String("/") + String::num_int64(conn.content_length) +
-                                     String(")"));
                 for (int i = 0; i < read_chunk.size(); ++i) conn.body.push_back(read_chunk[i]);
             }
         }
@@ -219,9 +170,6 @@ void HttpServer::poll() {
 
         // Body complete → dispatch
         if (conn.content_length <= 0 || conn.body.size() >= conn.content_length) {
-            log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                                 String(" dispatching ") + conn.method +
-                                 String(" ") + conn.path);
             dispatch_request(conn_id, conn);
             // Reset for next request (keep-alive) unless SSE or closing
             if (!conn.is_sse_stream && connections_.has(conn_id)) {
@@ -262,7 +210,7 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
     }
     if (header_end < 0) return NEED_MORE;
 
-    conn.header_end_pos = header_end + 4; // position right after \r\n\r\n
+    conn.header_end_pos = header_end + 4;
 
     String header_section;
 header_section.parse_utf8((const char *)buf.ptr(), header_end);
@@ -304,8 +252,6 @@ header_section.parse_utf8((const char *)buf.ptr(), header_end);
     // If no Content-Length but body data exists after headers, infer length from buffer
     if (conn.content_length <= 0 && conn.header_end_pos < conn.read_buf.size()) {
         conn.content_length = conn.read_buf.size() - conn.header_end_pos;
-        log_info("http", String("Inferred body length from buffer: ") +
-                             String::num_int64(conn.content_length));
     }
 
     // Connection
@@ -318,16 +264,6 @@ header_section.parse_utf8((const char *)buf.ptr(), header_end);
     auto sid_it = conn.headers.find("mcp-session-id");
     if (sid_it != conn.headers.end()) {
         conn.session_id = sid_it->value;
-    }
-
-    // Log headers for debugging
-    {
-        String hdr_log;
-        for (const KeyValue<String, String> &h_kv : conn.headers) {
-            if (!hdr_log.is_empty()) hdr_log += ", ";
-            hdr_log += h_kv.key + String("=") + h_kv.value;
-        }
-        log_info("http", String("Parsed headers [") + hdr_log + String("]"));
     }
 
     conn.headers_done = true;
@@ -355,17 +291,12 @@ void HttpServer::try_read_body(Connection &conn) {
 // Request dispatch
 // -------------------------------------------------------------------------
 void HttpServer::dispatch_request(int conn_id, Connection &conn) {
-    log_info("http", String("dispatch #") + String::num_int64(conn_id) +
-                         String(" method=") + conn.method +
-                         String(" path=") + conn.path +
-                         String(" body_len=") + String::num_int64(conn.body.size()));
     if (conn.method == "POST") handle_post(conn_id, conn);
     else if (conn.method == "GET") handle_get(conn_id, conn);
     else if (conn.method == "DELETE") handle_delete(conn_id, conn);
     else if (conn.method == "OPTIONS") handle_options(conn_id, conn);
     else {
-        log_warn("http", String("Conn #") + String::num_int64(conn_id) +
-                             String(" unsupported method: ") + conn.method);
+        log_warn("http", String("Unsupported method: ") + conn.method);
         send_response(conn_id, conn, 405, "Method Not Allowed", "text/plain",
                       "405 Method Not Allowed");
     }
@@ -397,8 +328,7 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
         return;
     }
 
-    // Validate Accept header — per spec, POST must accept application/json
-    // and optionally text/event-stream for SSE responses
+    // Validate Accept header
     {
         auto accept_it = conn.headers.find("accept");
         const String accept = accept_it != conn.headers.end() ? accept_it->value : "";
@@ -429,18 +359,9 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
     }
 
     if (body_text.is_empty()) {
-        log_warn("http", String("Conn #") + String::num_int64(conn_id) +
-                             String(" POST with empty body"));
         send_response(conn_id, conn, 400, "Bad Request", "text/plain", "Empty body");
         return;
     }
-
-    log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                         String(" POST body (") + String::num_int64(body_text.utf8().size()) +
-                         String(" bytes): ") +
-                         (body_text.utf8().size() > 500
-                              ? body_text.substr(0, 500) + String("...")
-                              : body_text));
 
     // Parse JSON
     Ref<JSON> json;
@@ -492,18 +413,12 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
     }
 
     const Dictionary msg = root;
-    const String rpc_method = msg.has("method") ? String(msg["method"]) : String();
-    log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                         String(" JSON-RPC method=") + rpc_method +
-                         String(" has_id=") + (msg.has("id") ? String("true") : String("false")));
 
     // Notification or response (no `id` field or has `result`/`error`) → 202
     const bool has_result_or_error = msg.has("result") || msg.has("error");
     const bool is_notification_or_response = !msg.has("id") || has_result_or_error;
 
     if (is_notification_or_response) {
-        log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                             String(" notification/response (no response needed)"));
         String notify_sid = conn.session_id;
         mcp_handler_->handle_message(msg, notify_sid);
         if (!notify_sid.is_empty()) conn.session_id = notify_sid;
@@ -511,14 +426,10 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
         return;
     }
 
-    // Process request via MCP handler — session ID flows back through mutable ref
+    // Process request via MCP handler
     String session_ref = conn.session_id;
     const Dictionary handler_result = mcp_handler_->handle_message(msg, session_ref);
     conn.session_id = session_ref;
-
-    log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                         String(" handler returned ") +
-                         (handler_result.is_empty() ? String("empty (202)") : String("result")));
 
     if (handler_result.is_empty()) {
         send_response(conn_id, conn, 202, "Accepted", "text/plain", "");
@@ -526,10 +437,6 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
     }
 
     const String result_json = JSON::stringify(handler_result);
-    log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                         String(" session_id='") + conn.session_id +
-                         String("' sending ") + String::num_int64(result_json.utf8().size()) +
-                         String(" byte json response"));
     send_response(conn_id, conn, 200, "OK", "application/json", result_json);
 }
 
@@ -537,9 +444,6 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
 // GET /mcp — SSE stream
 // -------------------------------------------------------------------------
 void HttpServer::handle_get(int conn_id, Connection &conn) {
-    log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                         String(" GET ") + conn.path +
-                         String(" session=") + conn.session_id);
     if (conn.path != "/mcp") {
         send_response(conn_id, conn, 404, "Not Found", "text/plain", "404 Not Found");
         return;
@@ -570,7 +474,7 @@ void HttpServer::handle_get(int conn_id, Connection &conn) {
         return;
     }
 
-    // Reject duplicate SSE stream for the same session (per spec)
+    // Reject duplicate SSE stream for the same session
     for (const KeyValue<int, Connection> &kv : connections_) {
         if (kv.key != conn_id && kv.value.is_sse_stream &&
             kv.value.session_id == conn.session_id) {
@@ -588,18 +492,12 @@ void HttpServer::handle_get(int conn_id, Connection &conn) {
 
     conn.is_sse_stream = true;
     send_sse_headers(conn_id, conn);
-
-    log_info("http", String("SSE stream for conn #") + String::num_int64(conn_id) +
-                         String(" session ") + conn.session_id);
 }
 
 // -------------------------------------------------------------------------
 // DELETE /mcp — session termination
 // -------------------------------------------------------------------------
 void HttpServer::handle_delete(int conn_id, Connection &conn) {
-    log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                         String(" DELETE ") + conn.path +
-                         String(" session=") + conn.session_id);
     if (conn.path != "/mcp") {
         send_response(conn_id, conn, 404, "Not Found", "text/plain", "404 Not Found");
         return;
@@ -608,13 +506,8 @@ void HttpServer::handle_delete(int conn_id, Connection &conn) {
     if (!conn.session_id.is_empty() && mcp_handler_->validate_session(conn.session_id)) {
         mcp_handler_->destroy_session(conn.session_id);
         send_response(conn_id, conn, 202, "Accepted", "text/plain", "");
-        log_info("http", String("Session deleted: ") + conn.session_id);
     } else {
-        log_warn("http", String("Conn #") + String::num_int64(conn_id) +
-                             String(" DELETE rejected (session=") + conn.session_id +
-                             String(" valid=") +
-                             (mcp_handler_->validate_session(conn.session_id) ? String("true") : String("false")) +
-                             String(")"));
+        log_warn("http", String("DELETE rejected for session=") + conn.session_id);
         send_response(conn_id, conn, 405, "Method Not Allowed", "text/plain",
                       "DELETE not available");
     }
@@ -654,8 +547,6 @@ void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
     response += "Access-Control-Allow-Origin: *\r\n";
     response += "Access-Control-Expose-Headers: MCP-Session-Id, Last-Event-ID, MCP-Protocol-Version\r\n";
 
-    log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                         String(" session_id='") + conn.session_id + String("'"));
     if (!conn.session_id.is_empty()) {
         response += String("MCP-Session-Id: ") + conn.session_id + String("\r\n");
     }
@@ -670,25 +561,11 @@ void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
 
     const PackedByteArray out = response.to_utf8_buffer();
     if (conn.tcp.is_valid()) {
+        conn.tcp->poll();
         const Error send_err = tcp_send(conn.tcp, out);
         if (send_err != OK) {
-            log_warn("http", String("Conn #") + String::num_int64(conn_id) +
-                                 String(" send failed (err=") + String::num_int64((int64_t)send_err) +
-                                 String(")"));
-        } else {
-            String snippet;
-            const int show_len = out.size() < 300 ? out.size() : 300;
-            snippet.parse_utf8((const char *)out.ptr(), show_len);
-            log_info("http", String("Conn #") + String::num_int64(conn_id) +
-                                 String(" sent ") + String::num_int64(out.size()) +
-                                 String(" bytes (") + String::num_int64(status_code) +
-                                 String(" ") + String(status_text) +
-                                 String(") first ") + String::num_int64(show_len) +
-                                 String("b: ") + snippet);
+            log_warn("http", String("Send failed (err=") + String::num_int64((int64_t)send_err) + String(")"));
         }
-    } else {
-        log_warn("http", String("Conn #") + String::num_int64(conn_id) +
-                             String(" send skipped — tcp is null"));
     }
     conn.response_sent = true;
 }
@@ -740,15 +617,12 @@ void HttpServer::flush_sse(int conn_id, Connection &conn) {
     if (!mcp_handler_->has_pending_events(conn.session_id)) {
         if (now - conn.last_activity_msec > 15000) {
             send_sse_comment(conn_id, conn, "keep-alive");
-            log_info("http", String("SSE keep-alive for conn #") + String::num_int64(conn_id));
             conn.last_activity_msec = now;
         }
         return;
     }
 
-    int event_count = 0;
     while (mcp_handler_->has_pending_events(conn.session_id)) {
-        event_count++;
         Dictionary event = mcp_handler_->consume_event(conn.session_id);
         const String method = event.get("method", "");
         const Variant params = event.get("params", Variant());
@@ -768,10 +642,6 @@ void HttpServer::flush_sse(int conn_id, Connection &conn) {
         send_sse_event(conn_id, conn, "message", data, conn.sse_event_id);
         conn.last_activity_msec = now;
     }
-    if (event_count > 0) {
-        log_info("http", String("SSE flushed ") + String::num_int64(event_count) +
-                             String(" event(s) for conn #") + String::num_int64(conn_id));
-    }
 }
 
 // -------------------------------------------------------------------------
@@ -782,12 +652,6 @@ void HttpServer::close_connection(int conn_id) {
     if (it == connections_.end()) return;
     Connection &conn = it->value;
     if (conn.tcp.is_valid()) conn.tcp->disconnect_from_host();
-    log_info("http", String("Connection #") + String::num_int64(conn_id) +
-                         String(" closed (sse=") + (conn.is_sse_stream ? String("true") : String("false")) +
-                         String(" sent=") + (conn.response_sent ? String("true") : String("false")) +
-                         String(" buf=") + String::num_int64(conn.read_buf.size()) +
-                         String(" body=") + String::num_int64(conn.body.size()) +
-                         String(")"));
     connections_.erase(it->key);
 }
 
@@ -800,21 +664,7 @@ void HttpServer::check_timeouts() {
         }
     }
     for (int i = 0; i < timed_out.size(); ++i) {
-        const int cid = timed_out[i];
-        auto cit = connections_.find(cid);
-        if (cit != connections_.end()) {
-            const Connection &c = cit->value;
-            log_info("http", String("Connection #") + String::num_int64(cid) +
-                                 String(" timed out (sse=") + (c.is_sse_stream ? String("true") : String("false")) +
-                                 String(" headers=") + (c.headers_done ? String("done") : String("partial")) +
-                                 String(" buf=") + String::num_int64(c.read_buf.size()) +
-                                 String(" body=") + String::num_int64(c.body.size()) +
-                                 String(" age_ms=") + String::num_int64(now - c.last_activity_msec) +
-                                 String(")"));
-        } else {
-            log_info("http", String("Connection #") + String::num_int64(cid) + " timed out");
-        }
-        close_connection(cid);
+        close_connection(timed_out[i]);
     }
 }
 
@@ -832,7 +682,6 @@ bool HttpServer::validate_origin(const Connection &conn) const {
 }
 
 String HttpServer::build_http_date() {
-    // Simplified HTTP-date. Good enough for loopback.
     return String("Thu, 01 Jan 2026 00:00:00 GMT");
 }
 

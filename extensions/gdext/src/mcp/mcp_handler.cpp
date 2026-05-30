@@ -47,7 +47,6 @@ String McpHandler::create_session() {
     s.created_at = Time::get_singleton()->get_unix_time_from_system();
     s.log_level = 3; // Warning
     sessions_[s.id] = s;
-    log_info("session", String("Created session ") + s.id);
     return s.id;
 }
 
@@ -55,7 +54,6 @@ bool McpHandler::destroy_session(const String &session_id) {
     auto it = sessions_.find(session_id);
     if (it == sessions_.end()) return false;
     sessions_.erase(it->key);
-    log_info("session", String("Destroyed session ") + session_id);
     return true;
 }
 
@@ -226,8 +224,7 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg, String &io_
     }
     if (method == "notifications/initialized") {
         session->initialized = true;
-        log_info("mcp", "Session initialized");
-        return Dictionary(); // no response for notification
+        return Dictionary();
     }
 
     // Tools
@@ -265,7 +262,7 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg, String &io_
         return handle_completion_complete(params, id_v);
     }
 
-    // Notifications (no response)
+    // Notifications
     if (method == "notifications/cancelled") {
         handle_cancelled(params);
         return Dictionary();
@@ -299,7 +296,6 @@ Dictionary McpHandler::handle_initialize(String &session_id, const Dictionary &p
                      JSON::stringify(session->client_info) +
                      String("', protocol ") + session->protocol_version);
 
-    // Build capabilities response
     Dictionary caps;
     Dictionary tools_caps;
     tools_caps["listChanged"] = true;
@@ -336,34 +332,10 @@ Dictionary McpHandler::handle_tools_list(const String &session_id, const Diction
     if (!registry_) {
         return make_jsonrpc_error(id, kInternalError, "Registry not initialized");
     }
-    const Variant cursor_v = params.get("cursor", Variant());
-    String cursor;
-    if (cursor_v.get_type() == Variant::STRING) {
-        cursor = cursor_v;
-    }
-
     Array all_tools = registry_->get_enabled_tools();
-    Array page;
-    int page_size = 50;
-    int start_idx = 0;
-
-    if (!cursor.is_empty()) {
-        start_idx = (int)cursor.to_int();
-    }
 
     Dictionary result;
-    if (start_idx + page_size < all_tools.size()) {
-        for (int i = start_idx; i < start_idx + page_size && i < all_tools.size(); ++i) {
-            page.push_back(all_tools[i]);
-        }
-        result["nextCursor"] = String::num_int64(start_idx + page_size);
-    } else {
-        for (int i = start_idx; i < all_tools.size(); ++i) {
-            page.push_back(all_tools[i]);
-        }
-    }
-
-    result["tools"] = page;
+    result["tools"] = all_tools;
     return make_jsonrpc_result(id, result);
 }
 
@@ -385,25 +357,14 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
                                 ? Dictionary(params["arguments"])
                                 : Dictionary();
 
-    // Check if it's a server-only tool (handled by the stdio server)
-    static const Vector<String> kServerTools = {"get_server_version", "godot_editor_open",
-                                                 "godot_editor_close", "godot_editor_restart"};
-    for (int i = 0; i < kServerTools.size(); ++i) {
-        if (tool_name == kServerTools[i]) {
-            Dictionary result;
-            result["content"] = tool_result_to_mcp_content(
-                Dictionary()); // empty result — tool is handled by stdio server
-            return make_jsonrpc_result(id, result);
-        }
-    }
-
     const CommandFn *fn = registry_->find(tool_name);
     if (!fn) {
         return make_jsonrpc_error(id, kInvalidParams,
                                    String("Unknown tool: ") + tool_name);
     }
 
-    // Check for progress token
+    log_info("mcp", String("tools/call: ") + tool_name);
+
     const Variant meta = params.get("_meta", Variant());
     String progress_token;
     if (meta.get_type() == Variant::DICTIONARY) {
@@ -527,8 +488,6 @@ Dictionary McpHandler::handle_logging_setLevel(const String &session_id, const D
         s->log_level = it->value;
     }
 
-    log_info("mcp", String("Log level set to '") + level_str +
-                        String("' for session ") + session_id);
     return make_jsonrpc_response(id, Dictionary());
 }
 
@@ -559,7 +518,6 @@ void McpHandler::handle_cancelled(const Dictionary &params) {
         const String sid = it->value;
         cancelled_requests_[sid] = req_id;
         pending_requests_.erase(it->key);
-        log_info("mcp", String("Cancelled request ") + JSON::stringify(req_id));
     }
 }
 
@@ -567,9 +525,6 @@ void McpHandler::handle_cancelled(const Dictionary &params) {
 // notifications/progress
 // -------------------------------------------------------------------------
 void McpHandler::handle_progress(const Dictionary &params) {
-    // Client-sent progress (e.g., during sampling).
-    // We don't initiate sampling, so just acknowledge silently.
-    log_info("mcp", String("Progress notification: ") + JSON::stringify(params));
 }
 
 // -------------------------------------------------------------------------
