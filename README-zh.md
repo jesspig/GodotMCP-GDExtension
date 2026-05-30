@@ -143,7 +143,7 @@ py -3 build.py
 | GDScript | 5 | 创建/编辑/读取/列出脚本、LSP 语法验证 |
 | C# | 6 | 生成 Solution、创建/编辑/读取/列出脚本、dotnet build |
 | 搜索 | 3 | `find_in_file`、`search_project`、`find_and_replace` |
-| 编辑器控制（gdext 端） | 6 | `play_current_scene`、`play_main_scene`、`stop_scene`、`is_scene_playing`、`refresh_filesystem`、`get_editor_info` |
+| 编辑器控制（gdext 端） | 7 | `play_current_scene`、`play_main_scene`、`stop_scene`、`is_scene_playing`、`refresh_filesystem`、`get_editor_info`、`godot_editor_restart` |
 | 撤销/重做 | 2 | `undo`、`redo` |
 | 节点便捷操作 | 4 | `set_node_transform_2d/3d`、`get_node_info`、`get_script_variables` |
 | 场景信息 | 1 | `is_scene_dirty` |
@@ -155,7 +155,7 @@ py -3 build.py
 | 插件管理 | 2 | `list_plugins`、`set_plugin_enabled` |
 | 输入映射 | 4 | `list/add/remove_input_action`、`set_input_action_events` |
 
-详细的参数格式和返回值请参阅[工具目录](.repo_wiki/reference/tools-catalog.md)。
+详细的参数格式和返回值请参阅[工具目录](docs/reference/tools-catalog.md)。
 
 ## 开发
 
@@ -208,10 +208,16 @@ cmake --build build --target deep-clean       # 同时删除 _deps/（FetchConte
 
 ## 文档
 
-- [架构概览](.repo_wiki/overview/architecture.md) — 单进程 C++ GDExtension 架构
-- [线程模型](.repo_wiki/overview/threading-model.md) — 纯主线程，HTTP 服务器轮询
-- [工具目录](.repo_wiki/reference/tools-catalog.md) — 全部工具的参数与返回值
-- [IPC 协议](.repo_wiki/specification/ipc-protocol.md) — MCP Streamable HTTP 通信格式
-- [客户端配置](.repo_wiki/reference/client-config.md) — AI 客户端配置模板
-- [构建与打包](.repo_wiki/reference/build-and-package.md) — 构建选项、CI 流程、常见问题
-- [设计决策](.repo_wiki/design/decisions.md) — 已记录的架构选择
+| 文档 | 内容 |
+|------|------|
+| [快速开始](docs/guide/getting-started.md) | 安装、配置、基本使用 |
+| [架构概览](docs/guide/architecture.md) | 单进程 C++ GDExtension 架构 |
+| [构建与打包](docs/guide/building.md) | 构建系统、版本管理 |
+| [工具目录](docs/reference/tools-catalog.md) | 全部 122 个工具列表 |
+| [客户端配置](docs/reference/client-config.md) | 各 AI 客户端的配置方式 |
+| [通信协议](docs/reference/protocol.md) | MCP Streamable HTTP 协议 |
+| [常见问题](docs/reference/faq.md) | 常见问题解答 |
+| [注意事项](docs/reference/client-quirks.md) | 已知问题与限制 |
+| [LSP 验证](docs/reference/lsp-client.md) | GDScript 语法验证流程 |
+| [C# 解决方案](docs/reference/csharp-solution.md) | 自动生成 .sln/.csproj |
+| [项目设置映射](docs/reference/project-settings-ext.md) | 显示/物理/渲染键映射 |

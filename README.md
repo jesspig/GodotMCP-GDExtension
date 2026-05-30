@@ -18,7 +18,7 @@ graph LR
 
     subgraph GodotProc["Godot Editor"]
         HTTP["HttpServer + McpHandler<br/>(:9600, MCP Streamable HTTP)"]
-        Registry["HandlerRegistry<br/>(tool schemas)"]
+        Registry["HandlerRegistry<br/>(122 tool schemas)"]
         Editor["EditorInterface /<br/>SceneTree / Node API"]
     end
 
@@ -27,11 +27,11 @@ graph LR
     Registry --> Editor
 ```
 
-Godot MCP exposes the Godot 4.6+ editor to AI tools through **115+ commands** — create nodes, modify properties, manage scenes, inspect the scene tree, edit GDScript/C# files, and more.
+Godot MCP exposes the Godot 4.6+ editor to AI tools through **122 commands** — create nodes, modify properties, manage scenes, inspect the scene tree, edit GDScript/C# files, and more.
 
 ## Features
 
-- **115+ Editor Commands** — Scene/node manipulation, properties, search, undo/redo, collision shapes, GDScript/C# script management, LSP validation, file search/replace, project settings, multi-scene operations
+- **122 Editor Commands** — Scene/node manipulation, properties, search, undo/redo, collision shapes, GDScript/C# script management, LSP validation, file search/replace, project settings, multi-scene operations
 - **Streamable HTTP Transport** — Direct MCP Streamable HTTP (`:9600`) into the GDExtension
 - **Single-Process Architecture** — C++ GDExtension plugin (godot-cpp 10.0.0-rc1) running inside the Godot editor
 - **Pure Main-Thread C++** — No worker threads, no tokio, no locks. Everything runs on Godot's main thread via `process_frame`
@@ -122,7 +122,7 @@ Add this to your MCP client config:
 "attach the script res://player.gd to the Player node"
 ```
 
-### Available Tools
+### Available Tools (122 total)
 
 | Category | Count | Tools |
 |----------|-------|-------|
@@ -140,7 +140,7 @@ Add this to your MCP client config:
 | GDScript | 5 | `create/edit/read/list_gdscript`, `validate_gdscript` |
 | C# | 6 | `csharp_create_solution`, `create/edit/read/list_csharp_script`, `csharp_build` |
 | Search | 3 | `find_in_file`, `search_project`, `find_and_replace` |
-| Editor Control (gdext) | 6 | `play_current_scene`, `play_main_scene`, `stop_scene`, `is_scene_playing`, `refresh_filesystem`, `get_editor_info` |
+| Editor Control (gdext) | 7 | `play_current_scene`, `play_main_scene`, `stop_scene`, `is_scene_playing`, `refresh_filesystem`, `get_editor_info`, `godot_editor_restart` |
 | Undo/Redo | 2 | `undo`, `redo` |
 | Node Convenience | 4 | `set_node_transform_2d/3d`, `get_node_info`, `get_script_variables` |
 | Scene Info | 1 | `is_scene_dirty` |
@@ -152,7 +152,7 @@ Add this to your MCP client config:
 | Plugin Management | 2 | `list_plugins`, `set_plugin_enabled` |
 | Input Map | 4 | `list/add/remove_input_action`, `set_input_action_events` |
 
-See the [Tool Catalog](.repo_wiki/reference/tools-catalog.md) for detailed argument shapes and return values.
+See the [Tool Catalog](docs/reference/tools-catalog.md) for detailed argument shapes and return values.
 
 ## Development
 
@@ -205,10 +205,16 @@ cmake --build build --target deep-clean  # Also wipes _deps/ (FetchContent cache
 
 ## Documentation
 
-- [Architecture Overview](.repo_wiki/overview/architecture.md) — C++ GDExtension architecture
-- [Threading Model](.repo_wiki/overview/threading-model.md) — Pure main-thread HTTP poll
-- [Tool Catalog](.repo_wiki/reference/tools-catalog.md) — All tools with args and return shapes
-- [IPC Protocol](.repo_wiki/specification/ipc-protocol.md) — MCP Streamable HTTP wire format
-- [Client Configuration](.repo_wiki/reference/client-config.md) — AI client config templates
-- [Build & Package](.repo_wiki/reference/build-and-package.md) — Build flags, CI gates, gotchas
-- [Design Decisions](.repo_wiki/design/decisions.md) — Recorded architectural choices
+| Doc | Content |
+|-----|---------|
+| [Getting Started](docs/guide/getting-started.md) | Install, configure, basic usage |
+| [Architecture](docs/guide/architecture.md) | Single-process C++ GDExtension architecture |
+| [Building](docs/guide/building.md) | Build system, versioning |
+| [Tool Catalog](docs/reference/tools-catalog.md) | All 122 tools |
+| [Client Configuration](docs/reference/client-config.md) | Config templates for all AI clients |
+| [Protocol](docs/reference/protocol.md) | MCP Streamable HTTP wire format |
+| [FAQ](docs/reference/faq.md) | Frequently asked questions |
+| [Client Quirks](docs/reference/client-quirks.md) | Known issues and limitations |
+| [LSP Client](docs/reference/lsp-client.md) | GDScript validation via LSP |
+| [C# Solution](docs/reference/csharp-solution.md) | Auto-generating .sln/.csproj |
+| [Project Settings Ext](docs/reference/project-settings-ext.md) | Display/physics/rendering key mapping |
