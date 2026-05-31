@@ -96,6 +96,24 @@ pip-log.txt
 .mypy_cache/
 
 # ==============================
+# Test artifacts
+# ==============================
+tests/output/
+tests/backup/
+
+# User-specific environment (template is .env.example)
+tests/.env
+
+# ==============================
+# OS-specific
+# ==============================
+# Windows
+Thumbs.db
+
+# Linux / KDE
+.directory
+
+# ==============================
 # Node.js / Rspress docs
 # ==============================
 node_modules/

@@ -2,16 +2,19 @@
 """Thin wrapper around CMake + CPack for building and packaging GodotMCP.
 
 Usage:
-    py -3 build.py                # debug build + addons.zip
-    py -3 build.py --release      # release build + addons.zip
-    py -3 build.py --no-zip       # build only, skip zip
-    py -3 build.py --clean        # wipe build cache before building
+    uv run python build.py                # debug build + addons.zip
+    uv run python build.py --release      # release build + addons.zip
+    uv run python build.py --no-zip       # build only, skip zip
+    uv run python build.py --clean        # wipe build cache before building
+    uv run python build.py --clean-all    # remove entire build/ including FetchContent _deps/
 """
 
 import argparse
 import shutil
 import subprocess
 import sys
+import multiprocessing
+import platform
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
@@ -63,9 +66,44 @@ def is_stale_cache_error(output: str) -> bool:
     return any(pat in output for pat in STALE_CACHE_PATTERNS)
 
 
+
+def _find_msvc_cl() -> str | None:
+    """Locate MSVC cl.exe via vswhere for Ninja builds on Windows."""
+    try:
+        result = subprocess.run(
+            ["vswhere", "-latest", "-property", "installationPath"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            vs_path = Path(result.stdout.strip())
+            vc_dir = vs_path / "VC" / "Tools" / "MSVC"
+            if vc_dir.exists():
+                for msvc_ver in sorted(vc_dir.iterdir(), reverse=True):
+                    cl_exe = msvc_ver / "bin" / "Hostx64" / "x64" / "cl.exe"
+                    if cl_exe.exists():
+                        return str(cl_exe)
+    except Exception:
+        pass
+    return None
+
 def configure(extra_defs: list, force_capture: bool = False) -> tuple[bool, str]:
     """Run CMake configure. Returns (success, output)."""
     cmd = ["cmake", "-B", str(BUILD_DIR), "-S", str(PROJECT_ROOT)] + extra_defs
+    # Auto-detect Ninja generator for faster incremental builds.
+    if platform.system() == "Windows":
+        cl_path = _find_msvc_cl()
+        if shutil.which("ninja") and cl_path:
+            cmd += ["-GNinja"]
+            cmd += ["-DCMAKE_C_COMPILER:FILEPATH=" + cl_path]
+            cmd += ["-DCMAKE_CXX_COMPILER:FILEPATH=" + cl_path]
+            print("[DETECT] Ninja + MSVC found, using -GNinja", flush=True)
+        else:
+            print("[DETECT] Ninja/MSVC not found, using default generator", flush=True)
+    elif shutil.which("ninja"):
+        cmd += ["-GNinja"]
+        print("[DETECT] Ninja found, using -GNinja", flush=True)
+    else:
+        print("[DETECT] Ninja not found, using default generator", flush=True)
     if force_capture:
         return run(cmd, capture=True)
     # First attempt: stream output directly
@@ -79,14 +117,20 @@ def configure(extra_defs: list, force_capture: bool = False) -> tuple[bool, str]
 def main():
     parser = argparse.ArgumentParser(description="Build and package GodotMCP via CMake")
     parser.add_argument("--release", action="store_true", help="Build with Release configuration")
-    parser.add_argument("--clean", action="store_true", help="Wipe build/ directory before configuring")
+    parser.add_argument("--clean", action="store_true", help="Wipe build/ cache (preserves _deps/ FetchContent cache)")
+    parser.add_argument("--clean-all", action="store_true", help="Remove entire build/ directory including FetchContent _deps/")
     parser.add_argument("--no-zip", action="store_true", help="Skip producing addons.zip")
+    parser.add_argument("-j", "--jobs", type=int, default=None, help="Number of parallel build jobs (default: auto-detect CPU count)")
     args = parser.parse_args()
 
     config = "Release" if args.release else "Debug"
     cmake_defs = []
     if args.release:
         cmake_defs += ["-DRELEASE=ON"]
+
+    if args.clean_all and BUILD_DIR.exists():
+        print(f"[CLEAN-ALL] Removing entire build directory", flush=True)
+        shutil.rmtree(BUILD_DIR, ignore_errors=True)
 
     if args.clean and BUILD_DIR.exists():
         print(f"\n[CLEAN] Removing CMake cache in {BUILD_DIR}", flush=True)
@@ -115,16 +159,26 @@ def main():
             shutil.rmtree(BUILD_DIR, ignore_errors=True)
             ok, output = configure(cmake_defs)
         if not ok:
-            print("\n[HINT] Try: py -3 build.py --clean", flush=True)
+            print("\n[HINT] Try: uv run python build.py --clean", flush=True)
             sys.exit(1)
 
     # --- Build ---
-    if not run(["cmake", "--build", str(BUILD_DIR), "--config", config]):
+    n_cpus = multiprocessing.cpu_count()
+    if args.jobs is not None:
+        if args.jobs > n_cpus:
+            print(f"[BUILD] -j {args.jobs} exceeds {n_cpus} CPUs, using {n_cpus}", flush=True)
+        elif args.jobs < 1:
+            n_cpus = 1
+            print(f"[BUILD] -j {args.jobs} invalid, using 1", flush=True)
+        else:
+            n_cpus = args.jobs
+            print(f"[BUILD] Using -j {args.jobs}", flush=True)
+    if not run(["cmake", "--build", str(BUILD_DIR), "--config", config, "-j", str(n_cpus)]):
         sys.exit(1)
 
     # --- Package ---
     if not args.no_zip:
-        if not run(["cmake", "--build", str(BUILD_DIR), "--config", config, "--target", "package"]):
+        if not run(["cmake", "--build", str(BUILD_DIR), "--config", config, "--target", "package", "-j", str(n_cpus)]):
             sys.exit(1)
     else:
         print("\n[SKIP] addons.zip (--no-zip)")
@@ -132,3 +186,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
