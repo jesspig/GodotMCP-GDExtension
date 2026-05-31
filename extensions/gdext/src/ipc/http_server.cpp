@@ -92,13 +92,13 @@ void HttpServer::poll() {
         Connection conn;
         conn.tcp = tcp;
         conn.tcp->set_no_delay(true);
+        conn.tcp->poll();
         conn.last_activity_msec = Time::get_singleton()->get_ticks_msec();
         connections_[conn_id] = conn;
     }
 
     // Poll existing connections
     Vector<int> dead;
-    Vector<int> reset_conns;
 
     for (KeyValue<int, Connection> &kv : connections_) {
         const int conn_id = kv.key;
@@ -120,59 +120,92 @@ void HttpServer::poll() {
         }
 
         // --- Non-SSE: read available bytes ---
+        conn.tcp->poll();
         const int64_t avail = conn.tcp->get_available_bytes();
         if (avail < 0) {
             dead.push_back(conn_id); continue;
         }
-        if (avail == 0) continue;
 
-        conn.last_activity_msec = Time::get_singleton()->get_ticks_msec();
+        // Read socket data into read_buf (only if data available)
+        if (avail > 0) {
+            conn.last_activity_msec = Time::get_singleton()->get_ticks_msec();
 
-        if (!conn.headers_done) {
-            const Array read_result = conn.tcp->get_data((int)avail);
-            if ((Error)(int)read_result[0] != OK) {
-                dead.push_back(conn_id); continue;
-            }
-            const PackedByteArray chunk = read_result[1];
-            for (int i = 0; i < chunk.size(); ++i) conn.read_buf.push_back(chunk[i]);
-
-            ParseResult pr = parse_headers(conn);
-            if (pr == ERROR_PARSE) {
-                if (conn.content_length > kMaxBodyLength) {
-                    send_response(conn_id, conn, 413, "Payload Too Large", "text/plain",
-                                  "413 Payload Too Large", "Connection: close\r\n");
-                } else {
-                    send_response(conn_id, conn, 400, "Bad Request", "text/plain",
-                                  "400 Bad Request", "Connection: close\r\n");
-                }
-                dead.push_back(conn_id);
-                continue;
-            }
-            if (pr == NEED_MORE) {
-                continue;
-            }
-
-            // Headers complete: copy any body bytes that arrived with headers
-            if (conn.content_length > 0 && conn.header_end_pos < conn.read_buf.size()) {
-                for (int i = conn.header_end_pos; i < conn.read_buf.size(); ++i) {
-                    conn.body.push_back(conn.read_buf[i]);
-                }
-            }
-        } else {
-            // Headers already done: read body data directly from socket
-            if (conn.content_length > 0 && conn.body.size() < conn.content_length) {
-                const int remaining = conn.content_length - conn.body.size();
-                const int max_read = kMaxBodyLength - conn.body.size();
-                int to_read = (int)avail < remaining ? (int)avail : remaining;
-                if (to_read > max_read) to_read = max_read;
-                if (to_read <= 0) { dead.push_back(conn_id); continue; }
-                const Array read_result = conn.tcp->get_data(to_read);
+            if (!conn.headers_done) {
+                const Array read_result = conn.tcp->get_data((int)avail);
                 if ((Error)(int)read_result[0] != OK) {
                     dead.push_back(conn_id); continue;
                 }
-                const PackedByteArray read_chunk = read_result[1];
-                for (int i = 0; i < read_chunk.size(); ++i) conn.body.push_back(read_chunk[i]);
+                const PackedByteArray chunk = read_result[1];
+                for (int i = 0; i < chunk.size(); ++i) conn.read_buf.push_back(chunk[i]);
+
+                ParseResult pr = parse_headers(conn);
+                if (pr == ERROR_PARSE) {
+                    if (conn.content_length > kMaxBodyLength) {
+                        send_response(conn_id, conn, 413, "Payload Too Large", "text/plain",
+                                      "413 Payload Too Large", "Connection: close\r\n");
+                    } else {
+                        send_response(conn_id, conn, 400, "Bad Request", "text/plain",
+                                      "400 Bad Request", "Connection: close\r\n");
+                    }
+                    dead.push_back(conn_id);
+                    continue;
+                }
+                if (pr == NEED_MORE) {
+                    continue;
+                }
+
+                // Headers complete: copy any body bytes that arrived with headers
+                if (conn.content_length > 0 && conn.header_end_pos < conn.read_buf.size()) {
+                    for (int i = conn.header_end_pos; i < conn.read_buf.size(); ++i) {
+                        conn.body.push_back(conn.read_buf[i]);
+                    }
+                }
+            } else {
+                // Headers already done: read body data directly from socket
+                if (conn.content_length > 0 && conn.body.size() < conn.content_length) {
+                    const int remaining = conn.content_length - conn.body.size();
+                    const int max_read = kMaxBodyLength - conn.body.size();
+                    int to_read = (int)avail < remaining ? (int)avail : remaining;
+                    if (to_read > max_read) to_read = max_read;
+                    if (to_read <= 0) { dead.push_back(conn_id); continue; }
+                    const Array read_result = conn.tcp->get_data(to_read);
+                    if ((Error)(int)read_result[0] != OK) {
+                        dead.push_back(conn_id); continue;
+                    }
+                    const PackedByteArray read_chunk = read_result[1];
+                    for (int i = 0; i < read_chunk.size(); ++i) conn.body.push_back(read_chunk[i]);
+                }
             }
+        }
+
+        // Even if avail == 0, try parsing leftover read_buf when headers not done
+        if (avail == 0 && !conn.headers_done && !conn.read_buf.is_empty()) {
+            ParseResult pr = parse_headers(conn);
+            if (pr == ERROR_PARSE) {
+                send_response(conn_id, conn, 400, "Bad Request", "text/plain",
+                              "400 Bad Request", "Connection: close\r\n");
+                dead.push_back(conn_id);
+                continue;
+            }
+            if (pr == COMPLETE) {
+                if (conn.content_length > 0 && conn.header_end_pos < conn.read_buf.size()) {
+                    for (int i = conn.header_end_pos; i < conn.read_buf.size(); ++i) {
+                        conn.body.push_back(conn.read_buf[i]);
+                    }
+                }
+            } else {
+                continue;
+            }
+        }
+
+        // If no socket data and headers not done with no leftover, skip
+        if (avail == 0 && !conn.headers_done && conn.read_buf.is_empty()) {
+            continue;
+        }
+
+        // If no socket data and waiting for more body, skip
+        if (avail == 0 && conn.headers_done && conn.body.size() < conn.content_length) {
+            continue;
         }
 
         // Also try draining any remaining data from socket into body
@@ -181,28 +214,20 @@ void HttpServer::poll() {
         }
 
         // Body complete → dispatch
-        if (conn.content_length <= 0 || conn.body.size() >= conn.content_length) {
+        if (conn.headers_done && (conn.content_length <= 0 || conn.body.size() >= conn.content_length)) {
+            // Non-SSE connections close after each request (poll architecture can't
+            // reliably handle rapid-fire keepalive due to frame timing).
+            if (!conn.is_sse_stream) {
+                conn.keep_alive = false;
+            }
             dispatch_request(conn_id, conn);
-            // Reset for next request (keep-alive) unless SSE or closing
             if (!conn.is_sse_stream && connections_.has(conn_id)) {
-                reset_conns.push_back(conn_id);
+                close_connection(conn_id);
             }
         }
     }
 
     for (int i = 0; i < dead.size(); ++i) close_connection(dead[i]);
-    for (int i = 0; i < reset_conns.size(); ++i) {
-        auto it = connections_.find(reset_conns[i]);
-        if (it == connections_.end()) continue;
-        it->value.headers_done = false;
-        it->value.method = String();
-        it->value.path = String();
-        it->value.headers.clear();
-        it->value.body.clear();
-        it->value.content_length = 0;
-        it->value.header_end_pos = -1;
-        it->value.read_buf.clear();
-    }
 }
 
 // -------------------------------------------------------------------------
@@ -302,6 +327,7 @@ void HttpServer::try_read_body(Connection &conn) {
 
     if (conn.body.size() >= kMaxBodyLength) return;
 
+    conn.tcp->poll();
     const int64_t avail = conn.tcp->get_available_bytes();
     if (avail <= 0) return;
 
