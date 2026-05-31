@@ -5,10 +5,12 @@
 构建系统是 **CMake**（C++ GDExtension → godot-cpp 10.0.0-rc1 通过 FetchContent）。提供了轻量 `build.py` 包装。
 
 ```bash
-py -3 build.py                        # debug 构建 + addons.zip
-py -3 build.py --release              # release 构建 + addons.zip
-py -3 build.py --clean                # 清空 CMake 缓存（保留 _deps/godot-cpp）
-py -3 build.py --no-zip               # 跳过 addons.zip（快速迭代）
+uv run python build.py                # debug 构建 + addons.zip
+uv run python build.py --release      # release 构建 + addons.zip
+uv run python build.py --clean        # 清空 CMake 缓存（保留 _deps/godot-cpp）
+uv run python build.py --no-zip       # 跳过 addons.zip（快速迭代）
+uv run python build.py --clean-all    # 完全清除构建目录（包括 FetchContent _deps/）
+uv run python build.py -j N              # 指定并行编译作业数（默认 = CPU 核心数）
 ```
 
 CMake 自动处理：

@@ -31,10 +31,9 @@ AI 客户端
 
 - `CommandFn = std::function<Dictionary(const Dictionary &)>`（函数指针）
 - `HandlerRegistry` 本质上是 `HashMap<String, CommandFn>`
-- `register_all_tools()` 调用 16 个 `register_<group>()` 自由函数来填充注册表
-- 另有 1 个 `register_<group>()` 已声明但未调用（`register_script_cs`）
+- `register_all_tools()` 调用全部 17 个 `register_<group>()` 自由函数来填充注册表
 
-## 17 个 C++ 处理器文件
+## 17 组 C++ 处理器
 
 | # | 文件 | register_ 函数 | 调用状态 | 工具数 | 工具前缀 |
 |---|------|---------------|---------|--------|----------|
@@ -46,17 +45,17 @@ AI 客户端
 | 6 | `find.cpp` | `register_find` | **活跃** | 4 | find_nodes_by_name/type/group/script |
 | 7 | `scene.cpp` | `register_scene` | **活跃** | 16 | create/delete/rename_scene, branch_to_scene, scene_to_branch, instantiate_scene, open/close/save/save_as/save_all/reload_scene, get_open_scenes/roots, mark_scene_unsaved, is_scene_dirty |
 | 8 | `script_gd.cpp` | `register_script_gd` | **活跃** | 5 | create/read/edit/list_gdscript, validate_gdscript |
-| 9 | `script_cs.cpp` | `register_script_cs` | **未调用** | 6 | create/read/edit/list_csharp_script, csharp_build, csharp_create_solution |
+| 9 | `script_cs.cpp` | `register_script_cs` | **活跃** | 6 | create/read/edit/list_csharp_script, csharp_build, csharp_create_solution |
 | 10 | `script_helpers.cpp` | `register_script_helpers` | **活跃** | 3 | call_method, get/set_variable |
 | 11 | `project_settings.cpp` | `register_project_settings` | **活跃** | 7 | get/set_project_setting, set_main_scene, list/add/remove_autoload, list_scenes |
 | 12 | `project_settings_ext.cpp` | `register_project_settings_ext` | **活跃** | 10 | get/set_display/physics/rendering_settings, get/set_project_info, get/set_layer_names |
-| 13 | `editor_control.cpp` | `register_editor_control` | **活跃** | 6 | play_current/main_scene, stop_scene, is_scene_playing, refresh_filesystem, get_editor_info |
+| 13 | `editor_control.cpp` | `register_editor_control` | **活跃** | 7 | play_current/main_scene, stop_scene, is_scene_playing, refresh_filesystem, godot_editor_restart, get_editor_info |
 | 14 | `input_map.cpp` | `register_input_map` | **活跃** | 4 | list/add/remove_input_action, set_input_action_events |
 | 15 | `plugin_management.cpp` | `register_plugin_management` | **活跃** | 2 | list_plugins, set_plugin_enabled |
 | 16 | `undo.cpp` | `register_undo` | **活跃** | 2 | undo, redo |
 | 17 | `search.cpp` | `register_search` | **活跃** | 3 | find_in_file, search_project, find_and_replace |
 
-**总计**：17 个文件定义 121 个工具，16 组在 `register_all_tools()` 中活跃注册（115 个），`register_script_cs`（6 个 C# 工具）已声明但未调用。
+**总计**：129 个模式定义（`tool_schemas.json`），~122 个实际可用（7 个可能因环境被过滤）。17 组全部在 `register_all_tools()` 中注册。
 
 ## 注意事项
 

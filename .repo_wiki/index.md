@@ -1,6 +1,6 @@
 # Godot MCP — 项目知识库
 
-> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 godot-cpp 10.0.0-rc1，16 组处理器注册 115 个工具。
+> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 godot-cpp 10.0.0-rc1，17 组处理器注册 129 个工具（约 122 个实际可用）。
 
 ## 快速导航
 
@@ -13,13 +13,13 @@
 
 | 文件 | 说明 |
 |------|------|
-| [GDExtension C++](extensions/gdext.md) | **唯一实现**：`extensions/gdext/` C++ GDExtension，使用 godot-cpp 10.0.0-rc1，17 个处理器文件（16 组活跃注册 115 个工具），MCP Streamable HTTP 传输 |
+| [GDExtension C++](extensions/gdext.md) | **唯一实现**：`extensions/gdext/` C++ GDExtension，使用 godot-cpp 10.0.0-rc1，22 个命令源文件（17 组全部注册 129 个工具），MCP Streamable HTTP 传输 |
 
 ## 模块文档
 
 | 模块 | 说明 |
 |------|------|
-| [命令路由](modules/command-routing.md) | 从 MCP `call_tool` 到 `cmd_*` 调用的完整链路；C++ `HandlerRegistry`；17 组处理器状态 |
+| [命令路由](modules/command-routing.md) | 从 MCP `call_tool` 到 `cmd_*` 调用的完整链路；C++ `HandlerRegistry`；17 组处理器（全部活跃） |
 | [Scene / Node / Property 命令模式](modules/scene-commands.md) | 节点/属性/场景工具模式；C++ 的 `Dictionary`/`JSON` 原生操作 |
 | [MCP Streamable HTTP](modules/ipc-bridge.md) | `HttpServer`（:9600）+ `McpHandler`（JSON-RPC 2.0 会话管理 + SSE） |
 | [编辑器插件](modules/editor-plugin.md) | C++ `McpEditorPlugin` 生命周期（`_enter_tree` → `process_frame` → `_exit_tree`） |
@@ -48,6 +48,16 @@
 |------|------|
 | [IPC 协议](specification/ipc-protocol.md) | MCP Streamable HTTP 协议（JSON-RPC 2.0 + SSE） |
 | [项目结构](specification/project-structure.md) | 完整目录布局、构建与测试命令 |
+
+## 测试框架
+
+| 文档 | 说明 |
+|------|------|
+| [测试框架总览](testing/overview.md) | 异步顺序执行模式，18 个阶段，磁盘验证 |
+| [编排器](testing/orchestrator.md) | 生命周期管理：备份 → 启动 → 连接 → 运行 → 恢复 → 报告 |
+| [自定义 MCP 客户端](testing/mcp-client.md) | 绕过 MCP SDK 的 httpx 客户端（解决 float ID 校验问题） |
+| [阶段系统](testing/phase-system.md) | ToolTest 数据类、PhaseRunner 执行逻辑、setup/teardown |
+| [磁盘文件验证](testing/file-verifier.md) | 无需 Godot 解析 .tscn/project.godot |
 
 ## 设计文档
 

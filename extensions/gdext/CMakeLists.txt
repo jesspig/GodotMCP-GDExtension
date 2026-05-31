@@ -79,6 +79,8 @@ set_target_properties(godot_mcp_gdext PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     # Drop the "lib" prefix on Unix to match the .gdextension declarations
     # (Godot expects libgodot_mcp_gdext.so → keep prefix; on Windows there is none anyway).
+    UNITY_BUILD ON
+    UNITY_BUILD_BATCH_SIZE 8
     PREFIX ""
 )
 # Restore the conventional "lib" prefix on Unix.

@@ -78,7 +78,16 @@ Node *resolve_node(Node *root, const String &path) {
         return root->get_node_or_null(NodePath(path.substr(relative_prefix.length())));
     }
     // Any other path is treated as a NodePath relative to root.
-    return root->get_node_or_null(NodePath(path));
+    Node *found = root->get_node_or_null(NodePath(path));
+    if (found) return found;
+    // Recursive DFS for nodes moved into sub-trees (e.g. after move_node).
+    for (int64_t i = 0; i < root->get_child_count(); i++) {
+        Node *c = Object::cast_to<Node>(root->get_child(i));
+        if (!c) continue;
+        Node *sub = resolve_node(c, path);
+        if (sub) return sub;
+    }
+    return nullptr;
 }
 
 EditorUndoRedoManager *get_undo_redo() {

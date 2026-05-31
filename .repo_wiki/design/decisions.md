@@ -91,14 +91,15 @@
 - 正面：Rust 遗留代码（`crates/`）已被完全移除
 - 负面：C++ 缺乏 Rust 的所有权和生命周期保证
 
-## ADR-009: `register_script_cs` 声明但未注册
+## ADR-009: C# 工具注册（`register_script_cs`）
 
-**状态**：已接受
-**背景**：C# 脚本工具（`script_cs.cpp`，6 个工具）已实现并通过 `register_script_cs` 注册函数定义，但 `register_all_tools()` 中未调用。
-**决策**：保持声明但不调用，直到 C# 支持经过完整测试。
+**状态**：已接受（原决策已反转）
+**背景**：C# 脚本工具（`script_cs.cpp`，6 个工具）最初实现时未在 `register_all_tools()` 中调用，等待 C# 支持经过完整测试。
+**决策**：后来已在 `register_all_tools()` 中启用 `register_script_cs` 调用，C# 工具现全部活跃可用。
 **后果**：
-- 正面：避免暴露未充分测试的工具
-- 负面：需要跟踪此状态以避免混淆
+- 正面：C# 工具与所有其他工具一样通过 MCP 直接暴露
+- 正面：无需区分"已注册但不可用"的工具组
+- 负面：`dotnet` CLI 不在 PATH 时，`csharp_build` 调用会失败（通过 MCP 错误返回处理）
 
 ## 已废弃的决策
 

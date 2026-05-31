@@ -9,7 +9,7 @@ GodotMCP/
 ├── extensions/
 │   └── gdext/              # C++ GDExtension（唯一代码库）
 │       ├── src/
-│       │   ├── commands/   # 工具处理器（17 个文件，16 组活跃注册）
+│   │   ├── commands/   # 工具处理器（22 个源文件，17 组全部注册）
 │       │   ├── ipc/        # HttpServer
 │       │   ├── mcp/        # McpHandler（JSON-RPC 2.0 会话管理 + 错误码）
 │       │   ├── lsp/        # LSP 验证客户端
@@ -46,10 +46,10 @@ GodotMCP/
 ## 构建与测试命令
 
 ```bash
-py -3 build.py                          # debug 构建 + addons.zip
-py -3 build.py --release                # release 构建 + addons.zip
-py -3 build.py --clean                  # 清空 CMake 缓存（保留 _deps/）
-py -3 build.py --no-zip                 # 跳过打包（快速迭代）
+uv run python build.py                  # debug 构建 + addons.zip
+uv run python build.py --release        # release 构建 + addons.zip
+uv run python build.py --clean          # 清空 CMake 缓存（保留 _deps/）
+uv run python build.py --no-zip         # 跳过打包（快速迭代）
 ```
 
 ## Godot 测试项目
