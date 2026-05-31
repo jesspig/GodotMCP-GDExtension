@@ -10,7 +10,7 @@ flowchart LR
             HTTP["ipc/http_server.cpp<br/>HttpServer (:9600)"]
             MCP["mcp/mcp_handler.cpp<br/>McpHandler"]
             REG["commands/handler_registry.cpp<br/>HandlerRegistry"]
-            CMDS["commands/ (17 文件, 16 组活跃)"]
+            CMDS["commands/ (22 文件, 17 组全部注册)"]
             LSP["lsp/client.cpp"]
         end
     end
@@ -46,10 +46,10 @@ src/
 │   ├── find.cpp                    # 节点搜索 (4)
 │   ├── script_helpers.cpp          # call_method, get/set_variable (3)
 │   ├── script_gd.cpp               # GDScript 文件操作 (5)
-│   ├── script_cs.cpp               # C# 文件操作 (6, 未注册)
+│   ├── script_cs.cpp               # C# 文件操作 (6)
 │   ├── search.cpp                  # 文件搜索与替换 (3)
 │   ├── undo.cpp                    # 撤销/重做 (2)
-│   ├── editor_control.cpp          # play/stop/refresh/get_editor_info (6)
+│   ├── editor_control.cpp          # play/stop/refresh/restart/get_editor_info (7)
 │   ├── project_settings.cpp        # 项目设置 + autoload + 场景列表 (7)
 │   ├── project_settings_ext.cpp    # 显示/物理/渲染/层名/项目信息 (10)
 │   ├── input_map.cpp               # 输入动作管理 (4)
@@ -66,7 +66,7 @@ src/
 
 ## 工具注册
 
-17 个处理器文件，16 个在 `handler_registry.cpp` 的 `register_all_tools()` 中活跃注册：
+17 个处理器文件，全部在 `handler_registry.cpp` 的 `register_all_tools()` 中注册：
 
 | # | 组名 | register_ 函数 | 文件 | 状态 | 工具数 |
 |---|------|---------------|------|------|--------|
@@ -78,17 +78,17 @@ src/
 | 6 | find | `register_find` | `find.cpp` | 活跃 | 4 |
 | 7 | scene | `register_scene` | `scene.cpp` | 活跃 | 16 |
 | 8 | script_gd | `register_script_gd` | `script_gd.cpp` | 活跃 | 5 |
-| 9 | script_cs | `register_script_cs` | `script_cs.cpp` | **未调用** | 6 |
+| 9 | script_cs | `register_script_cs` | `script_cs.cpp` | 活跃 | 6 |
 | 10 | script_helpers | `register_script_helpers` | `script_helpers.cpp` | 活跃 | 3 |
 | 11 | project_settings | `register_project_settings` | `project_settings.cpp` | 活跃 | 7 |
 | 12 | project_settings_ext | `register_project_settings_ext` | `project_settings_ext.cpp` | 活跃 | 10 |
-| 13 | editor_control | `register_editor_control` | `editor_control.cpp` | 活跃 | 6 |
+| 13 | editor_control | `register_editor_control` | `editor_control.cpp` | 活跃 | 7 |
 | 14 | input_map | `register_input_map` | `input_map.cpp` | 活跃 | 4 |
 | 15 | plugin_management | `register_plugin_management` | `plugin_management.cpp` | 活跃 | 2 |
 | 16 | undo | `register_undo` | `undo.cpp` | 活跃 | 2 |
 | 17 | search | `register_search` | `search.cpp` | 活跃 | 3 |
 
-**总计**：17 个文件定义 121 个工具。16 组活跃注册共 115 个工具。`register_script_cs`（6 个 C# 工具）在 `handler_registry.cpp` 中已声明但未在 `register_all_tools()` 中调用。
+**总计**：`tool_schemas.json` 定义 129 个工具模式，17 组全部在 `register_all_tools()` 中注册。实践中 MCP 检出约 122 个工具（部分可能因环境被过滤）。
 
 ## `cmd_utils.hpp` 共享工具函数
 

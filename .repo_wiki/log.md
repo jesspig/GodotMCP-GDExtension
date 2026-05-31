@@ -2,6 +2,17 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-05-31 — 真相修复 + 测试框架文档
+
+- **修复** `register_script_cs` 状态：所有 `register_*()` 函数（共 17 个）均在 `register_all_tools()` 中调用，C# 工具已激活
+- **修复** 工具计数：129 个模式定义（`tool_schemas.json`），~122 个实际可用；更正所有页面中"121 工具/115 活跃/16 组"的错误描述
+- **修复** `editor_control.cpp` 工具数：6 → 7（新增 `godot_editor_restart`）
+- **修复** ADR-009：标记为"已反转"——`register_script_cs` 已调用
+- **修复** 构建命令：`py -3` → `uv run python`（build-and-package.md、project-structure.md）
+- **新增** `testing/` 模块：overview.md、orchestrator.md、mcp-client.md、phase-system.md、file-verifier.md
+- **更新** `index.md`：添加测试框架导航，更新工具计数
+- **更新** `AGENTS.md`：末尾追加项目 Wiki 链接
+
 ## 2026-05-30 — Wiki 代码对齐修复
 
 - **修复** 多处与实际代码不一致的地方
