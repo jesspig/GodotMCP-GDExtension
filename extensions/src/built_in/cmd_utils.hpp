@@ -91,6 +91,14 @@ void mark_scene_dirty();
 // on disk. Safe to call from any tool that writes script/scene files.
 void notify_file_changed(const godot::String &path);
 
+// Record the current undo-redo version as the "saved" marker on a node.
+// Used by scene tools to track whether a scene is dirty.
+void save_version_marker(godot::Node *root);
+
+// Collect names of nodes under `root` that have no owner (potential issue).
+// Returns an Array of warning strings.
+godot::Array collect_owner_warnings(godot::Node *root);
+
 // ---------------------------------------------------------------------
 // Path helpers
 // ---------------------------------------------------------------------

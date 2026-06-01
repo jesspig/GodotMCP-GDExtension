@@ -43,27 +43,9 @@ set(GODOT_MCP_SOURCES
     # Tool infrastructure (ITool)
     src/built_in/tool_base.cpp
 
-    # Built-in tools (CommandFn-based, old style)
-    src/built_in/cmd_info.cpp
-    src/built_in/cmd_meta_tools.cpp
+    # Legacy utilities (still needed by ITool implementations)
     src/built_in/cmd_utils.cpp
     src/built_in/cmd_utils_json.cpp
-    src/built_in/property.cpp
-    src/built_in/property_3d.cpp
-    src/built_in/undo.cpp
-    src/built_in/collision.cpp
-    src/built_in/find.cpp
-    src/built_in/script_helpers.cpp
-    src/built_in/editor_control.cpp
-    src/built_in/plugin_management.cpp
-    src/built_in/project_settings.cpp
-    src/built_in/project_settings_ext.cpp
-    src/built_in/script_gd.cpp
-    src/built_in/input_map.cpp
-    src/built_in/search.cpp
-    src/built_in/node.cpp
-    src/built_in/scene.cpp
-    src/built_in/script_cs.cpp
 
     # LSP
     src/lsp/client.cpp

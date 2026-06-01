@@ -44,11 +44,11 @@ public:
     // category_label() 是分组展示名，默认同 category()，SDK 工具可覆盖
     virtual godot::String category_label() const { return category(); }
 
-    // source() 返回 "meta" | "built_in" | "custom"
-    //    meta → tools/list 始终可见
-    //    built_in → 渐进式披露
-    //    custom → 自动加 custom_ 前缀
-    virtual godot::String source() const { return "built_in"; }
+    // source() 返回 "meta" | "builtin" | "custom"
+    //    meta    → tools/list 始终可见
+    //    builtin → 渐进式披露
+    //    custom  → 自动加 custom_ 前缀
+    virtual godot::String source() const { return "builtin"; }
 
     // ── 能力声明（组合优于继承）──
     virtual bool needs_scene() const { return false; }
