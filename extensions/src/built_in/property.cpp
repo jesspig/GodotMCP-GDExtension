@@ -1,7 +1,7 @@
-// commands/property.cpp â€” 21 property get/set tools
+// commands/property.cpp â€?21 property get/set tools
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/texture2d.hpp>
 #include <godot_cpp/variant/color.hpp>

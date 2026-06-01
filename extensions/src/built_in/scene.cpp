@@ -1,7 +1,7 @@
-// commands/scene.cpp â€” 16 scene tools
+// commands/scene.cpp â€?16 scene tools
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/dir_access.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/file_access.hpp>

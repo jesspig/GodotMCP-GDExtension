@@ -1,7 +1,7 @@
-// commands/script_cs.cpp â€” C# script tools
+// commands/script_cs.cpp â€?C# script tools
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/dir_access.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/engine.hpp>

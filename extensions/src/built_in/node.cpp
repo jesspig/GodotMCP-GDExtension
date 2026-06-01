@@ -1,7 +1,7 @@
-// commands/node.cpp â€” 21 node manipulation tools
+// commands/node.cpp â€?21 node manipulation tools
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>

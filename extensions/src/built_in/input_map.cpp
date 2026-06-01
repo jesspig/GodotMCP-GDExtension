@@ -1,7 +1,7 @@
-// commands/input_map.cpp â€” input action tools
+// commands/input_map.cpp â€?input action tools
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/input_event.hpp>
 #include <godot_cpp/classes/input_event_key.hpp>
 #include <godot_cpp/classes/input_event_joypad_button.hpp>

@@ -1,7 +1,7 @@
-// commands/undo.cpp â€” undo/redo tools
+// commands/undo.cpp â€?undo/redo tools
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/undo_redo.hpp>

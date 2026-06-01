@@ -1,7 +1,7 @@
-// commands/project_settings.cpp â€” project settings tools
+// commands/project_settings.cpp â€?project settings tools
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/dir_access.hpp>
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/project_settings.hpp>

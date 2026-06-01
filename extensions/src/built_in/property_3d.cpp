@@ -1,7 +1,7 @@
-// commands/property_3d.cpp â€” 6 Node3D property get/set tools
+// commands/property_3d.cpp â€?6 Node3D property get/set tools
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/variant/vector3.hpp>
 using namespace godot;
 

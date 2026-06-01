@@ -1,7 +1,7 @@
-// commands/script_gd.cpp â€” GDScript CRUD + validate
+// commands/script_gd.cpp â€?GDScript CRUD + validate
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/dir_access.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/editor_settings.hpp>
@@ -87,7 +87,7 @@ Dictionary cmd_validate_gdscript(const Dictionary &a) {
         return result;
     }
 
-    // LSP failed â€” fall back to GDScript::reload() for basic ok/fail check
+    // LSP failed â€?fall back to GDScript::reload() for basic ok/fail check
     Ref<GDScript> script;
     script.instantiate();
     script->set_path(path);
@@ -100,7 +100,7 @@ Dictionary cmd_validate_gdscript(const Dictionary &a) {
     if (err != OK) {
         r["diagnostics"] = Array();
         String lsp_err = result.has("error") ? String(result["error"]) : String("LSP unavailable");
-        r["note"] = "LSP connection failed (" + lsp_err + "). Fell back to compile check only â€” no detailed errors available. The LSP server starts automatically with the Godot editor on port " + String::num_int64(port) + ".";
+        r["note"] = "LSP connection failed (" + lsp_err + "). Fell back to compile check only â€?no detailed errors available. The LSP server starts automatically with the Godot editor on port " + String::num_int64(port) + ".";
     }
     return r;
 }

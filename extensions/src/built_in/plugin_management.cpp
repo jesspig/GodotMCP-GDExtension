@@ -1,7 +1,7 @@
-// commands/plugin_management.cpp â€” list_plugins, set_plugin_enabled
+// commands/plugin_management.cpp â€?list_plugins, set_plugin_enabled
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/config_file.hpp>
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/dir_access.hpp>

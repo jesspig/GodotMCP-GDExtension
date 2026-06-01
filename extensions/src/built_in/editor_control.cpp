@@ -1,7 +1,7 @@
-// commands/editor_control.cpp â€” play/stop/refresh/info
+// commands/editor_control.cpp â€?play/stop/refresh/info
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/editor_file_system.hpp>
 #include <godot_cpp/classes/editor_paths.hpp>

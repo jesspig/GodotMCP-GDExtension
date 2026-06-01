@@ -1,5 +1,5 @@
 // =====================================================================
-// commands/cmd_utils.cpp â€” Implementation of cmd_utils.hpp helpers.
+// commands/cmd_utils.cpp â€?Implementation of cmd_utils.hpp helpers.
 //
 // Every function runs on the main thread (called from EditorPlugin::_process
 // via the WebSocket dispatch loop). No locking or thread-safety required.

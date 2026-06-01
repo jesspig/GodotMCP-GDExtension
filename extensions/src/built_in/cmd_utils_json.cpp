@@ -1,13 +1,13 @@
 // =====================================================================
-// commands/cmd_utils_json.cpp â€” JSON <-> Variant conversion helpers.
+// commands/cmd_utils_json.cpp â€?JSON <-> Variant conversion helpers.
 //
 // Split out from cmd_utils.cpp purely for file-size readability. These
 // functions translate between Godot's structured Variant types and the
 // plain JSON shape the MCP protocol uses on the wire.
 //
 // Naming convention (mirrors Rust):
-//   variant_to_json(v)   == Rust v2j(&v)   â€” Variant -> JSON-friendly
-//   json_to_variant(jv)  == Rust j2v(&v)   â€” JSON Dict/Array -> Variant
+//   variant_to_json(v)   == Rust v2j(&v)   â€?Variant -> JSON-friendly
+//   json_to_variant(jv)  == Rust j2v(&v)   â€?JSON Dict/Array -> Variant
 // =====================================================================
 
 #include "cmd_utils.hpp"
@@ -181,7 +181,7 @@ Variant dict_to_specific_type(const Dictionary &d) {
         return Vector3((double)d["x"], (double)d["y"], (double)d["z"]);
     }
     if (has_x && has_y && has_z && has_w) {
-        // Prefer Vector4 â€” call sites that need Quaternion can convert.
+        // Prefer Vector4 â€?call sites that need Quaternion can convert.
         return Vector4((double)d["x"], (double)d["y"], (double)d["z"], (double)d["w"]);
     }
     if (d.has("r") && d.has("g") && d.has("b")) {

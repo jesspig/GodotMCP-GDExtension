@@ -27,30 +27,42 @@ FetchContent_MakeAvailable(godot-cpp)
 # Add new translation units here as the implementation grows.
 # ---------------------------------------------------------------------------
 set(GODOT_MCP_SOURCES
+    # Entry point
     src/register_types.cpp
     src/editor_plugin.cpp
-    src/ipc/http_server.cpp
-    src/mcp/mcp_handler.cpp
-    src/commands/handler_registry.cpp
-    src/commands/cmd_utils.cpp
-    src/commands/cmd_utils_json.cpp
-    src/commands/meta.cpp
-    src/commands/property.cpp
-    src/commands/property_3d.cpp
-    src/commands/undo.cpp
-    src/commands/collision.cpp
-    src/commands/find.cpp
-    src/commands/script_helpers.cpp
-    src/commands/editor_control.cpp
-    src/commands/plugin_management.cpp
-    src/commands/project_settings.cpp
-    src/commands/project_settings_ext.cpp
-    src/commands/script_gd.cpp
-    src/commands/input_map.cpp
-    src/commands/search.cpp
-    src/commands/node.cpp
-    src/commands/scene.cpp
-    src/commands/script_cs.cpp
+
+    # SDK
+    src/sdk/mcp_tool_definition.cpp
+    src/sdk/mcp_tool_registry.cpp
+
+    # Server
+    src/server/ipc/http_server.cpp
+    src/server/mcp/mcp_handler.cpp
+    src/server/registry/handler_registry.cpp
+
+    # Built-in tools
+    src/built_in/cmd_info.cpp
+    src/built_in/cmd_meta_tools.cpp
+    src/built_in/cmd_utils.cpp
+    src/built_in/cmd_utils_json.cpp
+    src/built_in/property.cpp
+    src/built_in/property_3d.cpp
+    src/built_in/undo.cpp
+    src/built_in/collision.cpp
+    src/built_in/find.cpp
+    src/built_in/script_helpers.cpp
+    src/built_in/editor_control.cpp
+    src/built_in/plugin_management.cpp
+    src/built_in/project_settings.cpp
+    src/built_in/project_settings_ext.cpp
+    src/built_in/script_gd.cpp
+    src/built_in/input_map.cpp
+    src/built_in/search.cpp
+    src/built_in/node.cpp
+    src/built_in/scene.cpp
+    src/built_in/script_cs.cpp
+
+    # LSP
     src/lsp/client.cpp
 )
 

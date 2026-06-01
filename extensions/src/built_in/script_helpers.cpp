@@ -1,7 +1,7 @@
-// commands/script_helpers.cpp â€” call_method, get_variable, set_variable
+// commands/script_helpers.cpp â€?call_method, get_variable, set_variable
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/script.hpp>
 #include <godot_cpp/variant/array.hpp>
 using namespace godot;

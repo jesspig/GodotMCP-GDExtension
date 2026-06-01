@@ -1,7 +1,7 @@
-// commands/project_settings_ext.cpp â€” display/physics/rendering/layer settings
+// commands/project_settings_ext.cpp â€?display/physics/rendering/layer settings
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/project_settings.hpp>
 using namespace godot;
 

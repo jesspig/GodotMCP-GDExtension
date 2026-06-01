@@ -1,7 +1,7 @@
-// commands/collision.cpp â€” add_circle/rectangle_collision
+// commands/collision.cpp â€?add_circle/rectangle_collision
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/circle_shape2d.hpp>
 #include <godot_cpp/classes/class_db_singleton.hpp>
 #include <godot_cpp/classes/node.hpp>

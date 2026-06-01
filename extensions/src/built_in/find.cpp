@@ -1,7 +1,7 @@
-// commands/find.cpp â€” find_nodes_by_name/type/group/script
+// commands/find.cpp â€?find_nodes_by_name/type/group/script
 
 #include "cmd_utils.hpp"
-#include "handler_registry.hpp"
+#include "server/registry/handler_registry.hpp"
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/classes/script.hpp>
 #include <godot_cpp/variant/array.hpp>

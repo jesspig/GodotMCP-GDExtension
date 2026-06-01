@@ -1,7 +1,7 @@
 #include "http_server.hpp"
 
-#include "../commands/cmd_utils.hpp"
-#include "../logging.hpp"
+#include "built_in/cmd_utils.hpp"
+#include "logging.hpp"
 
 #include <cstring>
 
