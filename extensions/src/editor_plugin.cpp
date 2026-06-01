@@ -63,6 +63,7 @@ void McpEditorPlugin::_enter_tree() {
     registry_.set_engine_version(Engine::get_singleton()->get_version_info().get("string", String()));
     registry_.set_plugin_version(String(GODOT_MCP_PLUGIN_VERSION));
     register_all_tools(registry_);
+    register_itools(registry_);
 
     load_tool_schemas();
 

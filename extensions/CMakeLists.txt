@@ -40,7 +40,10 @@ set(GODOT_MCP_SOURCES
     src/server/mcp/mcp_handler.cpp
     src/server/registry/handler_registry.cpp
 
-    # Built-in tools
+    # Tool infrastructure (ITool)
+    src/built_in/tool_base.cpp
+
+    # Built-in tools (CommandFn-based, old style)
     src/built_in/cmd_info.cpp
     src/built_in/cmd_meta_tools.cpp
     src/built_in/cmd_utils.cpp
@@ -66,12 +69,42 @@ set(GODOT_MCP_SOURCES
     src/lsp/client.cpp
 )
 
+# ---------------------------------------------------------------------------
+# GLOB for ITool-based tool source files (P2+ migration)
+# ---------------------------------------------------------------------------
+file(GLOB_RECURSE TOOL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.cpp")
+list(APPEND GODOT_MCP_SOURCES ${TOOL_SOURCES})
+
+# ---------------------------------------------------------------------------
+# Code generation: auto-registration from // @tool register comments
+# ---------------------------------------------------------------------------
+find_package(Python3 COMPONENTS Interpreter QUIET)
+
+set(CODEGEN_SCRIPT "${CMAKE_SOURCE_DIR}/tools/codegen.py")
+set(CODEGEN_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/generated_registration.cpp")
+
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+if(Python3_FOUND)
+    add_custom_command(
+        OUTPUT ${CODEGEN_OUTPUT}
+        COMMAND ${Python3_EXECUTABLE} ${CODEGEN_SCRIPT}
+            --source-dir "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools"
+            --output "${CODEGEN_OUTPUT}"
+        DEPENDS ${CODEGEN_SCRIPT}
+        COMMENT "Generating ITool registration code from // @tool register annotations..."
+    )
+    list(APPEND GODOT_MCP_SOURCES ${CODEGEN_OUTPUT})
+    set_source_files_properties(${CODEGEN_OUTPUT} PROPERTIES GENERATED TRUE)
+endif()
+
 add_library(godot_mcp_gdext SHARED ${GODOT_MCP_SOURCES})
 
 target_link_libraries(godot_mcp_gdext PRIVATE godot-cpp)
 
 target_include_directories(godot_mcp_gdext PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_BINARY_DIR}/generated
     ${godot-cpp_SOURCE_DIR}/include
 )
 

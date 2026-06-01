@@ -1,4 +1,5 @@
 #include "handler_registry.hpp"
+#include "built_in/tool_base.hpp"
 
 #include <godot_cpp/classes/file_access.hpp>
 
@@ -40,6 +41,52 @@ bool HandlerRegistry::unregister_custom_tool(const String &name) {
     tool_info_.erase(name);
     table_.erase(name);
     return true;
+}
+
+// ---------------------------------------------------------------------------
+// ITool registration
+// ---------------------------------------------------------------------------
+
+void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool) {
+    if (!tool) return;
+
+    const String name = tool->registered_name();
+
+    // Populate ToolInfo for backward compatibility (category queries, schema, etc.)
+    ToolInfo info;
+    info.name = name;
+    info.category = tool->category();
+    info.brief = tool->brief();
+    info.description = tool->description();
+    info.input_schema = tool->input_schema();
+    info.source = tool->source();
+    info.enabled = true;
+    tool_info_[name] = info;
+
+    itool_table_.emplace(name, std::move(tool));
+}
+
+// ---------------------------------------------------------------------------
+// Unified execution: ITool first, then CommandFn fallback
+// ---------------------------------------------------------------------------
+
+Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args) {
+    // Check ITool table first
+    auto it = itool_table_.find(name);
+    if (it != itool_table_.end()) {
+        return it->second->execute(args);
+    }
+
+    // Fall back to CommandFn table
+    auto fn_it = table_.find(name);
+    if (fn_it != table_.end()) {
+        return fn_it->value(args);
+    }
+
+    // Tool not found
+    Dictionary error;
+    error["error"] = String("Tool not found: ") + name;
+    return error;
 }
 
 // ---------------------------------------------------------------------------
