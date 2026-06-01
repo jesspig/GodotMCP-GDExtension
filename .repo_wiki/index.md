@@ -63,5 +63,6 @@
 
 | 文档 | 说明 |
 |------|------|
+| [统一工具架构重构计划](design/unified-architecture-plan.md) | ITool 接口 + 组合式能力声明 + 注释驱动自动注册 + YAML 测试 |
 | [设计决策](design/decisions.md) | ADR 风格的架构选择记录（含 C++ 重写、HTTP 传输、单进程架构等） |
 | [变更日志](log.md) | 仅追加的项目变更记录

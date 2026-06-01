@@ -2,6 +2,11 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-01 — 统一工具架构重构计划
+
+- **新增** `design/unified-architecture-plan.md`：完整重构计划——ITool 接口、ToolResult 统一信封、组合式能力声明、两轴分类（source + category）、注释驱动自动注册、SDK 桥接适配器、YAML 驱动测试
+- **新增** `design/decisions.md` 中 ADR-010：统一工具架构决策记录
+
 ## 2026-05-31 — 真相修复 + 测试框架文档
 
 - **修复** `register_script_cs` 状态：所有 `register_*()` 函数（共 17 个）均在 `register_all_tools()` 中调用，C# 工具已激活
