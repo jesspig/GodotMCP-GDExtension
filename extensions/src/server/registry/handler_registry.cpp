@@ -50,6 +50,9 @@ bool HandlerRegistry::unregister_custom_tool(const String &name) {
 void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool) {
     if (!tool) return;
 
+    // 注入 registry 指针（meta 工具需要它回调查询）
+    tool->set_registry(this);
+
     const String name = tool->registered_name();
 
     // Populate ToolInfo for backward compatibility (category queries, schema, etc.)
@@ -107,6 +110,13 @@ void HandlerRegistry::load_schemas_from_json(const String &json_text) {
         const Dictionary entry = tools[i];
         const String name = entry.get("name", "");
         if (name.is_empty()) continue;
+
+        // 不覆盖已通过 ITool 注册的 meta/custom 工具信息
+        {
+            auto existing = tool_info_.find(name);
+            if (existing != tool_info_.end() && existing->value.source != "builtin") continue;
+        }
+
         ToolInfo info;
         info.name = name;
         info.description = entry.get("description", "");
@@ -230,18 +240,11 @@ const ToolInfo *HandlerRegistry::get_tool_schema(const String &name) const {
 // ---------------------------------------------------------------------------
 
 Array HandlerRegistry::get_always_on_tools() const {
-    static const Vector<String> kAlwaysOn = {
-        "godot_info",
-        "list_tool_categories",
-        "list_tools",
-        "get_tool_schema",
-        "call_tool",
-    };
     Array result;
-    for (int i = 0; i < kAlwaysOn.size(); ++i) {
-        auto it = tool_info_.find(kAlwaysOn[i]);
-        if (it != tool_info_.end() && it->value.enabled) {
-            result.push_back(make_tool_entry(it->value));
+    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+        if (!kv.value.enabled) continue;
+        if (kv.value.source == "meta") {
+            result.push_back(make_tool_entry(kv.value));
         }
     }
     return result;
@@ -271,8 +274,6 @@ int HandlerRegistry::custom_tool_count() const {
 // Built-in tool registration (dispatches to cmd_*.cpp register_* functions)
 // ---------------------------------------------------------------------------
 
-void register_info(HandlerRegistry &reg);
-void register_meta_tools(HandlerRegistry &reg);
 void register_node(HandlerRegistry &reg);
 void register_property(HandlerRegistry &reg);
 void register_property_3d(HandlerRegistry &reg);
@@ -291,8 +292,6 @@ void register_undo(HandlerRegistry &reg);
 void register_search(HandlerRegistry &reg);
 
 void register_all_tools(HandlerRegistry &reg) {
-    register_info(reg);
-    register_meta_tools(reg);
     register_node(reg);
     register_property(reg);
     register_property_3d(reg);
