@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../commands/handler_registry.hpp"
+#include "../registry/handler_registry.hpp"
 
 #include <godot_cpp/templates/hash_map.hpp>
 #include <godot_cpp/templates/vector.hpp>
@@ -29,6 +29,9 @@ public:
 
     bool has_pending_events(const String &session_id) const;
     Dictionary consume_event(const String &session_id);
+
+    // Notify all initialized sessions that the tool list has changed
+    void notify_tools_list_changed();
 
     // Utility: parse a MCP-Protocol-Version header and return a compatible version.
     static String negotiate_protocol_version(const String &header_value);

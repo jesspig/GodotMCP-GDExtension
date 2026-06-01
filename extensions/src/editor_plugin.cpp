@@ -1,5 +1,7 @@
 #include "editor_plugin.hpp"
 #include "logging.hpp"
+#include "sdk/mcp_tool_registry.hpp"
+
 #include <godot_cpp/classes/engine.hpp>
 #include <limits>
 #include <godot_cpp/classes/file_access.hpp>
@@ -64,6 +66,15 @@ void McpEditorPlugin::_enter_tree() {
 
     load_tool_schemas();
 
+    // Inject dependencies into McpToolRegistry singleton (SDK layer)
+    McpToolRegistry *sdk_registry = McpToolRegistry::get_singleton();
+    if (!sdk_registry) {
+        // Create the singleton if it doesn't exist yet
+        sdk_registry = memnew(McpToolRegistry);
+    }
+    sdk_registry->set_handler_registry(&registry_);
+    sdk_registry->set_mcp_handler(&mcp_handler_);
+
     http_port_ = read_port_from_env("GODOT_MCP_HTTP_PORT", 9600);
 
     if (!http_server_.start(http_port_, &mcp_handler_)) {
@@ -79,7 +90,9 @@ void McpEditorPlugin::_enter_tree() {
     }
 
     log_info("plugin", String("Godot MCP v") + String(GODOT_MCP_PLUGIN_VERSION) +
-                           String(" ready on HTTP :") + String::num_int64(http_port_));
+                           String(" ready on HTTP :") + String::num_int64(http_port_) +
+                           String(" (") + String::num_int64(registry_.builtin_tool_count()) +
+                           String(" builtin tools)"));
 }
 
 void McpEditorPlugin::_exit_tree() {

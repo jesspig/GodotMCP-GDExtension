@@ -1,13 +1,14 @@
 // =====================================================================
 // register_types.cpp — GDExtension entry point.
 //
-// Registers the McpEditorPlugin class at MODULE_INITIALIZATION_LEVEL_EDITOR
-// and exposes the entry symbol `gdext_rust_init` for backwards
-// compatibility with the existing godot_mcp.gdextension file (the symbol
-// name predates the C++ rewrite).
+// Registers SDK classes (McpToolDefinition, McpToolRegistry) and the
+// McpEditorPlugin at MODULE_INITIALIZATION_LEVEL_EDITOR.
+// Entry symbol kept as `gdext_rust_init` for .gdextension compatibility.
 // =====================================================================
 
 #include "editor_plugin.hpp"
+#include "sdk/mcp_tool_definition.hpp"
+#include "sdk/mcp_tool_registry.hpp"
 
 #include <godot_cpp/classes/editor_plugin.hpp>
 #include <godot_cpp/classes/editor_plugin_registration.hpp>
@@ -21,6 +22,11 @@ static void initialize_godot_mcp(ModuleInitializationLevel p_level) {
     if (p_level != MODULE_INITIALIZATION_LEVEL_EDITOR) {
         return;
     }
+    // SDK classes (GDScript/C# can inherit these)
+    GDREGISTER_CLASS(godot_mcp::McpToolDefinition);
+    GDREGISTER_CLASS(godot_mcp::McpToolRegistry);
+
+    // Editor plugin
     GDREGISTER_CLASS(godot_mcp::McpEditorPlugin);
     EditorPlugins::add_by_type<godot_mcp::McpEditorPlugin>();
 }

@@ -1,6 +1,6 @@
 #include "mcp_handler.hpp"
 
-#include "../logging.hpp"
+#include "logging.hpp"
 
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/time.hpp>
@@ -320,17 +320,17 @@ Dictionary McpHandler::handle_ping(const Variant &id) {
 }
 
 // -------------------------------------------------------------------------
-// tools/list
+// tools/list — returns only always-on tools (progressive disclosure)
 // -------------------------------------------------------------------------
 Dictionary McpHandler::handle_tools_list(const String &session_id, const Dictionary &params,
                                           const Variant &id) {
     if (!registry_) {
         return make_jsonrpc_error(id, kInternalError, "Registry not initialized");
     }
-    Array all_tools = registry_->get_enabled_tools();
+    Array always_on = registry_->get_always_on_tools();
 
     Dictionary result;
-    result["tools"] = all_tools;
+    result["tools"] = always_on;
     return make_jsonrpc_result(id, result);
 }
 
@@ -521,6 +521,19 @@ void McpHandler::handle_cancelled(const Dictionary &params) {
 // -------------------------------------------------------------------------
 void McpHandler::handle_progress(const Dictionary &params) {
     (void)params; // notification received, progress tracking TBD
+}
+
+// -------------------------------------------------------------------------
+// notify_tools_list_changed — send notification to all initialized sessions
+// -------------------------------------------------------------------------
+void McpHandler::notify_tools_list_changed() {
+    const Dictionary notification = make_notification(
+        "notifications/tools/list_changed", Dictionary());
+    for (KeyValue<String, Session> &kv : sessions_) {
+        if (kv.value.initialized) {
+            enqueue_event(kv.key, notification);
+        }
+    }
 }
 
 } // namespace godot_mcp

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "commands/handler_registry.hpp"
-#include "ipc/http_server.hpp"
-#include "mcp/mcp_handler.hpp"
+#include "server/registry/handler_registry.hpp"
+#include "server/ipc/http_server.hpp"
+#include "server/mcp/mcp_handler.hpp"
 
 #include <godot_cpp/classes/editor_plugin.hpp>
 
