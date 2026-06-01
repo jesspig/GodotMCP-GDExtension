@@ -19,10 +19,10 @@ CMake handles automatically:
 
 ## C++ GDExtension Build Flow
 
-CMake builds godot-cpp + gdext source files via `add_subdirectory(extensions/gdext)`:
+CMake builds godot-cpp + extension source files via `add_subdirectory(extensions)`:
 
 1. FetchContent pulls `godot-cpp 10.0.0-rc1`
-2. Adds all source files from `/extensions/gdext/src/`
+2. Adds all source files from `/extensions/src/`
 3. Links godot-cpp static library → `godot_mcp_gdext.dll`
 4. Post-process: copies to `example/addons/godot_mcp/bin/`
 

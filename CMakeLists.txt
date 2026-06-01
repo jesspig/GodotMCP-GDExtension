@@ -25,7 +25,7 @@ message(STATUS "GodotMCP version: ${PROJECT_VERSION}")
 # ---------------------------------------------------------------------------
 # C++ GDExtension (godot-cpp 10.0.0-rc1 via FetchContent)
 # ---------------------------------------------------------------------------
-add_subdirectory(extensions/gdext)
+add_subdirectory(extensions)
 
 # ---------------------------------------------------------------------------
 # Generate addon config files (plugin.cfg, .gdextension)

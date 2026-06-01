@@ -19,10 +19,10 @@ CMake 自动处理：
 
 ## C++ GDExtension 构建流程
 
-CMake 通过 `add_subdirectory(extensions/gdext)` 构建 godot-cpp + gdext 源文件：
+CMake 通过 `add_subdirectory(extensions)` 构建 godot-cpp + 扩展源文件：
 
 1. FetchContent 拉取 `godot-cpp 10.0.0-rc1`
-2. 添加 `/extensions/gdext/src/` 下的所有源文件
+2. 添加 `/extensions/src/` 下的所有源文件
 3. 链接 godot-cpp 静态库 → `godot_mcp_gdext.dll`
 4. 后处理：复制到 `example/addons/godot_mcp/bin/`
 

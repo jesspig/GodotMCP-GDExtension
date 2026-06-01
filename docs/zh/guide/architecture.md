@@ -116,32 +116,32 @@ stateDiagram-v2
 ## 目录结构
 
 ```
-extensions/gdext/src/
+extensions/src/
 ├── register_types.cpp       # GDExtension 入口（符号: gdext_rust_init）
-├── editor_plugin.cpp/.hpp   # EditorPlugin 生命周期
-├── logging.hpp              # 日志工具（UtilityFunctions 封装）
-├── ipc/
-│   └── http_server.cpp/.hpp # HTTP 服务器
-├── mcp/
-│   └── mcp_handler.cpp/.hpp # MCP 会话管理
-├── lsp/
-│   └── client.cpp/.hpp      # LSP 验证客户端
-└── commands/
-    ├── handler_registry.cpp # 工具注册中心（16 组，122 个工具）
-    ├── cmd_utils.cpp/.hpp   # 工具函数（resolve_node、undoable_set）
-    ├── cmd_utils_json.cpp   # JSON 工具函数
-    ├── meta.cpp             # ping、版本查询（3）
-    ├── node.cpp             # 节点操作（21）
-    ├── property.cpp         # 2D 属性读写（21）
-    ├── property_3d.cpp      # 3D 属性读写（6）
-    ├── scene.cpp            # 场景文件/标签页操作（16）
-    ├── script_gd.cpp        # GDScript 命令（5）
-    ├── script_cs.cpp        # C# 命令（6，未注册）
-    ├── script_helpers.cpp   # call_method、get/set_variable（3）
-    ├── collision.cpp        # 碰撞体创建（2）
-    ├── find.cpp             # 节点搜索（4）
-    ├── search.cpp           # 文件搜索/替换（3）
-    ├── undo.cpp             # undo/redo（2）
+├── editor_plugin.cpp/.hpp   # EditorPlugin 组装者
+├── logging.hpp              # 日志工具
+├── sdk/
+│   ├── mcp_tool_definition.cpp/.hpp  # SDK 基类（GDScript 可继承）
+│   └── mcp_tool_registry.cpp/.hpp    # 工具注册中心（单例）
+├── server/
+│   ├── ipc/http_server.cpp/.hpp      # HTTP 服务器
+│   ├── mcp/mcp_handler.cpp/.hpp      # MCP 会话管理
+│   └── registry/handler_registry.cpp/.hpp  # 工具注册表
+├── built_in/
+│   ├── cmd_info.cpp         # godot_info（连接状态+环境信息）
+│   ├── cmd_meta_tools.cpp   # 渐进式披露 meta-tools（4）
+│   ├── cmd_utils.cpp/.hpp   # 工具函数
+│   ├── node.cpp             # 节点操作（21）
+│   ├── property.cpp         # 2D 属性读写（21）
+│   ├── property_3d.cpp      # 3D 属性读写（6）
+│   ├── scene.cpp            # 场景文件/标签页操作（16）
+│   ├── script_gd.cpp        # GDScript 命令（5）
+│   ├── script_cs.cpp        # C# 命令（6）
+│   ├── script_helpers.cpp   # call_method、get/set_variable（3）
+│   ├── collision.cpp        # 碰撞体创建（2）
+│   ├── find.cpp             # 节点搜索（4）
+│   ├── search.cpp           # 文件搜索/替换（3）
+│   ├── undo.cpp             # undo/redo（2）
     ├── editor_control.cpp   # 播放/停止、刷新（7）
     ├── project_settings.cpp      # 项目设置（7）
     ├── project_settings_ext.cpp  # 显示/物理/渲染设置（10）
