@@ -116,37 +116,39 @@ Client HTTP POST /mcp {"method":"tools/call","params":{"name":"get_node_position
 ## Directory Structure
 
 ```
-extensions/gdext/src/
+extensions/src/
 ├── register_types.cpp       # GDExtension entry (symbol: gdext_rust_init)
-├── editor_plugin.cpp/.hpp   # EditorPlugin lifecycle
-├── logging.hpp              # Logging utilities (UtilityFunctions wrapper)
-├── ipc/
-│   └── http_server.cpp/.hpp # HTTP server
-├── mcp/
-│   └── mcp_handler.cpp/.hpp # MCP session management
-├── lsp/
-│   └── client.cpp/.hpp      # LSP validation client
-└── commands/
-    ├── handler_registry.cpp # Tool registration hub (16 groups, 122 tools)
-    ├── cmd_utils.cpp/.hpp   # Utility functions (resolve_node, undoable_set)
-    ├── cmd_utils_json.cpp   # JSON utilities
-    ├── meta.cpp             # ping, version queries (3)
-    ├── node.cpp             # Node operations (21)
-    ├── property.cpp         # 2D property read/write (21)
-    ├── property_3d.cpp      # 3D property read/write (6)
-    ├── scene.cpp            # Scene file/tab operations (16)
-    ├── script_gd.cpp        # GDScript commands (5)
-    ├── script_cs.cpp        # C# commands (6, unregistered)
-    ├── script_helpers.cpp   # call_method, get/set_variable (3)
-    ├── collision.cpp        # Collision shape creation (2)
-    ├── find.cpp             # Node search (4)
-    ├── search.cpp           # File search/replace (3)
-    ├── undo.cpp             # undo/redo (2)
-    ├── editor_control.cpp   # Play/stop, refresh (7)
-    ├── project_settings.cpp      # Project settings (7)
-    ├── project_settings_ext.cpp  # Display/physics/rendering settings (10)
-    ├── input_map.cpp        # Input mapping (4)
-    └── plugin_management.cpp     # Plugin management (2)
+├── editor_plugin.cpp/.hpp   # EditorPlugin assembler
+├── logging.hpp              # Logging utilities
+├── sdk/
+│   ├── mcp_tool_definition.cpp/.hpp  # SDK base class (GDScript-inheritable)
+│   └── mcp_tool_registry.cpp/.hpp    # Tool registry singleton
+├── server/
+│   ├── ipc/http_server.cpp/.hpp      # HTTP server
+│   ├── mcp/mcp_handler.cpp/.hpp      # MCP session management
+│   └── registry/handler_registry.cpp/.hpp  # Tool registration table
+├── built_in/
+│   ├── cmd_info.cpp         # godot_info (connection + environment info)
+│   ├── cmd_meta_tools.cpp   # Progressive disclosure meta-tools (4)
+│   ├── cmd_utils.cpp/.hpp   # Utility functions
+│   ├── node.cpp             # Node operations (21)
+│   ├── property.cpp         # 2D property read/write (21)
+│   ├── property_3d.cpp      # 3D property read/write (6)
+│   ├── scene.cpp            # Scene file/tab operations (16)
+│   ├── script_gd.cpp        # GDScript commands (5)
+│   ├── script_cs.cpp        # C# commands (6)
+│   ├── script_helpers.cpp   # call_method, get/set_variable (3)
+│   ├── collision.cpp        # Collision shape creation (2)
+│   ├── find.cpp             # Node search (4)
+│   ├── search.cpp           # File search/replace (3)
+│   ├── undo.cpp             # undo/redo (2)
+│   ├── editor_control.cpp   # Play/stop, refresh (7)
+│   ├── project_settings.cpp      # Project settings (7)
+│   ├── project_settings_ext.cpp  # Display/physics/rendering settings (10)
+│   ├── input_map.cpp        # Input mapping (4)
+│   └── plugin_management.cpp     # Plugin management (2)
+└── lsp/
+    └── client.cpp/.hpp      # LSP validation client
 ```
 
 ## Data Flow
