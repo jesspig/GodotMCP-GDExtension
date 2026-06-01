@@ -7,6 +7,8 @@
 
 namespace godot_mcp {
 
+class HandlerRegistry; // 前向声明，避免循环依赖
+
 // ── ToolResult: 统一返回信封 ──
 //   success: {"success": true, "data": {...}}
 //   failure: {"success": false, "error": {"code": "...", "message": "..."}}
@@ -51,6 +53,10 @@ public:
     // ── 能力声明（组合优于继承）──
     virtual bool needs_scene() const { return false; }
     virtual bool needs_node() const { return false; }
+
+    // ── 依赖注入 ──
+    // HandlerRegistry 在注册时调用此方法注入自身指针，meta 工具需要用它回调查询
+    virtual void set_registry(HandlerRegistry * /*reg*/) {}
 
     // ── 统一入口（模板方法）──
     // 自动执行前置检查（root/node 解析）、调用 execute_impl、包裹统一信封

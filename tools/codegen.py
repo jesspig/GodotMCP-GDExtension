@@ -61,15 +61,9 @@ def find_tool_files(source_dir: str) -> list[dict]:
                     class_name = m.group(1)
 
             if has_register and class_name:
-                # 计算相对路径用于 #include
-                rel_path = os.path.relpath(fpath, source_dir).replace("\\", "/")
-
-                include_path = os.path.relpath(fpath, os.path.join(source_dir, "..", "..", "src"))
-                # 回退：直接用 source_dir 父路径
-                # 更好的做法是用相对于 src/ 的路径
                 # source_dir 是 .../src/built_in/tools
-                # include 要从 src/ 开始： built_in/tools/...
-                src_dir = os.path.normpath(os.path.join(source_dir, ".."))
+                # include 路径要相对 src/：built_in/tools/meta/xxx.hpp
+                src_dir = os.path.normpath(os.path.join(source_dir, "..", ".."))
                 inc_path = os.path.relpath(fpath, src_dir).replace("\\", "/")
 
                 tools.append({
@@ -104,11 +98,10 @@ def generate_code(tools: list[dict]) -> str:
     if not tools:
         lines.append("    // No ITool-registered tools found.")
     else:
-        for t in tools:
-            source_type = t["source"]
-            lines.append(f'    auto tool = std::make_unique<{t["class_name"]}>();')
-            lines.append("    (void)tool; // mark used")
-            lines.append(f'    reg.register_tool(std::move(tool));')
+        for i, t in enumerate(tools):
+            var_name = f"tool_{i}"
+            lines.append(f'    auto {var_name} = std::make_unique<{t["class_name"]}>();')
+            lines.append(f'    reg.register_tool(std::move({var_name}));')
             lines.append("")
 
     lines.append("}")

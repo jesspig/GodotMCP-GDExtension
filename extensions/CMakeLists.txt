@@ -86,12 +86,13 @@ set(CODEGEN_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/generated_registration
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 if(Python3_FOUND)
+    file(GLOB_RECURSE TOOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.hpp")
     add_custom_command(
         OUTPUT ${CODEGEN_OUTPUT}
         COMMAND ${Python3_EXECUTABLE} ${CODEGEN_SCRIPT}
             --source-dir "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools"
             --output "${CODEGEN_OUTPUT}"
-        DEPENDS ${CODEGEN_SCRIPT}
+        DEPENDS ${CODEGEN_SCRIPT} ${TOOL_HEADERS}
         COMMENT "Generating ITool registration code from // @tool register annotations..."
     )
     list(APPEND GODOT_MCP_SOURCES ${CODEGEN_OUTPUT})
