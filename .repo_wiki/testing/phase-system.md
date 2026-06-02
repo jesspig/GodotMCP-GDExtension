@@ -1,6 +1,6 @@
-# 阶段系统
+# 阶段系统（旧——将被 YAML 测试替代）
 
-> 18 个阶段文件，每个导出 `TOOL_TESTS: list[ToolTest]`，测试 GodotMCP 工具的一个功能领域。
+> 18 个阶段文件，每个导出 `TOOL_TESTS: list[ToolTest]`，测试 GodotMCP 工具的一个功能领域。将被 YAML 驱动的 `TestEngine` 替代。
 
 ## 数据类
 

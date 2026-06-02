@@ -473,94 +473,24 @@ expect:
 - YAML 测试完全覆盖后删除旧 phase 文件
 - 两个框架在过渡期共存
 
-## 迁移路线
+## 迁移状态
 
-### P1：基础设施（当前阶段）
-
-**文件**：
-
-| 文件 | 操作 | 说明 |
+| 阶段 | 状态 | 内容 |
 |------|------|------|
-| `built_in/tool_base.hpp` | 新建 | `ITool`、`ToolResult`、`ToolContext`、`Capabilities` |
-| `built_in/tool_base.cpp` | 新建 | `resolve_context()`、`ensure_envelope()` 实现 |
-| `tools/codegen.py` | 新建 | 注释扫描 + 注册代码生成 |
-| `server/registry/handler_registry.hpp` | 修改 | 新增 `register_tool(unique_ptr<ITool>)` 方法 |
-| `server/registry/handler_registry.cpp` | 修改 | 实现统一注册、自动归类、渐进式披露 |
-| `extensions/CMakeLists.txt` | 修改 | GLOB 源文件 + codegen PRE_BUILD 步骤 |
-| `agdsdk/mcp_tool_adapter.hpp` | 新建 | SDK ↔ ITool 桥接 |
+| **P1** | ✅ 完成 | ITool 接口、ToolResult、ToolContext、codegen.py、HandlerRegistry 统一注册 |
+| **P2** | ✅ 完成 | meta 组 5 个工具迁移 |
+| **P3** | ✅ 完成 | scene 组 16 个工具迁移 |
+| **P4** | ✅ 完成 | node + property + collision 组 (~44个工具) 迁移 |
+| **P5** | ✅ 完成 | 剩余全部工具 (~54个) 迁移，codegen 发现 124 个工具 |
+| **P6** | ✅ 完成 | 清理旧 `cmd_*.cpp`、旧 `register_*()`、`CMakeLists.txt`、`handler_registry.cpp` |
 
-**验证**：`cmake --build build` 通过，现有工具完全不受影响。
+当前 key 文件：
 
-### P2：迁移 meta 组（5 个工具）
-
-**迁移文件**：
-
-| 旧文件 | 新文件 |
-|--------|--------|
-| `cmd_info.cpp` → | `tools/meta/godot_info.hpp` |
-| `cmd_meta_tools.cpp` → | `tools/meta/list_tool_categories.hpp`、`list_tools.hpp`、`get_tool_schema.hpp`、`call_tool.hpp` |
-
-**验证**：渐进式披露正常工作，`tools/list` 返回 5 个 meta 工具。
-
-### P3：迁移 scene 组（16 个工具）
-
-**迁移文件**：
-
-`scene.cpp` → 拆分为 `tools/scene/*.hpp`（16 个文件）。
-
-**首批 YAML 测试**：`tests/yaml/scene_crud.yaml`。
-
-**验证**：`yaml_runner.py tests/yaml/scene_crud.yaml` 全部通过。
-
-### P4：迁移 node + property 组（~44 个工具）
-
-**迁移文件**：
-
-`node.cpp` → `tools/node/*.hpp`（21 个文件）
-`property.cpp` → `tools/property/*.hpp`（21 个文件）
-`property_3d.cpp` → `tools/property_3d/*.hpp`（6 个文件）
-`collision.cpp` → `tools/collision/*.hpp`（2 个文件）
-
-**验证**：needs_node / needs_scene 能力声明消除样板代码。全 YAML 测试通过。
-
-### P5：迁移剩余全部工具（~54 个工具）
-
-**迁移文件**：
-
-`find.cpp`、`script_gd.cpp`、`script_cs.cpp`、`script_helpers.cpp`、`project_settings.cpp`、`project_settings_ext.cpp`、`editor_control.cpp`、`input_map.cpp`、`plugin_management.cpp`、`undo.cpp`、`search.cpp`
-
-**验证**：全部 119 个工具迁移完成，`register_all_tools()` 完全由 `generated_registration.cpp` 驱动。
-
-### P6：清理 + 文档
-
-**操作**：
-
-1. 删除 `tools/tool_schemas.json`
-2. 删除全部旧 `cmd_*.cpp` 文件
-3. 删除旧 `register_<group>()` 前向声明和调用
-4. 删除旧 phase 测试文件
-5. 用 YAML 测试覆盖全部工具
-6. 更新 `.repo_wiki/` 文档反映新架构
-
-## YAML 测试文件计划
-
-| 测试文件 | 覆盖范围 | 关联阶段 |
-|----------|----------|----------|
-| `meta_tools.yaml` | 5 个 meta 工具基本功能 | P2 |
-| `scene_crud.yaml` | 场景创建/删除/保存/打开 | P3 |
-| `scene_branch.yaml` | 分支到场景/场景到分支 | P3 |
-| `node_crud.yaml` | 节点创建/删除/重命名/移动/复制 | P4 |
-| `node_property.yaml` | 属性获取/设置/批量设置 | P4 |
-| `property_2d.yaml` | 2D 位置/旋转/缩放/可见/颜色 | P4 |
-| `property_3d.yaml` | 3D 位置/旋转/缩放 | P4 |
-| `collision.yaml` | 碰撞形状添加 | P4 |
-| `find_nodes.yaml` | 4 种查找方式 | P5 |
-| `gdscript.yaml` | GDScript CRUD + 验证 | P5 |
-| `csharp_script.yaml` | C# 脚本 CRUD + 构建 | P5 |
-| `script_helpers.yaml` | call_method / get_variable / set_variable | P5 |
-| `project_settings.yaml` | 项目设置 + 扩展设置 | P5 |
-| `editor_control.yaml` | 播放/停止/刷新/信息 | P5 |
-| `input_map.yaml` | 输入动作管理 | P5 |
-| `plugin_management.yaml` | 插件列表/启用/禁用 | P5 |
-| `undo_redo.yaml` | 撤销/重做 | P5 |
-| `search.yaml` | 文件查找/项目搜索/替换 | P5 |
+| 文件 | 说明 |
+|------|------|
+| `built_in/tool_base.hpp` | ITool、ToolResult、ToolContext |
+| `built_in/cmd_utils.hpp/.cpp` | 保留：resolve_node、variant_to_json、undoable_set、notify_file_changed |
+| `tools/codegen.py` | 注释扫描 + 注册代码生成 |
+| `server/registry/handler_registry.hpp/.cpp` | 统一存储 ITool + CommandFn + 自定义工具 |
+| `server/registry/generated/generated_registration.cpp` | 由 codegen.py 自动生成 |
+| `sdk/mcp_tool_adapter.hpp` | McpToolDefinitionAdapter (SDK → ITool 桥接) |

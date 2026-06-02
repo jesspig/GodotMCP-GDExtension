@@ -2,6 +2,14 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-02 — 测试框架设计方案 + AGENTS.md 清理
+
+- **新增** `testing/test-engine.md`：C++ 进程内测试引擎完整设计——TestEngine、YAML 配置、ryml 解析、断言引擎、磁盘校验（tscn/tres/project.godot）、双源追踪清理策略、TestRunnerDock UI
+- **重写** `testing/overview.md`：双轨测试架构（C++ 引擎主推 + 旧 Python 框架过渡）
+- **重写** `AGENTS.md`：清理旧 P1-P6 规划信息，替换为当前 124 ITool 架构 + 测试引擎设计文档
+- **清理** `design/unified-architecture-plan.md` 中的 P1-P6 迁移路线部分（已全部完成）
+- **更新** `index.md`：添加 test-engine 链接，更新工具计数和描述
+
 ## 2026-06-01 — 统一工具架构重构计划
 
 - **新增** `design/unified-architecture-plan.md`：完整重构计划——ITool 接口、ToolResult 统一信封、组合式能力声明、两轴分类（source + category）、注释驱动自动注册、SDK 桥接适配器、YAML 驱动测试
