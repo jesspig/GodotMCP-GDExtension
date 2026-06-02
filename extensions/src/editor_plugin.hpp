@@ -30,8 +30,6 @@ private:
 
     void _on_process_frame();
 
-    void load_tool_schemas();
-
     HandlerRegistry registry_;
     McpHandler mcp_handler_{&registry_};
     HttpServer http_server_;

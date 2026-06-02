@@ -257,9 +257,6 @@ Dictionary TestEngine::run(const String &yaml_content) {
     suite_result["name"] = config.get("name", "");
     suite_result["description"] = config.get("description", "");
 
-    suite_result["_dbg_parsed_keys"] = config.keys();
-    suite_result["_dbg_has_tests"] = config.has("tests");
-
     // --- Snapshot before ---
     const FileSnapshot before = take_snapshot();
 
@@ -275,7 +272,6 @@ Dictionary TestEngine::run(const String &yaml_content) {
     if (config.has("tests")) {
         const Array tests = config["tests"];
         total = tests.size();
-        log_info("test_engine", String("DEBUG tests count: ") + String::num_int64(total));
 
         for (int i = 0; i < tests.size(); ++i) {
             const Dictionary test_def = tests[i];

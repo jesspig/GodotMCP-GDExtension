@@ -10,14 +10,12 @@ class TestReport:
     def __init__(self):
         self.environment: dict[str, Any] = {}
         self.phases: list[PhaseReport] = []
-        self.cleanup_status: dict[str, Any] = {}
         self._start_time = datetime.now()
 
     def set_env(self, **kwargs):
         self.environment.update(kwargs)
 
     def add_phase(self, report: PhaseReport):
-        report.end_time = __import__("time").time()
         self.phases.append(report)
 
     @property
@@ -74,11 +72,9 @@ class TestReport:
                     "expected": TestResult._safe_str(r.expected),
                     "actual": TestResult._safe_str(r.actual),
                     "error": r.error,
-                    "disk_detail": r.disk_detail,
                 }
                 for p in self.phases for r in p.results if r.status == "FAIL"
             ],
-            "cleanup": self.cleanup_status,
         }
 
     def save_json(self, output_dir: str = "output"):
@@ -119,9 +115,9 @@ class TestReport:
             f"|--------|-------|",
             f"| Total Tools | {summary['total_tools']} |",
             f"| Tested | {summary['tested']} |",
-            f"| ✅ Passed | {summary['passed']} |",
-            f"| ❌ Failed | {summary['failed']} |",
-            f"| ⏭️ Skipped | {summary['skipped']} |",
+            f"| Passed | {summary['passed']} |",
+            f"| Failed | {summary['failed']} |",
+            f"| Skipped | {summary['skipped']} |",
             f"| Duration | {summary['duration_seconds']}s |",
             "",
             "## Results by Phase",
@@ -133,15 +129,14 @@ class TestReport:
             lines += [
                 f"### {name}",
                 "",
-                f"Tested: {phase['tested']} | ✅ {phase['passed']} | ❌ {phase['failed']} | ⏭️ {phase['skipped']} | ⏱ {phase['duration']}s",
+                f"Tested: {phase['tested']} | Passed: {phase['passed']} | Failed: {phase['failed']} | Skipped: {phase['skipped']} | Duration: {phase['duration']}s",
                 "",
-                "| Tool | Status | Duration | Disk Verify |",
-                "|------|--------|----------|-------------|",
+                "| Tool | Status | Duration |",
+                "|------|--------|----------|",
             ]
             for r in phase["results"]:
-                icon = {"PASS": "✅", "FAIL": "❌", "SKIP": "⏭️"}.get(r["status"], "?")
-                dv = "✅" if r["disk_verified"] else ("N/A" if r["status"] == "SKIP" else "❌")
-                lines.append(f"| {r['tool']} | {icon} {r['status']} | {r['duration']}s | {dv} |")
+                icon = {"PASS": "+", "FAIL": "X", "SKIP": "-"}.get(r["status"], "?")
+                lines.append(f"| {r['tool']} | {icon} {r['status']} | {r['duration']}s |")
             lines.append("")
 
         if d["failures"]:
@@ -151,22 +146,13 @@ class TestReport:
             ]
             for f_ in d["failures"]:
                 lines += [
-                    f"### ❌ {f_['tool']} ({f_['phase']})",
+                    f"### X {f_['tool']} ({f_['phase']})",
                     "",
                     f"- **Expected**: `{f_['expected']}`",
                     f"- **Actual**: `{f_['actual']}`",
                     f"- **Error**: {f_['error']}",
-                    f"- **Disk Detail**: {f_['disk_detail']}",
                     "",
                 ]
-
-        lines += [
-            "## Cleanup Status",
-            "",
-        ]
-        for k, v in d["cleanup"].items():
-            icon = "✅" if v is True else ("❌" if v is False else f" ({v})")
-            lines.append(f"- **{k}**: {icon}")
 
         lines.append("")
 

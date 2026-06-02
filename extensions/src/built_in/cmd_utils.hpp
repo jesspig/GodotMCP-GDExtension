@@ -11,7 +11,6 @@
 //   * ensure_parent_dir()        — mkdir -p for res:// paths
 //   * relative_path()            — node path relative to scene root
 //   * globalize_path()           — res:// -> absolute disk path
-//   * is_ok()                    — short-circuit error returns
 //
 // All functions in this header MUST be called from the main thread.
 // =====================================================================
@@ -143,22 +142,6 @@ bool args_bool(const godot::Dictionary &args,
 // Response builders
 // ---------------------------------------------------------------------
 
-// Build a single-key {"error": message} dict.
-inline godot::Dictionary make_error(const godot::String &message) {
-    godot::Dictionary d;
-    d["error"] = message;
-    return d;
-}
-
-// JSON stringify with non-ASCII characters escaped as \uXXXX.
-// Pure ASCII output — immune to charset decoding issues in MCP clients.
 godot::String json_stringify_safe(const godot::Variant &v);
-
-// Build a single-key {"success": value} dict.
-inline godot::Dictionary make_success(bool value = true) {
-    godot::Dictionary d;
-    d["success"] = value;
-    return d;
-}
 
 }  // namespace godot_mcp

@@ -152,7 +152,6 @@ void McpToolRegistry::register_tool(
     ct.brief = brief;
     ct.description = description;
     ct.input_schema = input_schema;
-    ct.handler = handler;
     ct.is_meta = is_meta;
     tools_[resolved] = ct;
 

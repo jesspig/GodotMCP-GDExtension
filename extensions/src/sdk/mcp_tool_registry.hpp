@@ -63,7 +63,6 @@ private:
         godot::String brief;
         godot::String description;
         godot::Dictionary input_schema;
-        godot::Callable handler;
         bool is_meta = false;
     };
 

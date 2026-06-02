@@ -16,8 +16,6 @@ class ToolResult {
 public:
     static godot::Dictionary ok(godot::Dictionary data = {});
     static godot::Dictionary err(const godot::String &code, const godot::String &message);
-    static bool is_ok(const godot::Dictionary &r);
-    static bool is_err(const godot::Dictionary &r);
 };
 
 // ── ToolContext: 前置检查后注入的上下文 ──
