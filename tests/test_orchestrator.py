@@ -209,6 +209,12 @@ async def run_test_session(cfg: dict) -> TestReport:
                     result = await run_yaml_test_file(yaml_path, cfg["mcp_port"])
                     elapsed = time.time() - t0
 
+                    # Debug: print full response for first file
+                    if yaml_path == yaml_files[0]:
+                        import json
+                        print(f"[DEBUG] Full response for {fname}:")
+                        print(json.dumps(result, indent=2, default=str)[:2000])
+
                     summary = result.get("summary", {})
                     total = summary.get("total", 0)
                     passed = summary.get("passed", 0)
