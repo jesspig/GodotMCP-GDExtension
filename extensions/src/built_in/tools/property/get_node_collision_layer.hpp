@@ -22,7 +22,7 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         Dictionary e = check_collision_compat(ctx.node, relative_path(ctx.root, ctx.node));
-        if (e.has("success") && !((bool)e["success"])) return e;
+        if (e.has("error")) return e;
         int64_t v = ctx.node->get("collision_layer");
         Dictionary d; d["node_path"] = relative_path(ctx.root, ctx.node); d["collision_layer"] = v;
         return ToolResult::ok(d);

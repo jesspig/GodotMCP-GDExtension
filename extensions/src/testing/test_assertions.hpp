@@ -188,7 +188,7 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
     // 4. error_contains: if error, check substring
     if (expect.has("error_contains")) {
         if (!result.has("error")) {
-            return String("Expected error containing '") + expect["error"].operator String() + String("', but no error");
+            return String("Expected error containing '") + expect["error_contains"].operator String() + String("', but no error");
         }
         const String error_msg = result["error"];
         const String needle = expect["error_contains"];

@@ -27,11 +27,13 @@ protected:
         PackedStringArray pargs; pargs.append("build"); pargs.append("--nologo"); pargs.append("--configuration"); pargs.append(cfg);
         Array output;
         int32_t exit_code = OS::get_singleton()->execute("dotnet", pargs, output, true);
-        Dictionary d;
-        d["project_root"] = proot; d["configuration"] = cfg;
-        if (exit_code == 0) { d["exit_code"] = (int64_t)0; d["success"] = true; d["stdout"] = output.size() > 0 ? (String)output[0] : String(""); }
-        else { d["success"] = false; d["error"] = "dotnet build failed with code " + String::num_int64(exit_code); }
-        return d;
+        if (exit_code == 0) {
+            Dictionary d;
+            d["project_root"] = proot; d["configuration"] = cfg;
+            d["exit_code"] = (int64_t)0; d["stdout"] = output.size() > 0 ? (String)output[0] : String("");
+            return d;
+        }
+        return ToolResult::err("BUILD_FAILED", "dotnet build failed with code " + String::num_int64(exit_code));
     }
 };
 

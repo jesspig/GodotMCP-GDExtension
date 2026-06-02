@@ -27,7 +27,7 @@ protected:
         if (var_name.is_empty()) return ToolResult::err("MISSING_PARAM", "missing 'variable'");
         if (!ctx.args.has("value")) return ToolResult::err("MISSING_PARAM", "missing 'value'");
         Variant gv = json_to_variant(ctx.args["value"]);
-        ctx.node->set(var_name, gv);
+        undoable_set(ctx.node, var_name, gv, "Set variable " + var_name);
         Variant actual = ctx.node->get(var_name);
         Dictionary d; d["node_path"] = relative_path(ctx.root, ctx.node); d["variable"] = var_name;
         d["value"] = variant_to_json(actual);

@@ -31,13 +31,15 @@ bool McpToolDefinition::get_is_meta() const { return is_meta_; }
 void McpToolDefinition::set_is_meta(bool v) { is_meta_ = v; }
 
 // ---------------------------------------------------------------------------
-// execute — virtual dispatch via has_method/call
+// execute — virtual dispatch via script instance check
 // GDScript subclasses override func execute(args: Dictionary) -> Dictionary
-// C++ subclasses override this method directly.
+// C++ base class instances (no script attached) return an error.
+// has_method("execute") is always true due to ClassDB binding (line 103),
+// so we check get_script() to distinguish GDScript overrides.
 // ---------------------------------------------------------------------------
 
 Dictionary McpToolDefinition::execute(const Dictionary &args) {
-    if (has_method("execute")) {
+    if (get_script().get_type() != Variant::NIL) {
         Variant ret = call("execute", args);
         if (ret.get_type() == Variant::DICTIONARY) {
             return Dictionary(ret);

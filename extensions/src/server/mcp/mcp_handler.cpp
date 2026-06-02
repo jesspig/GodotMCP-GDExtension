@@ -383,11 +383,11 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
     try {
         tool_result = registry_->execute(tool_name, args);
     } catch (const std::exception &e) {
-        pending_requests_.erase(id);
+        pending_requests_.erase(JSON::stringify(id));
         return make_jsonrpc_error(id, kInternalError, String(e.what()));
     }
 
-    pending_requests_.erase(id);
+    pending_requests_.erase(JSON::stringify(id));
 
     // 错误检测：兼容旧格式 {"error": "..."} 和新格式 {"success": false, "error": {"code": "...", "message": "..."}}
     if (tool_result.has("error")) {
