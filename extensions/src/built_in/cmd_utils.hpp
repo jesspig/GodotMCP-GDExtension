@@ -150,6 +150,10 @@ inline godot::Dictionary make_error(const godot::String &message) {
     return d;
 }
 
+// JSON stringify with non-ASCII characters escaped as \uXXXX.
+// Pure ASCII output — immune to charset decoding issues in MCP clients.
+godot::String json_stringify_safe(const godot::Variant &v);
+
 // Build a single-key {"success": value} dict.
 inline godot::Dictionary make_success(bool value = true) {
     godot::Dictionary d;
