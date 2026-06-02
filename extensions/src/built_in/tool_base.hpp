@@ -62,10 +62,6 @@ public:
     // 自动执行前置检查（root/node 解析）、调用 execute_impl、包裹统一信封
     godot::Dictionary execute(const godot::Dictionary &args);
 
-    // ── 注册名计算 ──
-    // 前缀（custom_）由注册路径决定：register_tool(ITool) → 无前缀，register_custom_tool() → 带前缀
-    godot::String registered_name() const { return name(); }
-
 protected:
     // 子类实现业务逻辑，ctx 中 root/node 已保证非空（如果声明了 needs_scene/needs_node）
     virtual godot::Dictionary execute_impl(const ToolContext &ctx) = 0;

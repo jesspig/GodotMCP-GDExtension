@@ -53,7 +53,7 @@ private:
         Dictionary client_info;
         bool initialized = false;
         double created_at;
-        int log_level = 3; // RFC 5424: Warning=3
+        int log_level = 3; // RFC 5424: Error=3
         Vector<Dictionary> sse_event_queue;
     };
 

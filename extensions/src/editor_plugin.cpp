@@ -74,7 +74,7 @@ void McpEditorPlugin::_enter_tree() {
     if (has_method("add_control_to_bottom_panel")) {
         call("add_control_to_bottom_panel", test_dock_, "Tests");
     } else {
-        // Fallback: just add as child
+        log_warn("plugin", "add_control_to_bottom_panel not bound — adding dock as child");
         add_child(test_dock_);
     }
 

@@ -53,7 +53,7 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool) {
     // 注入 registry 指针（meta 工具需要它回调查询）
     tool->set_registry(this);
 
-    const String name = tool->registered_name();
+    const String name = tool->name();
 
     // Populate ToolInfo for backward compatibility (category queries, schema, etc.)
     ToolInfo info;
