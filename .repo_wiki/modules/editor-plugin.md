@@ -12,11 +12,13 @@ stateDiagram-v2
     
     state Initializing {
         [*] --> ReadVersion: 读取引擎版本 + 插件版本
-        ReadVersion --> RegisterTools: register_all_tools(registry_)
+        ReadVersion --> RegisterTools: register_all_tools(registry_) + register_itools(registry_)
         RegisterTools --> LoadSchemas: load_tool_schemas() from tool_schemas.json
-        LoadSchemas --> ReadPort: 读取端口
+        LoadSchemas --> InitSDK: 初始化 McpToolRegistry 单例
+        InitSDK --> ReadPort: 读取端口
         ReadPort --> StartServers: http_server_.start()
-        StartServers --> ConnectProcessFrame: connect("process_frame", callable_mp)
+        StartServers --> CreateDock: 创建 TestRunnerDock 底部面板
+        CreateDock --> ConnectProcessFrame: connect("process_frame", callable_mp)
         ConnectProcessFrame --> [*]
     }
     
@@ -52,13 +54,26 @@ void McpEditorPlugin::_enter_tree() {
     registry_.set_engine_version(...);     // 引擎版本
     registry_.set_plugin_version(GODOT_MCP_PLUGIN_VERSION);  // 编译时版本
     
-    register_all_tools(registry_);         // 注册所有工具
+    register_all_tools(registry_);         // → register_itools() (codegen)
+    register_itools(registry_);            // 二次确保注册（幂等）
     
     load_tool_schemas();                   // 从 tool_schemas.json 加载描述和 schema
     
-    int http_port = read_env("GODOT_MCP_HTTP_PORT", 9600);
+    // 初始化 SDK 单例
+    McpToolRegistry *sdk_reg = McpToolRegistry::get_singleton();
+    sdk_reg->set_handler_registry(&registry_);
+    sdk_reg->set_mcp_handler(&mcp_handler_);
     
-    http_server_.start(http_port, &mcp_handler_);  // 只传 McpHandler 指针
+    int http_port = read_port_from_env("GODOT_MCP_HTTP_PORT", 9600);
+    
+    if (!http_server_.start(http_port, &mcp_handler_)) return;
+    
+    // 创建 TestRunnerDock
+    test_dock_ = memnew(TestRunnerDock);
+    test_dock_->set_test_engine(&test_engine_);
+    add_control_to_bottom_panel(test_dock_, "Tests");
+    
+    started_ = true;
     
     SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
     tree->connect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
@@ -79,8 +94,15 @@ void McpEditorPlugin::_on_process_frame() {
 ```cpp
 void McpEditorPlugin::_exit_tree() {
     if (!started_) return;
-    tree->disconnect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
+    // 移除底部面板
+    if (test_dock_) {
+        remove_control_from_bottom_panel(test_dock_);
+        test_dock_ = nullptr;
+    }
+    SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
+    if (tree) tree->disconnect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
     http_server_.stop();
+    started_ = false;
 }
 ```
 
@@ -91,3 +113,5 @@ void McpEditorPlugin::_exit_tree() {
 - **`process_frame` 而非 `_process()`**：`EditorPlugin::_process()` 在场景播放时停止触发。`SceneTree::process_frame` 信号在场景播放时继续触发，确保实时工具（如 `play_current_scene`、`stop_scene`）正常工作
 - **启动条件**：`EditorPlugin::_enter_tree()` 首先检查 `Engine::get_singleton()->is_editor_hint()`——非编辑器模式直接返回
 - **Schema 加载**: `tool_schemas.json` 提供工具描述和 JSON Schema，C++ 侧不需要硬编码这些信息
+- **TestRunnerDock**: 编辑器底部面板，提供 GUI 方式运行 YAML 测试，与 C++ `TestEngine` 集成
+- **SDK 初始化**: `McpToolRegistry` 单例在初始化时注入 `HandlerRegistry` 和 `McpHandler` 指针，供 GDScript/C# 自定义工具使用

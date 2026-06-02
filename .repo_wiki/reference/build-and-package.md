@@ -21,10 +21,10 @@ CMake 自动处理：
 
 ## C++ GDExtension 构建流程
 
-CMake 通过 `add_subdirectory(extensions/gdext)` 构建 godot-cpp + gdext 源文件：
+CMake 通过 `add_subdirectory(extensions)` 构建 godot-cpp + gdext 源文件：
 
 1. FetchContent 拉取 `godot-cpp 10.0.0-rc1`
-2. 添加 `/extensions/gdext/src/` 下的所有源文件
+2. 添加 `extensions/src/` 下的所有源文件
 3. 链接 godot-cpp 静态库 → `godot_mcp_gdext.dll`
 4. 后处理：复制到 `example/addons/godot_mcp/bin/`
 
@@ -75,7 +75,7 @@ CI 只在 `master` 分支的 push 和 PR 上触发。
 
 ## 版本管理
 
-- 单版本源在 `CMakeLists.txt`：`set(PROJECT_VERSION "0.1.5")`
+- 单版本源在 `CMakeLists.txt`：`set(PROJECT_VERSION "0.2.0-dev2")`
 - CMake 生成 `plugin.cfg` 时自动填充此版本号
 - 升级 CMake 版本即可；不需要手动编辑 `plugin.cfg`
 - `pyproject.toml` 中的 `version` 需手动同步（仅保留构建工具依赖）

@@ -1,6 +1,6 @@
 # Godot MCP — 项目知识库
 
-> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 godot-cpp 10.0.0-rc1，124 个 ITool 子类，rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。
+> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 godot-cpp 10.0.0-rc1，124 个 ITool 子类（`// @tool register` + codegen 自动注册），rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。
 
 ## 快速导航
 
@@ -13,7 +13,7 @@
 
 | 文件 | 说明 |
 |------|------|
-| [GDExtension C++](extensions/gdext.md) | **唯一实现**：`extensions/src/` C++ GDExtension，124 个 ITool 子类，codegen 自动注册，MCP Streamable HTTP 传输 |
+| [GDExtension C++](extensions/gdext.md) | **唯一实现**：`extensions/src/` C++ GDExtension，124 个 ITool 子类（17 组），codegen 自动注册，MCP Streamable HTTP 传输 |
 
 ## 模块文档
 
@@ -36,7 +36,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| [工具目录](reference/tools-catalog.md) | 全部工具的 JSON Schema、参数、返回值 |
+| [工具目录](reference/tools-catalog.md) | 全部工具的 ITool 描述、参数、返回值 |
 | [客户端配置](reference/client-config.md) | Streamable HTTP 配置模板（opencode / Claude Code / Cursor / JetBrains） |
 | [客户端 quirks](reference/client-quirks.md) | 各客户端配置怪癖速查表 |
 | [CI/CD 流水线](reference/ci-cd.md) | GitHub Actions 工作流：CI 门禁 + 跨平台 Release 发布 |

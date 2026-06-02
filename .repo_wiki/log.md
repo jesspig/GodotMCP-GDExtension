@@ -2,6 +2,18 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-02 — Wiki 全面同步：CommandFn → ITool 迁移完成
+
+- **重写** `modules/command-routing.md`：从旧 CommandFn 系统更新为 ITool + codegen 统一调度，17 组原始 category 到 6 个顶级分类的 remap 映射，两轴分类系统说明
+- **重写** `overview/architecture.md`：架构图、数据流、目录布局全部更新为 ITool/`extensions/src/`/124 工具
+- **重写** `extensions/gdext.md`：路径从 `extensions/gdext/` 更正为 `extensions/src/`，工具注册表从 17 个 `register_<group>()` 函数更新为 ITool + codegen 系统
+- **更新** `reference/tools-catalog.md`：Meta 工具从 3 个（ping/get_engine_version/get_plugin_version）更新为 5 个（godot_info/list_tool_categories/list_tools/call_tool/get_tool_schema），工具数 129→124，所有分组名从 Commands 改为 Tools
+- **更新** `reference/build-and-package.md`：版本号 `0.1.5`→`0.2.0-dev2`，构建路径 `extensions/gdext`→`extensions`
+- **更新** `modules/ipc-bridge.md`：序列图中 `CommandFn(args)`→`ITool::execute_impl(ctx)`
+- **更新** `modules/editor-plugin.md`：生命周期状态图和代码片段反映当前实现（register_itools、TestRunnerDock、SDK 初始化）
+- **更新** `index.md`：工具描述同步
+- **更新** `AGENTS.md`：追加项目知识库章节
+
 ## 2026-06-02 — 测试框架设计方案 + AGENTS.md 清理
 
 - **新增** `testing/test-engine.md`：C++ 进程内测试引擎完整设计——TestEngine、YAML 配置、ryml 解析、断言引擎、磁盘校验（tscn/tres/project.godot）、双源追踪清理策略、TestRunnerDock UI

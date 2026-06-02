@@ -14,11 +14,16 @@ godot_mcp_gdext / http_server.cpp → handle_post()
   ▼
 mcp_handler.cpp → handle_tools_call()
   │
-  ├─ HandlerRegistry::find(tool) → 查找 CommandFn
-  │   └─ 执行 CommandFn(args) ← 主线程，同步
-  │       │
-  │       ▼ (返回值 Dictionary)
-  │       包装为 MCP content array: [{"type":"text","text":...}]
+  ├─ HandlerRegistry::execute(name, args)
+  │   ├─ 先查 itool_table_（ITool 对象表，codegen 注册的 124 个工具）
+  │   │   └─ 执行 ITool::execute(args)
+  │   │       ├─ 前置检查（is_editor_hint, needs_scene, needs_node）
+  │   │       └─ execute_impl(ctx) ← 主线程同步
+  │   └─ 未命中则查 table_（CommandFn 后备表，当前为空）
+  │       └─ 执行 CommandFn(args)
+  │
+  ▼ (返回值 Dictionary)
+  包装为 MCP content array: [{"type":"text","text":...}]
   │
   ▼
 HTTP 200 application/json + MCP-Session-Id header
@@ -29,35 +34,44 @@ AI 客户端
 
 ## HandlerRegistry 实现
 
-- `CommandFn = std::function<Dictionary(const Dictionary &)>`（函数指针）
-- `HandlerRegistry` 本质上是 `HashMap<String, CommandFn>`
-- `register_all_tools()` 调用全部 17 个 `register_<group>()` 自由函数来填充注册表
+- **统一调度**：`HandlerRegistry::execute()` 先查 `itool_table_`（`std::map<String, unique_ptr<ITool>>`），再查 `table_`（`HashMap<String, CommandFn>` 后备）
+- **ITool 注册**：`register_tool(unique_ptr<ITool>)` 存入 `itool_table_`
+- **CommandFn 注册**：`register_tool(name, fn)` 存入 `table_`（仅 SDK 自定义工具使用）
+- `register_all_tools()` → 委托给 `register_itools()`（由 `tools/codegen.py` 自动生成）
+- 普通 `.hpp` 新工具只需 `// @tool register` 注释，**无需**修改 CMakeLists.txt 或 handler_registry.cpp
 
-## 17 组 C++ 处理器
+## 17 组 ITool 分类与 category remap
 
-| # | 文件 | register_ 函数 | 调用状态 | 工具数 | 工具前缀 |
-|---|------|---------------|---------|--------|----------|
-| 1 | `meta.cpp` | `register_meta` | **活跃** | 3 | ping, get_engine/plugin_version |
-| 2 | `node.cpp` | `register_node` | **活跃** | 21 | get_scene_tree, get_node_path, get_property_list, get_property, create/delete/rename/duplicate/move_node, set_property, attach/detach_script, set_as_root, reset_parent, batch_set_property, add/remove_node_from_group, set_node_transform_2d/3d, get_node_info, get_script_variables |
-| 3 | `property.cpp` | `register_property` | **活跃** | 21 | get/set_node_position/rotation/scale/visible/modulate/z_index/text/collision_layer/mask/texture, set_node_unique_name |
-| 4 | `property_3d.cpp` | `register_property_3d` | **活跃** | 6 | get/set_node_position/rotation/scale_3d |
-| 5 | `collision.cpp` | `register_collision` | **活跃** | 2 | add_circle/rectangle_collision |
-| 6 | `find.cpp` | `register_find` | **活跃** | 4 | find_nodes_by_name/type/group/script |
-| 7 | `scene.cpp` | `register_scene` | **活跃** | 16 | create/delete/rename_scene, branch_to_scene, scene_to_branch, instantiate_scene, open/close/save/save_as/save_all/reload_scene, get_open_scenes/roots, mark_scene_unsaved, is_scene_dirty |
-| 8 | `script_gd.cpp` | `register_script_gd` | **活跃** | 5 | create/read/edit/list_gdscript, validate_gdscript |
-| 9 | `script_cs.cpp` | `register_script_cs` | **活跃** | 6 | create/read/edit/list_csharp_script, csharp_build, csharp_create_solution |
-| 10 | `script_helpers.cpp` | `register_script_helpers` | **活跃** | 3 | call_method, get/set_variable |
-| 11 | `project_settings.cpp` | `register_project_settings` | **活跃** | 7 | get/set_project_setting, set_main_scene, list/add/remove_autoload, list_scenes |
-| 12 | `project_settings_ext.cpp` | `register_project_settings_ext` | **活跃** | 10 | get/set_display/physics/rendering_settings, get/set_project_info, get/set_layer_names |
-| 13 | `editor_control.cpp` | `register_editor_control` | **活跃** | 7 | play_current/main_scene, stop_scene, is_scene_playing, refresh_filesystem, godot_editor_restart, get_editor_info |
-| 14 | `input_map.cpp` | `register_input_map` | **活跃** | 4 | list/add/remove_input_action, set_input_action_events |
-| 15 | `plugin_management.cpp` | `register_plugin_management` | **活跃** | 2 | list_plugins, set_plugin_enabled |
-| 16 | `undo.cpp` | `register_undo` | **活跃** | 2 | undo, redo |
-| 17 | `search.cpp` | `register_search` | **活跃** | 3 | find_in_file, search_project, find_and_replace |
+ITool 的原始 category 通过 `category_remap()` 自动映射到 6 个顶级分类：
 
-**总计**：129 个模式定义（`tool_schemas.json`），~122 个实际可用（7 个可能因环境被过滤）。17 组全部在 `register_all_tools()` 中注册。
+| 原始 category | 映射后路径 | 工具数 | 说明 |
+|---------------|-----------|:------:|------|
+| `meta` | `other/meta` | 5 | 始终可见的元工具 |
+| `node` | `node/operation` | 21 | 节点 CRUD |
+| `property/2d` | `node/property/2d` | 21 | 2D 属性 |
+| `property/3d` | `node/property/3d` | 6 | 3D 属性 |
+| `collision` | `node/collision` | 2 | 碰撞体 |
+| `find` | `node/find` | 4 | 节点搜索 |
+| `scene` | `scene` | 16 | 场景操作 |
+| `editor_control` | `editor/general` | 7 | 编辑器控制 |
+| `search` | `editor/search` | 3 | 搜索替换 |
+| `script_gd` | `script/gdscript` | 5 | GDScript |
+| `script/csharp` | `script/csharp` | 6 | C# 脚本 |
+| `script_helpers` | `script/helpers` | 3 | 脚本辅助 |
+| `settings/core` | `settings/project` | 7 | 项目设置 |
+| `settings/extended` | `settings/extended` | 10 | 扩展设置 |
+| `input_map` | `settings/input_map` | 4 | 输入映射 |
+| `plugin_management` | `other/plugin_management` | 2 | 插件管理 |
+| `undo` | `other/undo` | 2 | 撤销/重做 |
+| **总计** | | **124** | |
+
+## 两轴分类系统
+
+- **source()**（meta / built_in / custom）：决定可见性。meta 工具始终可见（渐进式披露第一步）
+- **category()**：决定分组。原始 category 通过 `category_remap()` 映射到 6 个顶级（node / scene / editor / script / settings / other）
 
 ## 注意事项
 
-- 所有命令在主线程同步执行，godot-cpp API 直接调用无限制
-- 添加新工具时，`http_server.cpp` **不需要修改**——`HandlerRegistry::find()` 自动覆盖注册的工具
+- 所有命令在主线程同步执行，`process_frame` 驱动的 `HttpServer::poll()` 架构
+- 添加新工具时仅需创建 `.hpp` 文件 + `// @tool register` 注释，运行 `tools/codegen.py` 自动注册
+- SDK 自定义工具通过 `McpToolRegistry` 注册，自动加 `custom_` 前缀
