@@ -1,0 +1,79 @@
+name: meta
+description: Meta/always-on tools for progressive disclosure
+
+tests:
+  - tool: godot_info
+    description: Get Godot connection info
+    args: {}
+    expect:
+      status: success
+      has_keys: [connected, engine_version, plugin_version, editor_version]
+      field_checks:
+        - key: connected
+          type: bool
+        - key: engine_version
+          type: string
+          not_empty: true
+        - key: plugin_version
+          type: string
+          not_empty: true
+        - key: editor_version
+          type: string
+          not_empty: true
+
+  - tool: list_tool_categories
+    description: List all tool categories
+    args: {}
+    expect:
+      status: success
+      field_checks:
+        - key: categories
+          type: list
+          not_empty: true
+
+  - tool: list_tools
+    description: List tools in meta category
+    args: { category: meta }
+    expect:
+      status: success
+      field_checks:
+        - key: tools
+          type: list
+          not_empty: true
+
+  - tool: list_tools
+    description: List tools in empty category returns empty array
+    args: { category: nonexistent_category_xyz }
+    expect:
+      status: success
+      field_checks:
+        - key: tools
+          type: list
+
+  - tool: get_tool_schema
+    description: Get schema for a known tool
+    args: { name: godot_info }
+    expect:
+      status: success
+      field_checks:
+        - key: name
+          type: string
+          value: godot_info
+        - key: inputSchema
+          type: dict
+
+  - tool: get_tool_schema
+    description: Get schema for nonexistent tool returns error
+    args: { name: nonexistent_tool_xyz }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: call_tool
+    description: Call godot_info via call_tool (fallback mechanism)
+    args: { name: godot_info }
+    expect:
+      status: success
+      field_checks:
+        - key: result
+          type: dict

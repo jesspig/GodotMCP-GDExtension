@@ -1,0 +1,73 @@
+name: find
+description: Node find/search tools
+setup_script: yaml_scripts.scene_setup.find_setup
+teardown_script: yaml_scripts.scene_setup.find_teardown
+
+tests:
+  - tool: find_nodes_by_name
+    description: Find nodes by name pattern
+    args: { pattern: Child, root: "TestRoot" }
+    expect:
+      status: success
+      has_keys: [matches, count]
+      field_checks:
+        - key: matches
+          type: list
+        - key: count
+          type: int
+
+  - tool: find_nodes_by_name
+    description: Find nonexistent node name
+    args: { pattern: NonexistentXYZ, root: "TestRoot" }
+    expect:
+      status: success
+      field_checks:
+        - key: count
+          type: int
+
+  - tool: find_nodes_by_type
+    description: Find nodes by type
+    args: { type: Node2D, root: "TestRoot" }
+    expect:
+      status: success
+      has_keys: [matches, count]
+      field_checks:
+        - key: count
+          type: int
+
+  - tool: find_nodes_by_type
+    description: Missing type returns error
+    args: { root: "TestRoot" }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: find_nodes_by_group
+    description: Find nodes by group
+    args: { group: test_group, root: "TestRoot" }
+    expect:
+      status: success
+      has_keys: [matches, count]
+      field_checks:
+        - key: count
+          type: int
+
+  - tool: find_nodes_by_group
+    description: Find nodes in nonexistent group
+    args: { group: nonexistent_group_xyz, root: "TestRoot" }
+    expect:
+      status: success
+      field_checks:
+        - key: count
+          type: int
+          value: 0
+
+  - tool: find_nodes_by_script
+    description: Find nodes by script
+    args: { script: "res://test_mcp_script.gd", root: "TestRoot" }
+    expect:
+      status: success
+      has_keys: [matches, count]
+      field_checks:
+        - key: count
+          type: int

@@ -1,0 +1,35 @@
+name: editor_control
+description: Editor control tools (play, stop, refresh, info, restart)
+
+tests:
+  - tool: get_editor_info
+    description: Get editor information
+    args: {}
+    expect:
+      status: success
+      has_keys: [engine_version, editor_scale]
+      field_checks:
+        - key: engine_version
+          type: string
+          not_empty: true
+        - key: editor_scale
+          type: number
+
+  - tool: is_scene_playing
+    description: Check if scene is playing
+    args: {}
+    expect:
+      status: success
+      has_keys: [playing]
+      field_checks:
+        - key: playing
+          type: bool
+
+  - tool: refresh_filesystem
+    description: Refresh editor filesystem
+    args: {}
+    expect:
+      status: success
+      field_checks:
+        - key: scanning
+          type: bool

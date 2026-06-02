@@ -23,6 +23,25 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(godot-cpp)
 
 # ---------------------------------------------------------------------------
+# rapidyaml (ryml) — YAML parser for the test engine
+# ---------------------------------------------------------------------------
+
+# Header-only to avoid compiling c4core sources.
+set(RYML_HEADER_ONLY ON CACHE INTERNAL "Use ryml as header-only" FORCE)
+
+# Must use GIT (not URL zip) so the ext/c4core submodule is fetched.
+FetchContent_Declare(
+    rapidyaml
+    GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
+    GIT_TAG v0.7.0
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+    GIT_SUBMODULES "ext/c4core"
+)
+
+FetchContent_MakeAvailable(rapidyaml)
+
+# ---------------------------------------------------------------------------
 # Source list — all .cpp files for the GDExtension.
 # Add new translation units here as the implementation grows.
 # ---------------------------------------------------------------------------
@@ -49,6 +68,12 @@ set(GODOT_MCP_SOURCES
 
     # LSP
     src/lsp/client.cpp
+
+    # Testing engine
+    src/testing/test_engine.cpp
+
+    # Plugin: TestRunnerDock
+    src/plugin/test_runner_dock.cpp
 )
 
 # ---------------------------------------------------------------------------
@@ -83,7 +108,7 @@ endif()
 
 add_library(godot_mcp_gdext SHARED ${GODOT_MCP_SOURCES})
 
-target_link_libraries(godot_mcp_gdext PRIVATE godot-cpp)
+target_link_libraries(godot_mcp_gdext PRIVATE godot-cpp ryml::ryml)
 
 target_include_directories(godot_mcp_gdext PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src

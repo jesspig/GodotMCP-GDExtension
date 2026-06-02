@@ -1,4 +1,5 @@
 #include "http_server.hpp"
+#include "test_http_handler.hpp"
 
 #include "built_in/cmd_utils.hpp"
 #include "logging.hpp"
@@ -363,6 +364,26 @@ void HttpServer::dispatch_request(int conn_id, Connection &conn) {
 // POST /mcp
 // -------------------------------------------------------------------------
 void HttpServer::handle_post(int conn_id, Connection &conn) {
+    // ── /run-tests route (bypasses MCP entirely) ──
+    if (conn.path == "/run-tests") {
+        if (!test_engine_) {
+            send_response(conn_id, conn, 503, "Service Unavailable", "text/plain",
+                          "Test engine not initialized");
+            return;
+        }
+        String body_text;
+        if (!conn.body.is_empty()) {
+            body_text.parse_utf8((const char *)conn.body.ptr(), conn.body.size());
+        }
+        if (body_text.is_empty()) {
+            send_response(conn_id, conn, 400, "Bad Request", "text/plain", "Empty body");
+            return;
+        }
+        const String json_result = handle_run_tests(body_text, *test_engine_);
+        send_response(conn_id, conn, 200, "OK", "application/json", json_result);
+        return;
+    }
+
     if (conn.path != "/mcp") {
         send_response(conn_id, conn, 404, "Not Found", "text/plain", "404 Not Found");
         return;

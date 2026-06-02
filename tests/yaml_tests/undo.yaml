@@ -1,0 +1,31 @@
+name: undo
+description: Undo/redo tools
+setup_script: yaml_scripts.scene_setup.node_setup
+teardown_script: yaml_scripts.scene_setup.node_teardown
+
+tests:
+  - tool: undo
+    description: Perform undo operation
+    args: {}
+    expect:
+      status: success
+      has_keys: [undone, description]
+      field_checks:
+        - key: undone
+          type: bool
+
+  - tool: undo
+    description: Undo again (redo-able action)
+    args: {}
+    expect:
+      status: success
+
+  - tool: redo
+    description: Redo the last undone action
+    args: {}
+    expect:
+      status: success
+      has_keys: [redone, description]
+      field_checks:
+        - key: redone
+          type: bool

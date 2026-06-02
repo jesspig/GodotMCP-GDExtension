@@ -1,0 +1,42 @@
+name: script_helpers
+description: Script utility tools (list methods, validate, add method)
+
+tests:
+  - tool: list_script_methods
+    description: List methods of a script
+    args: { path: res://test_mcp_script.gd }
+    expect:
+      status: success
+      has_keys: [path, methods, count]
+      field_checks:
+        - key: path
+          type: string
+          not_empty: true
+        - key: methods
+          type: list
+        - key: count
+          type: int
+
+  - tool: list_script_methods
+    description: Nonexistent script returns error
+    args: { path: res://nonexistent_xyz.gd }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: validate_gdscript
+    description: Validate a valid GDScript
+    args: { source: "extends Node\nfunc _ready():\n\tpass" }
+    expect:
+      status: success
+      has_keys: [valid, feedback]
+      field_checks:
+        - key: valid
+          type: bool
+
+  - tool: validate_gdscript
+    description: Validate invalid GDScript
+    args: { source: "extends Node\ntypo syntax error !!!" }
+    expect:
+      status: success
+      has_keys: [valid, feedback]

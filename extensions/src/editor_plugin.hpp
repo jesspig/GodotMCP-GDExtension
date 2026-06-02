@@ -3,6 +3,8 @@
 #include "server/registry/handler_registry.hpp"
 #include "server/ipc/http_server.hpp"
 #include "server/mcp/mcp_handler.hpp"
+#include "plugin/test_runner_dock.hpp"
+#include "testing/test_engine.hpp"
 
 #include <godot_cpp/classes/editor_plugin.hpp>
 
@@ -33,6 +35,8 @@ private:
     HandlerRegistry registry_;
     McpHandler mcp_handler_{&registry_};
     HttpServer http_server_;
+    TestEngine test_engine_{&registry_};
+    TestRunnerDock *test_dock_ = nullptr;
     int http_port_ = 9600;
     bool started_ = false;
 };

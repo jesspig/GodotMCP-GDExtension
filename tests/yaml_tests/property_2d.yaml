@@ -1,0 +1,50 @@
+name: property_2d
+description: 2D-specific property tools
+setup_script: yaml_scripts.scene_setup.property_setup
+teardown_script: yaml_scripts.scene_setup.property_teardown
+
+tests:
+  - tool: get_node_transform_2d
+    description: Get 2D transform of Node2D
+    args: { node_path: "TestRoot/Child2D" }
+    expect:
+      status: success
+      has_keys: [node_path, position, rotation, scale]
+      field_checks:
+        - key: node_path
+          not_empty: true
+        - key: position
+          type: dict
+
+  - tool: get_node_transform_2d
+    description: Get transform of non-2D node
+    args: { node_path: "TestRoot/Child3D" }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: set_node_transform_2d
+    description: Set 2D position and scale
+    args: { node_path: "TestRoot/Child2D", position: { x: 50, y: 100 }, scale: { x: 2, y: 2 } }
+    expect:
+      status: success
+      has_keys: [node_path]
+
+  - tool: batch_set_property
+    description: Set multiple properties at once
+    args: { node_path: "TestRoot/Child2D", properties: { position: { x: 10, y: 20 }, rotation_degrees: 45 } }
+    expect:
+      status: success
+      has_keys: [node_path, properties_set, total]
+      field_checks:
+        - key: properties_set
+          type: list
+        - key: total
+          type: int
+
+  - tool: batch_set_property
+    description: Batch set with nonexistent node
+    args: { node_path: "TestRoot/Nonexistent", properties: { position: { x: 0, y: 0 } } }
+    expect:
+      status: error
+      has_keys: [error]
