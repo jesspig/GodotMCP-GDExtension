@@ -34,7 +34,7 @@ protected:
         String root = args_string(ctx.args, "root", "res://");
         bool inc = args_bool(ctx.args, "include_addons", false);
         int64_t max_m = args_int(ctx.args, "max_matches", 500), max_f = args_int(ctx.args, "max_files", 5000);
-        Array files; walk_dir(root, exts, inc, max_f, files);
+        Array files; walk_project_dir(root, exts, inc, max_f, files);
         Array all; int64_t scanned = 0;
         for (int i = 0; i < files.size() && all.size() < max_m; i++) {
             String src = read_file_text((String)files[i]);

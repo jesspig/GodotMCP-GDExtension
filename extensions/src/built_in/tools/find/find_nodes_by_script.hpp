@@ -8,13 +8,6 @@
 
 namespace godot_mcp {
 
-inline void collect_by_script(Node *n, const String &sp, Array &out, int64_t max, Node *root) {
-    if (out.size() >= max) return;
-    Variant sv = n->get("script"); Ref<Script> script = sv;
-    if (script.is_valid() && script->get_path().contains(sp)) { Dictionary d; d["name"] = n->get_name(); d["type"] = n->get_class(); d["path"] = relative_path(root, n); out.append(d); }
-    for (int64_t i = 0; i < n->get_child_count(); i++) { Node *c = Object::cast_to<Node>(n->get_child(i)); if (c) collect_by_script(c, sp, out, max, root); }
-}
-
 class FindNodesByScriptTool : public ITool {
 public:
     String name() const override { return "find_nodes_by_script"; }
@@ -33,7 +26,13 @@ protected:
         String sp = args_string(ctx.args, "script_path");
         if (sp.is_empty()) return ToolResult::err("MISSING_PARAM", "missing 'script_path'");
         int64_t max = args_int(ctx.args, "max_results", 100);
-        Array out; collect_by_script(ctx.root, sp, out, max, ctx.root);
+        Array out;
+        String pattern = sp;
+        collect_nodes_by(ctx.root, [pattern](Node *n) {
+            Variant sv = n->get("script");
+            Ref<Script> script = sv;
+            return script.is_valid() && script->get_path().contains(pattern);
+        }, out, max, ctx.root);
         Dictionary d; d["matches"] = out; d["count"] = (int64_t)out.size(); d["truncated"] = out.size() >= max;
         return ToolResult::ok(d);
     }

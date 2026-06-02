@@ -1,5 +1,6 @@
 #pragma once
 
+#include "type_utils.hpp"
 #include "yaml_parser.hpp"
 
 #include <godot_cpp/classes/config_file.hpp>
@@ -14,19 +15,6 @@
 #include <godot_cpp/variant/variant.hpp>
 
 namespace godot_mcp {
-
-namespace {
-
-inline godot::String normalize_type_hint(const godot::String &raw) {
-    const godot::String lower = raw.to_lower();
-    if (lower == "list") return "Array";
-    if (lower == "dict") return "Dictionary";
-    if (lower == "number") return "float";
-    if (lower == "any") return "";
-    return raw;
-}
-
-} // anonymous namespace
 
 // Verify a single field value against an expected value with type-aware comparison.
 inline godot::String verify_field(const godot::String &context,
@@ -160,7 +148,7 @@ inline godot::Array verify_scene_file(const godot::String &scene_path,
                 const String prop_path = prop.get("path", "");
                 const Variant expected_val = prop.get("expect", Variant());
                 const String type_hint = prop.get("type", "");
-                const double tolerance = prop.get("tolerance", 0.0001);
+                const double tolerance = prop.get("tolerance", kDefaultTolerance);
 
                 // Navigate nested properties (e.g. "position.x")
                 Variant actual_val;
@@ -250,7 +238,7 @@ inline godot::Array verify_project_godot(const godot::Array &setting_checks) {
         const String section = check.get("section", "");
         const String key = check.get("key", "");
         const Variant expected_val = check.get("expect", Variant());
-        const double tolerance = check.get("tolerance", 0.0001);
+        const double tolerance = check.get("tolerance", kDefaultTolerance);
 
         if (!config->has_section_key(section, key)) {
             errors.push_back(String("project.godot missing [") + section + String("] ") + key);

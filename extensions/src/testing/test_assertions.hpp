@@ -1,5 +1,6 @@
 #pragma once
 
+#include "type_utils.hpp"
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
@@ -50,15 +51,7 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
             const String path = check.has("path") ? check["path"].operator String() : check.get("key", "");
             // Accept both "expect" (C++ format) and "value" (old Python format)
             const Variant expected_val = check.has("expect") ? check["expect"] : check.get("value", Variant());
-            String type_hint = check.get("type", "");
-            // Normalize type hint: lowercase + alias mapping for backward compat
-            {
-                const String th_lower = type_hint.to_lower();
-                if (th_lower == "list") type_hint = "Array";
-                else if (th_lower == "dict") type_hint = "Dictionary";
-                else if (th_lower == "number") type_hint = "float";
-                else if (th_lower == "any") type_hint = "";
-            }
+            String type_hint = normalize_type_hint(check.get("type", ""));
             const bool not_empty = check.get("not_empty", false);
 
             // Navigate to the field via dot-separated path
@@ -107,7 +100,7 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
                 }
                 const Vector2 actual_v = actual;
                 const Array expected_arr = expected_val;
-                const double tolerance = check.get("tolerance", 0.0001);
+                const double tolerance = check.get("tolerance", kDefaultTolerance);
                 if (expected_arr.size() >= 2) {
                     if (Math::abs(actual_v.x - (double)expected_arr[0]) > tolerance ||
                         Math::abs(actual_v.y - (double)expected_arr[1]) > tolerance) {
@@ -122,7 +115,7 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
                 }
                 const Vector3 actual_v = actual;
                 const Array expected_arr = expected_val;
-                const double tolerance = check.get("tolerance", 0.0001);
+                const double tolerance = check.get("tolerance", kDefaultTolerance);
                 if (expected_arr.size() >= 3) {
                     if (Math::abs(actual_v.x - (double)expected_arr[0]) > tolerance ||
                         Math::abs(actual_v.y - (double)expected_arr[1]) > tolerance ||
@@ -136,7 +129,7 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
                 }
                 const Color actual_c = actual;
                 const Array expected_arr = expected_val;
-                const double tolerance = check.get("tolerance", 0.0001);
+                const double tolerance = check.get("tolerance", kDefaultTolerance);
                 if (expected_arr.size() >= 3) {
                     const double er = expected_arr[0];
                     const double eg = expected_arr[1];
@@ -150,7 +143,7 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
                     }
                 }
             } else if (type_hint == "float" || type_hint == "double") {
-                const double tolerance = check.get("tolerance", 0.0001);
+                const double tolerance = check.get("tolerance", kDefaultTolerance);
                 const double expected_num = expected_val;
                 const double actual_num = actual;
                 if (Math::abs(actual_num - expected_num) > tolerance) {
