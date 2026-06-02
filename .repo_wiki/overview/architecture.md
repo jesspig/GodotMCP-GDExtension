@@ -35,7 +35,7 @@ extensions/src/ ── C++ GDExtension（唯一的代码库）
 │                 │ HandlerRegistry        │                             │
 │                 │ ITool 统一调度          │                             │
 │                 │ 124 ITool (codegen)    │                             │
-│                 │ └ CommandFn 后备(空)   │                             │
+│                 │ + CommandFn (SDK only) │                             │
 │                 └────────────────────────┘                             │
 │                                                                      │
 │  ┌───────────────────────────────┐                                    │
@@ -121,9 +121,8 @@ extensions/src/              # C++ GDExtension（唯一代码库）
 │   └── mcp/
 │       └── mcp_handler.cpp/.hpp       # JSON-RPC 2.0 会话管理
 ├── sdk/
-│   ├── mcp_tool_definition.hpp/.cpp   # 可继承的 RefCounted 基类
-│   ├── mcp_tool_registry.hpp/.cpp     # 单例注册表
-│   └── mcp_tool_adapter.hpp           # ITool 适配器桥接
+│   ├── mcp_tool_definition.hpp/.cpp   # GDScript/C# 可继承的 RefCounted 基类
+│   └── mcp_tool_registry.hpp/.cpp     # 单例注册表
 ├── lsp/
 │   └── client.cpp/.hpp                # GDScript LSP 验证
 ├── testing/

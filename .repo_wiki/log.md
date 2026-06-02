@@ -2,6 +2,18 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-02 — 全项目代码审查 + 优化清理计划
+
+- **新增** `design/cleanup-plan.md`：全项目代码审查后的完整优化清理方案（4 阶段：死代码删除 → Bug 修复 → 结构简化 → DRY 提取）
+- **更新** `AGENTS.md`：修正 `source()` → `is_meta()`（两轴分类实际字段名）、删除 `tool_schemas.json` 引用（过渡期已结束）、删除旧 Python 阶段测试引用、追加优化清理计划
+- **更新** `overview/architecture.md`：删除 `mcp_tool_adapter.hpp` 引用、删除 `CommandFn 后备(空)` 标注改为准确描述
+- **更新** `extensions/gdext.md`：删除 `mcp_tool_adapter.hpp` 引用、更新工具注册说明（删除 `register_all_tools` 透传、直接用 `register_itools`）
+- **更新** `modules/command-routing.md`：删除 `source()` 引用改为 `is_meta()`、更新 HandlerRegistry 说明（删除零调用者的旧 API）
+- **更新** `testing/overview.md`：删除旧 Python 阶段框架的过渡期描述，明确 C++ YAML 引擎为唯一测试路径
+- **更新** `design/unified-architecture-plan.md`：标注 `mcp_tool_adapter.hpp` 为未采用方案，标注 `tool_schemas.json` 为已删除
+- **更新** `index.md`：删除旧测试文档链接（mcp-client/phase-system）
+- **更新** `design/decisions.md`：ADR-010 状态更新为"已接受"，标注 `source()` 实际未采用、改用 `is_meta()`
+
 ## 2026-06-02 — Wiki 全面同步：CommandFn → ITool 迁移完成
 
 - **重写** `modules/command-routing.md`：从旧 CommandFn 系统更新为 ITool + codegen 统一调度，17 组原始 category 到 6 个顶级分类的 remap 映射，两轴分类系统说明

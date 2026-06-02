@@ -65,8 +65,7 @@ src/
 │       └── mcp_handler.cpp/.hpp        # MCP JSON-RPC 2.0 会话管理
 ├── sdk/
 │   ├── mcp_tool_definition.hpp/.cpp    # GDScript/C# 可继承的 RefCounted 基类
-│   ├── mcp_tool_registry.hpp/.cpp      # 单例注册表
-│   └── mcp_tool_adapter.hpp           # ITool 适配器桥接
+│   └── mcp_tool_registry.hpp/.cpp      # 单例注册表
 ├── lsp/
 │   └── client.cpp/.hpp                # GDScript LSP 验证 (StreamPeerTCP)
 ├── testing/
@@ -81,7 +80,7 @@ src/
 
 ## 工具注册（ITool + codegen）
 
-不再手动调用 17 个 `register_<group>()` 函数。`register_all_tools()` 委托给 `register_itools()`，由 `tools/codegen.py` 自动生成：
+不再手动调用 17 个 `register_<group>()` 函数。`editor_plugin.cpp` 直接调用 `register_itools(registry_)`，由 `tools/codegen.py` 自动生成：
 
 - 递归扫描 `built_in/tools/` 下所有 `.hpp` 文件
 - 查找 `// @tool register` 注释标记的类
