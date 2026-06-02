@@ -1,0 +1,15 @@
+name: plugin_management
+description: Editor plugin management tools
+
+tests:
+  - tool: list_plugins
+    description: List editor plugins
+    args: {}
+    expect:
+      status: success
+      has_keys: [plugins, count]
+      field_checks:
+        - key: plugins
+          type: list
+        - key: count
+          type: int

@@ -1,0 +1,221 @@
+name: node
+description: Node manipulation tools
+setup_script: yaml_scripts.scene_setup.node_setup
+teardown_script: yaml_scripts.scene_setup.node_teardown
+
+tests:
+  - tool: get_scene_tree
+    description: Get the full scene tree
+    args: {}
+    expect:
+      status: success
+      has_keys: [tree, nodes_count]
+      field_checks:
+        - key: tree
+          type: dict
+        - key: nodes_count
+          type: int
+
+  - tool: get_node_path
+    description: Get path to root node
+    args: { node: "." }
+    expect:
+      status: success
+      has_keys: [path, node_path]
+      field_checks:
+        - key: path
+          type: string
+          not_empty: true
+
+  - tool: get_node_path
+    description: Get path from root name
+    args: { node: "TestRoot" }
+    expect:
+      status: success
+      field_checks:
+        - key: node_path
+          not_empty: true
+
+  - tool: get_node_info
+    description: Get info about root node
+    args: { node_path: "TestRoot" }
+    expect:
+      status: success
+      has_keys: [name, type, children_count, groups]
+      field_checks:
+        - key: name
+          type: string
+          not_empty: true
+        - key: type
+          type: string
+        - key: children_count
+          type: int
+
+  - tool: get_node_info
+    description: Get info about child node
+    args: { node_path: "TestRoot/Child2D" }
+    expect:
+      status: success
+      field_checks:
+        - key: name
+          value: Child2D
+        - key: type
+          value: Node2D
+
+  - tool: get_node_info
+    description: Nonexistent node returns error
+    args: { node_path: "TestRoot/NonexistentXYZ" }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: get_node_info
+    description: Missing node_path returns error
+    args: {}
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: get_property
+    description: Get a property value
+    args: { node_path: "TestRoot/Child2D", property: "position" }
+    expect:
+      status: success
+      has_keys: [node_path, property, value]
+      field_checks:
+        - key: property
+          value: position
+
+  - tool: get_property
+    description: Missing property param returns error
+    args: { node_path: "TestRoot/Child2D" }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: get_property_list
+    description: Get all properties for a node
+    args: { node_path: "TestRoot/Child2D" }
+    expect:
+      status: success
+      has_keys: [node_path, properties, count]
+      field_checks:
+        - key: count
+          type: int
+        - key: properties
+          type: list
+
+  - tool: set_property
+    description: Set a property on a node
+    args: { node_path: "TestRoot/Child2D", property: "position", value: { x: 100, y: 200 } }
+    expect:
+      status: success
+      has_keys: [node_path, property, new_value, undoable]
+      field_checks:
+        - key: property
+          value: position
+
+  - tool: set_property
+    description: Nonexistent node returns error
+    args: { node_path: "TestRoot/Nonexistent", property: "position", value: { x: 0, y: 0 } }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: rename_node
+    description: Rename a node
+    args: { node_path: "TestRoot/Child2D", new_name: "Renamed2D" }
+    expect:
+      status: success
+      field_checks:
+        - key: node_path
+          not_empty: true
+        - key: new_name
+          value: Renamed2D
+
+  - tool: rename_node
+    description: Rename back to original
+    args: { node_path: "TestRoot/Renamed2D", new_name: "Child2D" }
+    expect:
+      status: success
+
+  - tool: move_node
+    description: Reparent a node to a different parent
+    args: { node_path: "TestRoot/Child3D", new_parent_path: "TestRoot/Child2D" }
+    expect:
+      status: success
+      field_checks:
+        - key: new_parent_path
+          value: TestRoot/Child2D
+
+  - tool: move_node
+    description: Move node back to root
+    args: { node_path: "TestRoot/Child2D/Child3D", new_parent_path: "TestRoot" }
+    expect:
+      status: success
+
+  - tool: duplicate_node
+    description: Duplicate a node
+    args: { node_path: "TestRoot/Child2D" }
+    expect:
+      status: success
+      has_keys: [original_path, new_path, new_name]
+      field_checks:
+        - key: original_path
+          not_empty: true
+
+  - tool: delete_node
+    description: Delete the duplicated node
+    args: { node_path: "TestRoot/Child2D2" }
+    expect:
+      status: success
+      field_checks:
+        - key: deleted
+          type: bool
+
+  - tool: create_node
+    description: Create a child node
+    args: { node_path: "TestRoot", name: "NewChild", type: "Node2D" }
+    expect:
+      status: success
+      has_keys: [name, type, path]
+      field_checks:
+        - key: name
+          value: NewChild
+        - key: type
+          value: Node2D
+
+  - tool: create_node
+    description: Missing node_path returns error
+    args: { name: "Orphan", type: "Node" }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: set_as_root
+    description: Set a child as root
+    args: { node_path: "TestRoot/NewChild" }
+    expect:
+      status: success
+      has_keys: [old_root_name, new_root_name]
+
+  - tool: reset_parent
+    description: Reset the node to root parent
+    args: { node_path: "NewChild" }
+    expect:
+      status: success
+      field_checks:
+        - key: parent_path
+          value: ""
+
+  - tool: add_node_to_group
+    description: Add node to a group
+    args: { node_path: "TestRoot/Child2D", group_name: "test_group_yt" }
+    expect:
+      status: success
+
+  - tool: remove_node_from_group
+    description: Remove node from a group
+    args: { node_path: "TestRoot/Child2D", group_name: "test_group_yt" }
+    expect:
+      status: success

@@ -30,6 +30,9 @@ public:
     godot::Dictionary get_input_schema() const;
     void set_input_schema(const godot::Dictionary &v);
 
+    bool get_is_meta() const;
+    void set_is_meta(bool v);
+
     // --- Core virtual (GDScript overrides this) ---
     // func execute(args: Dictionary) -> Dictionary
     virtual godot::Dictionary execute(const godot::Dictionary &args);
@@ -47,6 +50,7 @@ private:
     godot::String brief_;
     godot::String description_;
     godot::Dictionary input_schema_;
+    bool is_meta_ = false;
 };
 
 } // namespace godot_mcp

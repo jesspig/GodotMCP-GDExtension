@@ -25,6 +25,12 @@ message(STATUS "GodotMCP version: ${PROJECT_VERSION}")
 # ---------------------------------------------------------------------------
 # C++ GDExtension (godot-cpp 10.0.0-rc1 via FetchContent)
 # ---------------------------------------------------------------------------
+
+# MSVC: treat source files & execution charset as UTF-8 (fixes CJK in string literals)
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 add_subdirectory(extensions)
 
 # ---------------------------------------------------------------------------

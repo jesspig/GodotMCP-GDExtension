@@ -1,0 +1,60 @@
+name: collision
+description: Collision shape tools
+setup_script: yaml_scripts.scene_setup.collision_setup
+teardown_script: yaml_scripts.scene_setup.collision_teardown
+
+tests:
+  - tool: add_rectangle_collision
+    description: Add rectangle collision to Node2D
+    args: { node_path: "TestRoot/CollisionTestNode", width: 64, height: 32 }
+    expect:
+      status: success
+      has_keys: [node_path, collision_type, shape_path]
+      field_checks:
+        - key: collision_type
+          type: string
+        - key: shape_path
+          type: string
+          not_empty: true
+
+  - tool: add_rectangle_collision
+    description: Add rectangle collision with custom position
+    args: { node_path: "TestRoot/CollisionTestNode", width: 128, height: 64, position: { x: 10, y: 20 } }
+    expect:
+      status: success
+      field_checks:
+        - key: node_path
+          not_empty: true
+
+  - tool: add_rectangle_collision
+    description: Nonexistent node returns error
+    args: { node_path: "TestRoot/NonexistentNodeXYZ", width: 10, height: 10 }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: add_circle_collision
+    description: Add circle collision to Node2D
+    args: { node_path: "TestRoot/CollisionTestNode", radius: 30 }
+    expect:
+      status: success
+      has_keys: [node_path, collision_type, shape_path]
+      field_checks:
+        - key: collision_type
+          type: string
+        - key: shape_path
+          type: string
+          not_empty: true
+
+  - tool: add_circle_collision
+    description: Add circle collision with position
+    args: { node_path: "TestRoot/CollisionTestNode", radius: 20, position: { x: 5, y: 10 } }
+    expect:
+      status: success
+
+  - tool: add_circle_collision
+    description: Missing radius returns error
+    args: { node_path: "TestRoot/CollisionTestNode" }
+    expect:
+      status: error
+      has_keys: [error]

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <functional>
+#include <map>
+#include <memory>
 #include <godot_cpp/classes/json.hpp>
 #include <godot_cpp/templates/hash_map.hpp>
 #include <godot_cpp/templates/vector.hpp>
@@ -9,6 +11,9 @@
 
 namespace godot_mcp {
 
+// 前向声明
+class ITool;
+
 using CommandFn = std::function<godot::Dictionary(const godot::Dictionary &args)>;
 
 struct ToolInfo {
@@ -16,7 +21,9 @@ struct ToolInfo {
     godot::String description;
     godot::String brief;
     godot::String category;
-    godot::String source; // "builtin" | "custom"
+    godot::String category_description;
+    bool is_meta = false;
+    bool is_custom = false;
     godot::Dictionary input_schema;
     bool enabled = true;
 };
@@ -25,12 +32,18 @@ class HandlerRegistry {
 public:
     HandlerRegistry();
 
-    // --- Tool registration ---
+    // ── 旧式注册（CommandFn）──
     void register_tool(const godot::String &name, CommandFn fn);
     void register_custom_tool(const godot::String &name, const godot::String &category,
                               const godot::String &brief, const godot::String &description,
-                              const godot::Dictionary &schema, CommandFn fn);
+                              const godot::Dictionary &schema, CommandFn fn,
+                              bool is_meta = false);
     bool unregister_custom_tool(const godot::String &name);
+
+    // ── 新式注册（ITool）──
+    void register_tool(std::unique_ptr<ITool> tool);
+    // 统一调度入口：先查 itool_table_，再查 table_
+    godot::Dictionary execute(const godot::String &name, const godot::Dictionary &args);
 
     // --- Schema loading ---
     void load_schemas_from_json(const godot::String &json_text);
@@ -68,11 +81,13 @@ private:
     godot::Dictionary make_tool_entry(const ToolInfo &info) const;
 
     godot::HashMap<godot::String, CommandFn> table_;
+    std::map<godot::String, std::unique_ptr<ITool>> itool_table_;
     godot::HashMap<godot::String, ToolInfo> tool_info_;
     godot::String engine_version_;
     godot::String plugin_version_;
 };
 
 void register_all_tools(HandlerRegistry &reg);
+void register_itools(HandlerRegistry &reg);
 
 }  // namespace godot_mcp

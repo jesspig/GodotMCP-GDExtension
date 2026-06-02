@@ -37,7 +37,8 @@ public:
         const godot::String &brief,
         const godot::String &description,
         const godot::Dictionary &input_schema,
-        const godot::Callable &handler);
+        const godot::Callable &handler,
+        bool is_meta = false);
     bool unregister_tool(const godot::String &name);
 
     // --- Query ---
@@ -63,6 +64,7 @@ private:
         godot::String description;
         godot::Dictionary input_schema;
         godot::Callable handler;
+        bool is_meta = false;
     };
 
     godot::HashMap<godot::String, CustomTool> tools_;

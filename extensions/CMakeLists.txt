@@ -23,6 +23,25 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(godot-cpp)
 
 # ---------------------------------------------------------------------------
+# rapidyaml (ryml) — YAML parser for the test engine
+# ---------------------------------------------------------------------------
+
+# Header-only to avoid compiling c4core sources.
+set(RYML_HEADER_ONLY ON CACHE INTERNAL "Use ryml as header-only" FORCE)
+
+# Must use GIT (not URL zip) so the ext/c4core submodule is fetched.
+FetchContent_Declare(
+    rapidyaml
+    GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
+    GIT_TAG v0.7.0
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+    GIT_SUBMODULES "ext/c4core"
+)
+
+FetchContent_MakeAvailable(rapidyaml)
+
+# ---------------------------------------------------------------------------
 # Source list — all .cpp files for the GDExtension.
 # Add new translation units here as the implementation grows.
 # ---------------------------------------------------------------------------
@@ -40,38 +59,60 @@ set(GODOT_MCP_SOURCES
     src/server/mcp/mcp_handler.cpp
     src/server/registry/handler_registry.cpp
 
-    # Built-in tools
-    src/built_in/cmd_info.cpp
-    src/built_in/cmd_meta_tools.cpp
+    # Tool infrastructure (ITool)
+    src/built_in/tool_base.cpp
+
+    # Legacy utilities (still needed by ITool implementations)
     src/built_in/cmd_utils.cpp
     src/built_in/cmd_utils_json.cpp
-    src/built_in/property.cpp
-    src/built_in/property_3d.cpp
-    src/built_in/undo.cpp
-    src/built_in/collision.cpp
-    src/built_in/find.cpp
-    src/built_in/script_helpers.cpp
-    src/built_in/editor_control.cpp
-    src/built_in/plugin_management.cpp
-    src/built_in/project_settings.cpp
-    src/built_in/project_settings_ext.cpp
-    src/built_in/script_gd.cpp
-    src/built_in/input_map.cpp
-    src/built_in/search.cpp
-    src/built_in/node.cpp
-    src/built_in/scene.cpp
-    src/built_in/script_cs.cpp
 
     # LSP
     src/lsp/client.cpp
+
+    # Testing engine
+    src/testing/test_engine.cpp
+
+    # Plugin: TestRunnerDock
+    src/plugin/test_runner_dock.cpp
 )
+
+# ---------------------------------------------------------------------------
+# GLOB for ITool-based tool source files (P2+ migration)
+# ---------------------------------------------------------------------------
+file(GLOB_RECURSE TOOL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.cpp")
+list(APPEND GODOT_MCP_SOURCES ${TOOL_SOURCES})
+
+# ---------------------------------------------------------------------------
+# Code generation: auto-registration from // @tool register comments
+# ---------------------------------------------------------------------------
+find_package(Python3 COMPONENTS Interpreter QUIET)
+
+set(CODEGEN_SCRIPT "${CMAKE_SOURCE_DIR}/tools/codegen.py")
+set(CODEGEN_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/generated_registration.cpp")
+
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+if(Python3_FOUND)
+    file(GLOB_RECURSE TOOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.hpp")
+    add_custom_command(
+        OUTPUT ${CODEGEN_OUTPUT}
+        COMMAND ${Python3_EXECUTABLE} ${CODEGEN_SCRIPT}
+            --source-dir "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools"
+            --output "${CODEGEN_OUTPUT}"
+        DEPENDS ${CODEGEN_SCRIPT} ${TOOL_HEADERS}
+        COMMENT "Generating ITool registration code from // @tool register annotations..."
+    )
+    list(APPEND GODOT_MCP_SOURCES ${CODEGEN_OUTPUT})
+    set_source_files_properties(${CODEGEN_OUTPUT} PROPERTIES GENERATED TRUE)
+endif()
 
 add_library(godot_mcp_gdext SHARED ${GODOT_MCP_SOURCES})
 
-target_link_libraries(godot_mcp_gdext PRIVATE godot-cpp)
+target_link_libraries(godot_mcp_gdext PRIVATE godot-cpp ryml::ryml)
 
 target_include_directories(godot_mcp_gdext PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_BINARY_DIR}/generated
     ${godot-cpp_SOURCE_DIR}/include
 )
 
@@ -102,7 +143,7 @@ endif()
 
 # Suppress noisy warnings from godot-cpp generated code on MSVC.
 if(MSVC)
-    target_compile_options(godot_mcp_gdext PRIVATE /W3 /wd4244 /wd4267)
+    target_compile_options(godot_mcp_gdext PRIVATE /utf-8 /W3 /wd4244 /wd4267)
 else()
     target_compile_options(godot_mcp_gdext PRIVATE -Wall -Wno-unused-parameter)
 endif()

@@ -1,0 +1,31 @@
+name: property_3d
+description: 3D-specific property tools
+setup_script: yaml_scripts.scene_setup.property_3d_setup
+teardown_script: yaml_scripts.scene_setup.property_3d_teardown
+
+tests:
+  - tool: get_node_transform_3d
+    description: Get 3D transform of Node3D
+    args: { node_path: "TestRoot/Child3D" }
+    expect:
+      status: success
+      has_keys: [node_path, transform]
+      field_checks:
+        - key: node_path
+          not_empty: true
+        - key: transform
+          type: dict
+
+  - tool: get_node_transform_3d
+    description: Get transform of non-3D node
+    args: { node_path: "TestRoot/Child2D" }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: set_node_transform_3d
+    description: Set 3D position
+    args: { node_path: "TestRoot/Child3D", position: { x: 10, y: 20, z: 30 } }
+    expect:
+      status: success
+      has_keys: [node_path]

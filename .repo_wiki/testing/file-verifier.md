@@ -1,6 +1,6 @@
-# 磁盘文件验证
+# 磁盘文件验证（旧——将被 C++ 引擎替代）
 
-> `file_verifier.py`——无需 Godot 编辑器即可直接解析 Godot 项目文件（`.tscn`、`project.godot`）的纯 Python 工具。
+> `file_verifier.py`——无需 Godot 编辑器即可直接解析 Godot 项目文件（`.tscn`、`project.godot`）的纯 Python 工具。将被 C++ `godot_file_verifier.hpp` 替代。
 
 ## 用途
 

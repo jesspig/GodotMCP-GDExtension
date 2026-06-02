@@ -1,0 +1,76 @@
+name: search
+description: File search and replace tools
+
+tests:
+  - tool: find_in_file
+    description: Find pattern in file (literal)
+    args: { path: res://project.godot, pattern: config, literal: true }
+    expect:
+      status: success
+      has_keys: [path, matches, count]
+      field_checks:
+        - key: path
+          value: res://project.godot
+        - key: matches
+          type: list
+        - key: count
+          type: int
+
+  - tool: find_in_file
+    description: Find with regex pattern
+    args: { path: res://project.godot, pattern: "config/name", literal: false }
+    expect:
+      status: success
+      field_checks:
+        - key: count
+          type: int
+
+  - tool: find_in_file
+    description: Missing pattern returns error
+    args: { path: res://project.godot }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: find_in_file
+    description: Nonexistent file returns error
+    args: { path: res://nonexistent_file_xyz.godot, pattern: test, literal: true }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: search_project
+    description: Search project for a literal pattern
+    args: { pattern: config, literal: true, max_matches: 10 }
+    expect:
+      status: success
+      has_keys: [matches, count, files_scanned]
+      field_checks:
+        - key: matches
+          type: list
+        - key: count
+          type: int
+        - key: files_scanned
+          type: int
+
+  - tool: search_project
+    description: Search project with regex
+    args: { pattern: "application/config", literal: false, max_matches: 5 }
+    expect:
+      status: success
+      field_checks:
+        - key: matches
+          type: list
+
+  - tool: search_project
+    description: Search with custom extensions
+    args: { pattern: extends, extensions: [gd], max_matches: 5 }
+    expect:
+      status: success
+
+  - tool: search_project
+    description: Missing pattern returns error
+    args: {}
+    expect:
+      status: error
+      has_keys: [error]

@@ -1,0 +1,141 @@
+name: scene
+description: Scene CRUD tools
+setup_script: yaml_scripts.scene_setup.scene_setup
+teardown_script: yaml_scripts.scene_setup.scene_teardown
+
+tests:
+  - tool: get_open_scenes
+    description: List open scenes
+    args: {}
+    expect:
+      status: success
+      has_keys: [scenes, unlocked_count, locked_count]
+      field_checks:
+        - key: scenes
+          type: list
+        - key: unlocked_count
+          type: int
+
+  - tool: get_open_scene_roots
+    description: Get open scene root nodes
+    args: {}
+    expect:
+      status: success
+      field_checks:
+        - key: roots
+          type: list
+
+  - tool: is_scene_dirty
+    description: Check if scene is dirty
+    args: {}
+    expect:
+      status: success
+      has_keys: [dirty]
+      field_checks:
+        - key: dirty
+          type: bool
+
+  - tool: mark_scene_unsaved
+    description: Mark scene as unsaved
+    args: { path: res://test_mcp_scene.tscn }
+    expect:
+      status: success
+      has_keys: [path, dirty]
+      field_checks:
+        - key: path
+          value: res://test_mcp_scene.tscn
+
+  - tool: save_scene
+    description: Save current scene
+    args: {}
+    expect:
+      status: success
+      has_keys: [saved, path]
+
+  - tool: save_scene_as
+    description: Save scene to specific path
+    args: { path: res://test_mcp_scene_copy.tscn }
+    expect:
+      status: success
+      has_keys: [path]
+      field_checks:
+        - key: path
+          value: res://test_mcp_scene_copy.tscn
+
+  - tool: save_all_scenes
+    description: Save all open scenes
+    args: {}
+    expect:
+      status: success
+      has_keys: [saved, count]
+
+  - tool: reload_scene
+    description: Reload the scene from disk
+    args: { path: res://test_mcp_scene.tscn }
+    expect:
+      status: success
+      has_keys: [reloaded, path]
+
+  - tool: close_scene
+    description: Close a specific scene
+    args: { path: res://test_mcp_scene_copy.tscn }
+    expect:
+      status: success
+      has_keys: [path, closed]
+
+  - tool: close_scene
+    description: Close nonexistent scene returns error
+    args: { path: res://nonexistent_scene_xyz.tscn }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: branch_to_scene
+    description: Branch to existing scene
+    args: { path: res://test_mcp_scene.tscn }
+    expect:
+      status: success
+      has_keys: [opened, path]
+
+  - tool: scene_to_branch
+    description: Convert scene to branch
+    args: { path: res://test_mcp_scene.tscn }
+    expect:
+      status: success
+      has_keys: [converted, path]
+
+  - tool: create_scene
+    description: Create a new empty scene
+    args: { root_name: NewSceneRoot, root_type: Node }
+    expect:
+      status: success
+      has_keys: [name, root_name, root_type]
+      field_checks:
+        - key: name
+          type: string
+          not_empty: true
+        - key: root_name
+          value: NewSceneRoot
+        - key: root_type
+          value: Node
+
+  - tool: delete_scene
+    description: Delete a scene file
+    args: { path: res://test_mcp_scene.tscn }
+    expect:
+      status: success
+      has_keys: [path, deleted]
+
+  - tool: delete_scene
+    description: Delete nonexistent scene returns error
+    args: { path: res://nonexistent_xyz.tscn }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: open_scene
+    description: Re-open the test scene
+    args: { path: res://test_mcp_scene.tscn }
+    expect:
+      status: success
+      has_keys: [opened, path]

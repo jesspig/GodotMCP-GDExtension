@@ -1,0 +1,127 @@
+name: script_gd
+description: GDScript tools (read-only + create/edit)
+setup_script: yaml_scripts.scene_setup.node_setup
+teardown_script: yaml_scripts.scene_setup.node_teardown
+
+tests:
+  - tool: list_gdscripts
+    description: List GDScript files
+    args: {}
+    expect:
+      status: success
+      has_keys: [scripts, count]
+      field_checks:
+        - key: scripts
+          type: list
+        - key: count
+          type: int
+
+  - tool: list_gdscripts
+    description: List GDScripts with custom root
+    args: { root: res://, include_addons: false }
+    expect:
+      status: success
+      field_checks:
+        - key: scripts
+          type: list
+
+  - tool: create_gdscript
+    description: Create a new GDScript file
+    args: { path: res://test_mcp_script.gd }
+    expect:
+      status: success
+      has_keys: [path, created, bytes, class_name]
+      field_checks:
+        - key: path
+          value: res://test_mcp_script.gd
+        - key: created
+          type: bool
+        - key: class_name
+          type: string
+
+  - tool: create_gdscript
+    description: Create with custom base class
+    args: { path: res://test_mcp_script2.gd, base_class: "Node2D" }
+    expect:
+      status: success
+
+  - tool: create_gdscript
+    description: Overwrite existing file
+    args: { path: res://test_mcp_script.gd, overwrite: true }
+    expect:
+      status: success
+      field_checks:
+        - key: path
+          value: res://test_mcp_script.gd
+
+  - tool: create_gdscript
+    description: Duplicate without overwrite returns error
+    args: { path: res://test_mcp_script.gd }
+    expect:
+      status: error
+      has_keys: [error]
+      error_contains: exists
+
+  - tool: read_gdscript
+    description: Read a GDScript file
+    args: { path: res://test_mcp_script.gd }
+    expect:
+      status: success
+      has_keys: [path, source, length]
+      field_checks:
+        - key: path
+          value: res://test_mcp_script.gd
+        - key: source
+          type: string
+          not_empty: true
+        - key: length
+          type: int
+
+  - tool: read_gdscript
+    description: Read nonexistent file returns error
+    args: { path: res://nonexistent_xyz.gd }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: edit_gdscript
+    description: Edit an existing GDScript file
+    args: { path: res://test_mcp_script.gd, source: "extends Node\n\nfunc test():\n\tpass\n" }
+    expect:
+      status: success
+      has_keys: [path, bytes, updated]
+      field_checks:
+        - key: path
+          value: res://test_mcp_script.gd
+        - key: updated
+          type: bool
+
+  - tool: attach_script
+    description: Attach script to a node
+    args: { node_path: "TestRoot/Child2D", script_path: "res://test_mcp_script.gd" }
+    expect:
+      status: success
+      has_keys: [node_path, script_path]
+      field_checks:
+        - key: node_path
+          not_empty: true
+
+  - tool: detach_script
+    description: Detach script from a node
+    args: { node_path: "TestRoot/Child2D" }
+    expect:
+      status: success
+      has_keys: [node_path]
+      field_checks:
+        - key: node_path
+          not_empty: true
+
+  - tool: get_script_variables
+    description: Get script variables for a node
+    args: { node_path: "TestRoot" }
+    expect:
+      status: success
+      has_keys: [node_path, variables, has_script]
+      field_checks:
+        - key: has_script
+          type: bool

@@ -1,0 +1,113 @@
+name: input_map
+description: Input action management tools
+
+tests:
+  - tool: list_input_actions
+    description: List custom input actions
+    args: {}
+    expect:
+      status: success
+      has_keys: [actions, count]
+      field_checks:
+        - key: actions
+          type: list
+        - key: count
+          type: int
+
+  - tool: list_input_actions
+    description: List all input actions including built-in
+    args: { include_builtin: true }
+    expect:
+      status: success
+      has_keys: [actions, count]
+
+  - tool: add_input_action
+    description: Add a test input action
+    args: { name: test_action_yt , deadzone: 0.3 }
+    expect:
+      status: success
+      has_keys: [name, deadzone]
+      field_checks:
+        - key: name
+          value: test_action_yt
+        - key: deadzone
+          type: number
+
+  - tool: add_input_action
+    description: Duplicate action name returns error
+    args: { name: test_action_yt }
+    expect:
+      status: error
+      has_keys: [error]
+      error_contains: already exists
+
+  - tool: add_input_action
+    description: Missing name returns error
+    args: {}
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: set_input_action_events
+    description: Clear events for test action
+    args: { name: test_action_yt, mode: clear }
+    expect:
+      status: success
+      has_keys: [name]
+      field_checks:
+        - key: name
+          value: test_action_yt
+
+  - tool: set_input_action_events
+    description: Set key event for test action
+    args: { name: test_action_yt, mode: replace, events: [{ type: key, keycode: 65 }] }
+    expect:
+      status: success
+      field_checks:
+        - key: name
+          value: test_action_yt
+
+  - tool: set_input_action_events
+    description: Add another key event to test action
+    args: { name: test_action_yt, mode: add, events: [{ type: key, keycode: 66 }] }
+    expect:
+      status: success
+
+  - tool: set_input_action_events
+    description: Nonexistent action returns error
+    args: { name: nonexistent_action_xyz, mode: replace }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: set_input_action_events
+    description: Invalid mode returns error
+    args: { name: test_action_yt, mode: invalid }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: remove_input_action
+    description: Remove the test input action
+    args: { name: test_action_yt }
+    expect:
+      status: success
+      field_checks:
+        - key: name
+          value: test_action_yt
+        - key: removed
+          type: bool
+
+  - tool: remove_input_action
+    description: Remove nonexistent action returns error
+    args: { name: nonexistent_action_xyz }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: remove_input_action
+    description: Missing name returns error
+    args: {}
+    expect:
+      status: error
+      has_keys: [error]

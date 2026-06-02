@@ -352,12 +352,6 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
                                 ? Dictionary(params["arguments"])
                                 : Dictionary();
 
-    const CommandFn *fn = registry_->find(tool_name);
-    if (!fn) {
-        return make_jsonrpc_error(id, kInvalidParams,
-                                   String("Unknown tool: ") + tool_name);
-    }
-
     log_info("mcp", String("tools/call: ") + tool_name);
 
     const Variant meta = params.get("_meta", Variant());
@@ -384,10 +378,10 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
         }
     }
 
-    // Execute
+    // Execute — 统一调度：先查 ITool 表，再查 CommandFn 表
     Dictionary tool_result;
     try {
-        tool_result = (*fn)(args);
+        tool_result = registry_->execute(tool_name, args);
     } catch (const std::exception &e) {
         pending_requests_.erase(id);
         return make_jsonrpc_error(id, kInternalError, String(e.what()));
@@ -395,21 +389,44 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
 
     pending_requests_.erase(id);
 
-    // If the handler returned an error field
+    // 错误检测：兼容旧格式 {"error": "..."} 和新格式 {"success": false, "error": {"code": "...", "message": "..."}}
     if (tool_result.has("error")) {
-        return make_jsonrpc_error(id, kInternalError, String(tool_result["error"]));
+        const Variant err_val = tool_result["error"];
+        String err_msg;
+        if (err_val.get_type() == Variant::DICTIONARY) {
+            const Dictionary err_dict = err_val;
+            err_msg = err_dict.get("message", "Unknown error");
+        } else {
+            err_msg = err_val;
+        }
+        return make_jsonrpc_error(id, kInternalError, err_msg);
+    }
+    if (tool_result.has("success") && !tool_result["success"].operator bool()) {
+        return make_jsonrpc_error(id, kInternalError, "Tool execution failed");
     }
 
     Dictionary result;
     result["content"] = tool_result_to_mcp_content(tool_result);
     result["isError"] = false;
 
-    // Also pass through specific fields like has_resources etc.
+    // 透传其他字段（兼容旧行为）
     const Array dict_keys = tool_result.keys();
     for (int i = 0; i < dict_keys.size(); ++i) {
         const String k = dict_keys[i];
-        if (k != "error") {
+        if (k != "error" && k != "success" && k != "data") {
             result[k] = tool_result[k];
+        }
+    }
+
+    // ToolResult 格式下，展开 data 中的字段
+    if (tool_result.has("data") && tool_result["data"].get_type() == Variant::DICTIONARY) {
+        const Dictionary data = tool_result["data"];
+        const Array data_keys = data.keys();
+        for (int i = 0; i < data_keys.size(); ++i) {
+            const String k = data_keys[i];
+            if (!result.has(k)) {
+                result[k] = data[k];
+            }
         }
     }
 

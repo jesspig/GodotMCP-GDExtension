@@ -1,4 +1,5 @@
 #include "http_server.hpp"
+#include "test_http_handler.hpp"
 
 #include "built_in/cmd_utils.hpp"
 #include "logging.hpp"
@@ -363,6 +364,26 @@ void HttpServer::dispatch_request(int conn_id, Connection &conn) {
 // POST /mcp
 // -------------------------------------------------------------------------
 void HttpServer::handle_post(int conn_id, Connection &conn) {
+    // ── /run-tests route (bypasses MCP entirely) ──
+    if (conn.path == "/run-tests") {
+        if (!test_engine_) {
+            send_response(conn_id, conn, 503, "Service Unavailable", "text/plain",
+                          "Test engine not initialized");
+            return;
+        }
+        String body_text;
+        if (!conn.body.is_empty()) {
+            body_text.parse_utf8((const char *)conn.body.ptr(), conn.body.size());
+        }
+        if (body_text.is_empty()) {
+            send_response(conn_id, conn, 400, "Bad Request", "text/plain", "Empty body");
+            return;
+        }
+        const String json_result = handle_run_tests(body_text, *test_engine_);
+        send_response(conn_id, conn, 200, "OK", "application/json; charset=utf-8", json_result);
+        return;
+    }
+
     if (conn.path != "/mcp") {
         send_response(conn_id, conn, 404, "Not Found", "text/plain", "404 Not Found");
         return;
@@ -432,7 +453,7 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
         err["code"] = -32700;
         err["message"] = json->get_error_message();
         err_resp["error"] = err;
-        send_response(conn_id, conn, 200, "OK", "application/json", JSON::stringify(err_resp));
+        send_response(conn_id, conn, 200, "OK", "application/json; charset=utf-8", json_stringify_safe(err_resp));
         return;
     }
 
@@ -456,8 +477,8 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
         if (!any_request) {
             send_response(conn_id, conn, 202, "Accepted", "text/plain", "");
         } else {
-            send_response(conn_id, conn, 200, "OK", "application/json",
-                          JSON::stringify(responses));
+            send_response(conn_id, conn, 200, "OK", "application/json; charset=utf-8",
+                          json_stringify_safe(responses));
         }
         return;
     }
@@ -493,8 +514,8 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
         return;
     }
 
-    const String result_json = JSON::stringify(handler_result);
-    send_response(conn_id, conn, 200, "OK", "application/json", result_json);
+    const String result_json = json_stringify_safe(handler_result);
+    send_response(conn_id, conn, 200, "OK", "application/json; charset=utf-8", result_json);
 }
 
 // -------------------------------------------------------------------------
@@ -627,7 +648,7 @@ void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
 
 void HttpServer::send_sse_headers(int conn_id, Connection &conn) {
     String response = String("HTTP/1.1 200 OK\r\n") +
-                      String("Content-Type: text/event-stream\r\n") +
+                      String("Content-Type: text/event-stream; charset=utf-8\r\n") +
                       String("Cache-Control: no-cache\r\n") +
                       String("Connection: keep-alive\r\n") +
                       String("X-Accel-Buffering: no\r\n") +
@@ -712,9 +733,9 @@ void HttpServer::flush_sse(int conn_id, Connection &conn) {
             payload["jsonrpc"] = "2.0";
             payload["method"] = method;
             payload["params"] = params;
-            data = JSON::stringify(payload);
+            data = json_stringify_safe(payload);
         } else {
-            data = JSON::stringify(event);
+            data = json_stringify_safe(event);
         }
 
         conn.sse_event_id++;

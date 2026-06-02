@@ -10,6 +10,8 @@
 
 namespace godot_mcp {
 
+class TestEngine; // forward declaration (used for /run-tests)
+
 class HttpServer {
 public:
     HttpServer();
@@ -19,6 +21,8 @@ public:
     void stop();
     void poll();
     bool is_listening() const;
+
+    void set_test_engine(TestEngine *te) { test_engine_ = te; }
 
     static constexpr int kMaxConnections = 32;
     static constexpr int kMaxBodyLength = 1048576; // 1 MB — prevent OOM on oversized payloads
@@ -76,6 +80,7 @@ private:
     godot::HashMap<int, Connection> connections_;
     int next_conn_id_ = 0;
     McpHandler *mcp_handler_ = nullptr;
+    TestEngine *test_engine_ = nullptr;
     int port_ = 0;
     uint64_t timeout_msec_ = 30000;
 

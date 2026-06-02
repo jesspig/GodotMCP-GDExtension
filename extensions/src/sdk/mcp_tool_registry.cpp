@@ -86,13 +86,14 @@ void McpToolRegistry::register_definition(McpToolDefinition *tool_def) {
     ct.brief = tool_def->get_brief();
     ct.description = tool_def->get_description();
     ct.input_schema = tool_def->get_input_schema();
+    ct.is_meta = tool_def->get_is_meta();
     tools_[resolved] = ct;
 
     // Register in HandlerRegistry
     if (handler_registry_) {
         handler_registry_->register_custom_tool(
             resolved, ct.category, ct.brief, ct.description, ct.input_schema,
-            std::move(wrapper));
+            std::move(wrapper), ct.is_meta);
     }
 
     log_info("sdk", String("Registered custom tool: ") + resolved);
@@ -115,7 +116,8 @@ void McpToolRegistry::register_tool(
     const String &brief,
     const String &description,
     const Dictionary &input_schema,
-    const Callable &handler) {
+    const Callable &handler,
+    bool is_meta) {
 
     if (name.is_empty()) {
         log_warn("sdk", "register_tool called with empty name, skipping");
@@ -151,13 +153,14 @@ void McpToolRegistry::register_tool(
     ct.description = description;
     ct.input_schema = input_schema;
     ct.handler = handler;
+    ct.is_meta = is_meta;
     tools_[resolved] = ct;
 
     // Register in HandlerRegistry
     if (handler_registry_) {
         handler_registry_->register_custom_tool(
             resolved, category, brief, description, input_schema,
-            std::move(wrapper));
+            std::move(wrapper), is_meta);
     }
 
     log_info("sdk", String("Registered custom tool: ") + resolved);
@@ -239,7 +242,8 @@ void McpToolRegistry::_bind_methods() {
 
     // Mode B
     ClassDB::bind_method(D_METHOD("register_tool", "name", "category", "brief",
-                                  "description", "input_schema", "handler"),
+                                  "description", "input_schema", "handler",
+                                  "is_meta"),
                          &McpToolRegistry::register_tool);
     ClassDB::bind_method(D_METHOD("unregister_tool", "name"),
                          &McpToolRegistry::unregister_tool);

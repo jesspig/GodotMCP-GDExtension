@@ -1,66 +1,88 @@
 # 测试框架总览
 
-> Python 集成测试框架，通过 MCP 协议连接运行中的 Godot 编辑器，执行自动化的工具测试。
+> 双轨测试架构：**C++ 进程内测试引擎**（`TestEngine` + `/run-tests`）同时覆盖内置工具和 SDK 自定义工具，辅以旧 **Python 集成测试框架**（`test_orchestrator.py` + 18 阶段）。
 
 ## 架构
 
-```mermaid
-flowchart TD
-    subgraph TestFramework["测试框架 (tests/)"]
-        O[test_orchestrator.py]
-        GM[godot_manager.py]
-        MC[mcp_client.py]
-        FV[file_verifier.py]
-        R[report.py]
-        SP["阶段文件 (18×)"]
-    end
+### C++ 测试引擎（新，主推）
 
-    subgraph Godot["Godot 编辑器进程"]
-        MCP["godot_mcp_gdext.dll<br/>MCP Server"]
-    end
+```
+                        ┌──────────────────────┐
+                        │  .test.yaml 配置文件   │
+                        └──┬───────────────────┘
+                           │
+           ┌───────────────┼───────────────┐
+           ▼               ▼               ▼
+   ┌──────────────┐ ┌──────────┐ ┌────────────────┐
+   │ C++ Test     │ │ 外部     │ │ 编辑器面板      │
+   │ Engine       │ │ Python   │ │ TestRunnerDock  │
+   │ (进程内)     │ │ 编排器   │ │ (C++ UI)        │
+   └──────┬───────┘ └────┬─────┘ └───────┬────────┘
+          └───────┬──────┘───────────────┘
+                  ▼
+         ┌──────────────────┐
+         │  TestEngine::run │
+         │  (YAML→执行→返回)│
+         └──────────────────┘
+```
 
-    O --> GM
-    O --> MC
-    MC -->|HTTP POST/GET :9600| MCP
-    O --> FV
-    O --> R
-    O --> SP
-    SP --> MC
-    SP --> FV
+- **进程内**：`TestEngine` 直接调用 `HandlerRegistry::execute()`，不经过 MCP 协议
+- **双源入口**：C++ Dock 面板 + HTTP `POST /run-tests`
+- **配置驱动**：YAML 文件定义测试，零脚本代码
+- **统一框架**：内置工具和自定义工具走同一路径
+- **磁盘校验**：支持 `.tscn`/`.tres`/`project.godot` 属性路径解析 + 类型转换 + 容差比较
+- **自动清理**：EditorFileSystem 快照差分 + 工具返回值双源追踪，只删交集
+
+### Python 集成测试框架（旧，过渡中）
+
+```
+test_orchestrator.py
+├── godot_manager.py  (启动/停止 Godot)
+├── mcp_client.py     (HTTP MCP 会话)
+├── file_verifier.py  (纯 Python tscn 解析)
+├── report.py         (JSON + Markdown)
+└── test_phases/*.py  (18 个阶段文件)
 ```
 
 ## 设计原则
 
-- **顺序执行**：18 个阶段按序执行，前一个阶段的产出（创建的场景、节点）为后续阶段提供输入
-- **自动发现**：运行时调用 `tools/list` 发现可用工具，缺失的工具自动跳过（`SKIP`）
-- **磁盘验证**：通过 `file_verifier.py` 直接解析 `.tscn`/`project.godot` 文件，无需 Godot 介入
-- **状态隔离**：每个阶段自行 cleanup，最终阶段 (`phase_18`) 从 `tests/backup/` 恢复原始项目文件
-- **异步 MCP 通信**：使用 `httpx.AsyncClient` 的 `McpSession`，绕过 MCP SDK 的 pydantic float ID 校验问题
+- **配置驱动**：YAML 测试文件完整描述测试，无需编写脚本
+- **双源清理**：EditorFileSystem 内存遍历快照 + 工具返回值追踪，确保不误删用户文件
+- **类型安全校验**：Godot Variant 类型转换 + 浮点容差，精确匹配引擎行为
+- **渐进迁移**：旧 Python 阶段逐步被 YAML 测试替代，过渡期共存
+
+## 入口
+
+| 入口 | 方式 | 适用 |
+|------|------|------|
+| `POST /run-tests` (HTTP) | YAML 内容 → JSON 结果 | Python 编排器 / CI / curl |
+| TestRunnerDock (C++ 面板) | 选择 YAML 文件 → 运行 | 编辑器内交互测试 |
+| `uv run python tests/test_orchestrator.py` | Python 编排器 | CI / 开发调试 |
+
+## 测试引擎详情
+
+| 文档 | 说明 |
+|------|------|
+| [测试引擎](test-engine.md) | TestEngine 架构、执行流程、YAML 格式、磁盘校验、清理策略 |
+| [磁盘文件验证](file-verifier.md) | 纯 Python tscn 解析器（旧，将被 C++ 引擎替代） |
 
 ## 运行
 
 ```bash
-uv run python tests/smoke_test.py         # 导入检查（不需要 Godot）
-uv run python tests/test_orchestrator.py  # 完整集成测试（需要 Godot 运行）
+# C++ 测试引擎 (需要 Godot 运行中):
+curl -X POST http://localhost:9600/run-tests \
+  -H "Content-Type: application/x-yaml" \
+  --data-binary @tests/scene.test.yaml
+
+# Python 编排器 (自动管理 Godot 生命周期):
+uv run python tests/test_orchestrator.py
+
+# 冒烟测试 (无需 Godot):
+uv run python tests/smoke_test.py
 ```
 
 ## 依赖
 
-- `tests/.env`：设置 `GODOT_PATH`、`GODOT_HEADLESS`、`GODOT_MCP_HTTP_PORT`、`GODOT_PROJECT_PATH`
-- Python 包：`mcp>=1.27`、`httpx>=0.27`、`pytest>=8.0`、`pytest-asyncio>=0.24`、`python-dotenv>=1.0`
-- **Windows 注意**：必须使用 `uv run python` 而非裸 `python`（Microsoft Store python 路由桩会卡死）
-
-## 上次运行结果
-
-| 指标 | 值 |
-|------|-----|
-| 总工具 | 116 |
-| 测试工具 | 113 |
-| 通过 | 43 |
-| 失败 | 70 |
-| 跳过 | 3 |
-| 总耗时 | 13.0 秒 |
-| 发现工具数 | 122 |
-| .NET 可用 | 否 |
-
-大部分失败原因是工具响应格式与测试断言不匹配——需要调整个别阶段的 `_parse()` 函数以匹配 GodotMCP 的实际 API 输出格式。
+- **C++ 引擎**：ryml (rapidyaml, 通过 CMake FetchContent)
+- **Python 编排器**：mcp≥1.27, httpx≥0.27, pytest≥8.0, python-dotenv≥1.0, PyYAML≥6.0
+- **Windows**：必须使用 `uv run python` 而非裸 `python`（Microsoft Store 路由桩会卡死）

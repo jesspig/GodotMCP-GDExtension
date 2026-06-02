@@ -1,0 +1,140 @@
+name: project_settings_ext
+description: Extended project settings (display, physics, rendering, layers)
+
+tests:
+  - tool: get_display_settings
+    description: Get display settings
+    args: {}
+    expect:
+      status: success
+      has_keys: [viewport_width, viewport_height, mode, vsync_mode]
+      field_checks:
+        - key: viewport_width
+          type: int
+        - key: viewport_height
+          type: int
+        - key: mode
+          type: any
+        - key: vsync_mode
+          type: any
+
+  - tool: set_display_settings
+    description: Set display settings (viewport size)
+    args: { viewport_width: 1280, viewport_height: 720 }
+    expect:
+      status: success
+      has_keys: [updated]
+
+  - tool: set_display_settings
+    description: Set display settings (borderless)
+    args: { borderless: false }
+    expect:
+      status: success
+      has_keys: [updated]
+
+  - tool: get_project_info
+    description: Get project info
+    args: {}
+    expect:
+      status: success
+      has_keys: [name, main_scene]
+      field_checks:
+        - key: name
+          type: string
+        - key: main_scene
+          type: any
+
+  - tool: set_project_info
+    description: Set project info
+    args: { name: GodotMCP_Test_Project }
+    expect:
+      status: success
+      has_keys: [updated]
+
+  - tool: set_project_info
+    description: Restore project name
+    args: { name: GodotMCP }
+    expect:
+      status: success
+
+  - tool: get_physics_settings
+    description: Get physics settings
+    args: {}
+    expect:
+      status: success
+      has_keys: [gravity_2d, physics_ticks_per_second]
+      field_checks:
+        - key: gravity_2d
+          type: number
+        - key: physics_ticks_per_second
+          type: int
+
+  - tool: set_physics_settings
+    description: Set physics setting (gravity)
+    args: { gravity_2d: 980 }
+    expect:
+      status: success
+      has_keys: [updated]
+
+  - tool: get_rendering_settings
+    description: Get rendering settings
+    args: {}
+    expect:
+      status: success
+      has_keys: [rendering_method, default_clear_color]
+      field_checks:
+        - key: rendering_method
+          type: string
+        - key: default_clear_color
+          type: any
+
+  - tool: set_rendering_settings
+    description: Set rendering setting (MSAA)
+    args: { msaa_2d: "Disabled" }
+    expect:
+      status: success
+      has_keys: [updated]
+
+  - tool: get_layer_names
+    description: Get 2D physics layer names
+    args: { category: "2d_physics" }
+    expect:
+      status: success
+      has_keys: [category, layers]
+      field_checks:
+        - key: category
+          value: "2d_physics"
+        - key: layers
+          type: dict
+
+  - tool: get_layer_names
+    description: Get 3D render layer names
+    args: { category: "3d_render" }
+    expect:
+      status: success
+      field_checks:
+        - key: category
+          value: "3d_render"
+
+  - tool: get_layer_names
+    description: Invalid category returns error
+    args: { category: "invalid_cat" }
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: get_layer_names
+    description: Missing category returns error
+    args: {}
+    expect:
+      status: error
+      has_keys: [error]
+
+  - tool: set_layer_names
+    description: Set a layer name
+    args: { category: "2d_physics", layers: { "1": "TestLayer" } }
+    expect:
+      status: success
+      field_checks:
+        - key: category
+          value: "2d_physics"

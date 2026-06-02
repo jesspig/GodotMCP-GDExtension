@@ -91,6 +91,14 @@ void mark_scene_dirty();
 // on disk. Safe to call from any tool that writes script/scene files.
 void notify_file_changed(const godot::String &path);
 
+// Record the current undo-redo version as the "saved" marker on a node.
+// Used by scene tools to track whether a scene is dirty.
+void save_version_marker(godot::Node *root);
+
+// Collect names of nodes under `root` that have no owner (potential issue).
+// Returns an Array of warning strings.
+godot::Array collect_owner_warnings(godot::Node *root);
+
 // ---------------------------------------------------------------------
 // Path helpers
 // ---------------------------------------------------------------------
@@ -141,6 +149,10 @@ inline godot::Dictionary make_error(const godot::String &message) {
     d["error"] = message;
     return d;
 }
+
+// JSON stringify with non-ASCII characters escaped as \uXXXX.
+// Pure ASCII output — immune to charset decoding issues in MCP clients.
+godot::String json_stringify_safe(const godot::Variant &v);
 
 // Build a single-key {"success": value} dict.
 inline godot::Dictionary make_success(bool value = true) {
