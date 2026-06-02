@@ -1,261 +1,147 @@
 # GodotMCP
 
-MCP 服务器，通过 C++ GDExtension 将 Godot 4.6+ 编辑器暴露给 AI 工具。支持渐进式工具披露和 GDScript/C# 自定义工具扩展。
+MCP 服务器，通过 C++ GDExtension 将 Godot 4.6+ 编辑器暴露给 AI 工具。
 
-## 架构
+## Build
 
-```
-AI 客户端 ── Streamable HTTP :9600 ──► godot_mcp_gdext.dll/.so/.dylib
-                                            │
-                                            ├── server/
-                                            │   ├── HttpServer (TCPServer + HTTP/1.1)
-                                            │   │   ├── /mcp → McpHandler (JSON-RPC 2.0 + SSE)
-                                            │   │   └── /run-tests → TestEngine (YAML→执行→返回)
-                                            │   ├── McpHandler (JSON-RPC 2.0 + SSE)
-                                            │   └── HandlerRegistry (ITool + CommandFn)
-                                            │
-                                            ├── sdk/
-                                            │   ├── McpToolDefinition (RefCounted, GDScript 可继承)
-                                            │   ├── McpToolRegistry (单例, 工具注册中心)
-                                            │   └── McpToolDefinitionAdapter (SDK→ITool 桥接)
-                                            │
-                                            ├── built_in/
-                                            │   ├── tool_base.hpp (ITool 接口 + ToolResult + ToolContext)
-                                            │   └── tools/ (124 个 ITool 子类, 每个 .hpp)
-                                            │       ├── meta/            (5 个: godot_info + 渐进式披露)
-                                            │       ├── scene/           (16 个场景 CRUD)
-                                            │       ├── node/            (21 个节点操作)
-                                            │       ├── property/        (21 个 2D 属性)
-                                            │       ├── property_3d/     (6 个 3D 属性)
-                                            │       ├── collision/       (2 个碰撞体)
-                                            │       ├── find/            (4 个查找)
-                                            │       ├── script_gd/       (5 个 GDScript)
-                                            │       ├── script_cs/       (6 个 C#)
-                                            │       ├── script_helpers/  (3 个脚本辅助)
-                                            │       ├── project_settings/ (7 个设置)
-                                            │       ├── project_settings_ext/ (10 个扩展设置)
-                                            │       ├── editor_control/  (7 个编辑器控制)
-                                            │       ├── input_map/       (4 个输入映射)
-                                            │       ├── plugin_management/ (2 个插件管理)
-                                            │       ├── undo/            (2 个撤销/重做)
-                                            │       └── search/         (3 个搜索)
-                                            │
-                                            ├── testing/
-                                            │   ├── TestEngine (非 MCP 工具, 独立类)
-                                            │   ├── yaml_parser (ryml → Godot Variant)
-                                            │   ├── test_assertions (断言引擎)
-                                            │   └── godot_file_verifier (tscn/tres/project.godot)
-                                            │
-                                            ├── plugin/
-                                            │   └── TestRunnerDock (C++ 底部面板, EditorPlugin)
-                                            │
-                                            └── McpEditorPlugin (EditorPlugin, 组装者)
+```bash
+uv run python build.py                # Debug + addons.zip
+uv run python build.py --release      # Release + addons.zip
+uv run python build.py --clean        # 清空 CMake 缓存（保留 _deps/）
+uv run python build.py --clean-all    # 完全清除构建目录
+uv run python build.py --no-zip       # 跳过 zip，快速迭代
+uv run python build.py -j N           # 并行编译作业数
+cmake --build build --target deep-clean  # 仅清除 addons/bin/ + _deps/
 ```
 
-## 关键设计
+- **Windows 必须用 `uv run python`**，裸 `python` 或 `py -3` 都可能挂（Microsoft Store stub）。
+- 自动检测 Ninja + MSVC cl.exe（通过 vswhere），Unity Build（batch_size 8）已启用。
+- `godot-cpp` / `ryml` 通过 FetchContent 拉取，缓存在 `build/_deps/`。`--clean` 保留缓存，`--clean-all` 或 `deep-clean` 清除。
+- CI（`.github/workflows/ci.yml`）：Ubuntu 下 `cmake -B build -S .` → `cmake --build build`，缓存 godot-cpp。
 
-- **纯主线程**——无锁。`EditorPlugin::_on_process_frame()` 驱动 `HttpServer::poll()`。
-- **ITool 接口**——所有内置工具继承 `ITool`，统一返回信封（`ToolResult::ok/err`）
-- **注释驱动注册**——`// @tool register` 注释 + `codegen.py` 自动生成 `generated_registration.cpp`
-- **统一调度**——`HandlerRegistry::execute(name, args)` 同时覆盖内置 ITool 和 SDK 自定义工具
-- **两轴分类**——`source()`（meta/built_in/custom）决定可见性，`category()` 决定分组
-- C++17，godot-cpp 10.0.0-rc1（FetchContent 固定），ryml（rapidyaml, FetchContent）
-- 入口符号：`gdext_rust_init`（遗留名——不要修改 `.gdextension` 文件）
+## Architecture
 
-## 内置工具注册
+```
+AI 客户端 ── Streamable HTTP :9600 ──► godot_mcp_gdext
+  (POST /mcp, JSON-RPC 2.0 + SSE)      (C++ GDExtension, 纯主线程)
+```
 
-工具在 `extensions/src/built_in/tools/<category>/<name>.hpp` 下，每个文件一个 `ITool` 子类：
+- **纯主线程无锁**：`EditorPlugin::_on_process_frame()` 驱动 `HttpServer::poll()`。
+- **入口符号**：`gdext_rust_init`（`register_types.cpp`，遗留名——不要改 `.gdextension`）。
+- **入口点**：`register_types.cpp` → `McpEditorPlugin`。仅在 `MODULE_INITIALIZATION_LEVEL_EDITOR` 初始化。
+- **端口**：默认 9600，环境变量 `GODOT_MCP_HTTP_PORT` 覆盖。
+
+### 工具系统（ITool + codegen）
+
+所有内置工具通过 `// @tool register` 注释 + `tools/codegen.py` 自动注册。**无需**改 CMakeLists.txt 或 handler_registry.cpp。
 
 ```cpp
 // @tool register
 class MyTool : public ITool {
     String name() const override { return "my_tool"; }
-    String category() const override { return "my_group"; }
+    String category() const override { return "my_group"; }  // 原始分类
+    String brief() const override { return "..."; }
+    String description() const override { return "..."; }
+    Dictionary input_schema() const override { ... }
+    bool is_meta() const override { return false; }
+    bool needs_scene() const override { return false; }
+    bool needs_node() const override { return false; }
     Dictionary execute_impl(const ToolContext &ctx) override { ... }
 };
 ```
 
-`codegen.py` 自动扫描 `// @tool register` 注释并生成注册代码。新增工具只需创建 `.hpp` 文件 + 加注释，**无需**改 `CMakeLists.txt`、`handler_registry.cpp`、`tool_schemas.json`。
+- **源码位置**：`extensions/src/built_in/tools/<category>/*.hpp`（124 个 ITool，17 组）
+- **codegen 生成**：`build/extensions/generated/generated_registration.cpp`（CMake 自动驱动 `tools/codegen.py`）
+- **两轴分类**：`source()`（meta/built_in/custom）决定可见性，`category()` 决定分组
+- **渐进式披露**：meta 工具始终可见；非 meta 工具通过 `list_tool_categories` → `list_tools` 二级发现
+- **Category remap**：17 个原始 category → 6 个顶级（node/scene/editor/script/settings/other），见 `handler_registry.cpp:256`
+- **统一调度**：`HandlerRegistry::execute()` 先查 `itool_table_`，再查 `table_`（CommandFn 后备，仅 SDK 自定义工具使用）
+- **editor_plugin.cpp 二次调用**：`register_all_tools()` 内部已含 `register_itools()`，但 `editor_plugin.cpp:66` 又单独调了一次 `register_itools(registry_)`（幂等，无害）
 
-目前已发现 **124 个内置工具**。
+### 工具分组
 
-## 测试框架
+| 原始 category | 映射后 | 数 | 目录 |
+|--------------|--------|:--:|------|
+| `meta` | `other/meta` | 5 | `tools/meta/` |
+| `node` | `node/operation` | 21 | `tools/node/` |
+| `property/2d` | `node/property/2d` | 21 | `tools/property/` |
+| `property/3d` | `node/property/3d` | 6 | `tools/property_3d/` |
+| `collision` | `node/collision` | 2 | `tools/collision/` |
+| `find` | `node/find` | 4 | `tools/find/` |
+| `scene` | `scene` | 16 | `tools/scene/` |
+| `editor_control` | `editor/general` | 7 | `tools/editor_control/` |
+| `search` | `editor/search` | 3 | `tools/search/` |
+| `script_gd` | `script/gdscript` | 5 | `tools/script_gd/` |
+| `script/csharp` | `script/csharp` | 6 | `tools/script_cs/` |
+| `script_helpers` | `script/helpers` | 3 | `tools/script_helpers/` |
+| `settings/core` | `settings/project` | 7 | `tools/project_settings/` |
+| `settings/extended` | `settings/extended` | 10 | `tools/project_settings_ext/` |
+| `input_map` | `settings/input_map` | 4 | `tools/input_map/` |
+| `plugin_management` | `other/plugin_management` | 2 | `tools/plugin_management/` |
+| `undo` | `other/undo` | 2 | `tools/undo/` |
+| **总计** | | **124** | |
 
-### 整体架构
+## C++ 注意事项
 
-```
-                        ┌──────────────────────┐
-                        │  .test.yaml 配置文件   │
-                        └──┬───────────────────┘
-                           │
-           ┌───────────────┼───────────────┐
-           ▼               ▼               ▼
-   ┌──────────────┐ ┌──────────┐ ┌────────────────┐
-   │ C++ Test     │ │ 外部     │ │ 编辑器面板      │
-   │ Engine       │ │ Python   │ │ TestRunnerDock  │
-   │ (进程内)     │ │ 编排器   │ │ (C++ UI)        │
-   └──────┬───────┘ └────┬─────┘ └───────┬────────┘
-          └───────┬──────┘───────────────┘
-                  ▼
-         ┌──────────────────┐
-         │  TestEngine::run │
-         │  (YAML→执行→返回)│
-         └──────────────────┘
-```
+- **MSVC UTF-8**：含非 ASCII 字符的字符串必须用 `String::utf8("中文")`，否则 MSVC 按 GBK 解释会乱码。CMake 已加 `/utf-8` 编译选项。
+- **EditorInterface 写文件**：编辑器看不到直接 `.tscn` 写入，必须用 EditorInterface API。写文件后调用 `notify_file_changed()`（`cmd_utils.hpp:92`）。
+- **`resolve_node()`**（`cmd_utils.hpp:48`）：接受 `""`、`"."`、`"/"`、`"/root"`、根节点名、`"RootName/Child"`。
+- **`undoable_set()`**（`cmd_utils.hpp:81`）——"立即应用 + 注册撤销"惯用模式。
+- **`variant_to_json()` / `json_to_variant()`**——Godot Variant ↔ JSON 递归转换。
+- **Args 解析辅助函数**：`args_string()` / `args_int()` / `args_float()` / `args_bool()`（`cmd_utils.hpp:122-140`）。
+- **`tool_schemas.json`**：`tools/tool_schemas.json` 在构建时自动复制到 `example/addons/godot_mcp/`，运行时通过 `load_tool_schemas()` 加载。
+- **版本号只在根 `CMakeLists.txt:22` 维护**。`plugin.cfg` 和 `.gdextension` 由 CMake 自动生成。
+- **Pinned deps**：`godot-cpp` 10.0.0-rc1，`ryml` v0.7.0（FetchContent）。升级需测试。
+- **Godot LSP 客户端**：`lsp/client.cpp`，用于 GDScript 校验（validate_gdscript 工具）。
 
-### 入口
+## 测试
 
-- **内部**：C++ `TestRunnerDock` 直接调用 `TestEngine::run(yaml)`
-- **外部**：`POST /run-tests`（独立 HTTP 端点，不经过 MCP 协议）
-- **三种入口共享同一套 `TestEngine` 实现、断言引擎、磁盘校验**
+- **YAML 驱动**：`POST /run-tests`（`Content-Type: application/x-yaml`）或 C++ `TestRunnerDock` 底部面板。
+  ```bash
+  curl -X POST http://localhost:9600/run-tests \
+    -H "Content-Type: application/x-yaml" \
+    --data-binary @tests/yaml_tests/<name>.test.yaml
+  ```
+- **Python 编排器**：`uv run python tests/test_orchestrator.py`（管理 Godot 生命周期）。
+- **清理策略**：双源追踪（EditorFileSystem 快照差分 + 工具返回值路径追踪），只删交集，保护用户文件。
+- **旧 Python 阶段测试**在 `tests/test_phases/`，过渡期共存。
 
-### TestEngine 执行流程
+## SDK 层（GDScript/C# 自定义工具）
 
-```
-TestEngine::run(yaml_content)
-  ├─ 1. ryml::parse → TestSuite
-  ├─ 2. EditorFileSystem 快照 (纯内存遍历) → before_files
-  ├─ 3. before_all 链
-  ├─ 4. 测试循环:
-  │     for each test:
-  │       ├─ before_each 链
-  │       ├─ result = HandlerRegistry::execute(tool, args)
-  │       ├─ 追踪 result 中的路径 → tracked_paths
-  │       ├─ 断言引擎校验 result vs expect
-  │       ├─ 磁盘校验 (verify_scene_file / verify_project_godot / verify_raw_text)
-  │       └─ after_each 链
-  ├─ 5. after_all 链
-  ├─ 6. EditorFileSystem 快照 → after_files
-  ├─ 7. diff = after - before; to_delete = diff ∩ tracked_paths
-  ├─ 8. 删除 to_delete + 空父目录清理
-  └─ 9. 返回 { summary, results, cleanup }
-```
+- `McpToolDefinition`（RefCounted）——GDScript 可继承，定义工具元数据 + 执行逻辑。
+- `McpToolRegistry`（单例）——注册/反注册自定义工具。内部调用 `HandlerRegistry::register_custom_tool()`（走 `CommandFn` 后备表）。
+- SDK 工具注册名自动加 `custom_` 前缀。
 
-### YAML 配置格式
-
-```yaml
-name: node_test
-description: 节点创建与磁盘一致性验证
-
-before_all:
-  - tool: create_scene
-    args: { name: "test", root_type: "Node2D" }
-
-after_all:
-  - tool: close_scene
-    args: {}
-
-tests:
-  - tool: create_node
-    description: 创建 Node2D
-    args: { type: "Node2D", name: "test_node", parent: "." }
-    expect:
-      status: success
-      has_keys: [node_path]
-    disk_verify:
-      scene:
-        path: "res://scenes/test.tscn"
-        nodes:
-          - path: "test_node"
-            type: "Node2D"
-            exists: true
-            properties:
-              - path: "position"
-                expect: [0, 0]
-                type: Vector2
-```
-
-### 磁盘校验
-
-| 文件格式 | Godot API | 校验方式 |
-|----------|-----------|----------|
-| `.tscn` | `ResourceLoader::load()` → `PackedScene` → `instantiate()` | 遍历节点树, `node.get(path)`, 类型转换后容差比较 |
-| `.tres` | `ResourceLoader::load()` → `Resource` | 同上 |
-| `project.godot` | `ConfigFile::load()` → `get_value()` | 逐 key 比较 |
-| 任意文件 | `FileAccess::get_file_as_string()` | 子串包含/不包含 |
-
-### 清理策略
-
-- **双源追踪**：`EditorFileSystem` 快照差分（检测所有新增文件）+ 工具返回值路径追踪（区分测试/用户文件）
-- **只删交集**：仅在两个来源中都出现的文件才删除
-- **保护用户文件**：差分中但不在追踪中的文件跳过删除并在报告中 WARN
-
-### 测试引擎文件结构
-
-```
-extensions/src/
-├── testing/
-│   ├── yaml_parser.hpp             # ryml → Godot Variant 递归转换
-│   ├── test_assertions.hpp         # 断言引擎: status/has_keys/field_checks/error_contains
-│   ├── godot_file_verifier.hpp     # 磁盘校验: 属性路径解析 + 类型转换 + 容差比较
-│   └── test_engine.hpp/.cpp        # TestEngine: run/cleanup/snapshot/编排
-
-├── server/ipc/
-│   ├── http_server.hpp/.cpp        # 路由 /run-tests → TestEngine
-│   └── test_http_handler.hpp       # HTTP YAML→JSON 编解码
-
-├── plugin/
-│   ├── test_runner_dock.hpp        # TestRunnerDock 声明 (VBoxContainer)
-│   └── test_runner_dock.cpp        # 实现: 文件选择 + 运行 + Tree 结果
-```
-
-### 外部 Python 测试 (CI/开发)
+## 文档站点
 
 ```bash
-# 启动 Godot 后:
-curl -X POST http://localhost:9600/run-tests \
-  -H "Content-Type: application/x-yaml" \
-  --data-binary @tests/scene.test.yaml
-
-# 或用编排器 (管理 Godot 生命周期):
-uv run python tests/test_orchestrator.py
+pnpm install
+pnpm run dev    # Rspress 开发服务器
+pnpm run build  # 构建 docs/
 ```
 
-旧 `tests/test_phases/` Python 阶段文件与新 YAML 测试在过渡期共存，最终被 YAML 替代。
-
-## 构建
-
-```bash
-uv run python build.py                  # debug + addons.zip
-uv run python build.py --release        # release + addons.zip
-uv run python build.py --clean          # 清空 CMake 缓存（保留 _deps/）
-uv run python build.py --clean-all      # 完全清除构建目录
-uv run python build.py -j N             # 并行编译作业数
-cmake --build build --target deep-clean # 仅清除 addons/bin/ + _deps/
-```
-
-- **Windows 关键**：必须用 `uv run python` 而非裸 `python`。
-- Ninja 自动检测（Windows via vswhere + cl.exe），Unity Build（batch_size 8）已启用。
-- 版本在根 `CMakeLists.txt:22` 设置。
-
-## 端口
-
-| 端口 | 用途 | 环境变量 |
-|------|------|----------|
-| 9600 | MCP Streamable HTTP + `/run-tests` | `GODOT_MCP_HTTP_PORT` |
-| 6005 | Godot LSP（内置，仅用于验证） | — |
-
-## C++ GDExtension 注意事项
-
-- 所有处理器接收 `Dictionary args` 并返回 `Dictionary`。失败时返回含 `"error"` 键的 Dictionary。
-- 场景文件操作必须使用 `EditorInterface`——编辑器看不到直接的 `.tscn` 文件写入。
-- 写入文件后调用 `EditorInterface::get_singleton()->get_resource_filesystem()->update_file()`。
-- 创建子目录：`DirAccess::open("res://")` → `make_dir_recursive()`。
-- `resolve_node()` 在 `cmd_utils.hpp` 中——接受 `""`、`"."`、`"/"`、`"/root"`、根节点名称或 `"RootName/Child"`。
-- `variant_to_json()` / `json_to_variant()`——Godot Variant ↔ JSON 递归转换。
-- `undoable_set()`——"立即应用 + 注册撤销" 惯用模式。
+- `docs/` — Rspress 站点（中/英双语）。
+- `.repo_wiki/` — 项目知识库（架构、模块、参考）。
 
 ## 客户端配置
 
 ```json
 {
   "mcpServers": {
-    "godot": { "type": "streamable-http", "url": "http://localhost:9600/mcp" }
+    "godot": {
+      "type": "streamable-http",
+      "url": "http://localhost:9600/mcp"
+    }
   }
 }
 ```
 
-## 文档
+## 开发配置
 
-- `.repo_wiki/` — 项目知识库（架构、模块、测试、参考）
-- `docs/` — Rspress 站点（中/英双语）
+- Python ≥3.14，依赖 `pyyaml`。
+- `uv` 管理 Python 环境（通过 `uv.lock` + `pyproject.toml`）。
+- Node.js 依赖通过 `pnpm` 管理（仅文档站点需要）。
+
+## 项目知识库
+
+- [项目 Wiki](.repo_wiki/index.md)
