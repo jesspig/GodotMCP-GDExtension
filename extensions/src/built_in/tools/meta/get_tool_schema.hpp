@@ -1,5 +1,4 @@
 // @tool register
-// @source meta
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -32,7 +31,7 @@ public:
         schema["required"] = req;
         return schema;
     }
-    String source() const override { return "meta"; }
+    bool is_meta() const override { return true; }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
@@ -54,7 +53,8 @@ protected:
         data["description"] = info->description;
         data["brief"] = info->brief;
         data["category"] = info->category;
-        data["source"] = info->source;
+        data["is_meta"] = info->is_meta;
+        data["is_custom"] = info->is_custom;
         data["input_schema"] = info->input_schema;
         return ToolResult::ok(data);
     }

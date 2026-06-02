@@ -3,7 +3,7 @@
 codegen.py — ITool 自动注册代码生成器
 
 扫描 source-dir 下所有 .hpp 文件，查找带有 `// @tool register` 注释的 ITool 子类，
-提取类名和 `// @source <type>` 标记，生成 `generated_registration.cpp`。
+提取类名，生成 `generated_registration.cpp`。
 
 用法:
     uv run python tools/codegen.py \\
@@ -30,15 +30,19 @@ def find_tool_files(source_dir: str) -> list[dict]:
                 continue
 
             fpath = os.path.join(root, fname)
-            with open(fpath, "r", encoding="utf-8") as f:
-                content = f.read()
+            try:
+                with open(fpath, "r", encoding="utf-8") as f:
+                    content = f.read()
+            except UnicodeDecodeError:
+                print(f"[codegen] WARNING: {fpath} has encoding issues, trying latin-1", file=sys.stderr)
+                with open(fpath, "r", encoding="latin-1") as f:
+                    content = f.read()
 
             if "// @tool register" not in content:
                 continue
 
             lines = content.split("\n")
             has_register = False
-            source_type = "built_in"
             class_name = None
 
             for i, line in enumerate(lines):
@@ -46,11 +50,6 @@ def find_tool_files(source_dir: str) -> list[dict]:
 
                 if stripped == "// @tool register":
                     has_register = True
-                    continue
-
-                m = re.match(r"^//\s*@source\s+(\S+)", stripped)
-                if m:
-                    source_type = m.group(1)
                     continue
 
                 m = re.match(
@@ -68,7 +67,6 @@ def find_tool_files(source_dir: str) -> list[dict]:
 
                 tools.append({
                     "class_name": class_name,
-                    "source": source_type,
                     "include_path": inc_path,
                 })
 

@@ -22,7 +22,8 @@ struct ToolInfo {
     godot::String brief;
     godot::String category;
     godot::String category_description;
-    godot::String source; // "builtin" | "custom" | "meta" | "built_in"
+    bool is_meta = false;
+    bool is_custom = false;
     godot::Dictionary input_schema;
     bool enabled = true;
 };
@@ -35,7 +36,8 @@ public:
     void register_tool(const godot::String &name, CommandFn fn);
     void register_custom_tool(const godot::String &name, const godot::String &category,
                               const godot::String &brief, const godot::String &description,
-                              const godot::Dictionary &schema, CommandFn fn);
+                              const godot::Dictionary &schema, CommandFn fn,
+                              bool is_meta = false);
     bool unregister_custom_tool(const godot::String &name);
 
     // ── 新式注册（ITool）──

@@ -47,11 +47,10 @@ public:
     // 空字符串表示使用该分类下第一个工具的 brief() 作为后备
     virtual godot::String category_description() const { return {}; }
 
-    // source() 返回 "meta" | "builtin" | "custom"
-    //    meta    → tools/list 始终可见
-    //    builtin → 渐进式披露
-    //    custom  → 自动加 custom_ 前缀
-    virtual godot::String source() const { return "builtin"; }
+    // is_meta() 控制 tools/list 可见性
+    //    true  → 始终可见（发现工具：list_tools/list_tool_categories 等）
+    //    false → 渐进式披露（通过 list_tool_categories 发现后再调用 list_tools 展开）
+    virtual bool is_meta() const { return false; }
 
     // ── 能力声明（组合优于继承）──
     virtual bool needs_scene() const { return false; }
@@ -66,10 +65,8 @@ public:
     godot::Dictionary execute(const godot::Dictionary &args);
 
     // ── 注册名计算 ──
-    godot::String registered_name() const {
-        if (source() == "custom") return "custom_" + name();
-        return name();
-    }
+    // 前缀（custom_）由注册路径决定：register_tool(ITool) → 无前缀，register_custom_tool() → 带前缀
+    godot::String registered_name() const { return name(); }
 
 protected:
     // 子类实现业务逻辑，ctx 中 root/node 已保证非空（如果声明了 needs_scene/needs_node）

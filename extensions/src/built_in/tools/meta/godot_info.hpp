@@ -1,5 +1,4 @@
 // @tool register
-// @source meta
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -23,7 +22,7 @@ public:
                             "项目配置、编辑器状态（当前场景、播放状态、打开场景列表）");
     }
     Dictionary input_schema() const override { Dictionary s; s["type"] = "object"; s["properties"] = Dictionary(); return s; }
-    String source() const override { return "meta"; }
+    bool is_meta() const override { return true; }
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {

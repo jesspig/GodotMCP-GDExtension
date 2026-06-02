@@ -19,7 +19,8 @@ void HandlerRegistry::register_tool(const String &name, CommandFn fn) {
 
 void HandlerRegistry::register_custom_tool(const String &name, const String &category,
                                            const String &brief, const String &description,
-                                           const Dictionary &schema, CommandFn fn) {
+                                           const Dictionary &schema, CommandFn fn,
+                                           bool is_meta) {
     table_[name] = std::move(fn);
 
     ToolInfo info;
@@ -28,14 +29,15 @@ void HandlerRegistry::register_custom_tool(const String &name, const String &cat
     info.brief = brief;
     info.description = description;
     info.input_schema = schema;
-    info.source = "custom";
+    info.is_meta = is_meta;
+    info.is_custom = true;
     info.enabled = true;
     tool_info_[name] = info;
 }
 
 bool HandlerRegistry::unregister_custom_tool(const String &name) {
     auto it_info = tool_info_.find(name);
-    if (it_info == tool_info_.end() || it_info->value.source != "custom") {
+    if (it_info == tool_info_.end() || !it_info->value.is_custom) {
         return false;
     }
     tool_info_.erase(name);
@@ -63,7 +65,8 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool) {
     info.description = tool->description();
     info.category_description = tool->category_description();
     info.input_schema = tool->input_schema();
-    info.source = tool->source();
+    info.is_meta = tool->is_meta();
+    info.is_custom = false;
     info.enabled = true;
     tool_info_[name] = info;
 
@@ -112,10 +115,10 @@ void HandlerRegistry::load_schemas_from_json(const String &json_text) {
         const String name = entry.get("name", "");
         if (name.is_empty()) continue;
 
-        // 不覆盖已通过 ITool 注册的 meta/custom 工具信息
+        // 不覆盖已通过 ITool 注册或自定义注册的工具信息
         {
             auto existing = tool_info_.find(name);
-            if (existing != tool_info_.end() && existing->value.source != "builtin") continue;
+            if (existing != tool_info_.end() && (existing->value.is_meta || existing->value.is_custom)) continue;
         }
 
         ToolInfo info;
@@ -123,7 +126,8 @@ void HandlerRegistry::load_schemas_from_json(const String &json_text) {
         info.description = entry.get("description", "");
         info.brief = entry.get("brief", "");
         info.category = entry.get("category", "");
-        info.source = "builtin";
+        info.is_meta = false;
+        info.is_custom = false;
         info.input_schema = entry.get("input_schema", Dictionary());
         info.enabled = true;
         tool_info_[name] = info;
@@ -256,7 +260,7 @@ Array HandlerRegistry::get_always_on_tools() const {
     Array result;
     for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
         if (!kv.value.enabled) continue;
-        if (kv.value.source == "meta") {
+        if (kv.value.is_meta) {
             result.push_back(make_tool_entry(kv.value));
         }
     }
@@ -270,7 +274,7 @@ Array HandlerRegistry::get_always_on_tools() const {
 int HandlerRegistry::builtin_tool_count() const {
     int count = 0;
     for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
-        if (kv.value.source == "builtin") ++count;
+        if (!kv.value.is_custom) ++count;
     }
     return count;
 }
@@ -278,7 +282,7 @@ int HandlerRegistry::builtin_tool_count() const {
 int HandlerRegistry::custom_tool_count() const {
     int count = 0;
     for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
-        if (kv.value.source == "custom") ++count;
+        if (kv.value.is_custom) ++count;
     }
     return count;
 }

@@ -1,5 +1,4 @@
 // @tool register
-// @source meta
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -19,7 +18,7 @@ public:
                             "用于渐进式工具发现流程的第一步。");
     }
     Dictionary input_schema() const override { Dictionary s; s["type"] = "object"; s["properties"] = Dictionary(); return s; }
-    String source() const override { return "meta"; }
+    bool is_meta() const override { return true; }
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {

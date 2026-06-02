@@ -1,5 +1,4 @@
 // @tool register
-// @source builtin
 #pragma once
 
 #include "built_in/tool_base.hpp"

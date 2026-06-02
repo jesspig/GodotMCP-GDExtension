@@ -27,6 +27,9 @@ void McpToolDefinition::set_description(const String &v) { description_ = v; }
 Dictionary McpToolDefinition::get_input_schema() const { return input_schema_; }
 void McpToolDefinition::set_input_schema(const Dictionary &v) { input_schema_ = v; }
 
+bool McpToolDefinition::get_is_meta() const { return is_meta_; }
+void McpToolDefinition::set_is_meta(bool v) { is_meta_ = v; }
+
 // ---------------------------------------------------------------------------
 // execute — virtual dispatch via has_method/call
 // GDScript subclasses override func execute(args: Dictionary) -> Dictionary
@@ -91,6 +94,10 @@ void McpToolDefinition::_bind_methods() {
     ClassDB::bind_method(D_METHOD("get_input_schema"), &McpToolDefinition::get_input_schema);
     ClassDB::bind_method(D_METHOD("set_input_schema", "v"), &McpToolDefinition::set_input_schema);
     ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "input_schema"), "set_input_schema", "get_input_schema");
+
+    ClassDB::bind_method(D_METHOD("get_is_meta"), &McpToolDefinition::get_is_meta);
+    ClassDB::bind_method(D_METHOD("set_is_meta", "v"), &McpToolDefinition::set_is_meta);
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "is_meta"), "set_is_meta", "get_is_meta");
 
     // execute — exposed as a regular method (GDScript overrides via inheritance)
     ClassDB::bind_method(D_METHOD("execute", "args"), &McpToolDefinition::execute);

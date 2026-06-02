@@ -27,7 +27,12 @@ public:
     godot::String brief() const override { return def_->get_brief(); }
     godot::String description() const override { return def_->get_description(); }
     godot::Dictionary input_schema() const override { return def_->get_input_schema(); }
-    godot::String source() const override { return "custom"; }
+    bool is_meta() const override {
+        if (def_->has_method("get_is_meta")) {
+            return def_->call("get_is_meta");
+        }
+        return false;
+    }
 
 protected:
     godot::Dictionary execute_impl(const ToolContext &ctx) override {
