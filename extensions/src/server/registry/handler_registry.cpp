@@ -61,6 +61,7 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool) {
     info.category = tool->category();
     info.brief = tool->brief();
     info.description = tool->description();
+    info.category_description = tool->category_description();
     info.input_schema = tool->input_schema();
     info.source = tool->source();
     info.enabled = true;
@@ -143,7 +144,17 @@ Dictionary HandlerRegistry::make_tool_entry(const ToolInfo &info) const {
     Dictionary d;
     d["name"] = info.name;
     d["description"] = info.description;
-    d["inputSchema"] = info.input_schema;
+
+    // MCP 协议要求 inputSchema.type == "object"。
+    // 兜底：若上游（builtin 工具 / SDK 自定义工具）未填 type，自动补全。
+    Dictionary schema = info.input_schema;
+    if (!schema.has("type")) {
+        schema["type"] = "object";
+        if (!schema.has("properties")) {
+            schema["properties"] = Dictionary();
+        }
+    }
+    d["inputSchema"] = schema;
     return d;
 }
 
@@ -199,8 +210,10 @@ Array HandlerRegistry::get_categories() const {
         const String &cat = kv.value.category;
         if (cat.is_empty()) continue;
         counts[cat] = counts.has(cat) ? counts[cat] + 1 : 1;
-        // Use the first tool's brief as category description fallback
-        if (!descriptions.has(cat)) {
+        // Prefer category_description; fall back to first tool's brief
+        if (!kv.value.category_description.is_empty()) {
+            descriptions[cat] = kv.value.category_description;
+        } else if (!descriptions.has(cat)) {
             descriptions[cat] = kv.value.brief;
         }
     }

@@ -21,6 +21,7 @@ struct ToolInfo {
     godot::String description;
     godot::String brief;
     godot::String category;
+    godot::String category_description;
     godot::String source; // "builtin" | "custom" | "meta" | "built_in"
     godot::Dictionary input_schema;
     bool enabled = true;
