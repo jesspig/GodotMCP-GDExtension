@@ -14,6 +14,7 @@ public:
     String name() const override { return "add_input_action"; }
     String category() const override { return "input_map"; }
     String brief() const override { return "Add a new input action"; }
+    String category_description() const override { return String::utf8("输入映射与动作管理"); }
     String description() const override { return "Add a new input action"; }
     Dictionary input_schema() const override {
         Dictionary s; s["type"] = "object"; Dictionary p;

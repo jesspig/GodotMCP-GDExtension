@@ -13,10 +13,10 @@ public:
 
     String name() const override { return "get_tool_schema"; }
     String category() const override { return "meta"; }
-    String brief() const override { return "获取指定工具的完整 Schema 定义"; }
+    String brief() const override { return String::utf8("获取指定工具的完整 Schema 定义"); }
     String description() const override {
-        return "返回指定工具的完整元数据信息，包括名称、描述、简介、"
-               "分类、来源和输入参数 Schema。";
+        return String::utf8("返回指定工具的完整元数据信息，包括名称、描述、简介、"
+                            "分类、来源和输入参数 Schema。");
     }
     Dictionary input_schema() const override {
         Dictionary schema;
@@ -24,7 +24,7 @@ public:
         Dictionary props;
         Dictionary tn;
         tn["type"] = "string";
-        tn["description"] = "工具名称";
+        tn["description"] = String::utf8("工具名称");
         props["tool_name"] = tn;
         schema["properties"] = props;
         Array req;

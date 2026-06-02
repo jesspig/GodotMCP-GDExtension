@@ -13,10 +13,10 @@ public:
 
     String name() const override { return "list_tools"; }
     String category() const override { return "meta"; }
-    String brief() const override { return "列出指定分类下的所有工具（名称 + 简介）"; }
+    String brief() const override { return String::utf8("列出指定分类下的所有工具（名称 + 简介）"); }
     String description() const override {
-        return "根据分类名称返回该分类下所有工具的简短信息列表（name + brief），"
-               "支持通过 filter 参数进行模糊搜索。";
+        return String::utf8("根据分类名称返回该分类下所有工具的简短信息列表（name + brief），"
+                            "支持通过 filter 参数进行模糊搜索。");
     }
     Dictionary input_schema() const override {
         Dictionary schema;
@@ -24,11 +24,11 @@ public:
         Dictionary props;
         Dictionary cat;
         cat["type"] = "string";
-        cat["description"] = "分类名称";
+        cat["description"] = String::utf8("分类名称");
         props["category"] = cat;
         Dictionary flt;
         flt["type"] = "string";
-        flt["description"] = "可选的名称过滤关键字";
+        flt["description"] = String::utf8("可选的名称过滤关键字");
         props["filter"] = flt;
         schema["properties"] = props;
         Array req;

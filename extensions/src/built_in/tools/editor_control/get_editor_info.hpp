@@ -14,6 +14,7 @@ public:
     String name() const override { return "get_editor_info"; }
     String category() const override { return "editor_control"; }
     String brief() const override { return "Get editor info (version, scale, paths)"; }
+    String category_description() const override { return "Editor control and info query"; }
     String description() const override { return "Get editor info (version, scale, paths)"; }
     Dictionary input_schema() const override { Dictionary s; s["type"] = "object"; s["properties"] = Dictionary(); return s; }
 protected:

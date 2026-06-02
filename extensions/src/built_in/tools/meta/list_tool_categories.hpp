@@ -13,12 +13,12 @@ public:
 
     String name() const override { return "list_tool_categories"; }
     String category() const override { return "meta"; }
-    String brief() const override { return "列出所有工具分类及各分类下的工具数量"; }
+    String brief() const override { return String::utf8("列出所有工具分类及各分类下的工具数量"); }
     String description() const override {
-        return "返回所有已注册工具的分类列表，每个分类包含名称和工具数量。"
-               "用于渐进式工具发现流程的第一步。";
+        return String::utf8("返回所有已注册工具的分类列表，每个分类包含名称和工具数量。"
+                            "用于渐进式工具发现流程的第一步。");
     }
-    Dictionary input_schema() const override { return Dictionary(); }
+    Dictionary input_schema() const override { Dictionary s; s["type"] = "object"; s["properties"] = Dictionary(); return s; }
     String source() const override { return "meta"; }
 
 protected:

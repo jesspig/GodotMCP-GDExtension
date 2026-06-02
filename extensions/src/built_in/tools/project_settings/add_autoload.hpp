@@ -13,6 +13,7 @@ public:
     String name() const override { return "add_autoload"; }
     String category() const override { return "project_settings"; }
     String brief() const override { return "Add an autoload"; }
+    String category_description() const override { return String::utf8("项目配置的读取与修改"); }
     String description() const override { return "Add an autoload"; }
     Dictionary input_schema() const override {
         Dictionary s; s["type"] = "object"; Dictionary p;

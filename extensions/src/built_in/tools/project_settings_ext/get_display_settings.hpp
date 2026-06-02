@@ -12,6 +12,7 @@ public:
     String name() const override { return "get_display_settings"; }
     String category() const override { return "project_settings_ext"; }
     String brief() const override { return "Get display/window settings"; }
+    String category_description() const override { return String::utf8("扩展项目设置（显示、输入、物理层等）"); }
     String description() const override { return "Get display/window settings"; }
     Dictionary input_schema() const override { Dictionary s; s["type"] = "object"; s["properties"] = Dictionary(); return s; }
 protected:

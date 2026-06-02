@@ -16,6 +16,7 @@ public:
     String name() const override { return "list_plugins"; }
     String category() const override { return "plugin_management"; }
     String brief() const override { return "List all editor plugins"; }
+    String category_description() const override { return String::utf8("编辑器插件的管理与查询"); }
     String description() const override { return "List all editor plugins"; }
     Dictionary input_schema() const override { Dictionary s; s["type"] = "object"; s["properties"] = Dictionary(); return s; }
 protected:

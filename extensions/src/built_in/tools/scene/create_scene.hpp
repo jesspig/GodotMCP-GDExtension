@@ -17,6 +17,7 @@ public:
     String name() const override { return "create_scene"; }
     String category() const override { return "scene"; }
     String brief() const override { return "Create a new .tscn scene file"; }
+    String category_description() const override { return String::utf8("场景的创建、保存与操作"); }
     String description() const override {
         return "Creates a new scene file at the specified path with the given root node type and name.";
     }

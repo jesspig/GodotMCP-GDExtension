@@ -18,6 +18,7 @@ class FindNodesByGroupTool : public ITool {
 public:
     String name() const override { return "find_nodes_by_group"; }
     String category() const override { return "find"; }
+    String category_description() const override { return String::utf8("按条件搜索场景中的节点"); }
     String brief() const override { return "Search nodes by group membership"; }
     bool needs_scene() const override { return true; }
     String description() const override { return "Finds all nodes belonging to the given group."; }

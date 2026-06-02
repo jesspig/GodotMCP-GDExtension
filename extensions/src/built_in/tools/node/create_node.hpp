@@ -16,6 +16,7 @@ public:
     String name() const override { return "create_node"; }
     String category() const override { return "node"; }
     String brief() const override { return "Create a new node under a parent"; }
+    String category_description() const override { return String::utf8("节点的创建、操作与管理"); }
     bool needs_scene() const override { return true; }
     String description() const override {
         return "Creates a new node of the specified type under the given parent path.";

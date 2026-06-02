@@ -12,6 +12,7 @@ public:
     String name() const override { return "add_circle_collision"; }
     String category() const override { return "collision"; }
     String brief() const override { return "Add a CircleShape2D to a node"; }
+    String category_description() const override { return String::utf8("碰撞体形状的添加与管理"); }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }
     String description() const override { return "Adds or sets a CircleShape2D on a CollisionShape2D or physics body."; }

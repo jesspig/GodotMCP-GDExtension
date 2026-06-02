@@ -14,6 +14,7 @@ public:
     String name() const override { return "call_method"; }
     String category() const override { return "script_helpers"; }
     String brief() const override { return "Call a method on a node"; }
+    String category_description() const override { return String::utf8("脚本辅助功能（调用方法等）"); }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }
     String description() const override { return "Calls a named method on a node with optional arguments. Supports up to 5 args."; }

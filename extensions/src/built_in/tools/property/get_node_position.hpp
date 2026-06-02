@@ -13,6 +13,7 @@ public:
     String name() const override { return "get_node_position"; }
     String category() const override { return "property"; }
     String brief() const override { return "Get a node's 2D position"; }
+    String category_description() const override { return String::utf8("2D 节点属性的读写操作"); }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }
     String description() const override { return "Gets the position (x, y) of a node."; }

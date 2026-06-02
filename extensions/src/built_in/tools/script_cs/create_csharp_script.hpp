@@ -13,6 +13,7 @@ public:
     String name() const override { return "create_csharp_script"; }
     String category() const override { return "script_cs"; }
     String brief() const override { return "Create a new C# script file"; }
+    String category_description() const override { return String::utf8("C# 脚本的创建与管理"); }
     String description() const override { return "Creates a .cs file with a basic class template. Requires an existing .csproj."; }
     Dictionary input_schema() const override {
         Dictionary s; s["type"] = "object"; Dictionary p;

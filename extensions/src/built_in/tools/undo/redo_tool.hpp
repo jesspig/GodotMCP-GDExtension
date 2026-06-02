@@ -15,6 +15,7 @@ public:
     String name() const override { return "redo"; }
     String category() const override { return "undo"; }
     String brief() const override { return "Redo the last undone action"; }
+    String category_description() const override { return String::utf8("操作的撤销与重做"); }
     bool needs_scene() const override { return true; }
     String description() const override { return "Redoes the most recently undone editor action."; }
     Dictionary input_schema() const override {

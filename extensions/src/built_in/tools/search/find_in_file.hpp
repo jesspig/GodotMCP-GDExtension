@@ -13,6 +13,7 @@ public:
     String name() const override { return "find_in_file"; }
     String category() const override { return "search"; }
     String brief() const override { return "Find pattern in a single file"; }
+    String category_description() const override { return String::utf8("文件内容的查找与替换"); }
     String description() const override { return "Find pattern in a single file"; }
     Dictionary input_schema() const override {
         Dictionary s; s["type"] = "object"; Dictionary p;
