@@ -10,7 +10,7 @@ namespace godot_mcp {
 class CreateCSharpScriptTool : public ITool {
 public:
     String name() const override { return "create_csharp_script"; }
-    String category() const override { return "script_cs"; }
+    String category() const override { return "script/csharp"; }
     String brief() const override { return "Create a new C# script file"; }
     String category_description() const override { return String::utf8("C# 脚本的创建与管理"); }
     String description() const override { return "Creates a .cs file with a basic class template. Requires an existing .csproj."; }

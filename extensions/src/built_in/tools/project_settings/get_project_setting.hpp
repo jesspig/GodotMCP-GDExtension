@@ -10,7 +10,7 @@ namespace godot_mcp {
 class GetProjectSettingTool : public ITool {
 public:
     String name() const override { return "get_project_setting"; }
-    String category() const override { return "project_settings"; }
+    String category() const override { return "settings/core"; }
     String brief() const override { return "Get a project setting value"; }
     String description() const override { return "Get a project setting value"; }
     Dictionary input_schema() const override {

@@ -9,7 +9,7 @@ namespace godot_mcp {
 class GetDisplaySettingsTool : public ITool {
 public:
     String name() const override { return "get_display_settings"; }
-    String category() const override { return "project_settings_ext"; }
+    String category() const override { return "settings/extended"; }
     String brief() const override { return "Get display/window settings"; }
     String category_description() const override { return String::utf8("扩展项目设置（显示、输入、物理层等）"); }
     String description() const override { return "Get display/window settings"; }

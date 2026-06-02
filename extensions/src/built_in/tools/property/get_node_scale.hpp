@@ -10,7 +10,7 @@ namespace godot_mcp {
 class GetNodeScaleTool : public ITool {
 public:
     String name() const override { return "get_node_scale"; }
-    String category() const override { return "property"; }
+    String category() const override { return "property/2d"; }
     String brief() const override { return "Get a node's 2D scale"; }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }

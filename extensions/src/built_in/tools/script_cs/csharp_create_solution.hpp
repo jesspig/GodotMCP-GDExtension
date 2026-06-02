@@ -10,7 +10,7 @@ namespace godot_mcp {
 class CSharpCreateSolutionTool : public ITool {
 public:
     String name() const override { return "csharp_create_solution"; }
-    String category() const override { return "script_cs"; }
+    String category() const override { return "script/csharp"; }
     String brief() const override { return "Create .csproj and .sln files"; }
     String description() const override { return "Generates a .csproj and .sln for C# support in the project."; }
     Dictionary input_schema() const override {

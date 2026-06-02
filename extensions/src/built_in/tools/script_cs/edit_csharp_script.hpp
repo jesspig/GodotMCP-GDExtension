@@ -10,7 +10,7 @@ namespace godot_mcp {
 class EditCSharpScriptTool : public ITool {
 public:
     String name() const override { return "edit_csharp_script"; }
-    String category() const override { return "script_cs"; }
+    String category() const override { return "script/csharp"; }
     String brief() const override { return "Edit a C# script file"; }
     String description() const override { return "Writes new source content to a .cs file. C# requires csharp_build to take effect."; }
     Dictionary input_schema() const override {

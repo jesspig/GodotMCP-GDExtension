@@ -11,7 +11,7 @@ namespace godot_mcp {
 class CallMethodTool : public ITool {
 public:
     String name() const override { return "call_method"; }
-    String category() const override { return "script_helpers"; }
+    String category() const override { return "script/helpers"; }
     String brief() const override { return "Call a method on a node"; }
     String category_description() const override { return String::utf8("脚本辅助功能（调用方法等）"); }
     bool needs_scene() const override { return true; }

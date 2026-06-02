@@ -25,7 +25,7 @@ inline void list_gd_rec(const String &dir, bool inc_addons, int64_t max, Array &
 class ListGDScriptsTool : public ITool {
 public:
     String name() const override { return "list_gdscripts"; }
-    String category() const override { return "script_gd"; }
+    String category() const override { return "script/gdscript"; }
     String brief() const override { return "List all .gd files in the project"; }
     String description() const override { return "Recursively finds all GDScript files under the given root."; }
     Dictionary input_schema() const override {

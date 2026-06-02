@@ -10,7 +10,7 @@ namespace godot_mcp {
 class ReadGDScriptTool : public ITool {
 public:
     String name() const override { return "read_gdscript"; }
-    String category() const override { return "script_gd"; }
+    String category() const override { return "script/gdscript"; }
     String brief() const override { return "Read a GDScript file"; }
     String description() const override { return "Reads the full source content of a .gd file."; }
     Dictionary input_schema() const override {

@@ -11,7 +11,7 @@ namespace godot_mcp {
 class GetNodePosition3DTool : public ITool {
 public:
     String name() const override { return "get_node_position_3d"; }
-    String category() const override { return "property_3d"; }
+    String category() const override { return "property/3d"; }
     String brief() const override { return "Get a Node3D's position"; }
     String category_description() const override { return String::utf8("3D 节点属性的读写操作"); }
     bool needs_scene() const override { return true; }

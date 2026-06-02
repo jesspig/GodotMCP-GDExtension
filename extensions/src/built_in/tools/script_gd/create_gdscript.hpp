@@ -10,7 +10,7 @@ namespace godot_mcp {
 class CreateGDScriptTool : public ITool {
 public:
     String name() const override { return "create_gdscript"; }
-    String category() const override { return "script_gd"; }
+    String category() const override { return "script/gdscript"; }
     String brief() const override { return "Create a new GDScript file"; }
     String category_description() const override { return String::utf8("GDScript 脚本的创建与管理"); }
     String description() const override { return "Creates a .gd file with an optional template or custom content."; }

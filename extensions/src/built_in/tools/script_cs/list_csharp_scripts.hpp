@@ -9,7 +9,7 @@ namespace godot_mcp {
 class ListCSharpScriptsTool : public ITool {
 public:
     String name() const override { return "list_csharp_scripts"; }
-    String category() const override { return "script_cs"; }
+    String category() const override { return "script/csharp"; }
     String brief() const override { return "List all .cs files in the project"; }
     String description() const override { return "Recursively finds all C# script files under the given root."; }
     Dictionary input_schema() const override {

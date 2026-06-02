@@ -9,7 +9,7 @@ namespace godot_mcp {
 class SetNodeTextTool : public ITool {
 public:
     String name() const override { return "set_node_text"; }
-    String category() const override { return "property"; }
+    String category() const override { return "property/2d"; }
     String brief() const override { return "Set a node's text property"; }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }

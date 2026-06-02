@@ -11,7 +11,7 @@ namespace godot_mcp {
 class CSharpBuildTool : public ITool {
 public:
     String name() const override { return "csharp_build"; }
-    String category() const override { return "script_cs"; }
+    String category() const override { return "script/csharp"; }
     String brief() const override { return "Build the C# project via dotnet"; }
     String description() const override { return "Runs 'dotnet build' on the project root."; }
     Dictionary input_schema() const override {

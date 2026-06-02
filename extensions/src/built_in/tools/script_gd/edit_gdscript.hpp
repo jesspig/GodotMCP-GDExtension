@@ -10,7 +10,7 @@ namespace godot_mcp {
 class EditGDScriptTool : public ITool {
 public:
     String name() const override { return "edit_gdscript"; }
-    String category() const override { return "script_gd"; }
+    String category() const override { return "script/gdscript"; }
     String brief() const override { return "Edit a GDScript file"; }
     String description() const override { return "Writes new source content to a .gd file, overwriting existing content."; }
     Dictionary input_schema() const override {

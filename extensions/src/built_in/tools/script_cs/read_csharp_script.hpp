@@ -10,7 +10,7 @@ namespace godot_mcp {
 class ReadCSharpScriptTool : public ITool {
 public:
     String name() const override { return "read_csharp_script"; }
-    String category() const override { return "script_cs"; }
+    String category() const override { return "script/csharp"; }
     String brief() const override { return "Read a C# script file"; }
     String description() const override { return "Reads the full source content of a .cs file."; }
     Dictionary input_schema() const override {

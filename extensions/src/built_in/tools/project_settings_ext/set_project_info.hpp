@@ -9,7 +9,7 @@ namespace godot_mcp {
 class SetProjectInfoTool : public ITool {
 public:
     String name() const override { return "set_project_info"; }
-    String category() const override { return "project_settings_ext"; }
+    String category() const override { return "settings/extended"; }
     String brief() const override { return "Set project info fields"; }
     String description() const override { return "Set project info fields"; }
     Dictionary input_schema() const override {

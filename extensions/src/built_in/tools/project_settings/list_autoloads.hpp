@@ -10,7 +10,7 @@ namespace godot_mcp {
 class ListAutoloadsTool : public ITool {
 public:
     String name() const override { return "list_autoloads"; }
-    String category() const override { return "project_settings"; }
+    String category() const override { return "settings/core"; }
     String brief() const override { return "List all autoloads"; }
     String description() const override { return "List all autoloads"; }
     Dictionary input_schema() const override {

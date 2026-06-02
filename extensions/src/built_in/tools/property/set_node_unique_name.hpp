@@ -10,7 +10,7 @@ namespace godot_mcp {
 class SetNodeUniqueNameTool : public ITool {
 public:
     String name() const override { return "set_node_unique_name"; }
-    String category() const override { return "property"; }
+    String category() const override { return "property/2d"; }
     String brief() const override { return "Set or unset a node's unique name in owner"; }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }

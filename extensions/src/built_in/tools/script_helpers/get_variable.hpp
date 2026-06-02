@@ -9,7 +9,7 @@ namespace godot_mcp {
 class GetVariableTool : public ITool {
 public:
     String name() const override { return "get_variable"; }
-    String category() const override { return "script_helpers"; }
+    String category() const override { return "script/helpers"; }
     String brief() const override { return "Get a script variable value"; }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }

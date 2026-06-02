@@ -12,7 +12,7 @@ namespace godot_mcp {
 class SetNodeTextureTool : public ITool {
 public:
     String name() const override { return "set_node_texture"; }
-    String category() const override { return "property"; }
+    String category() const override { return "property/2d"; }
     String brief() const override { return "Set a texture on a node"; }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }

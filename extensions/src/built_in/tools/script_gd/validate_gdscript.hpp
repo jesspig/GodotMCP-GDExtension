@@ -14,7 +14,7 @@ namespace godot_mcp {
 class ValidateGDScriptTool : public ITool {
 public:
     String name() const override { return "validate_gdscript"; }
-    String category() const override { return "script_gd"; }
+    String category() const override { return "script/gdscript"; }
     String brief() const override { return "Validate a GDScript file via LSP"; }
     String description() const override { return "Validates a .gd file using the built-in LSP (port 6005) or falls back to GDScript::reload()."; }
     Dictionary input_schema() const override {

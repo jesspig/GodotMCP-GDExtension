@@ -9,7 +9,7 @@ namespace godot_mcp {
 class GetLayerNamesTool : public ITool {
 public:
     String name() const override { return "get_layer_names"; }
-    String category() const override { return "project_settings_ext"; }
+    String category() const override { return "settings/extended"; }
     String brief() const override { return "Get layer names for a category"; }
     String description() const override { return "Get layer names for a category"; }
     Dictionary input_schema() const override {

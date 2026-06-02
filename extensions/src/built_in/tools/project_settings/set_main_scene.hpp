@@ -10,7 +10,7 @@ namespace godot_mcp {
 class SetMainSceneTool : public ITool {
 public:
     String name() const override { return "set_main_scene"; }
-    String category() const override { return "project_settings"; }
+    String category() const override { return "settings/core"; }
     String brief() const override { return "Set the main scene"; }
     String description() const override { return "Set the main scene"; }
     Dictionary input_schema() const override {

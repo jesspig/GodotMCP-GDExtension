@@ -10,7 +10,7 @@ namespace godot_mcp {
 class ListScenesTool : public ITool {
 public:
     String name() const override { return "list_scenes"; }
-    String category() const override { return "project_settings"; }
+    String category() const override { return "settings/core"; }
     String brief() const override { return "List all .tscn/.scn files"; }
     String description() const override { return "List all .tscn/.scn files"; }
     Dictionary input_schema() const override {

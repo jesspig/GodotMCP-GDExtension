@@ -10,7 +10,7 @@ namespace godot_mcp {
 class RemoveAutoloadTool : public ITool {
 public:
     String name() const override { return "remove_autoload"; }
-    String category() const override { return "project_settings"; }
+    String category() const override { return "settings/core"; }
     String brief() const override { return "Remove an autoload"; }
     String description() const override { return "Remove an autoload"; }
     Dictionary input_schema() const override {
