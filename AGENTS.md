@@ -64,8 +64,8 @@ class MyTool : public ITool {
 |--------------|--------|:--:|------|
 | `meta` | `other/meta` | 5 | `tools/meta/` |
 | `node` | `node/operation` | 21 | `tools/node/` |
-| `property/2d` | `node/property/2d` | 21 | `tools/property/` |
-| `property/3d` | `node/property/3d` | 6 | `tools/property_3d/` |
+| `property/2d` | `node/property/2d` | 21 | `tools/property/` **(将被替代)** |
+| `property/3d` | `node/property/3d` | 6 | `tools/property_3d/` **(将被替代)** |
 | `collision` | `node/collision` | 2 | `tools/collision/` |
 | `find` | `node/find` | 4 | `tools/find/` |
 | `scene` | `scene` | 16 | `tools/scene/` |
@@ -79,7 +79,8 @@ class MyTool : public ITool {
 | `input_map` | `settings/input_map` | 4 | `tools/input_map/` |
 | `plugin_management` | `other/plugin_management` | 2 | `tools/plugin_management/` |
 | `undo` | `other/undo` | 2 | `tools/undo/` |
-| **总计** | | **124** | |
+| `node_prop/*` | `node/property/*` | ~2000 | `tools/node_props/` **(规划中)** |
+| **总计** | | **124** | | | | **(不含规划中)** |
 
 ## C++ 注意事项
 
@@ -144,68 +145,40 @@ pnpm run build  # 构建 docs/
 
 - [项目 Wiki](.repo_wiki/index.md)
 
-## 优化与清理计划
+## 节点属性工具扩充系统（规划中）
 
-> 2026-06-02 全项目代码审查后制定的优化方案，按独立可验证的阶段组织。
+> 为每个 Godot 节点类型的每个独有属性创建专用化的 Get/Set 工具，通过 YAML 数据库 + codegen 自动生成，覆盖 100% 节点属性。
 
-### 阶段 1：死代码删除（纯删除，零风险）
+核心模式：不生成数千个 `.hpp` 文件，而是使用两个通用 C++ 模板类（`NodePropertyGetTool` / `NodePropertySetTool`）+ YAML 属性数据库，通过 codegen 在编译期自动生成工厂注册代码。
 
-**删除整个文件：**
+### 架构
 
-| 文件 | 原因 |
-|------|------|
-| `extensions/src/sdk/mcp_tool_adapter.hpp` | 零引用的死代码（未采用的 ITool 适配器方案） |
-| `tests/test_phases/__init__.py` | 空壳（18 个 phase 模块已删除） |
-| `tests/mcp_client.py` | 仅被已死的 Python fallback 路径使用 |
-| `tests/test_context.py` | 仅被已死的 Python fallback 路径使用 |
-| `tools/tool_schemas.json` | 全部 124 工具已迁移到 ITool 的 `input_schema()`，`load_schemas_from_json()` 跳过所有已注册工具 |
+```
+YAML 属性数据库（每节点一个） → codegen → generated_registration.cpp
+                                          → ~2000 个工具通过工厂注册
+```
 
-**`handler_registry.hpp` + `.cpp` 删除项：**
+### 命名规范
 
-| 项 | 原因 |
-|------|------|
-| `register_tool(name, CommandFn)` | 零调用者（SDK 用 `register_custom_tool`） |
-| `find()` / `has()` / `size()` | 只查 CommandFn 表，语义错误且零外部调用者 |
-| `load_schemas_from_json()` | 配套已删除的 `tool_schemas.json` |
+```
+get/set_<node_type_lower>_<property_name>
+```
 
-**其他删除项：**
+- 主名如 `get_canvasitem_position`、`set_node3d_rotation`
+- 别名：`CanvasItem` 的属性同时注册为 `node2d_*` 和 `control_*`
+- 派生节点仅注册自身独有属性（继承链去重）
 
-- `editor_plugin.cpp`：删除 `load_tool_schemas()` 方法及调用、删除重复的 `register_itools(registry_)` 调用
-- `tool_base.hpp/.cpp`：删除 `ToolResult::is_ok()` / `is_err()`（零调用）
-- `cmd_utils.hpp`：删除 `make_error()` / `make_success()`（已被 `ToolResult` 替代）、删除过时的 `is_ok()` 注释
-- `mcp_tool_registry.hpp/.cpp`：删除 `CustomTool::handler` 死字段
-- `test_http_handler.hpp`：移除全部 `dbg`/`_h_*` 调试字段
-- `test_engine.cpp`：删除 `_dbg_*` 字段、`DEBUG` 日志
-- `test_orchestrator.py`：删除 `get_phases()`、fallback 分支（267-318 行）、`backup_example()`、死 import、`[DEBUG]` print
-- `test_phases/base.py`：删除 `PhaseRunner`、`ToolTest`、`disk_verified`/`disk_detail`
-- `report.py`：修复 `add_phase()` end_time 覆写 bug、删除 `cleanup_status`、修复 `disk_verified` 显示
-- `godot_manager.py`：删除 `import signal`
+### 旧工具替代
 
-### 阶段 2：Bug 修复
+旧 `property/2d`（22 工具）和 `property/3d`（6 工具）将被删除，由本系统完全替代。详见 `.repo_wiki/design/node-property-system.md`。
 
-| 文件 | 行号 | 问题 | 修复 |
-|------|------|------|------|
-| `mcp_tool_definition.cpp` | 40 | `has_method("execute")` 因 ClassDB 绑定始终为 true，基类实例会递归栈溢出 | 改为 `get_script_instance()` 检查 |
-| `test_assertions.hpp` | 191 | `expect["error"]` 变量名错误 | 改为 `expect["error_contains"]` |
-| `mcp_handler.cpp` | 386/390 | `pending_requests_` erase key 不匹配 | 统一用 `JSON::stringify(id)` |
-| `mcp_tool_registry.cpp` | 247 | Mode B `is_meta` 缺 `DEFVAL` | 添加 `DEFVAL(false)` |
-| `test_engine.cpp` | 189-197 | `execute_chain` 忽略错误 | `before_all` 失败时中断 |
-| `csharp_build.hpp` | 30-34 | 不使用 `ToolResult` 信封 | 改用 `ToolResult::ok/err` |
-| `undo_tool.hpp` / `redo_tool.hpp` | 29/30 | "无操作"返回裸 dict | 改用 `ToolResult::err` |
-| `get_node_collision_layer.hpp` | 25 | 检查 `success` 而非 `error` | 改为 `if (e.has("error"))` |
-| `set_variable.hpp` | 30 | 无 undo 支持 | 改用 `undoable_set()` |
+## 优化与清理历史（已完成）
 
-### 阶段 3：结构简化
+> 2026-06-02 制定的 4 阶段优化方案已于 2026-06-03 全部完成并合并。
 
-- `editor_plugin.cpp` 直接调用 `register_itools()`，删除 `register_all_tools` 透传函数
-- `tool_base.hpp` `registered_name()` 内联为 `name()`
-- `CMakeLists.txt:65` 删除 "Legacy" 标签
-- `cmd_utils_json.cpp:277-287` 删除 `json_stringify_safe()` 误导性注释
-- `editor_plugin.cpp` `has_method` fallback 路径加 `log_warn`
-- `mcp_handler.hpp:56` 注释 `Warning=3` → `Error=3`
-
-### 阶段 4：DRY 提取
-
-- `cmd_utils.hpp` 新增 `walk_project_dir()`：统一 4 处目录遍历（list_gd/cs/scenes/walk_dir）
-- `cmd_utils.hpp` 新增 `collect_nodes_by()`：统一 4 处树遍历（find_by_name/type/group/script）
-- `testing/` 新增 `type_utils.hpp`：`normalize_type_hint()` + `kDefaultTolerance`
+| 阶段 | 内容 | 完成 commit |
+|------|------|:----------:|
+| 1 | 死代码删除（mcp_tool_adapter.hpp、旧测试文件、handler_registry 死 API 等） | `6fc2aa84` |
+| 2 | Bug 修复（mcp_tool_definition 栈溢出、test_assertions 变量名错误、mcp_handler 内存泄漏 等 9 项） | `4a04a2c4` |
+| 3 | 结构简化（registered_name() 内联、删除 Legacy 标签、修复 RFC 5424 注释 等） | `6f8e0721` |
+| 4 | DRY 提取（walk_project_dir()、collect_nodes_by()、type_utils.hpp） | `51238cbf` |
