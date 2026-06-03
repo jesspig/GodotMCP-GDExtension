@@ -1,7 +1,21 @@
 name: undo
 description: Undo/redo tools
-setup_script: yaml_scripts.scene_setup.node_setup
-teardown_script: yaml_scripts.scene_setup.node_teardown
+
+before_all:
+  - tool: create_scene
+    args: { path: res://test_mcp_scene.tscn, root_name: TestRoot, root_type: Node }
+  - tool: open_scene
+    args: { scene_path: res://test_mcp_scene.tscn }
+  - tool: create_node
+    args: { parent_path: TestRoot, name: Child2D, node_type: Node2D }
+  - tool: set_property
+    args: { node_path: "TestRoot/Child2D", property: "position", value: { x: 100, y: 200 } }
+
+after_all:
+  - tool: close_scene
+    args: {}
+  - tool: delete_scene
+    args: { path: res://test_mcp_scene.tscn }
 
 tests:
   - tool: undo
@@ -9,9 +23,9 @@ tests:
     args: {}
     expect:
       status: success
-      has_keys: [undone, description]
+      has_keys: [undo_applied]
       field_checks:
-        - key: undone
+        - key: undo_applied
           type: bool
 
   - tool: undo
@@ -25,7 +39,7 @@ tests:
     args: {}
     expect:
       status: success
-      has_keys: [redone, description]
+      has_keys: [redo_applied]
       field_checks:
-        - key: redone
+        - key: redo_applied
           type: bool

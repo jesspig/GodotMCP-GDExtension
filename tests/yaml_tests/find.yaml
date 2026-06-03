@@ -1,7 +1,23 @@
 name: find
 description: Node find/search tools
-setup_script: yaml_scripts.scene_setup.find_setup
-teardown_script: yaml_scripts.scene_setup.find_teardown
+
+before_all:
+  - tool: create_scene
+    args: { path: res://test_mcp_scene.tscn, root_name: TestRoot, root_type: Node }
+  - tool: open_scene
+    args: { scene_path: res://test_mcp_scene.tscn }
+  - tool: create_node
+    args: { parent_path: TestRoot, name: Child2D, node_type: Node2D }
+  - tool: create_node
+    args: { parent_path: TestRoot, name: Child3D, node_type: Node3D }
+  - tool: add_node_to_group
+    args: { node_path: "TestRoot/Child2D", group: test_group }
+
+after_all:
+  - tool: close_scene
+    args: {}
+  - tool: delete_scene
+    args: { path: res://test_mcp_scene.tscn }
 
 tests:
   - tool: find_nodes_by_name
@@ -27,7 +43,7 @@ tests:
 
   - tool: find_nodes_by_type
     description: Find nodes by type
-    args: { type: Node2D, root: "TestRoot" }
+    args: { node_class: "Node2D", root: "TestRoot" }
     expect:
       status: success
       has_keys: [matches, count]
@@ -64,7 +80,7 @@ tests:
 
   - tool: find_nodes_by_script
     description: Find nodes by script
-    args: { script: "res://test_mcp_script.gd", root: "TestRoot" }
+    args: { script_path: "res://test_mcp_script.gd", root: "TestRoot" }
     expect:
       status: success
       has_keys: [matches, count]

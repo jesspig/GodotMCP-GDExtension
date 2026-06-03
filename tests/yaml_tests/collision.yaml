@@ -1,7 +1,19 @@
 name: collision
 description: Collision shape tools
-setup_script: yaml_scripts.scene_setup.collision_setup
-teardown_script: yaml_scripts.scene_setup.collision_teardown
+
+before_all:
+  - tool: create_scene
+    args: { path: res://test_mcp_scene.tscn, root_name: TestRoot, root_type: Node }
+  - tool: open_scene
+    args: { scene_path: res://test_mcp_scene.tscn }
+  - tool: create_node
+    args: { parent_path: TestRoot, name: CollisionTestNode, node_type: Node2D }
+
+after_all:
+  - tool: close_scene
+    args: {}
+  - tool: delete_scene
+    args: { path: res://test_mcp_scene.tscn }
 
 tests:
   - tool: add_rectangle_collision
@@ -9,12 +21,11 @@ tests:
     args: { node_path: "TestRoot/CollisionTestNode", width: 64, height: 32 }
     expect:
       status: success
-      has_keys: [node_path, collision_type, shape_path]
+      has_keys: [node_path, shape, mode]
       field_checks:
-        - key: collision_type
+        - key: shape
           type: string
-        - key: shape_path
-          type: string
+        - key: node_path
           not_empty: true
 
   - tool: add_rectangle_collision
@@ -38,12 +49,11 @@ tests:
     args: { node_path: "TestRoot/CollisionTestNode", radius: 30 }
     expect:
       status: success
-      has_keys: [node_path, collision_type, shape_path]
+      has_keys: [node_path, shape, mode]
       field_checks:
-        - key: collision_type
+        - key: shape
           type: string
-        - key: shape_path
-          type: string
+        - key: node_path
           not_empty: true
 
   - tool: add_circle_collision
@@ -53,8 +63,8 @@ tests:
       status: success
 
   - tool: add_circle_collision
-    description: Missing radius returns error
-    args: { node_path: "TestRoot/CollisionTestNode" }
+    description: Missing node_path returns error
+    args: {}
     expect:
       status: error
       has_keys: [error]

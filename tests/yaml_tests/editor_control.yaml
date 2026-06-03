@@ -1,5 +1,5 @@
 name: editor_control
-description: Editor control tools (play, stop, refresh, info, restart)
+description: Editor control tools (play, stop, refresh, info)
 
 tests:
   - tool: get_editor_info

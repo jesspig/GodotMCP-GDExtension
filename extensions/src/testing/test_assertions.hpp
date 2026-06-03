@@ -13,9 +13,22 @@ namespace godot_mcp {
 //   expect: the "expect" block from YAML config
 //   result: the Dictionary returned by HandlerRegistry::execute()
 // Returns empty String on pass, or error message on failure.
+inline godot::Dictionary unwrap_result(const godot::Dictionary &result) {
+    using namespace godot;
+    if (result.has("success") && result.has("data")) {
+        const Variant data = result["data"];
+        if (data.get_type() == Variant::DICTIONARY) {
+            return data;
+        }
+    }
+    return result;
+}
+
 inline godot::String run_assertions(const godot::Dictionary &expect,
                                     const godot::Dictionary &result) {
     using namespace godot;
+
+    const Dictionary data = unwrap_result(result);
 
     // 1. status check
     if (expect.has("status")) {
@@ -36,7 +49,7 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
         const Array keys = expect["has_keys"];
         for (int i = 0; i < keys.size(); ++i) {
             const String key = keys[i];
-            if (!result.has(key)) {
+            if (!data.has(key)) {
                 return String("Missing expected key: ") + key;
             }
         }
@@ -47,15 +60,12 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
         const Array checks = expect["field_checks"];
         for (int i = 0; i < checks.size(); ++i) {
             const Dictionary check = checks[i];
-            // Accept both "path" (C++ format) and "key" (old Python format)
             const String path = check.has("path") ? check["path"].operator String() : check.get("key", "");
-            // Accept both "expect" (C++ format) and "value" (old Python format)
             const Variant expected_val = check.has("expect") ? check["expect"] : check.get("value", Variant());
             String type_hint = normalize_type_hint(check.get("type", ""));
             const bool not_empty = check.get("not_empty", false);
 
-            // Navigate to the field via dot-separated path
-            Variant actual = result;
+            Variant actual = data;
             if (!path.is_empty()) {
                 const Array parts = path.split(".");
                 for (int p = 0; p < parts.size(); ++p) {
