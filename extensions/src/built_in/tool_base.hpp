@@ -16,8 +16,6 @@ class ToolResult {
 public:
     static godot::Dictionary ok(godot::Dictionary data = {});
     static godot::Dictionary err(const godot::String &code, const godot::String &message);
-    static bool is_ok(const godot::Dictionary &r);
-    static bool is_err(const godot::Dictionary &r);
 };
 
 // ── ToolContext: 前置检查后注入的上下文 ──
@@ -63,10 +61,6 @@ public:
     // ── 统一入口（模板方法）──
     // 自动执行前置检查（root/node 解析）、调用 execute_impl、包裹统一信封
     godot::Dictionary execute(const godot::Dictionary &args);
-
-    // ── 注册名计算 ──
-    // 前缀（custom_）由注册路径决定：register_tool(ITool) → 无前缀，register_custom_tool() → 带前缀
-    godot::String registered_name() const { return name(); }
 
 protected:
     // 子类实现业务逻辑，ctx 中 root/node 已保证非空（如果声明了 needs_scene/needs_node）

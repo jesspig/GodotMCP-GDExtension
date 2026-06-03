@@ -275,11 +275,7 @@ Variant json_to_variant(const Variant &jv) {
 }
 
 // ---------------------------------------------------------------------
-// json_stringify_safe — JSON 序列化 + 非 ASCII 字符 \uXXXX 转义
-//
-// 将所有非 ASCII 字符转义为 \uXXXX，确保输出为纯 ASCII。
-// 可防止忽略 charset=utf-8 的客户端出现编码问题，
-// 同时兼容 UTF-8 敏感客户端——JSON 解析器会自动解码 \uXXXX。
+// json_stringify_safe — JSON 序列化
 // ---------------------------------------------------------------------
 
 String json_stringify_safe(const Variant &v) {

@@ -1,31 +1,43 @@
 name: property_3d
 description: 3D-specific property tools
-setup_script: yaml_scripts.scene_setup.property_3d_setup
-teardown_script: yaml_scripts.scene_setup.property_3d_teardown
+
+before_all:
+  - tool: create_scene
+    args: { path: res://test_mcp_scene.tscn, root_name: TestRoot, root_type: Node }
+  - tool: open_scene
+    args: { scene_path: res://test_mcp_scene.tscn }
+  - tool: create_node
+    args: { parent_path: TestRoot, name: Child2D, node_type: Node2D }
+  - tool: create_node
+    args: { parent_path: TestRoot, name: Child3D, node_type: Node3D }
+
+after_all:
+  - tool: close_scene
+    args: {}
+  - tool: delete_scene
+    args: { path: res://test_mcp_scene.tscn }
 
 tests:
-  - tool: get_node_transform_3d
-    description: Get 3D transform of Node3D
+  - tool: get_node_position_3d
+    description: Get 3D position of Node3D
     args: { node_path: "TestRoot/Child3D" }
     expect:
       status: success
-      has_keys: [node_path, transform]
+      has_keys: [node_path, x, y, z]
       field_checks:
         - key: node_path
           not_empty: true
-        - key: transform
-          type: dict
 
-  - tool: get_node_transform_3d
-    description: Get transform of non-3D node
+  - tool: get_node_position_3d
+    description: Get position of non-3D node returns error
     args: { node_path: "TestRoot/Child2D" }
     expect:
       status: error
       has_keys: [error]
 
-  - tool: set_node_transform_3d
+  - tool: set_node_position_3d
     description: Set 3D position
-    args: { node_path: "TestRoot/Child3D", position: { x: 10, y: 20, z: 30 } }
+    args: { node_path: "TestRoot/Child3D", x: 10, y: 20, z: 30 }
     expect:
       status: success
       has_keys: [node_path]

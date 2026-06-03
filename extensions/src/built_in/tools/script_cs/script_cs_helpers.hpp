@@ -23,15 +23,11 @@ inline String find_csproj() {
     return "";
 }
 inline void list_cs_rec(const String &dir, bool inc_addons, int64_t max, Array &out) {
-    if (out.size() >= max) return;
-    Ref<DirAccess> d = DirAccess::open(dir); if (d.is_null()) return;
-    d->list_dir_begin();
-    while (true) {
-        String n = d->get_next(); if (n.is_empty()) break;
-        if (n == "." || n == "..") continue;
-        String full = dir == "res://" ? String("res://") + n : dir + String("/") + n;
-        if (d->current_is_dir()) { if (!inc_addons && (n == "addons" || n == ".godot" || n == ".import")) continue; list_cs_rec(full, inc_addons, max, out); }
-        else if (n.ends_with(".cs") && out.size() < max) { Dictionary e; e["path"] = full; e["size"] = (int64_t)FileAccess::get_file_as_bytes(full).size(); out.append(e); }
+    Array exts; exts.append(".cs");
+    Array paths; walk_project_dir(dir, exts, inc_addons, max, paths);
+    for (int i = 0; i < paths.size(); i++) {
+        Dictionary e; e["path"] = paths[i]; e["size"] = (int64_t)FileAccess::get_file_as_bytes(paths[i]).size();
+        out.append(e);
     }
 }
 inline String sanitize_identifier(const String &name) {

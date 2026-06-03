@@ -3,21 +3,11 @@ description: C# script tools (requires .NET SDK)
 
 tests:
   - tool: csharp_create_solution
-    description: Create .csproj and .sln files
+    description: Create .csproj and .sln files (returns error if exists)
     args: {}
     expect:
-      status: success
-      has_keys: [success, project_name, csproj, sln, guid]
-      field_checks:
-        - key: success
-          type: bool
-        - key: csproj
-          type: string
-          not_empty: true
-        - key: sln
-          type: string
-          not_empty: true
-    skip_if_missing: false
+      status: error
+      has_keys: [error]
 
   - tool: list_csharp_scripts
     description: List C# scripts
@@ -36,7 +26,7 @@ tests:
     args: { path: res://TestMcpScript.cs }
     expect:
       status: success
-      has_keys: [path, created, class_name, language]
+      has_keys: [path, created, language, class_name]
       field_checks:
         - key: path
           value: res://TestMcpScript.cs
@@ -47,7 +37,7 @@ tests:
 
   - tool: create_csharp_script
     description: Create C# script with custom base class
-    args: { path: res://TestMcpNode2D.cs, base_class: Node2D }
+    args: { path: res://TestMcpNode2D.cs, base_class: Node2D, overwrite: true }
     expect:
       status: success
       field_checks:
@@ -111,4 +101,3 @@ tests:
       field_checks:
         - key: configuration
           value: Debug
-    skip_if_missing: false

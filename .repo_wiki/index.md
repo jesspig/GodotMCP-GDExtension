@@ -53,17 +53,16 @@
 
 | 文档 | 说明 |
 |------|------|
-| [测试框架总览](testing/overview.md) | 双轨架构：C++ 进程内引擎 + Python 编排器 |
+| [测试框架总览](testing/overview.md) | C++ 进程内引擎 + Python 编排器 |
 | [C++ 测试引擎](testing/test-engine.md) | TestEngine + YAML 配置 + 磁盘校验 + 双源清理 |
-| [编排器](testing/orchestrator.md) | 生命周期管理：备份 → 启动 → 连接 → 运行 → 恢复 → 报告 |
-| [自定义 MCP 客户端](testing/mcp-client.md) | 绕过 MCP SDK 的 httpx 客户端（解决 float ID 校验问题） |
-| [阶段系统](testing/phase-system.md) | 旧阶段执行系统（将被 YAML 测试替代） |
-| [磁盘文件验证](testing/file-verifier.md) | 纯 Python tscn 解析器（旧，将被 C++ 引擎替代） |
+| [编排器](testing/orchestrator.md) | 生命周期管理：启动 → 连接 → 运行 → 报告 |
+| [磁盘文件验证](testing/file-verifier.md) | 纯 Python tscn 解析器（旧，已被 C++ 引擎替代） |
 
 ## 设计文档
 
 | 文档 | 说明 |
 |------|------|
 | [统一工具架构](design/unified-architecture-plan.md) | ITool 接口 + 组合式能力声明 + 注释驱动自动注册 |
+| [优化与清理计划](design/cleanup-plan.md) | 全项目代码审查后的 4 阶段优化方案（死代码删除 → Bug 修复 → 结构简化 → DRY 提取） |
 | [设计决策](design/decisions.md) | ADR 风格的架构选择记录 |
 | [变更日志](log.md) | 仅追加的项目变更记录

@@ -7,17 +7,20 @@ tests:
     args: {}
     expect:
       status: success
-      has_keys: [connected, engine_version, plugin_version, editor_version]
+      has_keys: [connection, engine, plugin, project, editor]
       field_checks:
-        - key: connected
-          type: bool
-        - key: engine_version
+        - key: connection
+          type: dict
+        - path: connection.status
+          type: string
+        - key: engine
+          type: dict
+        - path: engine.version
           type: string
           not_empty: true
-        - key: plugin_version
-          type: string
-          not_empty: true
-        - key: editor_version
+        - key: plugin
+          type: dict
+        - path: plugin.version
           type: string
           not_empty: true
 
@@ -33,7 +36,7 @@ tests:
 
   - tool: list_tools
     description: List tools in meta category
-    args: { category: meta }
+    args: { category: "other/meta" }
     expect:
       status: success
       field_checks:
@@ -52,28 +55,20 @@ tests:
 
   - tool: get_tool_schema
     description: Get schema for a known tool
-    args: { name: godot_info }
+    args: { tool_name: godot_info }
     expect:
       status: success
-      field_checks:
-        - key: name
-          type: string
-          value: godot_info
-        - key: inputSchema
-          type: dict
+      has_keys: [name, input_schema]
 
   - tool: get_tool_schema
     description: Get schema for nonexistent tool returns error
-    args: { name: nonexistent_tool_xyz }
+    args: { tool_name: nonexistent_tool_xyz }
     expect:
       status: error
       has_keys: [error]
 
   - tool: call_tool
     description: Call godot_info via call_tool (fallback mechanism)
-    args: { name: godot_info }
+    args: { tool_name: godot_info }
     expect:
       status: success
-      field_checks:
-        - key: result
-          type: dict

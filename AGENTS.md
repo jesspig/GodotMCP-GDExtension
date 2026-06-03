@@ -52,11 +52,11 @@ class MyTool : public ITool {
 
 - **源码位置**：`extensions/src/built_in/tools/<category>/*.hpp`（124 个 ITool，17 组）
 - **codegen 生成**：`build/extensions/generated/generated_registration.cpp`（CMake 自动驱动 `tools/codegen.py`）
-- **两轴分类**：`source()`（meta/built_in/custom）决定可见性，`category()` 决定分组
+- **两轴分类**：`is_meta()` 决定可见性（始终可见 vs 渐进式披露），`category()` 决定分组
 - **渐进式披露**：meta 工具始终可见；非 meta 工具通过 `list_tool_categories` → `list_tools` 二级发现
 - **Category remap**：17 个原始 category → 6 个顶级（node/scene/editor/script/settings/other），见 `handler_registry.cpp:256`
-- **统一调度**：`HandlerRegistry::execute()` 先查 `itool_table_`，再查 `table_`（CommandFn 后备，仅 SDK 自定义工具使用）
-- **editor_plugin.cpp 二次调用**：`register_all_tools()` 内部已含 `register_itools()`，但 `editor_plugin.cpp:66` 又单独调了一次 `register_itools(registry_)`（幂等，无害）
+- **统一调度**：`HandlerRegistry::execute()` 先查 `itool_table_`（ITool），再查 `table_`（CommandFn 后备，仅 SDK 自定义工具使用）
+- **SDK 双模注册**：Mode A（继承 `McpToolDefinition`）+ Mode B（`register_tool(name, ..., callable)`），均通过 `CommandFn` 后备表
 
 ### 工具分组
 
@@ -89,7 +89,6 @@ class MyTool : public ITool {
 - **`undoable_set()`**（`cmd_utils.hpp:81`）——"立即应用 + 注册撤销"惯用模式。
 - **`variant_to_json()` / `json_to_variant()`**——Godot Variant ↔ JSON 递归转换。
 - **Args 解析辅助函数**：`args_string()` / `args_int()` / `args_float()` / `args_bool()`（`cmd_utils.hpp:122-140`）。
-- **`tool_schemas.json`**：`tools/tool_schemas.json` 在构建时自动复制到 `example/addons/godot_mcp/`，运行时通过 `load_tool_schemas()` 加载。
 - **版本号只在根 `CMakeLists.txt:22` 维护**。`plugin.cfg` 和 `.gdextension` 由 CMake 自动生成。
 - **Pinned deps**：`godot-cpp` 10.0.0-rc1，`ryml` v0.7.0（FetchContent）。升级需测试。
 - **Godot LSP 客户端**：`lsp/client.cpp`，用于 GDScript 校验（validate_gdscript 工具）。
@@ -102,9 +101,8 @@ class MyTool : public ITool {
     -H "Content-Type: application/x-yaml" \
     --data-binary @tests/yaml_tests/<name>.test.yaml
   ```
-- **Python 编排器**：`uv run python tests/test_orchestrator.py`（管理 Godot 生命周期）。
+- **Python 编排器**：`uv run python tests/test_orchestrator.py`（管理 Godot 生命周期，通过 `/run-tests` 端点执行 YAML 测试）。
 - **清理策略**：双源追踪（EditorFileSystem 快照差分 + 工具返回值路径追踪），只删交集，保护用户文件。
-- **旧 Python 阶段测试**在 `tests/test_phases/`，过渡期共存。
 
 ## SDK 层（GDScript/C# 自定义工具）
 
@@ -145,3 +143,69 @@ pnpm run build  # 构建 docs/
 ## 项目知识库
 
 - [项目 Wiki](.repo_wiki/index.md)
+
+## 优化与清理计划
+
+> 2026-06-02 全项目代码审查后制定的优化方案，按独立可验证的阶段组织。
+
+### 阶段 1：死代码删除（纯删除，零风险）
+
+**删除整个文件：**
+
+| 文件 | 原因 |
+|------|------|
+| `extensions/src/sdk/mcp_tool_adapter.hpp` | 零引用的死代码（未采用的 ITool 适配器方案） |
+| `tests/test_phases/__init__.py` | 空壳（18 个 phase 模块已删除） |
+| `tests/mcp_client.py` | 仅被已死的 Python fallback 路径使用 |
+| `tests/test_context.py` | 仅被已死的 Python fallback 路径使用 |
+| `tools/tool_schemas.json` | 全部 124 工具已迁移到 ITool 的 `input_schema()`，`load_schemas_from_json()` 跳过所有已注册工具 |
+
+**`handler_registry.hpp` + `.cpp` 删除项：**
+
+| 项 | 原因 |
+|------|------|
+| `register_tool(name, CommandFn)` | 零调用者（SDK 用 `register_custom_tool`） |
+| `find()` / `has()` / `size()` | 只查 CommandFn 表，语义错误且零外部调用者 |
+| `load_schemas_from_json()` | 配套已删除的 `tool_schemas.json` |
+
+**其他删除项：**
+
+- `editor_plugin.cpp`：删除 `load_tool_schemas()` 方法及调用、删除重复的 `register_itools(registry_)` 调用
+- `tool_base.hpp/.cpp`：删除 `ToolResult::is_ok()` / `is_err()`（零调用）
+- `cmd_utils.hpp`：删除 `make_error()` / `make_success()`（已被 `ToolResult` 替代）、删除过时的 `is_ok()` 注释
+- `mcp_tool_registry.hpp/.cpp`：删除 `CustomTool::handler` 死字段
+- `test_http_handler.hpp`：移除全部 `dbg`/`_h_*` 调试字段
+- `test_engine.cpp`：删除 `_dbg_*` 字段、`DEBUG` 日志
+- `test_orchestrator.py`：删除 `get_phases()`、fallback 分支（267-318 行）、`backup_example()`、死 import、`[DEBUG]` print
+- `test_phases/base.py`：删除 `PhaseRunner`、`ToolTest`、`disk_verified`/`disk_detail`
+- `report.py`：修复 `add_phase()` end_time 覆写 bug、删除 `cleanup_status`、修复 `disk_verified` 显示
+- `godot_manager.py`：删除 `import signal`
+
+### 阶段 2：Bug 修复
+
+| 文件 | 行号 | 问题 | 修复 |
+|------|------|------|------|
+| `mcp_tool_definition.cpp` | 40 | `has_method("execute")` 因 ClassDB 绑定始终为 true，基类实例会递归栈溢出 | 改为 `get_script_instance()` 检查 |
+| `test_assertions.hpp` | 191 | `expect["error"]` 变量名错误 | 改为 `expect["error_contains"]` |
+| `mcp_handler.cpp` | 386/390 | `pending_requests_` erase key 不匹配 | 统一用 `JSON::stringify(id)` |
+| `mcp_tool_registry.cpp` | 247 | Mode B `is_meta` 缺 `DEFVAL` | 添加 `DEFVAL(false)` |
+| `test_engine.cpp` | 189-197 | `execute_chain` 忽略错误 | `before_all` 失败时中断 |
+| `csharp_build.hpp` | 30-34 | 不使用 `ToolResult` 信封 | 改用 `ToolResult::ok/err` |
+| `undo_tool.hpp` / `redo_tool.hpp` | 29/30 | "无操作"返回裸 dict | 改用 `ToolResult::err` |
+| `get_node_collision_layer.hpp` | 25 | 检查 `success` 而非 `error` | 改为 `if (e.has("error"))` |
+| `set_variable.hpp` | 30 | 无 undo 支持 | 改用 `undoable_set()` |
+
+### 阶段 3：结构简化
+
+- `editor_plugin.cpp` 直接调用 `register_itools()`，删除 `register_all_tools` 透传函数
+- `tool_base.hpp` `registered_name()` 内联为 `name()`
+- `CMakeLists.txt:65` 删除 "Legacy" 标签
+- `cmd_utils_json.cpp:277-287` 删除 `json_stringify_safe()` 误导性注释
+- `editor_plugin.cpp` `has_method` fallback 路径加 `log_warn`
+- `mcp_handler.hpp:56` 注释 `Warning=3` → `Error=3`
+
+### 阶段 4：DRY 提取
+
+- `cmd_utils.hpp` 新增 `walk_project_dir()`：统一 4 处目录遍历（list_gd/cs/scenes/walk_dir）
+- `cmd_utils.hpp` 新增 `collect_nodes_by()`：统一 4 处树遍历（find_by_name/type/group/script）
+- `testing/` 新增 `type_utils.hpp`：`normalize_type_hint()` + `kDefaultTolerance`

@@ -4,7 +4,6 @@
 
 #include <godot_cpp/classes/engine.hpp>
 #include <limits>
-#include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/scene_tree.hpp>
@@ -41,31 +40,12 @@ int McpEditorPlugin::read_port_from_env(const String &env_var, int default_port)
     return (int)parsed;
 }
 
-void McpEditorPlugin::load_tool_schemas() {
-    static const Vector<String> kCandidatePaths = {
-        "res://addons/godot_mcp/tool_schemas.json",
-    };
-    for (int i = 0; i < kCandidatePaths.size(); ++i) {
-        Ref<FileAccess> f = FileAccess::open(kCandidatePaths[i], FileAccess::READ);
-        if (f.is_valid()) {
-            const String content = f->get_as_text();
-            f->close();
-            registry_.load_schemas_from_json(content);
-            return;
-        }
-    }
-    log_warn("plugin", "tool_schemas.json not found — tools will have no schema info");
-}
-
 void McpEditorPlugin::_enter_tree() {
     if (!Engine::get_singleton()->is_editor_hint()) return;
 
     registry_.set_engine_version(Engine::get_singleton()->get_version_info().get("string", String()));
     registry_.set_plugin_version(String(GODOT_MCP_PLUGIN_VERSION));
-    register_all_tools(registry_);
     register_itools(registry_);
-
-    load_tool_schemas();
 
     // Inject dependencies into McpToolRegistry singleton (SDK layer)
     McpToolRegistry *sdk_registry = McpToolRegistry::get_singleton();
@@ -94,7 +74,7 @@ void McpEditorPlugin::_enter_tree() {
     if (has_method("add_control_to_bottom_panel")) {
         call("add_control_to_bottom_panel", test_dock_, "Tests");
     } else {
-        // Fallback: just add as child
+        log_warn("plugin", "add_control_to_bottom_panel not bound — adding dock as child");
         add_child(test_dock_);
     }
 

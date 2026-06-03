@@ -28,14 +28,6 @@ Dictionary ToolResult::err(const String &code, const String &message) {
     return r;
 }
 
-bool ToolResult::is_ok(const Dictionary &r) {
-    return r.has("success") && r["success"].operator bool();
-}
-
-bool ToolResult::is_err(const Dictionary &r) {
-    return r.has("success") && !r["success"].operator bool();
-}
-
 // =========================================================================
 // ITool::execute — 模板方法
 // =========================================================================

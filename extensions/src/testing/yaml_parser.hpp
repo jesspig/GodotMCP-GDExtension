@@ -56,7 +56,6 @@ inline godot::Variant ryml_to_variant(ryml::ConstNodeRef node) {
         const auto nch = node.num_children();
         for (size_t i = 0; i < nch; ++i) {
             const auto child = node.child(i);
-            if (!child.is_keyval()) continue;
             const godot::String key = detail::to_godot_string(child.key());
             dict[key] = ryml_to_variant(child);
         }

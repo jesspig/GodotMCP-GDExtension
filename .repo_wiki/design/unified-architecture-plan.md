@@ -493,4 +493,4 @@ expect:
 | `tools/codegen.py` | 注释扫描 + 注册代码生成 |
 | `server/registry/handler_registry.hpp/.cpp` | 统一存储 ITool + CommandFn + 自定义工具 |
 | `server/registry/generated/generated_registration.cpp` | 由 codegen.py 自动生成 |
-| `sdk/mcp_tool_adapter.hpp` | McpToolDefinitionAdapter (SDK → ITool 桥接) |
+| `sdk/mcp_tool_adapter.hpp` | McpToolDefinitionAdapter (SDK → ITool 桥接) | **未采用**——实际走 CommandFn 后备表路径，该文件为零引用死代码，待删除 |

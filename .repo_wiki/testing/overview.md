@@ -1,16 +1,16 @@
 # 测试框架总览
 
-> 双轨测试架构：**C++ 进程内测试引擎**（`TestEngine` + `/run-tests`）同时覆盖内置工具和 SDK 自定义工具，辅以旧 **Python 集成测试框架**（`test_orchestrator.py` + 18 阶段）。
+> C++ 进程内测试引擎（`TestEngine` + `/run-tests`）覆盖内置工具和 SDK 自定义工具，Python 编排器管理 Godot 生命周期。
 
 ## 架构
 
-### C++ 测试引擎（新，主推）
+### C++ 测试引擎
 
 ```
-                        ┌──────────────────────┐
-                        │  .test.yaml 配置文件   │
-                        └──┬───────────────────┘
-                           │
+                         ┌──────────────────────┐
+                         │  .test.yaml 配置文件   │
+                         └──┬───────────────────┘
+                            │
            ┌───────────────┼───────────────┐
            ▼               ▼               ▼
    ┌──────────────┐ ┌──────────┐ ┌────────────────┐
@@ -33,23 +33,11 @@
 - **磁盘校验**：支持 `.tscn`/`.tres`/`project.godot` 属性路径解析 + 类型转换 + 容差比较
 - **自动清理**：EditorFileSystem 快照差分 + 工具返回值双源追踪，只删交集
 
-### Python 集成测试框架（旧，过渡中）
-
-```
-test_orchestrator.py
-├── godot_manager.py  (启动/停止 Godot)
-├── mcp_client.py     (HTTP MCP 会话)
-├── file_verifier.py  (纯 Python tscn 解析)
-├── report.py         (JSON + Markdown)
-└── test_phases/*.py  (18 个阶段文件)
-```
-
 ## 设计原则
 
 - **配置驱动**：YAML 测试文件完整描述测试，无需编写脚本
 - **双源清理**：EditorFileSystem 内存遍历快照 + 工具返回值追踪，确保不误删用户文件
 - **类型安全校验**：Godot Variant 类型转换 + 浮点容差，精确匹配引擎行为
-- **渐进迁移**：旧 Python 阶段逐步被 YAML 测试替代，过渡期共存
 
 ## 入口
 
@@ -64,7 +52,6 @@ test_orchestrator.py
 | 文档 | 说明 |
 |------|------|
 | [测试引擎](test-engine.md) | TestEngine 架构、执行流程、YAML 格式、磁盘校验、清理策略 |
-| [磁盘文件验证](file-verifier.md) | 纯 Python tscn 解析器（旧，将被 C++ 引擎替代） |
 
 ## 运行
 

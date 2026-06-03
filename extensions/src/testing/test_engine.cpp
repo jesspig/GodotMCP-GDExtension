@@ -186,14 +186,25 @@ void TestEngine::cleanup(const Array &tracked,
 // Execute a chain of tool calls (before_all, after_all, before_each, after_each)
 // ---------------------------------------------------------------------------
 
-void TestEngine::execute_chain(const Array &chain) {
+godot::String TestEngine::execute_chain(const Array &chain) {
     for (int i = 0; i < chain.size(); ++i) {
         const Dictionary step = chain[i];
         const String tool_name = step.get("tool", "");
         const Dictionary tool_args = step.get("args", Dictionary());
         if (tool_name.is_empty()) continue;
-        registry_->execute(tool_name, tool_args);
+        const Dictionary result = registry_->execute(tool_name, tool_args);
+        if (result.has("error")) {
+            const Variant err = result["error"];
+            String err_msg = err.get_type() == Variant::DICTIONARY
+                ? Dictionary(err).get("message", "Unknown error")
+                : String(err);
+            return String("before_all step '") + tool_name + String("' failed: ") + err_msg;
+        }
+        if (result.has("success") && !result["success"].operator bool()) {
+            return String("before_all step '") + tool_name + String("' returned success=false");
+        }
     }
+    return String();
 }
 
 // ---------------------------------------------------------------------------
@@ -257,25 +268,38 @@ Dictionary TestEngine::run(const String &yaml_content) {
     suite_result["name"] = config.get("name", "");
     suite_result["description"] = config.get("description", "");
 
-    suite_result["_dbg_parsed_keys"] = config.keys();
-    suite_result["_dbg_has_tests"] = config.has("tests");
-
     // --- Snapshot before ---
     const FileSnapshot before = take_snapshot();
 
     // --- before_all chain ---
+    String before_all_error;
     if (config.has("before_all")) {
-        execute_chain(config["before_all"]);
+        before_all_error = execute_chain(config["before_all"]);
     }
 
     // --- Tests ---
     Array test_results;
     int total = 0, passed = 0, failed = 0;
 
-    if (config.has("tests")) {
+    if (!before_all_error.is_empty()) {
+        // before_all failed — report error and skip all tests
+        if (config.has("tests")) {
+            const Array tests = config["tests"];
+            total = tests.size();
+            failed = total;
+            for (int i = 0; i < tests.size(); ++i) {
+                const Dictionary test_def = tests[i];
+                Dictionary entry;
+                entry["tool"] = test_def.get("tool", "");
+                entry["description"] = test_def.get("description", "");
+                entry["passed"] = false;
+                entry["error"] = before_all_error;
+                test_results.push_back(entry);
+            }
+        }
+    } else if (config.has("tests")) {
         const Array tests = config["tests"];
         total = tests.size();
-        log_info("test_engine", String("DEBUG tests count: ") + String::num_int64(total));
 
         for (int i = 0; i < tests.size(); ++i) {
             const Dictionary test_def = tests[i];

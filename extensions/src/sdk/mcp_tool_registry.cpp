@@ -152,7 +152,6 @@ void McpToolRegistry::register_tool(
     ct.brief = brief;
     ct.description = description;
     ct.input_schema = input_schema;
-    ct.handler = handler;
     ct.is_meta = is_meta;
     tools_[resolved] = ct;
 
@@ -244,7 +243,7 @@ void McpToolRegistry::_bind_methods() {
     ClassDB::bind_method(D_METHOD("register_tool", "name", "category", "brief",
                                   "description", "input_schema", "handler",
                                   "is_meta"),
-                         &McpToolRegistry::register_tool);
+                         &McpToolRegistry::register_tool, DEFVAL(false));
     ClassDB::bind_method(D_METHOD("unregister_tool", "name"),
                          &McpToolRegistry::unregister_tool);
 

@@ -26,10 +26,10 @@ protected:
         int64_t hid = ur->get_object_history_id(ctx.root);
         UndoRedo *undo_redo = ur->get_history_undo_redo((uint32_t)hid);
         if (!undo_redo) return ToolResult::err("NO_HISTORY", "No undo history for current scene");
-        if (!undo_redo->has_undo()) { Dictionary d; d["success"] = false; d["hint"] = "Nothing to undo"; return d; }
+        if (!undo_redo->has_undo()) return ToolResult::err("NO_ACTION", "Nothing to undo");
         bool ok = undo_redo->undo();
         String name = undo_redo->get_current_action_name();
-        Dictionary d; d["success"] = ok; d["action"] = name; return d;
+        Dictionary d; d["action"] = name; d["undo_applied"] = ok; return d;
     }
 };
 

@@ -45,7 +45,7 @@ private:
                  godot::Array &out_deleted,
                  godot::Array &out_skipped);
 
-    void execute_chain(const godot::Array &chain);
+    godot::String execute_chain(const godot::Array &chain);
     godot::Dictionary execute_test(const godot::Dictionary &test_def);
 
     HandlerRegistry *registry_;

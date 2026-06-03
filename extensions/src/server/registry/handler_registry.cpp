@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <vector>
-#include <godot_cpp/classes/file_access.hpp>
 
 using namespace godot;
 
@@ -14,10 +13,6 @@ HandlerRegistry::HandlerRegistry() = default;
 // ---------------------------------------------------------------------------
 // Tool registration
 // ---------------------------------------------------------------------------
-
-void HandlerRegistry::register_tool(const String &name, CommandFn fn) {
-    table_[name] = std::move(fn);
-}
 
 void HandlerRegistry::register_custom_tool(const String &name, const String &category,
                                            const String &brief, const String &description,
@@ -58,7 +53,7 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool) {
     // 注入 registry 指针（meta 工具需要它回调查询）
     tool->set_registry(this);
 
-    const String name = tool->registered_name();
+    const String name = tool->name();
 
     // Populate ToolInfo for backward compatibility (category queries, schema, etc.)
     ToolInfo info;
@@ -97,44 +92,6 @@ Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args) 
     Dictionary error;
     error["error"] = String("Tool not found: ") + name;
     return error;
-}
-
-// ---------------------------------------------------------------------------
-// Schema loading (builtin tools from JSON)
-// ---------------------------------------------------------------------------
-
-void HandlerRegistry::load_schemas_from_json(const String &json_text) {
-    Ref<JSON> json;
-    json.instantiate();
-    const Error err = json->parse(json_text);
-    if (err != OK) {
-        return;
-    }
-    const Variant data = json->get_data();
-    if (data.get_type() != Variant::ARRAY) return;
-    const Array tools = data;
-    for (int i = 0; i < tools.size(); ++i) {
-        const Dictionary entry = tools[i];
-        const String name = entry.get("name", "");
-        if (name.is_empty()) continue;
-
-        // 不覆盖已通过 ITool 或 SDK 注册的工具信息
-        {
-            auto existing = tool_info_.find(name);
-            if (existing != tool_info_.end()) continue;
-        }
-
-        ToolInfo info;
-        info.name = name;
-        info.description = entry.get("description", "");
-        info.brief = entry.get("brief", "");
-        info.category = entry.get("category", "");
-        info.is_meta = false;
-        info.is_custom = false;
-        info.input_schema = entry.get("input_schema", Dictionary());
-        info.enabled = true;
-        tool_info_[name] = info;
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -194,15 +151,6 @@ void HandlerRegistry::set_tool_enabled(const String &name, bool enabled) {
         it->value.enabled = enabled;
     }
 }
-
-const CommandFn *HandlerRegistry::find(const String &name) const {
-    auto it = table_.find(name);
-    if (it == table_.end()) return nullptr;
-    return &it->value;
-}
-
-bool HandlerRegistry::has(const String &name) const { return table_.has(name); }
-int HandlerRegistry::size() const { return (int)table_.size(); }
 
 // ---------------------------------------------------------------------------
 // Category queries (for progressive disclosure)
@@ -483,16 +431,6 @@ int HandlerRegistry::custom_tool_count() const {
         if (kv.value.is_custom) ++count;
     }
     return count;
-}
-
-// ---------------------------------------------------------------------------
-// Built-in tool registration — delegates to codegen'd register_itools()
-// ---------------------------------------------------------------------------
-
-void register_itools(HandlerRegistry &reg);
-
-void register_all_tools(HandlerRegistry &reg) {
-    register_itools(reg);
 }
 
 }  // namespace godot_mcp

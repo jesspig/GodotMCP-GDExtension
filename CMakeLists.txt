@@ -85,10 +85,7 @@ add_custom_target(copy-gdext ALL
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_FILE:godot_mcp_gdext>"
         "${_gdext_bin_dir}/${_gdext_lib_name}"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/tools/tool_schemas.json"
-        "${_addon_dir}/tool_schemas.json"
-    COMMENT "Copying GDExtension to addons/bin/ and tool schemas"
+    COMMENT "Copying GDExtension to addons/bin/"
 )
 add_dependencies(copy-gdext godot_mcp_gdext)
 

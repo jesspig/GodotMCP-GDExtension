@@ -32,26 +32,16 @@ class HandlerRegistry {
 public:
     HandlerRegistry();
 
-    // ── 旧式注册（CommandFn）──
-    void register_tool(const godot::String &name, CommandFn fn);
+    // ── SDK 自定义工具注册（CommandFn）──
     void register_custom_tool(const godot::String &name, const godot::String &category,
                               const godot::String &brief, const godot::String &description,
                               const godot::Dictionary &schema, CommandFn fn,
                               bool is_meta = false);
     bool unregister_custom_tool(const godot::String &name);
 
-    // ── 新式注册（ITool）──
+    // ── ITool 注册──
     void register_tool(std::unique_ptr<ITool> tool);
-    // 统一调度入口：先查 itool_table_，再查 table_
     godot::Dictionary execute(const godot::String &name, const godot::Dictionary &args);
-
-    // --- Schema loading ---
-    void load_schemas_from_json(const godot::String &json_text);
-
-    // --- Lookup ---
-    const CommandFn *find(const godot::String &name) const;
-    bool has(const godot::String &name) const;
-    int size() const;
 
     const ToolInfo *find_tool_info(const godot::String &name) const;
     godot::Array get_all_tools() const;
@@ -87,7 +77,6 @@ private:
     godot::String plugin_version_;
 };
 
-void register_all_tools(HandlerRegistry &reg);
 void register_itools(HandlerRegistry &reg);
 
 }  // namespace godot_mcp

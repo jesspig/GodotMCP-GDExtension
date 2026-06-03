@@ -11,13 +11,14 @@
 //   * ensure_parent_dir()        — mkdir -p for res:// paths
 //   * relative_path()            — node path relative to scene root
 //   * globalize_path()           — res:// -> absolute disk path
-//   * is_ok()                    — short-circuit error returns
 //
 // All functions in this header MUST be called from the main thread.
 // =====================================================================
 
 #pragma once
 
+#include <functional>
+#include <godot_cpp/classes/dir_access.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
@@ -143,22 +144,56 @@ bool args_bool(const godot::Dictionary &args,
 // Response builders
 // ---------------------------------------------------------------------
 
-// Build a single-key {"error": message} dict.
-inline godot::Dictionary make_error(const godot::String &message) {
-    godot::Dictionary d;
-    d["error"] = message;
-    return d;
-}
-
-// JSON stringify with non-ASCII characters escaped as \uXXXX.
-// Pure ASCII output — immune to charset decoding issues in MCP clients.
 godot::String json_stringify_safe(const godot::Variant &v);
 
-// Build a single-key {"success": value} dict.
-inline godot::Dictionary make_success(bool value = true) {
-    godot::Dictionary d;
-    d["success"] = value;
-    return d;
+// ---------------------------------------------------------------------
+// Tree traversal
+// ---------------------------------------------------------------------
+
+inline void collect_nodes_by(godot::Node *node,
+                               std::function<bool(godot::Node *)> predicate,
+                               godot::Array &out, int64_t max_results,
+                               godot::Node *root) {
+    if (out.size() >= max_results) return;
+    if (predicate(node)) {
+        godot::Dictionary d;
+        d["name"] = node->get_name();
+        d["type"] = node->get_class();
+        d["path"] = relative_path(root, node);
+        out.append(d);
+    }
+    for (int64_t i = 0; i < node->get_child_count(); i++) {
+        godot::Node *c = godot::Object::cast_to<godot::Node>(node->get_child(i));
+        if (c) collect_nodes_by(c, predicate, out, max_results, root);
+    }
+}
+
+// ---------------------------------------------------------------------
+// Directory traversal
+// ---------------------------------------------------------------------
+
+inline void walk_project_dir(const godot::String &dir, const godot::Array &extensions,
+                               bool include_addons, int64_t max_results, godot::Array &out) {
+    if (out.size() >= max_results) return;
+    godot::Ref<godot::DirAccess> d = godot::DirAccess::open(dir);
+    if (d.is_null()) return;
+    d->list_dir_begin();
+    while (true) {
+        godot::String n = d->get_next();
+        if (n.is_empty()) break;
+        if (n == "." || n == "..") continue;
+        godot::String full = dir == "res://" ? godot::String("res://") + n : dir + godot::String("/") + n;
+        if (d->current_is_dir()) {
+            if (!include_addons && (n == "addons" || n == ".godot" || n == ".import")) continue;
+            walk_project_dir(full, extensions, include_addons, max_results, out);
+        } else {
+            bool match = extensions.size() == 0;
+            for (int i = 0; i < extensions.size() && !match; i++) {
+                if (n.ends_with(godot::String(extensions[i]))) match = true;
+            }
+            if (match && out.size() < max_results) out.append(full);
+        }
+    }
 }
 
 }  // namespace godot_mcp

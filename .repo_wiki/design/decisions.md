@@ -103,26 +103,24 @@
 
 ## ADR-010: 统一工具架构（ITool 接口 + 组合式能力声明 + 注释驱动自动注册）
 
-**状态**：提议
+**状态**：已接受（P1-P6 全部完成，124 个 ITool 已迁移）
 **日期**：2026-06
 **背景**：当前 119 个工具以自由函数（`CommandFn`）+ `tool_schemas.json` 两阶段注册，存在返回结构不统一、样板代码重复、新增工具需改 3 处、内置与 SDK 工具分叉存储等问题。
 **决策**：实施统一工具架构重构：
 1. **ITool 接口**：所有工具（内置/SDK）实现同一接口，`execute()` 为统一入口
 2. **ToolResult 信封**：`{"success": true, "data": {...}}` / `{"success": false, "error": {"code": "...", "message": "..."}}`
 3. **组合式能力声明**：`needs_scene()` / `needs_node()` 替代继承链
-4. **两轴分类**：`source()`（meta/built_in/custom）决定可见性，`category()` 决定分组
-5. **注释驱动自动注册**：`// @tool register` + `// @source <type>` → codegen.py 生成注册代码
-6. **统一 HandlerRegistry**：内置与 SDK 工具存入同一 `HashMap<String, unique_ptr<ITool>>`
+4. **可见性标记**：`is_meta()` 布尔值决定可见性（始终可见 vs 渐进式披露），非原计划的 `source()` 三值枚举
+5. **注释驱动自动注册**：`// @tool register` → codegen.py 生成注册代码
+6. **双表调度**：内置工具存入 `itool_table_`（ITool），SDK 自定义工具存入 `table_`（CommandFn 后备表），`execute()` 先查 ITool 再查 CommandFn
 **后果**：
 - 正面：消除 `tool_schemas.json` 两阶段注册问题
 - 正面：消除约 60 处 `get_root()`/`resolve_node()` 样板代码
 - 正面：新增工具只需创建 `.hpp` 文件，零处手动注册
-- 正面：内置与 SDK 工具完全同构，统一调用方式和返回结构
 - 正面：`input_schema()` 自描述，编译期类型安全
 - 正面：YAML 驱动测试利用统一信封简化断言
-- 负面：需要迁移全部 119 个现有工具
-- 负面：codegen.py 引入构建时代码生成步骤
-- 负面：旧 phase 测试在新 YAML 测试覆盖前需要共存
+- 负面：`mcp_tool_adapter.hpp`（SDK → ITool 适配器）未采用，为零引用死代码待删除
+- 负面：`tool_schemas.json` 过渡期遗留待清理
 
 完整方案见 [统一工具架构重构计划](unified-architecture-plan.md)。
 
