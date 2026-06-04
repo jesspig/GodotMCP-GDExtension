@@ -1,6 +1,8 @@
 # Project Settings Extensions
 
-> 10 个聚合设置工具，将分散在 `ProjectSettings` 中的相关属性打包为 get/set 对。实现在 `extensions/gdext/src/commands/project_settings_ext.cpp`。
+> 10 个聚合设置工具，将分散在 `ProjectSettings` 中的相关属性打包为 get/set 对。**当前实现位置**：`extensions/src/built_in/tools/` 下的 ITool。
+>
+> **历史路径**：`extensions/gdext/src/commands/project_settings_ext.cpp`（已删除，参见 commit `c4318ee`）。
 
 ## 工具列表
 

@@ -1,12 +1,14 @@
-# 磁盘文件验证（旧——将被 C++ 引擎替代）
+# 磁盘文件验证（已废弃——历史参考）
 
-> `file_verifier.py`——无需 Godot 编辑器即可直接解析 Godot 项目文件（`.tscn`、`project.godot`）的纯 Python 工具。将被 C++ `godot_file_verifier.hpp` 替代。
+> **状态：已被 C++ 引擎替代。** `tests/file_verifier.py` 文件已删除。磁盘验证逻辑已迁移到 `extensions/src/testing/test_engine.cpp` 的 `verify_disk_*` 系列函数。
+>
+> **保留此文档仅作为历史参考**。新测试无需调用 Python 验证器——`TestEngine` 会自动执行双源追踪（运行时 API 返回值 + 磁盘持久化状态）。
 
-## 用途
+## 旧用途
 
-测试阶段在通过 MCP 创建/修改场景后，调用 `file_verifier` 直接读取 `.tscn` 文件，验证磁盘上的节点属性是否与 MCP 返回值一致。这提供了**双通道验证**：运行时 API 返回值 + 磁盘持久化状态。
+测试在通过 MCP 创建/修改场景后，调用 `file_verifier` 直接读取 `.tscn` 文件，验证磁盘上的节点属性是否与 MCP 返回值一致。这提供了**双通道验证**：运行时 API 返回值 + 磁盘持久化状态。
 
-## 核心函数
+## 旧核心函数
 
 ### `resolve_path(path: str, project_path: str) -> str`
 
@@ -62,6 +64,14 @@
 
 检查文件内容中是否包含子字符串。
 
-### `_parse_bracket_attrs(line: str) -> dict`
+## C++ 替代（当前活跃）
 
-内部函数，从 `[node name="Foo" type="Bar"]` 格式的括号部分解析键值属性。支持带引号和不带引号的值。
+| 旧 Python 函数 | C++ 替代（`extensions/src/testing/test_engine.cpp`） |
+|---------------|---------------------------------------------------|
+| `parse_tscn` | `TestEngine::parse_tscn(path)`（内部） |
+| `get_node_property` | `TestEngine::read_tscn_node_prop(path, name, prop)` |
+| `verify_tscn_has_node` | `TestEngine::assert_tscn_has_node(path, name, type)` |
+| `verify_project_godot` | `TestEngine::verify_project_godot_value(path, section, key, expected)` |
+| `verify_file_contains` | `TestEngine::verify_file_contains(path, substring)` |
+
+YAML 测试用例通过 `expect_disk_contains` / `expect_disk_node_property` / `expect_disk_tscn_has_node` 等关键字触发这些验证器。详见 [testing/test-engine.md](test-engine.md) 的「断言」与「磁盘验证」章节。

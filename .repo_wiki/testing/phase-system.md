@@ -1,8 +1,11 @@
-# 阶段系统（旧——将被 YAML 测试替代）
+# 阶段系统（已废弃——历史参考）
 
-> 18 个阶段文件，每个导出 `TOOL_TESTS: list[ToolTest]`，测试 GodotMCP 工具的一个功能领域。将被 YAML 驱动的 `TestEngine` 替代。
+> **状态：已删除。** 18 个 `tests/test_phases/phase_XX_*.py` 文件已于 2026-06 的清理阶段 1 中删除。
+> 唯一测试路径为 `tests/test_orchestrator.py` 调 `/run-tests` 端点，由 C++ `TestEngine` 执行 YAML 驱动测试。
+>
+> **保留此文档仅作为历史参考**，新工具/新测试不应再使用 `ToolTest`/`PhaseRunner` 数据类。
 
-## 数据类
+## 数据类（已删除）
 
 ```python
 @dataclass
@@ -32,7 +35,7 @@ class PhaseReport:
     end_time: Optional[float] = None
 ```
 
-## PhaseRunner 执行逻辑
+## 旧 PhaseRunner 执行流程
 
 ```mermaid
 flowchart TD
@@ -50,30 +53,42 @@ flowchart TD
     B --> L[完成阶段]
 ```
 
-- 按 `TOOL_TESTS` 列表顺序执行
-- 每个测试的 `setup` 和 `teardown` 是当前 `ToolTest` 实例的属性（不是列表级别的）
-- 异常被捕获并报告为 `FAIL`（含 traceback）
-- `TestContext` 在阶段间共享，包含会话引用、可用工具集合、创建的文件/节点列表等状态
+## 阶段一览（历史）
 
-## 阶段一览
+| 阶段 | 文件 | 测试内容 |
+|------|------|----------|
+| 01 | `phase_01_connect` | 连接检测（ping、engine/plugin version、editor info） |
+| 02 | `phase_02_net_check` | get_editor_info（已合并到 01） |
+| 03 | `phase_03_read_only` | 只读查询（scene tree、settings、autoloads、plugins 等） |
+| 04 | `phase_04_scene_node` | 场景/节点 CRUD |
+| 05 | `phase_05_property_2d` | 2D 属性读写（已被 `property_2d.yaml` 替代） |
+| 06 | `phase_06_property_3d` | 3D 属性读写（已被 `property_3d.yaml` 替代） |
+| 07 | `phase_07_collision` | 碰撞体添加 |
+| 08 | `phase_08_find` | 节点搜索 |
+| 09 | `phase_09_script` | GDScript 创建/编辑/验证 |
+| 10 | `phase_10_scene_mgmt` | 场景文件管理 |
+| 11 | `phase_11_search` | 文件搜索与替换 |
+| 12 | `phase_12_input` | InputMap 操作 |
+| 13 | `phase_13_project_write` | 项目设置写入 |
+| 14 | `phase_14_editor_control` | play/stop/is_playing、refresh |
+| 15 | `phase_15_plugin` | 插件管理（list、enable/disable） |
+| 16 | `phase_16_undo` | undo/redo |
+| 17 | `phase_17_csharp` | C# 脚本操作（需要 dotnet） |
+| 18 | `phase_18_cleanup` | 清理所有创建的文件、恢复备份 |
 
-| 阶段 | 文件 | 测试内容 | 工具数 |
-|------|------|----------|--------|
-| 01 | `phase_01_connect` | 连接检测（ping、engine/plugin version、editor info） | 4 |
-| 02 | `phase_02_net_check` | get_editor_info（已合并到 01） | 0 |
-| 03 | `phase_03_read_only` | 只读查询（scene tree、settings、autoloads、plugins 等） | 17 |
-| 04 | `phase_04_scene_node` | 场景/节点 CRUD（创建、删除、重命名、复制、移动） | 15 |
-| 05 | `phase_05_property_2d` | 2D 属性读写（position、rotation、scale、visible 等） | — |
-| 06 | `phase_06_property_3d` | 3D 属性读写 | — |
-| 07 | `phase_07_collision` | 碰撞体添加（circle、rectangle） | — |
-| 08 | `phase_08_find` | 节点搜索（name、type、group、script） | — |
-| 09 | `phase_09_script` | GDScript 创建/编辑/验证 | — |
-| 10 | `phase_10_scene_mgmt` | 场景文件管理（save、open、close、branch 等） | — |
-| 11 | `phase_11_search` | 文件搜索与替换 | — |
-| 12 | `phase_12_input` | InputMap 操作（添加/移除 action、设置事件） | — |
-| 13 | `phase_13_project_write` | 项目设置写入 | — |
-| 14 | `phase_14_editor_control` | play/stop/is_playing、refresh | — |
-| 15 | `phase_15_plugin` | 插件管理（list、enable/disable） | — |
-| 16 | `phase_16_undo` | undo/redo | — |
-| 17 | `phase_17_csharp` | C# 脚本操作（需要 dotnet） | — |
-| 18 | `phase_18_cleanup` | 清理所有创建的文件、恢复备份 | 1 |
+## 迁移路径
+
+旧 Python 阶段文件的所有测试覆盖能力在 C++ `TestEngine` 中通过 YAML 形式重新表达：
+
+| 旧 phase 范围 | 新 YAML 测试 |
+|--------------|-------------|
+| 01-04（连接/只读/场景CRUD） | `tests/yaml_tests/scene_basic.yaml`、`tests/yaml_tests/scene_lifecycle.yaml` |
+| 05-06（2D/3D 属性） | `tests/yaml_tests/property_2d.yaml`、`tests/yaml_tests/property_3d.yaml`（已迁移到节点属性工具） |
+| 07-08（碰撞/查找） | `tests/yaml_tests/collision.yaml`、`tests/yaml_tests/find_node.yaml` |
+| 09（脚本） | `tests/yaml_tests/script_*.yaml` |
+| 10-15（场景/搜索/输入/项目设置/编辑器控制/插件） | `tests/yaml_tests/<area>.yaml` |
+| 16（undo） | `tests/yaml_tests/undo.yaml` |
+| 17（csharp） | `tests/yaml_tests/csharp.yaml` |
+| 18（cleanup） | 由 `TestEngine` 自动化处理（双源追踪） |
+
+详见 [testing/test-engine.md](test-engine.md) 与 [testing/orchestrator.md](orchestrator.md)。

@@ -1,6 +1,8 @@
-# 插件管理
+# 插件管理工具
 
-> 2 个工具，管理 `res://addons/` 中的编辑器插件。实现在 `extensions/gdext/src/commands/plugin_management.cpp`。
+> 2 个工具，管理 `res://addons/` 中的编辑器插件。**当前实现位置**：`extensions/src/built_in/tools/` 下的 ITool。
+>
+> **历史路径**：`extensions/gdext/src/commands/plugin_management.cpp`（已删除，参见 commit `c4318ee`）。
 
 ## 工具列表
 
@@ -20,7 +22,7 @@
   "plugins": [
     {
       "name": "Godot MCP",
-      "version": "0.1.2",
+      "version": "0.2.0-dev2",
       "author": "",
       "description": "Model Context Protocol bridge for Godot Engine.",
       "enabled": true

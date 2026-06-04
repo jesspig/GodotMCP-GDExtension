@@ -59,7 +59,7 @@ CI 只在 `master` 分支的 push 和 PR 上触发。
 
 ### Windows 注意事项
 
-- `python`/`python3` 是 Microsoft Store 存根，会静默挂起——务必使用 **`py -3`**
+- `python`/`python3` 是 Microsoft Store 存根，会静默挂起——务必使用 **`uv run python`**（前提是 `pyproject.toml` 中已配置 `requires-python` 与项目依赖）
 - `build.py` 自动检测 `MSB4019`/`VCTargetsPath`/`CMAKE_C_COMPILER` 等 stale cache 错误并清空重试
 - `build.py --clean` 仅清除 CMake 缓存文件，保留 `_deps/`（godot-cpp FetchContent 缓存）
 

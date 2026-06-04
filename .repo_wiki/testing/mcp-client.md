@@ -1,6 +1,8 @@
-# 自定义 MCP 客户端
+# 自定义 MCP 客户端（已废弃——历史参考）
 
-> `mcp_client.py`——使用 `httpx.AsyncClient` 实现的 MCP Streamable HTTP 客户端。
+> **状态：已被简化方案替代。** `tests/mcp_client.py` 文件已删除。当前编排器 `test_orchestrator.py` 通过 `/run-tests` HTTP 端点（由 C++ `TestEngine` 解析 YAML）执行测试，不再走 MCP 客户端。
+>
+> **保留此文档仅作为历史参考**。
 
 ## 为什么不用官方 MCP SDK
 
@@ -8,7 +10,7 @@ MCP SDK v1.27.2 的 `streamable_http_client` 使用 pydantic 校验 JSON-RPC 消
 
 **解决方案**：跳过 SDK，直接用 `httpx.AsyncClient` + 手动 JSON-RPC 消息构建。
 
-## 核心类
+## 旧核心类
 
 ### `McpSession`
 
@@ -29,7 +31,7 @@ class McpSession:
 
 ### `_TextContent`
 
-模拟 MCP SDK 的 `TextContent` 对象，使现有阶段文件的 `_parse()` 函数无需改动即可工作：
+模拟 MCP SDK 的 `TextContent` 对象：
 
 ```python
 class _TextContent:
@@ -46,11 +48,14 @@ class ToolResult:
     isError: bool = False
 ```
 
-### 辅助函数
+## 当前编排器路径
 
-| 函数 | 说明 |
-|------|------|
-| `create_mcp_client()` | 异步上下文管理器，初始化和清理会话 |
-| `call_tool(session, name, args)` | 调用工具并解析结果为字典 |
-| `list_tools(session)` | 返回 `set[str]` 工具名称集合 |
-| `_parse_result(result)` | 将 `ToolResult.content` 解析为 Python 字典 |
+`test_orchestrator.py` 不再使用 `McpSession`：
+
+| 阶段 | 旧做法 | 当前做法 |
+|------|--------|----------|
+| 工具发现 | `await session.list_tools()` | `GET /run-tests?action=list`（返回 YAML 文件列表） |
+| 工具验证 | `await session.call_tool(name, args)` | `POST /run-tests`（body = YAML 文本） |
+| 结果解析 | `result.content[0].text` → JSON 解析 | `/run-tests` 直接返回 JSON 报告 |
+
+详见 [testing/orchestrator.md](orchestrator.md)。
