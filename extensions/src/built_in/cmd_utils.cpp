@@ -193,6 +193,13 @@ String globalize_path(const String &path) {
 }
 
 bool ensure_parent_dir(const String &res_path) {
+    // For "res://file.ext" → no directory component → root exists
+    if (res_path.begins_with("res://") && res_path.find("/", 6) < 0) {
+        return true;
+    }
+    if (res_path.begins_with("user://") && res_path.find("/", 7) < 0) {
+        return true;
+    }
     const int slash = res_path.rfind("/");
     if (slash <= 0) {
         return true;
