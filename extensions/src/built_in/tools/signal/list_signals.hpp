@@ -1,0 +1,84 @@
+// @tool register
+#pragma once
+
+#include "built_in/tool_base.hpp"
+#include "built_in/cmd_utils.hpp"
+
+#include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/variant/array.hpp>
+#include <godot_cpp/variant/dictionary.hpp>
+#include <godot_cpp/variant/packed_string_array.hpp>
+
+namespace godot_mcp {
+
+class ListSignalsTool : public ITool {
+public:
+    String name() const override { return "list_signals"; }
+    String category() const override { return "node_tools/signal"; }
+    String brief() const override {
+        return String::utf8("列出指定节点的所有可用信号（含参数信息）");
+    }
+    String description() const override {
+        return String::utf8("列出指定 GDScript 脚本或内置节点上定义的所有信号，"
+                            "包含每个信号的参数名、参数类型和默认参数。");
+    }
+    Dictionary input_schema() const override {
+        Dictionary props;
+        {
+            Dictionary p;
+            p["type"] = "string";
+            p["description"] = String::utf8("节点路径（空=当前编辑场景根节点）");
+            props["node_path"] = p;
+        }
+        Dictionary s;
+        s["type"] = "object";
+        s["properties"] = props;
+        s["required"] = Array::make();
+        return s;
+    }
+    bool needs_scene() const override { return true; }
+    bool needs_node() const override { return false; }
+
+protected:
+    Dictionary execute_impl(const ToolContext &ctx) override {
+        String path = args_string(ctx.args, "node_path", "");
+        Node *node = resolve_node(ctx.root, path);
+        if (!node) {
+            return ToolResult::err("NODE_NOT_FOUND",
+                String::utf8("节点未找到: ") + path);
+        }
+
+        Array signals = node->get_signal_list();
+        Array result;
+        for (int i = 0; i < signals.size(); i++) {
+            Dictionary sig = signals[i];
+            Dictionary out;
+            out["name"] = sig.get("name", String());
+
+            Array args_in = sig.get("args", Array());
+            Array args_out;
+            for (int j = 0; j < args_in.size(); j++) {
+                Dictionary a = args_in[j];
+                Dictionary arg;
+                arg["name"] = a.get("name", String());
+                arg["type"] = a.get("type", 0);
+                args_out.push_back(arg);
+            }
+            out["args"] = args_out;
+
+            Array default_args = sig.get("default_args", Array());
+            out["default_arg_count"] = (int64_t)default_args.size();
+
+            result.push_back(out);
+        }
+
+        Dictionary data;
+        data["node"] = relative_path(ctx.root, node);
+        data["signals"] = result;
+        data["count"] = (int64_t)result.size();
+
+        return ToolResult::ok(data);
+    }
+};
+
+} // namespace godot_mcp
