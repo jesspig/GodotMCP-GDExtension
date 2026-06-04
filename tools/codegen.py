@@ -153,10 +153,20 @@ def build_inheritance_path(node_name: str, nodes: dict[str, dict]) -> str:
 
 # ── 代码生成 ─────────────────────────────────────────────────────────
 
-def generate_node_property_registrations(nodes: dict[str, dict]) -> list[str]:
-    """生成节点属性工具的注册代码行。"""
+def generate_node_property_registrations(nodes: dict[str, dict], tool_cls: str = "NodeProperty", cat_root: str = "node_tools/property") -> list[str]:
+    """生成节点/资源属性工具的注册代码行。
+
+    Args:
+        nodes: YAML 数据库 {class_name: {inherits, properties, aliases}}
+        tool_cls: 工具类前缀（"NodeProperty" 或 "NodeResource"）
+        cat_root: 分类根路径（"node_tools/property" 或 "node_tools/resource"）
+    """
     lines = []
-    var_idx = 0
+    is_node = "NodeProperty" in tool_cls
+
+    include_path = "built_in/tools/node_props/node_property_tool.hpp" if is_node else "built_in/tools/node_tools/node_resource_tool.hpp"
+    get_tool = f"{tool_cls}GetTool"
+    set_tool = f"{tool_cls}SetTool"
 
     # 按继承链排序：父节点先注册，子节点后注册
     sorted_nodes = []
@@ -170,7 +180,7 @@ def generate_node_property_registrations(nodes: dict[str, dict]) -> list[str]:
         if not unique_props:
             continue
 
-        cat_path = "node_tools/property/" + build_inheritance_path(node_name, nodes)
+        cat_path = f"{cat_root}/" + build_inheritance_path(node_name, nodes)
         node_desc = nodes[node_name].get("description", "")
 
         for prop in unique_props:
@@ -178,44 +188,44 @@ def generate_node_property_registrations(nodes: dict[str, dict]) -> list[str]:
             # Get tool
             get_name = f"get_{node_name.lower()}_{prop_name}"
             lines.append(f"    // {node_name}.{prop_name} (get)")
-            lines.append(f"    reg.register_tool(std::make_unique<NodePropertyGetTool>(")
+            lines.append(f"    reg.register_tool(std::make_unique<{get_tool}>(")
             lines.append(f'        "{get_name}", "{cat_path}", "{node_name}", "{prop_name}",')
             lines.append(f'        String::utf8("{node_desc}")));')
             lines.append("")
             # Set tool
             set_name = f"set_{node_name.lower()}_{prop_name}"
             lines.append(f"    // {node_name}.{prop_name} (set)")
-            lines.append(f"    reg.register_tool(std::make_unique<NodePropertySetTool>(")
+            lines.append(f"    reg.register_tool(std::make_unique<{set_tool}>(")
             lines.append(f'        "{set_name}", "{cat_path}", "{node_name}", "{prop_name}",')
             lines.append(f'        String::utf8("{node_desc}")));')
             lines.append("")
 
-        # 别名注册
-        aliases = nodes[node_name].get("aliases", [])
-        for alias in aliases:
-            alias_cat = f"node_tools/property/{build_inheritance_path(node_name, nodes)}/{alias}"
-            alias_lower = alias.lower()  # 工具名用小写，如 get_node2d_position
-            for prop in unique_props:
-                prop_name = prop["name"]
-                # Get alias
-                alias_get = f"get_{alias_lower}_{prop_name}"
-                lines.append(f"    // {alias}.{prop_name} (alias of {node_name}, get)")
-                lines.append(f"    reg.register_tool(std::make_unique<NodePropertyGetTool>(")
-                lines.append(f'        "{alias_get}", "{alias_cat}", "{node_name}", "{prop_name}",')
-                lines.append(f'        String::utf8("{node_desc}")));')
-                lines.append("")
-                # Set alias
-                alias_set = f"set_{alias_lower}_{prop_name}"
-                lines.append(f"    // {alias}.{prop_name} (alias of {node_name}, set)")
-                lines.append(f"    reg.register_tool(std::make_unique<NodePropertySetTool>(")
-                lines.append(f'        "{alias_set}", "{alias_cat}", "{node_name}", "{prop_name}",')
-                lines.append(f'        String::utf8("{node_desc}")));')
-                lines.append("")
+        # 别名注册（仅节点属性支持别名）
+        if is_node:
+            aliases = nodes[node_name].get("aliases", [])
+            for alias in aliases:
+                alias_cat = f"{cat_root}/{build_inheritance_path(node_name, nodes)}/{alias}"
+                alias_lower = alias.lower()
+                for prop in unique_props:
+                    prop_name = prop["name"]
+                    alias_get = f"get_{alias_lower}_{prop_name}"
+                    lines.append(f"    // {alias}.{prop_name} (alias of {node_name}, get)")
+                    lines.append(f"    reg.register_tool(std::make_unique<{get_tool}>(")
+                    lines.append(f'        "{alias_get}", "{alias_cat}", "{node_name}", "{prop_name}",')
+                    lines.append(f'        String::utf8("{node_desc}")));')
+                    lines.append("")
+                    alias_set = f"set_{alias_lower}_{prop_name}"
+                    lines.append(f"    // {alias}.{prop_name} (alias of {node_name}, set)")
+                    lines.append(f"    reg.register_tool(std::make_unique<{set_tool}>(")
+                    lines.append(f'        "{alias_set}", "{alias_cat}", "{node_name}", "{prop_name}",')
+                    lines.append(f'        String::utf8("{node_desc}")));')
+                    lines.append("")
 
     return lines
 
 
-def generate_code(tools: list[dict], nodes: dict[str, dict] = None) -> str:
+def generate_code(tools: list[dict], nodes: dict[str, dict] = None,
+                  resources: dict[str, dict] = None) -> str:
     """生成 generated_registration.cpp 内容。"""
     lines = [
         "// This file is auto-generated by tools/codegen.py",
@@ -230,9 +240,13 @@ def generate_code(tools: list[dict], nodes: dict[str, dict] = None) -> str:
     for t in tools:
         lines.append(f'#include "{t["include_path"]}"')
 
-    # #include 节点属性工具头文件（如果需要）
-    if nodes:
+    need_node_prop = nodes is not None
+    need_node_res = resources is not None
+
+    if need_node_prop:
         lines.append('#include "built_in/tools/node_props/node_property_tool.hpp"')
+    if need_node_res:
+        lines.append('#include "built_in/tools/node_tools/node_resource_tool.hpp"')
 
     lines.append("")
 
@@ -240,8 +254,8 @@ def generate_code(tools: list[dict], nodes: dict[str, dict] = None) -> str:
     lines.append("")
     lines.append("void register_itools(HandlerRegistry &reg) {")
 
-    # 注册 @tool register 工具
-    if not tools and not nodes:
+    has_any = tools or need_node_prop or need_node_res
+    if not has_any:
         lines.append("    // No ITool-registered tools found.")
     else:
         for i, t in enumerate(tools):
@@ -251,11 +265,18 @@ def generate_code(tools: list[dict], nodes: dict[str, dict] = None) -> str:
             lines.append("")
 
         # 注册节点属性工具
-        if nodes:
+        if need_node_prop:
             lines.append("    // ── Node Property Tools (auto-generated from YAML) ──")
             lines.append("")
-            prop_lines = generate_node_property_registrations(nodes)
+            prop_lines = generate_node_property_registrations(nodes, "NodeProperty", "node_tools/property")
             lines.extend(prop_lines)
+
+        # 注册资源属性工具
+        if need_node_res:
+            lines.append("    // ── Resource Property Tools (auto-generated from YAML) ──")
+            lines.append("")
+            res_lines = generate_node_property_registrations(resources, "NodeResource", "node_tools/resource")
+            lines.extend(res_lines)
 
     lines.append("}")
     lines.append("")
@@ -278,6 +299,11 @@ def main():
         help="Directory containing YAML node property database",
     )
     parser.add_argument(
+        "--resource-props-db",
+        default=None,
+        help="Directory containing YAML resource property database",
+    )
+    parser.add_argument(
         "--output",
         required=True,
         help="Output file path for generated_registration.cpp",
@@ -288,14 +314,20 @@ def main():
     nodes = {}
     if args.node_props_db:
         nodes = load_node_props_db(args.node_props_db)
-    code = generate_code(tools, nodes or None)
+    resources = {}
+    if args.resource_props_db:
+        resources = load_node_props_db(args.resource_props_db)
+    code = generate_code(tools, nodes or None, resources or None)
 
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
     with open(args.output, "w", encoding="utf-8") as f:
         f.write(code)
 
     node_count = len(nodes) if nodes else 0
-    print(f"[codegen] Found {len(tools)} @tool-register tool(s), {node_count} node type(s), wrote {args.output}")
+    res_count = len(resources) if resources else 0
+    print(f"[codegen] Found {len(tools)} @tool-register tool(s), "
+          f"{node_count} node type(s), {res_count} resource type(s), "
+          f"wrote {args.output}")
 
 
 if __name__ == "__main__":
