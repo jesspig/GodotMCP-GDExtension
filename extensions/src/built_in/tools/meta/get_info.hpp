@@ -10,12 +10,12 @@
 
 namespace godot_mcp {
 
-class GodotInfoTool : public ITool {
+class GetInfoTool : public ITool {
 public:
     void set_registry(HandlerRegistry *reg) override { reg_ = reg; }
 
-    String name() const override { return "godot_info"; }
-    String category() const override { return "meta"; }
+    String name() const override { return "get_info"; }
+    String category() const override { return "meta_tools"; }
     String brief() const override { return String::utf8("返回连接状态与引擎/插件/项目/编辑器信息"); }
     String description() const override {
         return String::utf8("返回 Godot 编辑器的运行时信息，包括连接状态、引擎版本、"

@@ -169,7 +169,7 @@ def generate_node_property_registrations(nodes: dict[str, dict]) -> list[str]:
         if not unique_props:
             continue
 
-        cat_path = "node_prop/" + build_inheritance_path(node_name, nodes)
+        cat_path = "node_tools/property/" + build_inheritance_path(node_name, nodes)
 
         for prop in unique_props:
             prop_name = prop["name"]
@@ -189,7 +189,7 @@ def generate_node_property_registrations(nodes: dict[str, dict]) -> list[str]:
         # 别名注册
         aliases = nodes[node_name].get("aliases", [])
         for alias in aliases:
-            alias_cat = f"node_prop/{build_inheritance_path(node_name, nodes)}/{alias}"
+            alias_cat = f"node_tools/property/{build_inheritance_path(node_name, nodes)}/{alias}"
             alias_lower = alias.lower()  # 工具名用小写，如 get_node2d_position
             for prop in unique_props:
                 prop_name = prop["name"]

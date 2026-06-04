@@ -11,7 +11,7 @@ public:
     void set_registry(HandlerRegistry *reg) override { reg_ = reg; }
 
     String name() const override { return "call_tool"; }
-    String category() const override { return "meta"; }
+    String category() const override { return "meta_tools"; }
     String brief() const override { return String::utf8("兜底调用任意已注册工具（不推荐直接使用）"); }
     String category_description() const override { return String::utf8("元工具与系统信息查询"); }
     String description() const override {
