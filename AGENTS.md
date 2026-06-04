@@ -65,6 +65,7 @@ class MyTool : public ITool {
 - **节点属性工具**：`node_props/db/*.yaml`（~283 节点类型）→ `node_property_tool.hpp` 模板。`tools/collect_node_props.py --godot /path/to/godot` 重新生成。
 - **资源属性工具**：`node_resource/db/*.yaml`（~419 资源类型）→ `node_resource_tool.hpp` 模板。
 - **现有分类目录**：`meta/`、`group/`、`signal/`、`node_tools/general/`、`node_props/`、`node_resource/`。
+- **场景树工具**：`editor_tools/scene_tree/`（20 个工具，4 批）。详见 `.repo_wiki/modules/scene-tree-tools.md`。全部场景树修改操作使用 `EditorUndoRedoManager`（通过 `EditorInterface::get_singleton()->get_editor_undo_redo()` 获取），不直接调用裸 `UndoRedo`。剪贴板通过 `PackedScene::pack()` / `instantiate()` 实现。
 - **`tool_base.hpp:48-55`**：`ITool` 接口契约。
 
 ## SDK 层（GDScript / C# 自定义工具）

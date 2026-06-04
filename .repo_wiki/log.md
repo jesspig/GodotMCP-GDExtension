@@ -2,6 +2,13 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-04 — 场景树工具方案 + ADR-012 + 锚定摘要
+
+- **新增** `modules/scene-tree-tools.md`：20 个场景树操作工具完整文档（4 批，Undo/Redo 模式、剪贴板策略、跳过列表）
+- **新增** `design/decisions.md` ADR-012：场景树工具分类、Undo/Redo 策略、`EditorUndoRedoManager` 统一使用、禁止 `set_scene_root`
+- **更新** `index.md`：添加 `modules/scene-tree-tools.md` 导航链接
+- **更新** `AGENTS.md`：添加场景树工具分类说明（`EditorUndoRedoManager`、`PackedScene` 剪贴板）
+
 ## 2026-06-04 — 知识库补充 + 清理已实现设计文档
 
 - **新增** `modules/signal-tools.md`（4 个信号工具文档）

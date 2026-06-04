@@ -28,6 +28,7 @@
 | MCP 传输 | [modules/ipc-bridge.md](modules/ipc-bridge.md) · [specification/ipc-protocol.md](specification/ipc-protocol.md) |
 | 插件生命周期 | [modules/editor-plugin.md](modules/editor-plugin.md) · [modules/dock-ui.md](modules/dock-ui.md) |
 | 工具实现模式 | [modules/scene-commands.md](modules/scene-commands.md) |
+| 场景树工具 | [modules/scene-tree-tools.md](modules/scene-tree-tools.md) |
 | 信号工具 | [modules/signal-tools.md](modules/signal-tools.md) |
 | 资源管理工具 | [modules/resource-tools.md](modules/resource-tools.md) |
 | SDK 层 | `extensions/src/sdk/mcp_tool_definition.hpp` · `mcp_tool_registry.hpp`（详见源代码） |
