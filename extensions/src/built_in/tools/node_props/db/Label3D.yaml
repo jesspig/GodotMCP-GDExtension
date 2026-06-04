@@ -58,6 +58,7 @@ properties:
 - name: font
   type: 24
   type_name: Object
+  class_name: Font
 - name: font_size
   type: 2
   type_name: int

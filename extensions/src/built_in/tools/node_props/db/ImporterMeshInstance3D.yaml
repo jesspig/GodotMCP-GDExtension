@@ -4,9 +4,11 @@ properties:
 - name: mesh
   type: 24
   type_name: Object
+  class_name: ImporterMesh
 - name: skin
   type: 24
   type_name: Object
+  class_name: Skin
 - name: skeleton_path
   type: 22
   type_name: NodePath

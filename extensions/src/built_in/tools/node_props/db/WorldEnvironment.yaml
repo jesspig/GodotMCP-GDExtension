@@ -4,11 +4,14 @@ properties:
 - name: environment
   type: 24
   type_name: Object
+  class_name: Environment
 - name: camera_attributes
   type: 24
   type_name: Object
+  class_name: CameraAttributesPractical,CameraAttributesPhysical
 - name: compositor
   type: 24
   type_name: Object
+  class_name: Compositor
 description: A node that defines the environment for a scene.
 aliases: []

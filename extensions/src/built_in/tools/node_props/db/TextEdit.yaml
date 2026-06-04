@@ -115,6 +115,7 @@ properties:
 - name: syntax_highlighter
   type: 24
   type_name: Object
+  class_name: SyntaxHighlighter
 - name: highlight_all_occurrences
   type: 1
   type_name: bool

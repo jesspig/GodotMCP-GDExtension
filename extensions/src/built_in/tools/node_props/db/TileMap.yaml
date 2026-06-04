@@ -4,6 +4,7 @@ properties:
 - name: tile_set
   type: 24
   type_name: Object
+  class_name: TileSet
 - name: rendering_quadrant_size
   type: 2
   type_name: int

@@ -10,8 +10,10 @@ properties:
 - name: camera_attributes
   type: 24
   type_name: Object
+  class_name: CameraAttributesPractical,CameraAttributesPhysical
 - name: data
   type: 24
   type_name: Object
+  class_name: VoxelGIData
 description: A node that computes and stores baked voxel-based global illumination.
 aliases: []

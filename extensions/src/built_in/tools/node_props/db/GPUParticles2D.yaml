@@ -16,6 +16,7 @@ properties:
 - name: texture
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: lifetime
   type: 3
   type_name: float
@@ -79,5 +80,6 @@ properties:
 - name: process_material
   type: 24
   type_name: Object
+  class_name: ParticleProcessMaterial,ShaderMaterial
 description: 2D GPU particle system.
 aliases: []

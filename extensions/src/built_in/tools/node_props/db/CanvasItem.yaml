@@ -43,6 +43,7 @@ properties:
 - name: material
   type: 24
   type_name: Object
+  class_name: CanvasItemMaterial,ShaderMaterial
 - name: use_parent_material
   type: 1
   type_name: bool

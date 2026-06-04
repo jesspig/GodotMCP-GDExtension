@@ -4,6 +4,7 @@ properties:
 - name: tree_root
   type: 24
   type_name: Object
+  class_name: AnimationRootNode
 - name: advance_expression_base_node
   type: 22
   type_name: NodePath

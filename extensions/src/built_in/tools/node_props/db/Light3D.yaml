@@ -25,6 +25,7 @@ properties:
 - name: light_projector
   type: 24
   type_name: Object
+  class_name: Texture2D,-AnimatedTexture,-AtlasTexture,-CameraTexture,-CanvasTexture,-MeshTexture,-Texture2DRD,-ViewportTexture
 - name: light_size
   type: 3
   type_name: float

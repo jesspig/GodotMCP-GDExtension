@@ -10,6 +10,7 @@ properties:
 - name: texture
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: lifetime
   type: 3
   type_name: float
@@ -100,6 +101,7 @@ properties:
 - name: angular_velocity_curve
   type: 24
   type_name: Object
+  class_name: Curve
 - name: orbit_velocity_min
   type: 3
   type_name: float
@@ -109,6 +111,7 @@ properties:
 - name: orbit_velocity_curve
   type: 24
   type_name: Object
+  class_name: Curve
 - name: linear_accel_min
   type: 3
   type_name: float
@@ -118,6 +121,7 @@ properties:
 - name: linear_accel_curve
   type: 24
   type_name: Object
+  class_name: Curve
 - name: radial_accel_min
   type: 3
   type_name: float
@@ -127,6 +131,7 @@ properties:
 - name: radial_accel_curve
   type: 24
   type_name: Object
+  class_name: Curve
 - name: tangential_accel_min
   type: 3
   type_name: float
@@ -136,6 +141,7 @@ properties:
 - name: tangential_accel_curve
   type: 24
   type_name: Object
+  class_name: Curve
 - name: damping_min
   type: 3
   type_name: float
@@ -145,6 +151,7 @@ properties:
 - name: damping_curve
   type: 24
   type_name: Object
+  class_name: Curve
 - name: angle_min
   type: 3
   type_name: float
@@ -154,6 +161,7 @@ properties:
 - name: angle_curve
   type: 24
   type_name: Object
+  class_name: Curve
 - name: scale_amount_min
   type: 3
   type_name: float
@@ -163,24 +171,29 @@ properties:
 - name: scale_amount_curve
   type: 24
   type_name: Object
+  class_name: Curve
 - name: split_scale
   type: 1
   type_name: bool
 - name: scale_curve_x
   type: 24
   type_name: Object
+  class_name: Curve
 - name: scale_curve_y
   type: 24
   type_name: Object
+  class_name: Curve
 - name: color
   type: 20
   type_name: Color
 - name: color_ramp
   type: 24
   type_name: Object
+  class_name: Gradient
 - name: color_initial_ramp
   type: 24
   type_name: Object
+  class_name: Gradient
 - name: hue_variation_min
   type: 3
   type_name: float
@@ -190,6 +203,7 @@ properties:
 - name: hue_variation_curve
   type: 24
   type_name: Object
+  class_name: Curve
 - name: anim_speed_min
   type: 3
   type_name: float
@@ -199,6 +213,7 @@ properties:
 - name: anim_speed_curve
   type: 24
   type_name: Object
+  class_name: Curve
 - name: anim_offset_min
   type: 3
   type_name: float
@@ -208,5 +223,6 @@ properties:
 - name: anim_offset_curve
   type: 24
   type_name: Object
+  class_name: Curve
 description: A CPU-based 2D particle emitter.
 aliases: []

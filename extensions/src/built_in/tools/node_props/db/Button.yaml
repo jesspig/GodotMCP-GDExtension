@@ -7,6 +7,7 @@ properties:
 - name: icon
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: flat
   type: 1
   type_name: bool

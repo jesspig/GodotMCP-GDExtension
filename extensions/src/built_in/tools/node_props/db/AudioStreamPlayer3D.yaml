@@ -4,6 +4,7 @@ properties:
 - name: stream
   type: 24
   type_name: Object
+  class_name: AudioStream
 - name: attenuation_model
   type: 2
   type_name: int

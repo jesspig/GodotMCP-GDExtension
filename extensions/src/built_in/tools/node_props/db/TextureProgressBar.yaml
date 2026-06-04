@@ -31,12 +31,15 @@ properties:
 - name: texture_under
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: texture_over
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: texture_progress
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: texture_progress_offset
   type: 5
   type_name: Vector2

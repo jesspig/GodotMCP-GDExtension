@@ -13,6 +13,7 @@ properties:
 - name: replication_config
   type: 24
   type_name: Object
+  class_name: SceneReplicationConfig
 - name: visibility_update_mode
   type: 2
   type_name: int

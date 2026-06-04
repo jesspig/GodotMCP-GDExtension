@@ -4,15 +4,19 @@ properties:
 - name: texture_normal
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: texture_pressed
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: bitmask
   type: 24
   type_name: Object
+  class_name: BitMap
 - name: shape
   type: 24
   type_name: Object
+  class_name: Shape2D
 - name: shape_centered
   type: 1
   type_name: bool

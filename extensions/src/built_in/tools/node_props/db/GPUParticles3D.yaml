@@ -73,23 +73,29 @@ properties:
 - name: process_material
   type: 24
   type_name: Object
+  class_name: ParticleProcessMaterial,ShaderMaterial
 - name: draw_passes
   type: 2
   type_name: int
 - name: draw_pass_1
   type: 24
   type_name: Object
+  class_name: Mesh
 - name: draw_pass_2
   type: 24
   type_name: Object
+  class_name: Mesh
 - name: draw_pass_3
   type: 24
   type_name: Object
+  class_name: Mesh
 - name: draw_pass_4
   type: 24
   type_name: Object
+  class_name: Mesh
 - name: draw_skin
   type: 24
   type_name: Object
+  class_name: Skin
 description: 3D GPU particle system.
 aliases: []

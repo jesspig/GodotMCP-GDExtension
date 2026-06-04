@@ -7,6 +7,7 @@ properties:
 - name: shape
   type: 24
   type_name: Object
+  class_name: Shape3D
 - name: spring_length
   type: 3
   type_name: float

@@ -10,12 +10,15 @@ properties:
 - name: environment
   type: 24
   type_name: Object
+  class_name: Environment
 - name: attributes
   type: 24
   type_name: Object
+  class_name: CameraAttributesPractical,CameraAttributesPhysical
 - name: compositor
   type: 24
   type_name: Object
+  class_name: Compositor
 - name: h_offset
   type: 3
   type_name: float

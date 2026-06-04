@@ -145,6 +145,7 @@ properties:
 - name: theme
   type: 24
   type_name: Object
+  class_name: Theme
 - name: theme_type_variation
   type: 4
   type_name: String

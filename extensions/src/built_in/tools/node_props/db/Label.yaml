@@ -7,6 +7,7 @@ properties:
 - name: label_settings
   type: 24
   type_name: Object
+  class_name: LabelSettings
 - name: horizontal_alignment
   type: 2
   type_name: int

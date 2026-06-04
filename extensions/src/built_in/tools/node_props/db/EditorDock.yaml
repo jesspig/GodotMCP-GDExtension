@@ -22,6 +22,7 @@ properties:
 - name: dock_icon
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: force_show_icon
   type: 1
   type_name: bool
@@ -31,6 +32,7 @@ properties:
 - name: dock_shortcut
   type: 24
   type_name: Object
+  class_name: Shortcut
 - name: default_slot
   type: 2
   type_name: int

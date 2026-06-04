@@ -19,6 +19,7 @@ properties:
 - name: foldable_group
   type: 24
   type_name: Object
+  class_name: FoldableGroup
 - name: title_text_direction
   type: 2
   type_name: int

@@ -10,5 +10,6 @@ properties:
 - name: material
   type: 24
   type_name: Object
+  class_name: FogMaterial,ShaderMaterial
 description: A node used to add fog to a scene.
 aliases: []

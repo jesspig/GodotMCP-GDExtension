@@ -10,6 +10,7 @@ properties:
 - name: tile_set
   type: 24
   type_name: Object
+  class_name: TileSet
 - name: occlusion_enabled
   type: 1
   type_name: bool

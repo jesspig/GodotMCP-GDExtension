@@ -22,9 +22,11 @@ properties:
 - name: button_group
   type: 24
   type_name: Object
+  class_name: ButtonGroup
 - name: shortcut
   type: 24
   type_name: Object
+  class_name: Shortcut
 - name: shortcut_feedback
   type: 1
   type_name: bool

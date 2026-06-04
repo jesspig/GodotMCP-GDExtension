@@ -4,21 +4,27 @@ properties:
 - name: texture_normal
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: texture_pressed
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: texture_hover
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: texture_disabled
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: texture_focused
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: texture_click_mask
   type: 24
   type_name: Object
+  class_name: BitMap
 - name: ignore_texture_size
   type: 1
   type_name: bool

@@ -4,6 +4,7 @@ properties:
 - name: curve
   type: 24
   type_name: Object
+  class_name: Curve3D
 - name: debug_custom_color
   type: 20
   type_name: Color

@@ -19,5 +19,6 @@ properties:
 - name: material
   type: 24
   type_name: Object
+  class_name: BaseMaterial3D,ShaderMaterial
 description: ''
 aliases: []

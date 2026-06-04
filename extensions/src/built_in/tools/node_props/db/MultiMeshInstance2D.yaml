@@ -4,8 +4,10 @@ properties:
 - name: multimesh
   type: 24
   type_name: Object
+  class_name: MultiMesh
 - name: texture
   type: 24
   type_name: Object
+  class_name: Texture2D
 description: Node that instances a MultiMesh in 2D.
 aliases: []

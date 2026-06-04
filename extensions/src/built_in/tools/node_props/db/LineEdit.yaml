@@ -103,6 +103,7 @@ properties:
 - name: right_icon
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: icon_expand_mode
   type: 2
   type_name: int

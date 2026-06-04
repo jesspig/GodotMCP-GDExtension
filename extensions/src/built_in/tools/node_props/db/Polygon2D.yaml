@@ -13,6 +13,7 @@ properties:
 - name: texture
   type: 24
   type_name: Object
+  class_name: Texture2D
 - name: texture_offset
   type: 5
   type_name: Vector2

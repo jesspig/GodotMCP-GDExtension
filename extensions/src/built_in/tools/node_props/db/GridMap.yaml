@@ -4,9 +4,11 @@ properties:
 - name: mesh_library
   type: 24
   type_name: Object
+  class_name: MeshLibrary
 - name: physics_material
   type: 24
   type_name: Object
+  class_name: PhysicsMaterial
 - name: cell_size
   type: 9
   type_name: Vector3

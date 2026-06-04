@@ -4,6 +4,7 @@ properties:
 - name: profile
   type: 24
   type_name: Object
+  class_name: SkeletonProfile
 - name: use_global_pose
   type: 1
   type_name: bool
