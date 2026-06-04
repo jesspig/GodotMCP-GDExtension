@@ -1,0 +1,5 @@
+class: VisualShaderNodeFaceForward
+inherits: VisualShaderNodeVectorBase
+properties: []
+description: ''
+aliases: []

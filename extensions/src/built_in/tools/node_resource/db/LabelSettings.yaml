@@ -1,0 +1,42 @@
+class: LabelSettings
+inherits: Resource
+properties:
+- name: line_spacing
+  type: 3
+  type_name: float
+- name: paragraph_spacing
+  type: 3
+  type_name: float
+- name: font
+  type: 24
+  type_name: Object
+  class_name: Font
+- name: font_size
+  type: 2
+  type_name: int
+- name: font_color
+  type: 20
+  type_name: Color
+- name: outline_size
+  type: 2
+  type_name: int
+- name: outline_color
+  type: 20
+  type_name: Color
+- name: shadow_size
+  type: 2
+  type_name: int
+- name: shadow_color
+  type: 20
+  type_name: Color
+- name: shadow_offset
+  type: 5
+  type_name: Vector2
+- name: stacked_outline_count
+  type: 2
+  type_name: int
+- name: stacked_shadow_count
+  type: 2
+  type_name: int
+description: ''
+aliases: []

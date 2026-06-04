@@ -1,0 +1,8 @@
+class: AudioEffectAmplify
+inherits: AudioEffect
+properties:
+- name: volume_db
+  type: 3
+  type_name: float
+description: ''
+aliases: []

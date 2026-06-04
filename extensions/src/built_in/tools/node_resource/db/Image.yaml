@@ -1,0 +1,8 @@
+class: Image
+inherits: Resource
+properties:
+- name: data
+  type: 27
+  type_name: Dictionary
+description: ''
+aliases: []

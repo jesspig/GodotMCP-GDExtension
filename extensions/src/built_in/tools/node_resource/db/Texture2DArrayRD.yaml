@@ -1,0 +1,5 @@
+class: Texture2DArrayRD
+inherits: TextureLayeredRD
+properties: []
+description: ''
+aliases: []

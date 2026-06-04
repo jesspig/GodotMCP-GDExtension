@@ -1,0 +1,5 @@
+class: QuadMesh
+inherits: PlaneMesh
+properties: []
+description: ''
+aliases: []

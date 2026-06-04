@@ -1,0 +1,5 @@
+class: FBXDocument
+inherits: GLTFDocument
+properties: []
+description: ''
+aliases: []

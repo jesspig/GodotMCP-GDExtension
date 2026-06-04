@@ -1,0 +1,17 @@
+class: GLTFTextureSampler
+inherits: Resource
+properties:
+- name: mag_filter
+  type: 2
+  type_name: int
+- name: min_filter
+  type: 2
+  type_name: int
+- name: wrap_s
+  type: 2
+  type_name: int
+- name: wrap_t
+  type: 2
+  type_name: int
+description: ''
+aliases: []

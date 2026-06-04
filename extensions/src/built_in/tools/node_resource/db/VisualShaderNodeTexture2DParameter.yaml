@@ -1,0 +1,5 @@
+class: VisualShaderNodeTexture2DParameter
+inherits: VisualShaderNodeTextureParameter
+properties: []
+description: ''
+aliases: []

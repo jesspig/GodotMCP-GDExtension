@@ -1,0 +1,5 @@
+class: VisualShaderNodeOutput
+inherits: VisualShaderNode
+properties: []
+description: ''
+aliases: []

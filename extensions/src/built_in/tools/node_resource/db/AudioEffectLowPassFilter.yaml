@@ -1,0 +1,5 @@
+class: AudioEffectLowPassFilter
+inherits: AudioEffectFilter
+properties: []
+description: ''
+aliases: []

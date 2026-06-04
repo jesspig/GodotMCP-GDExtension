@@ -1,0 +1,8 @@
+class: SphereOccluder3D
+inherits: Occluder3D
+properties:
+- name: radius
+  type: 3
+  type_name: float
+description: ''
+aliases: []

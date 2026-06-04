@@ -1,0 +1,5 @@
+class: VisualShaderNodeVectorRefract
+inherits: VisualShaderNodeVectorBase
+properties: []
+description: ''
+aliases: []

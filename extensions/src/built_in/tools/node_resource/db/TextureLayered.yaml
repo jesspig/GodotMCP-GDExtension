@@ -1,0 +1,5 @@
+class: TextureLayered
+inherits: Texture
+properties: []
+description: ''
+aliases: []

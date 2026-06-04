@@ -1,0 +1,8 @@
+class: VisualShaderNodeVec3Constant
+inherits: VisualShaderNodeConstant
+properties:
+- name: constant
+  type: 9
+  type_name: Vector3
+description: ''
+aliases: []

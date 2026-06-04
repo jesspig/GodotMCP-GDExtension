@@ -1,0 +1,47 @@
+class: GLTFNode
+inherits: Resource
+properties:
+- name: original_name
+  type: 4
+  type_name: String
+- name: parent
+  type: 2
+  type_name: int
+- name: height
+  type: 2
+  type_name: int
+- name: xform
+  type: 18
+  type_name: Transform3D
+- name: mesh
+  type: 2
+  type_name: int
+- name: camera
+  type: 2
+  type_name: int
+- name: skin
+  type: 2
+  type_name: int
+- name: skeleton
+  type: 2
+  type_name: int
+- name: position
+  type: 9
+  type_name: Vector3
+- name: rotation
+  type: 15
+  type_name: Quaternion
+- name: scale
+  type: 9
+  type_name: Vector3
+- name: children
+  type: 30
+  type_name: PackedInt32Array
+- name: light
+  type: 2
+  type_name: int
+- name: visible
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

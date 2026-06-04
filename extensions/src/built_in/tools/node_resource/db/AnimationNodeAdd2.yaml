@@ -1,0 +1,5 @@
+class: AnimationNodeAdd2
+inherits: AnimationNodeSync
+properties: []
+description: ''
+aliases: []

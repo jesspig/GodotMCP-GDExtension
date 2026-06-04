@@ -1,0 +1,5 @@
+class: VisualShaderNodeVectorDistance
+inherits: VisualShaderNodeVectorBase
+properties: []
+description: ''
+aliases: []

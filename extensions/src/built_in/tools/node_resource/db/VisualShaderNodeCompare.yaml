@@ -1,0 +1,14 @@
+class: VisualShaderNodeCompare
+inherits: VisualShaderNode
+properties:
+- name: type
+  type: 2
+  type_name: int
+- name: function
+  type: 2
+  type_name: int
+- name: condition
+  type: 2
+  type_name: int
+description: ''
+aliases: []

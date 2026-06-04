@@ -1,0 +1,5 @@
+class: GLTFDocumentExtensionConvertImporterMesh
+inherits: GLTFDocumentExtension
+properties: []
+description: ''
+aliases: []

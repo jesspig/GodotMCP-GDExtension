@@ -1,0 +1,47 @@
+class: GLTFAccessor
+inherits: Resource
+properties:
+- name: buffer_view
+  type: 2
+  type_name: int
+- name: byte_offset
+  type: 2
+  type_name: int
+- name: component_type
+  type: 2
+  type_name: int
+- name: normalized
+  type: 1
+  type_name: bool
+- name: count
+  type: 2
+  type_name: int
+- name: accessor_type
+  type: 2
+  type_name: int
+- name: min
+  type: 33
+  type_name: PackedFloat64Array
+- name: max
+  type: 33
+  type_name: PackedFloat64Array
+- name: sparse_count
+  type: 2
+  type_name: int
+- name: sparse_indices_buffer_view
+  type: 2
+  type_name: int
+- name: sparse_indices_byte_offset
+  type: 2
+  type_name: int
+- name: sparse_indices_component_type
+  type: 2
+  type_name: int
+- name: sparse_values_buffer_view
+  type: 2
+  type_name: int
+- name: sparse_values_byte_offset
+  type: 2
+  type_name: int
+description: ''
+aliases: []

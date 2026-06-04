@@ -1,0 +1,8 @@
+class: ConvexPolygonShape2D
+inherits: Shape2D
+properties:
+- name: points
+  type: 35
+  type_name: PackedVector2Array
+description: ''
+aliases: []

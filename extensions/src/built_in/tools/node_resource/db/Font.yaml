@@ -1,0 +1,8 @@
+class: Font
+inherits: Resource
+properties:
+- name: fallbacks
+  type: 28
+  type_name: Array
+description: ''
+aliases: []

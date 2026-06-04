@@ -1,0 +1,8 @@
+class: AnimationNodeBlendTree
+inherits: AnimationRootNode
+properties:
+- name: graph_offset
+  type: 5
+  type_name: Vector2
+description: ''
+aliases: []

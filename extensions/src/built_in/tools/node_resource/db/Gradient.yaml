@@ -1,0 +1,17 @@
+class: Gradient
+inherits: Resource
+properties:
+- name: interpolation_mode
+  type: 2
+  type_name: int
+- name: interpolation_color_space
+  type: 2
+  type_name: int
+- name: offsets
+  type: 32
+  type_name: PackedFloat32Array
+- name: colors
+  type: 37
+  type_name: PackedColorArray
+description: ''
+aliases: []

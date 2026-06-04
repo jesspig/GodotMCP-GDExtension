@@ -1,0 +1,29 @@
+class: GLTFPhysicsBody
+inherits: Resource
+properties:
+- name: body_type
+  type: 4
+  type_name: String
+- name: mass
+  type: 3
+  type_name: float
+- name: linear_velocity
+  type: 9
+  type_name: Vector3
+- name: angular_velocity
+  type: 9
+  type_name: Vector3
+- name: center_of_mass
+  type: 9
+  type_name: Vector3
+- name: inertia_diagonal
+  type: 9
+  type_name: Vector3
+- name: inertia_orientation
+  type: 15
+  type_name: Quaternion
+- name: inertia_tensor
+  type: 17
+  type_name: Basis
+description: ''
+aliases: []

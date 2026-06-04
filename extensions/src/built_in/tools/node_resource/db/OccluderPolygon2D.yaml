@@ -1,0 +1,14 @@
+class: OccluderPolygon2D
+inherits: Resource
+properties:
+- name: closed
+  type: 1
+  type_name: bool
+- name: cull_mode
+  type: 2
+  type_name: int
+- name: polygon
+  type: 35
+  type_name: PackedVector2Array
+description: ''
+aliases: []

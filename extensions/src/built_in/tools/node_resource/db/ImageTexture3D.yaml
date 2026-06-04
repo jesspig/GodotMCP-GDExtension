@@ -1,0 +1,8 @@
+class: ImageTexture3D
+inherits: Texture3D
+properties:
+- name: _images
+  type: 28
+  type_name: Array
+description: ''
+aliases: []

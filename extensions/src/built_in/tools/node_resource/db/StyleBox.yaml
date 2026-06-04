@@ -1,0 +1,17 @@
+class: StyleBox
+inherits: Resource
+properties:
+- name: content_margin_left
+  type: 3
+  type_name: float
+- name: content_margin_top
+  type: 3
+  type_name: float
+- name: content_margin_right
+  type: 3
+  type_name: float
+- name: content_margin_bottom
+  type: 3
+  type_name: float
+description: ''
+aliases: []

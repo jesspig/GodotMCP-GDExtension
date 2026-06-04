@@ -1,0 +1,8 @@
+class: AnimationLibrary
+inherits: Resource
+properties:
+- name: _data
+  type: 27
+  type_name: Dictionary
+description: ''
+aliases: []

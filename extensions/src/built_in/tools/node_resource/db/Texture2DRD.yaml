@@ -1,0 +1,5 @@
+class: Texture2DRD
+inherits: Texture2D
+properties: []
+description: ''
+aliases: []

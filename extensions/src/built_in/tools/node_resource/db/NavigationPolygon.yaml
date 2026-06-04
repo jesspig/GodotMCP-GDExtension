@@ -1,0 +1,44 @@
+class: NavigationPolygon
+inherits: Resource
+properties:
+- name: vertices
+  type: 35
+  type_name: PackedVector2Array
+- name: polygons
+  type: 28
+  type_name: Array
+- name: outlines
+  type: 28
+  type_name: Array
+- name: sample_partition_type
+  type: 2
+  type_name: int
+- name: parsed_geometry_type
+  type: 2
+  type_name: int
+- name: parsed_collision_mask
+  type: 2
+  type_name: int
+- name: source_geometry_mode
+  type: 2
+  type_name: int
+- name: source_geometry_group_name
+  type: 4
+  type_name: String
+- name: cell_size
+  type: 3
+  type_name: float
+- name: border_size
+  type: 3
+  type_name: float
+- name: agent_radius
+  type: 3
+  type_name: float
+- name: baking_rect
+  type: 7
+  type_name: Rect2
+- name: baking_rect_offset
+  type: 5
+  type_name: Vector2
+description: ''
+aliases: []

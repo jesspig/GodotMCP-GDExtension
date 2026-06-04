@@ -1,0 +1,5 @@
+class: VisualShaderNodeTextureParameterTriplanar
+inherits: VisualShaderNodeTextureParameter
+properties: []
+description: ''
+aliases: []

@@ -1,0 +1,14 @@
+class: OpenXRHapticVibration
+inherits: OpenXRHapticBase
+properties:
+- name: duration
+  type: 2
+  type_name: int
+- name: frequency
+  type: 3
+  type_name: float
+- name: amplitude
+  type: 3
+  type_name: float
+description: ''
+aliases: []

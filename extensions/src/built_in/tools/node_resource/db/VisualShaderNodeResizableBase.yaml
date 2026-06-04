@@ -1,0 +1,8 @@
+class: VisualShaderNodeResizableBase
+inherits: VisualShaderNode
+properties:
+- name: size
+  type: 5
+  type_name: Vector2
+description: ''
+aliases: []

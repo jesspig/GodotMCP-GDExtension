@@ -1,0 +1,5 @@
+class: OpenXRBindingModifier
+inherits: Resource
+properties: []
+description: ''
+aliases: []

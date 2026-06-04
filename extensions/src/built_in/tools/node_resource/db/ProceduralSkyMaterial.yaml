@@ -1,0 +1,48 @@
+class: ProceduralSkyMaterial
+inherits: Material
+properties:
+- name: sky_top_color
+  type: 20
+  type_name: Color
+- name: sky_horizon_color
+  type: 20
+  type_name: Color
+- name: sky_curve
+  type: 3
+  type_name: float
+- name: sky_energy_multiplier
+  type: 3
+  type_name: float
+- name: sky_cover
+  type: 24
+  type_name: Object
+  class_name: Texture2D
+- name: sky_cover_modulate
+  type: 20
+  type_name: Color
+- name: ground_bottom_color
+  type: 20
+  type_name: Color
+- name: ground_horizon_color
+  type: 20
+  type_name: Color
+- name: ground_curve
+  type: 3
+  type_name: float
+- name: ground_energy_multiplier
+  type: 3
+  type_name: float
+- name: sun_angle_max
+  type: 3
+  type_name: float
+- name: sun_curve
+  type: 3
+  type_name: float
+- name: use_debanding
+  type: 1
+  type_name: bool
+- name: energy_multiplier
+  type: 3
+  type_name: float
+description: ''
+aliases: []

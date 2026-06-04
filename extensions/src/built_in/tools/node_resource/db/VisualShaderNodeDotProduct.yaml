@@ -1,0 +1,5 @@
+class: VisualShaderNodeDotProduct
+inherits: VisualShaderNode
+properties: []
+description: ''
+aliases: []

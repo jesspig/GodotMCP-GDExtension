@@ -1,0 +1,8 @@
+class: FoldableGroup
+inherits: Resource
+properties:
+- name: allow_folding_all
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

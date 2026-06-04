@@ -1,0 +1,8 @@
+class: WorldBoundaryShape3D
+inherits: Shape3D
+properties:
+- name: plane
+  type: 14
+  type_name: Plane
+description: ''
+aliases: []

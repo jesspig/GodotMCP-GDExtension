@@ -1,0 +1,15 @@
+class: OpenXRIPBinding
+inherits: Resource
+properties:
+- name: action
+  type: 24
+  type_name: Object
+  class_name: OpenXRAction
+- name: binding_path
+  type: 4
+  type_name: String
+- name: binding_modifiers
+  type: 28
+  type_name: Array
+description: ''
+aliases: []

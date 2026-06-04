@@ -1,0 +1,5 @@
+class: GDExtension
+inherits: Resource
+properties: []
+description: ''
+aliases: []

@@ -1,0 +1,11 @@
+class: CapsuleShape3D
+inherits: Shape3D
+properties:
+- name: radius
+  type: 3
+  type_name: float
+- name: height
+  type: 3
+  type_name: float
+description: ''
+aliases: []

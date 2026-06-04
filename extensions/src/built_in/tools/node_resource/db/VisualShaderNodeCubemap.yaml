@@ -1,0 +1,15 @@
+class: VisualShaderNodeCubemap
+inherits: VisualShaderNode
+properties:
+- name: source
+  type: 2
+  type_name: int
+- name: cube_map
+  type: 24
+  type_name: Object
+  class_name: Cubemap,CompressedCubemap,PlaceholderCubemap,TextureCubemapRD
+- name: texture_type
+  type: 2
+  type_name: int
+description: ''
+aliases: []

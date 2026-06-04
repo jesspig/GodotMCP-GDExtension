@@ -1,0 +1,14 @@
+class: InputEventMouse
+inherits: InputEventWithModifiers
+properties:
+- name: button_mask
+  type: 2
+  type_name: int
+- name: position
+  type: 5
+  type_name: Vector2
+- name: global_position
+  type: 5
+  type_name: Vector2
+description: ''
+aliases: []

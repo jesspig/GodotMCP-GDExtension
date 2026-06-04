@@ -1,0 +1,11 @@
+class: SeparationRayShape3D
+inherits: Shape3D
+properties:
+- name: length
+  type: 3
+  type_name: float
+- name: slide_on_slope
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

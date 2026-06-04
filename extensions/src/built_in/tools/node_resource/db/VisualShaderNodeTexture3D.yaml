@@ -1,0 +1,9 @@
+class: VisualShaderNodeTexture3D
+inherits: VisualShaderNodeSample3D
+properties:
+- name: texture
+  type: 24
+  type_name: Object
+  class_name: Texture3D
+description: ''
+aliases: []

@@ -1,0 +1,14 @@
+class: AudioEffectStereoEnhance
+inherits: AudioEffect
+properties:
+- name: pan_pullout
+  type: 3
+  type_name: float
+- name: time_pullout_ms
+  type: 3
+  type_name: float
+- name: surround
+  type: 3
+  type_name: float
+description: ''
+aliases: []

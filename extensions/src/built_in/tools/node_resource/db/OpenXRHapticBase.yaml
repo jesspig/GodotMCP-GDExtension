@@ -1,0 +1,5 @@
+class: OpenXRHapticBase
+inherits: Resource
+properties: []
+description: ''
+aliases: []

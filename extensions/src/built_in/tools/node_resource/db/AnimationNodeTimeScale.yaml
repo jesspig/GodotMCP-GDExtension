@@ -1,0 +1,5 @@
+class: AnimationNodeTimeScale
+inherits: AnimationNode
+properties: []
+description: ''
+aliases: []

@@ -1,0 +1,20 @@
+class: VisualShaderNodeFrame
+inherits: VisualShaderNodeResizableBase
+properties:
+- name: title
+  type: 4
+  type_name: String
+- name: tint_color_enabled
+  type: 1
+  type_name: bool
+- name: tint_color
+  type: 20
+  type_name: Color
+- name: autoshrink
+  type: 1
+  type_name: bool
+- name: attached_nodes
+  type: 30
+  type_name: PackedInt32Array
+description: ''
+aliases: []

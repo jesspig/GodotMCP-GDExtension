@@ -1,0 +1,8 @@
+class: JointLimitationCone3D
+inherits: JointLimitation3D
+properties:
+- name: angle
+  type: 3
+  type_name: float
+description: ''
+aliases: []

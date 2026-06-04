@@ -1,0 +1,20 @@
+class: AudioEffectDistortion
+inherits: AudioEffect
+properties:
+- name: mode
+  type: 2
+  type_name: int
+- name: pre_gain
+  type: 3
+  type_name: float
+- name: keep_hf_hz
+  type: 3
+  type_name: float
+- name: drive
+  type: 3
+  type_name: float
+- name: post_gain
+  type: 3
+  type_name: float
+description: ''
+aliases: []

@@ -1,0 +1,5 @@
+class: VisualShaderNodeGlobalExpression
+inherits: VisualShaderNodeExpression
+properties: []
+description: ''
+aliases: []
