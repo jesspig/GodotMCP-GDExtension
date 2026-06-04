@@ -1,47 +1,26 @@
 class: Sprite3D
-inherits: Node3D
+inherits: SpriteBase3D
 properties:
-  - name: texture
-    type: 38
-  - name: centered
-    type: 1
-  - name: offset
-    type: 7
-  - name: flip_h
-    type: 1
-  - name: flip_v
-    type: 1
-  - name: modulate
-    type: 20
-  - name: opacity
-    type: 3
-  - name: hframes
-    type: 2
-  - name: vframes
-    type: 2
-  - name: frame
-    type: 2
-  - name: frame_coords
-    type: 6
-  - name: region_enabled
-    type: 1
-  - name: region_rect
-    type: 10
-  - name: pixel_size
-    type: 3
-  - name: axis
-    type: 2
-  - name: billboard
-    type: 2
-  - name: transparent
-    type: 1
-  - name: double_sided
-    type: 1
-  - name: no_depth_test
-    type: 1
-  - name: fixed_size
-    type: 1
-  - name: alpha_cut
-    type: 2
-  - name: alpha_scissor_threshold
-    type: 3
+- name: texture
+  type: 24
+  type_name: Object
+- name: hframes
+  type: 2
+  type_name: int
+- name: vframes
+  type: 2
+  type_name: int
+- name: frame
+  type: 2
+  type_name: int
+- name: frame_coords
+  type: 6
+  type_name: Vector2i
+- name: region_enabled
+  type: 1
+  type_name: bool
+- name: region_rect
+  type: 7
+  type_name: Rect2
+description: 3D sprite texture display.
+aliases: []

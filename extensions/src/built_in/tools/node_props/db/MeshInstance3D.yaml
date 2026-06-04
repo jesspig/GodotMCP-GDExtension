@@ -1,23 +1,14 @@
 class: MeshInstance3D
-inherits: Node3D
+inherits: GeometryInstance3D
 properties:
-  - name: mesh
-    type: 38
-  - name: skin
-    type: 38
-  - name: skeleton
-    type: 18
-  - name: cast_shadow
-    type: 2
-  - name: extra_cull_margin
-    type: 3
-  - name: custom_aabb
-    type: 12
-  - name: lod_bias
-    type: 3
-  - name: ignore_occlusion_culling
-    type: 1
-  - name: gi_mode
-    type: 2
-  - name: transparency
-    type: 3
+- name: mesh
+  type: 24
+  type_name: Object
+- name: skin
+  type: 24
+  type_name: Object
+- name: skeleton
+  type: 22
+  type_name: NodePath
+description: Instance of a 3D mesh.
+aliases: []

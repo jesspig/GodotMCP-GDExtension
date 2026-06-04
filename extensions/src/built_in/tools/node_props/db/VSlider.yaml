@@ -1,0 +1,5 @@
+class: VSlider
+inherits: Slider
+properties: []
+description: ''
+aliases: []

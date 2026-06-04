@@ -1,0 +1,29 @@
+class: FoldableContainer
+inherits: Container
+properties:
+- name: folded
+  type: 1
+  type_name: bool
+- name: title
+  type: 4
+  type_name: String
+- name: title_alignment
+  type: 2
+  type_name: int
+- name: title_position
+  type: 2
+  type_name: int
+- name: title_text_overrun_behavior
+  type: 2
+  type_name: int
+- name: foldable_group
+  type: 24
+  type_name: Object
+- name: title_text_direction
+  type: 2
+  type_name: int
+- name: language
+  type: 4
+  type_name: String
+description: ''
+aliases: []

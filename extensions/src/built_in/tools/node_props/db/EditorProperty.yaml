@@ -1,0 +1,41 @@
+class: EditorProperty
+inherits: Container
+properties:
+- name: label
+  type: 4
+  type_name: String
+- name: read_only
+  type: 1
+  type_name: bool
+- name: draw_label
+  type: 1
+  type_name: bool
+- name: draw_background
+  type: 1
+  type_name: bool
+- name: checkable
+  type: 1
+  type_name: bool
+- name: checked
+  type: 1
+  type_name: bool
+- name: draw_warning
+  type: 1
+  type_name: bool
+- name: keying
+  type: 1
+  type_name: bool
+- name: deletable
+  type: 1
+  type_name: bool
+- name: selectable
+  type: 1
+  type_name: bool
+- name: use_folding
+  type: 1
+  type_name: bool
+- name: name_split_ratio
+  type: 3
+  type_name: float
+description: ''
+aliases: []

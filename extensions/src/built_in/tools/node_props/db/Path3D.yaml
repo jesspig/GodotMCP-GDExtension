@@ -1,0 +1,11 @@
+class: Path3D
+inherits: Node3D
+properties:
+- name: curve
+  type: 24
+  type_name: Object
+- name: debug_custom_color
+  type: 20
+  type_name: Color
+description: A node that contains a Curva3D shape for PathFollow3D nodes.
+aliases: []

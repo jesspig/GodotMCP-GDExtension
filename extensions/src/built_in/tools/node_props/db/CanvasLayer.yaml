@@ -1,0 +1,30 @@
+class: CanvasLayer
+inherits: Node
+properties:
+- name: layer
+  type: 2
+  type_name: int
+- name: visible
+  type: 1
+  type_name: bool
+- name: offset
+  type: 5
+  type_name: Vector2
+- name: rotation
+  type: 3
+  type_name: float
+- name: scale
+  type: 5
+  type_name: Vector2
+- name: transform
+  type: 11
+  type_name: Transform2D
+- name: follow_viewport_enabled
+  type: 1
+  type_name: bool
+- name: follow_viewport_scale
+  type: 3
+  type_name: float
+description: A node used for independent rendering of objects within a 2D scene.
+aliases:
+- ParallaxBackground

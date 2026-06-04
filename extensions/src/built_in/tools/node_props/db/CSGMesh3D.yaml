@@ -1,0 +1,11 @@
+class: CSGMesh3D
+inherits: CSGPrimitive3D
+properties:
+- name: mesh
+  type: 24
+  type_name: Object
+- name: material
+  type: 24
+  type_name: Object
+description: ''
+aliases: []

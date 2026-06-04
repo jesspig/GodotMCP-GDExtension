@@ -1,0 +1,50 @@
+class: Decal
+inherits: VisualInstance3D
+properties:
+- name: size
+  type: 9
+  type_name: Vector3
+- name: texture_albedo
+  type: 24
+  type_name: Object
+- name: texture_normal
+  type: 24
+  type_name: Object
+- name: texture_orm
+  type: 24
+  type_name: Object
+- name: texture_emission
+  type: 24
+  type_name: Object
+- name: emission_energy
+  type: 3
+  type_name: float
+- name: modulate
+  type: 20
+  type_name: Color
+- name: albedo_mix
+  type: 3
+  type_name: float
+- name: normal_fade
+  type: 3
+  type_name: float
+- name: upper_fade
+  type: 3
+  type_name: float
+- name: lower_fade
+  type: 3
+  type_name: float
+- name: distance_fade_enabled
+  type: 1
+  type_name: bool
+- name: distance_fade_begin
+  type: 3
+  type_name: float
+- name: distance_fade_length
+  type: 3
+  type_name: float
+- name: cull_mask
+  type: 2
+  type_name: int
+description: A node used to project a texture onto a mesh in 3D space.
+aliases: []

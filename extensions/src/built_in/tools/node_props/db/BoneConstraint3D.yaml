@@ -1,0 +1,5 @@
+class: BoneConstraint3D
+inherits: SkeletonModifier3D
+properties: []
+description: ''
+aliases: []

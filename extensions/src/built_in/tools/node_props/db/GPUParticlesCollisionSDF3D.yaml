@@ -1,0 +1,20 @@
+class: GPUParticlesCollisionSDF3D
+inherits: GPUParticlesCollision3D
+properties:
+- name: size
+  type: 9
+  type_name: Vector3
+- name: resolution
+  type: 2
+  type_name: int
+- name: thickness
+  type: 3
+  type_name: float
+- name: bake_mask
+  type: 2
+  type_name: int
+- name: texture
+  type: 24
+  type_name: Object
+description: ''
+aliases: []

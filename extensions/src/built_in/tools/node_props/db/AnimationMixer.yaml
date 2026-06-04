@@ -1,0 +1,36 @@
+class: AnimationMixer
+inherits: Node
+properties:
+- name: active
+  type: 1
+  type_name: bool
+- name: deterministic
+  type: 1
+  type_name: bool
+- name: reset_on_save
+  type: 1
+  type_name: bool
+- name: root_node
+  type: 22
+  type_name: NodePath
+- name: root_motion_track
+  type: 22
+  type_name: NodePath
+- name: root_motion_local
+  type: 1
+  type_name: bool
+- name: audio_max_polyphony
+  type: 2
+  type_name: int
+- name: callback_mode_process
+  type: 2
+  type_name: int
+- name: callback_mode_method
+  type: 2
+  type_name: int
+- name: callback_mode_discrete
+  type: 2
+  type_name: int
+description: Base class for AnimationPlayer and AnimationTree to manage animation
+  lists.
+aliases: []

@@ -1,0 +1,5 @@
+class: PopupPanel
+inherits: Popup
+properties: []
+description: A popup panel that displays a panel with content.
+aliases: []

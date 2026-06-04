@@ -1,9 +1,17 @@
 class: PointLight2D
 inherits: Light2D
 properties:
-  - name: texture
-    type: 38
-  - name: offset
-    type: 5
-  - name: texture_scale
-    type: 3
+- name: texture
+  type: 24
+  type_name: Object
+- name: offset
+  type: 5
+  type_name: Vector2
+- name: texture_scale
+  type: 3
+  type_name: float
+- name: height
+  type: 3
+  type_name: float
+description: Point light for 2D.
+aliases: []

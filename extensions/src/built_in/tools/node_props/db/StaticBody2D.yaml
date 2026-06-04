@@ -1,9 +1,14 @@
 class: StaticBody2D
-inherits: CollisionObject2D
+inherits: PhysicsBody2D
 properties:
-  - name: constant_linear_velocity
-    type: 5
-  - name: constant_angular_velocity
-    type: 3
-  - name: physics_material_override
-    type: 38
+- name: physics_material_override
+  type: 24
+  type_name: Object
+- name: constant_linear_velocity
+  type: 5
+  type_name: Vector2
+- name: constant_angular_velocity
+  type: 3
+  type_name: float
+description: Static 2D physics body.
+aliases: []

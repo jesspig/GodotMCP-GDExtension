@@ -1,0 +1,5 @@
+class: PanelContainer
+inherits: Container
+properties: []
+description: A container that draws a stylebox behind its children.
+aliases: []

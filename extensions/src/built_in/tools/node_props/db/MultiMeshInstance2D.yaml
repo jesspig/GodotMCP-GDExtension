@@ -1,0 +1,11 @@
+class: MultiMeshInstance2D
+inherits: Node2D
+properties:
+- name: multimesh
+  type: 24
+  type_name: Object
+- name: texture
+  type: 24
+  type_name: Object
+description: Node that instances a MultiMesh in 2D.
+aliases: []

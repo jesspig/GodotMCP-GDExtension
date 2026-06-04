@@ -1,0 +1,26 @@
+class: EditorSpinSlider
+inherits: Range
+properties:
+- name: label
+  type: 4
+  type_name: String
+- name: suffix
+  type: 4
+  type_name: String
+- name: read_only
+  type: 1
+  type_name: bool
+- name: flat
+  type: 1
+  type_name: bool
+- name: control_state
+  type: 1
+  type_name: bool
+- name: hide_slider
+  type: 1
+  type_name: bool
+- name: editing_integer
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

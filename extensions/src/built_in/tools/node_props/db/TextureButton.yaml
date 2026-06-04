@@ -1,0 +1,35 @@
+class: TextureButton
+inherits: BaseButton
+properties:
+- name: texture_normal
+  type: 24
+  type_name: Object
+- name: texture_pressed
+  type: 24
+  type_name: Object
+- name: texture_hover
+  type: 24
+  type_name: Object
+- name: texture_disabled
+  type: 24
+  type_name: Object
+- name: texture_focused
+  type: 24
+  type_name: Object
+- name: texture_click_mask
+  type: 24
+  type_name: Object
+- name: ignore_texture_size
+  type: 1
+  type_name: bool
+- name: stretch_mode
+  type: 2
+  type_name: int
+- name: flip_h
+  type: 1
+  type_name: bool
+- name: flip_v
+  type: 1
+  type_name: bool
+description: A button that displays a texture.
+aliases: []

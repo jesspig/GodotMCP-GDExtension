@@ -1,0 +1,20 @@
+class: CSGSphere3D
+inherits: CSGPrimitive3D
+properties:
+- name: radius
+  type: 3
+  type_name: float
+- name: radial_segments
+  type: 2
+  type_name: int
+- name: rings
+  type: 2
+  type_name: int
+- name: smooth_faces
+  type: 1
+  type_name: bool
+- name: material
+  type: 24
+  type_name: Object
+description: ''
+aliases: []

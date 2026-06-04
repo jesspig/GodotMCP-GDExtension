@@ -1,0 +1,17 @@
+class: SpringBoneCollision3D
+inherits: Node3D
+properties:
+- name: bone_name
+  type: 21
+  type_name: StringName
+- name: bone
+  type: 2
+  type_name: int
+- name: position_offset
+  type: 9
+  type_name: Vector3
+- name: rotation_offset
+  type: 15
+  type_name: Quaternion
+description: ''
+aliases: []

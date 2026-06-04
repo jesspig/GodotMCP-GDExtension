@@ -1,0 +1,20 @@
+class: OpenXRHand
+inherits: Node3D
+properties:
+- name: hand
+  type: 2
+  type_name: int
+- name: motion_range
+  type: 2
+  type_name: int
+- name: hand_skeleton
+  type: 22
+  type_name: NodePath
+- name: skeleton_rig
+  type: 2
+  type_name: int
+- name: bone_update
+  type: 2
+  type_name: int
+description: ''
+aliases: []

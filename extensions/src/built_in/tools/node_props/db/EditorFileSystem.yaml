@@ -1,0 +1,5 @@
+class: EditorFileSystem
+inherits: Node
+properties: []
+description: ''
+aliases: []

@@ -1,21 +1,35 @@
 class: AudioStreamPlayer
 inherits: Node
 properties:
-  - name: stream
-    type: 38
-  - name: volume_db
-    type: 3
-  - name: pitch_scale
-    type: 3
-  - name: playing
-    type: 1
-  - name: autoplay
-    type: 1
-  - name: stream_paused
-    type: 1
-  - name: mix_target
-    type: 2
-  - name: max_polyphony
-    type: 2
-  - name: bus
-    type: 4
+- name: stream
+  type: 24
+  type_name: Object
+- name: volume_db
+  type: 3
+  type_name: float
+- name: pitch_scale
+  type: 3
+  type_name: float
+- name: playing
+  type: 1
+  type_name: bool
+- name: autoplay
+  type: 1
+  type_name: bool
+- name: stream_paused
+  type: 1
+  type_name: bool
+- name: mix_target
+  type: 2
+  type_name: int
+- name: max_polyphony
+  type: 2
+  type_name: int
+- name: bus
+  type: 21
+  type_name: StringName
+- name: playback_type
+  type: 2
+  type_name: int
+description: Plays audio streams.
+aliases: []

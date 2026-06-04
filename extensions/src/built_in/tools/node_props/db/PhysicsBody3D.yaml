@@ -1,0 +1,27 @@
+class: PhysicsBody3D
+inherits: CollisionObject3D
+properties:
+- name: axis_lock_linear_x
+  type: 1
+  type_name: bool
+- name: axis_lock_linear_y
+  type: 1
+  type_name: bool
+- name: axis_lock_linear_z
+  type: 1
+  type_name: bool
+- name: axis_lock_angular_x
+  type: 1
+  type_name: bool
+- name: axis_lock_angular_y
+  type: 1
+  type_name: bool
+- name: axis_lock_angular_z
+  type: 1
+  type_name: bool
+description: Abstract base class for all 3D physics bodies.
+aliases:
+- RigidBody3D
+- StaticBody3D
+- CharacterBody3D
+- AnimatableBody3D

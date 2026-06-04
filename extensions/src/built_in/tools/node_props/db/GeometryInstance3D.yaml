@@ -1,0 +1,52 @@
+class: GeometryInstance3D
+inherits: VisualInstance3D
+properties:
+- name: material_override
+  type: 24
+  type_name: Object
+- name: material_overlay
+  type: 24
+  type_name: Object
+- name: transparency
+  type: 3
+  type_name: float
+- name: cast_shadow
+  type: 2
+  type_name: int
+- name: extra_cull_margin
+  type: 3
+  type_name: float
+- name: custom_aabb
+  type: 16
+  type_name: AABB
+- name: lod_bias
+  type: 3
+  type_name: float
+- name: ignore_occlusion_culling
+  type: 1
+  type_name: bool
+- name: gi_mode
+  type: 2
+  type_name: int
+- name: gi_lightmap_texel_scale
+  type: 3
+  type_name: float
+- name: visibility_range_begin
+  type: 3
+  type_name: float
+- name: visibility_range_begin_margin
+  type: 3
+  type_name: float
+- name: visibility_range_end
+  type: 3
+  type_name: float
+- name: visibility_range_end_margin
+  type: 3
+  type_name: float
+- name: visibility_range_fade_mode
+  type: 2
+  type_name: int
+description: Base node for geometry-based visual instances.
+aliases:
+- Label3D
+- SpriteBase3D

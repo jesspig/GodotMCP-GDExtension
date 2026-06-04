@@ -1,0 +1,8 @@
+class: Path2D
+inherits: Node2D
+properties:
+- name: curve
+  type: 24
+  type_name: Object
+description: A node that contains a Curva2D shape for PathFollow2D nodes.
+aliases: []

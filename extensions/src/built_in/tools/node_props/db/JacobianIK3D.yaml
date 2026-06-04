@@ -1,0 +1,5 @@
+class: JacobianIK3D
+inherits: IterateIK3D
+properties: []
+description: ''
+aliases: []

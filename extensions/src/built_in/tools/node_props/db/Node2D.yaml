@@ -1,11 +1,17 @@
 class: Node2D
 inherits: CanvasItem
 properties:
-  - name: global_position
-    type: 5
-  - name: global_rotation
-    type: 3
-  - name: global_scale
-    type: 5
-  - name: global_skew
-    type: 3
+- name: position
+  type: 5
+  type_name: Vector2
+- name: rotation
+  type: 3
+  type_name: float
+- name: scale
+  type: 5
+  type_name: Vector2
+- name: skew
+  type: 3
+  type_name: float
+description: Base class for 2D nodes.
+aliases: []

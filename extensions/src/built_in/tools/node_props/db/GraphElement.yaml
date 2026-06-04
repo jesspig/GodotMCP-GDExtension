@@ -1,0 +1,26 @@
+class: GraphElement
+inherits: Container
+properties:
+- name: position_offset
+  type: 5
+  type_name: Vector2
+- name: resizable
+  type: 1
+  type_name: bool
+- name: draggable
+  type: 1
+  type_name: bool
+- name: selectable
+  type: 1
+  type_name: bool
+- name: selected
+  type: 1
+  type_name: bool
+- name: scaling_menus
+  type: 1
+  type_name: bool
+description: A container that represents a basic element that can be placed inside
+  a GraphEdit control.
+aliases:
+- GraphFrame
+- GraphNode

@@ -1,0 +1,8 @@
+class: Bone2D
+inherits: Node2D
+properties:
+- name: rest
+  type: 11
+  type_name: Transform2D
+description: A node used for skeletal animation in 2D.
+aliases: []

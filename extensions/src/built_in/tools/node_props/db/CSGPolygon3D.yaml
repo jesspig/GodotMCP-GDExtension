@@ -1,0 +1,56 @@
+class: CSGPolygon3D
+inherits: CSGPrimitive3D
+properties:
+- name: polygon
+  type: 35
+  type_name: PackedVector2Array
+- name: mode
+  type: 2
+  type_name: int
+- name: depth
+  type: 3
+  type_name: float
+- name: spin_degrees
+  type: 3
+  type_name: float
+- name: spin_sides
+  type: 2
+  type_name: int
+- name: path_node
+  type: 22
+  type_name: NodePath
+- name: path_interval_type
+  type: 2
+  type_name: int
+- name: path_interval
+  type: 3
+  type_name: float
+- name: path_simplify_angle
+  type: 3
+  type_name: float
+- name: path_rotation
+  type: 2
+  type_name: int
+- name: path_rotation_accurate
+  type: 1
+  type_name: bool
+- name: path_local
+  type: 1
+  type_name: bool
+- name: path_continuous_u
+  type: 1
+  type_name: bool
+- name: path_u_distance
+  type: 3
+  type_name: float
+- name: path_joined
+  type: 1
+  type_name: bool
+- name: smooth_faces
+  type: 1
+  type_name: bool
+- name: material
+  type: 24
+  type_name: Object
+description: ''
+aliases: []

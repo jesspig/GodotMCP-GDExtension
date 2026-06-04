@@ -1,0 +1,14 @@
+class: ParallaxLayer
+inherits: Node2D
+properties:
+- name: motion_scale
+  type: 5
+  type_name: Vector2
+- name: motion_offset
+  type: 5
+  type_name: Vector2
+- name: motion_mirroring
+  type: 5
+  type_name: Vector2
+description: A node used for individual layers in a ParallaxBackground.
+aliases: []

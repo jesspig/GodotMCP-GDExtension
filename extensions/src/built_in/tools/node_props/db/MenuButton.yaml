@@ -1,0 +1,11 @@
+class: MenuButton
+inherits: Button
+properties:
+- name: switch_on_hover
+  type: 1
+  type_name: bool
+- name: item_count
+  type: 2
+  type_name: int
+description: A button that brings up a PopupMenu when clicked.
+aliases: []

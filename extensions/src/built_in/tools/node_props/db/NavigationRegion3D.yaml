@@ -1,0 +1,23 @@
+class: NavigationRegion3D
+inherits: Node3D
+properties:
+- name: navigation_mesh
+  type: 24
+  type_name: Object
+- name: enabled
+  type: 1
+  type_name: bool
+- name: use_edge_connections
+  type: 1
+  type_name: bool
+- name: navigation_layers
+  type: 2
+  type_name: int
+- name: enter_cost
+  type: 3
+  type_name: float
+- name: travel_cost
+  type: 3
+  type_name: float
+description: A node that defines a navigation region in 3D.
+aliases: []

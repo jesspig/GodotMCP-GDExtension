@@ -1,9 +1,14 @@
 class: StaticBody3D
-inherits: CollisionObject3D
+inherits: PhysicsBody3D
 properties:
-  - name: constant_linear_velocity
-    type: 7
-  - name: constant_angular_velocity
-    type: 7
-  - name: physics_material_override
-    type: 38
+- name: physics_material_override
+  type: 24
+  type_name: Object
+- name: constant_linear_velocity
+  type: 9
+  type_name: Vector3
+- name: constant_angular_velocity
+  type: 9
+  type_name: Vector3
+description: Static 3D physics body.
+aliases: []

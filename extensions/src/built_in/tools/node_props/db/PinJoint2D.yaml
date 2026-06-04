@@ -1,0 +1,23 @@
+class: PinJoint2D
+inherits: Joint2D
+properties:
+- name: softness
+  type: 3
+  type_name: float
+- name: angular_limit_enabled
+  type: 1
+  type_name: bool
+- name: angular_limit_lower
+  type: 3
+  type_name: float
+- name: angular_limit_upper
+  type: 3
+  type_name: float
+- name: motor_enabled
+  type: 1
+  type_name: bool
+- name: motor_target_velocity
+  type: 3
+  type_name: float
+description: A 2D physics joint that attaches two bodies at a single point.
+aliases: []

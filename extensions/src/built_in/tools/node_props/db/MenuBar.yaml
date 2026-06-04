@@ -1,0 +1,23 @@
+class: MenuBar
+inherits: Control
+properties:
+- name: flat
+  type: 1
+  type_name: bool
+- name: start_index
+  type: 2
+  type_name: int
+- name: switch_on_hover
+  type: 1
+  type_name: bool
+- name: prefer_global_menu
+  type: 1
+  type_name: bool
+- name: text_direction
+  type: 2
+  type_name: int
+- name: language
+  type: 4
+  type_name: String
+description: A horizontal menu bar that creates a menu for each PopupMenu child.
+aliases: []

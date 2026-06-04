@@ -1,0 +1,53 @@
+class: PhysicalBone3D
+inherits: PhysicsBody3D
+properties:
+- name: joint_type
+  type: 2
+  type_name: int
+- name: joint_offset
+  type: 18
+  type_name: Transform3D
+- name: joint_rotation
+  type: 9
+  type_name: Vector3
+- name: body_offset
+  type: 18
+  type_name: Transform3D
+- name: mass
+  type: 3
+  type_name: float
+- name: friction
+  type: 3
+  type_name: float
+- name: bounce
+  type: 3
+  type_name: float
+- name: gravity_scale
+  type: 3
+  type_name: float
+- name: custom_integrator
+  type: 1
+  type_name: bool
+- name: linear_damp_mode
+  type: 2
+  type_name: int
+- name: linear_damp
+  type: 3
+  type_name: float
+- name: angular_damp_mode
+  type: 2
+  type_name: int
+- name: angular_damp
+  type: 3
+  type_name: float
+- name: linear_velocity
+  type: 9
+  type_name: Vector3
+- name: angular_velocity
+  type: 9
+  type_name: Vector3
+- name: can_sleep
+  type: 1
+  type_name: bool
+description: A node that represents a bone in a 3D skeleton that is physically simulated.
+aliases: []

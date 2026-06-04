@@ -1,0 +1,8 @@
+class: Marker3D
+inherits: Node3D
+properties:
+- name: gizmo_extents
+  type: 3
+  type_name: float
+description: Generic 3D position hint for editing.
+aliases: []

@@ -1,5 +1,8 @@
 class: ColorRect
 inherits: Control
 properties:
-  - name: color
-    type: 20
+- name: color
+  type: 20
+  type_name: Color
+description: Colored rectangle for UI.
+aliases: []

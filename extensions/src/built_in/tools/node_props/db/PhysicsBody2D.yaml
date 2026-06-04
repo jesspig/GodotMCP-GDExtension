@@ -1,0 +1,9 @@
+class: PhysicsBody2D
+inherits: CollisionObject2D
+properties: []
+description: Abstract base class for all 2D physics bodies.
+aliases:
+- RigidBody2D
+- StaticBody2D
+- CharacterBody2D
+- AnimatableBody2D

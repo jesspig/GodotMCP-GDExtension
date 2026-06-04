@@ -1,0 +1,17 @@
+class: StatusIndicator
+inherits: Node
+properties:
+- name: tooltip
+  type: 4
+  type_name: String
+- name: icon
+  type: 24
+  type_name: Object
+- name: menu
+  type: 22
+  type_name: NodePath
+- name: visible
+  type: 1
+  type_name: bool
+description: A node that represents a status bar indicator icon.
+aliases: []

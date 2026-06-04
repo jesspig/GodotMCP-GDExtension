@@ -1,0 +1,11 @@
+class: GPUParticlesAttractorVectorField3D
+inherits: GPUParticlesAttractor3D
+properties:
+- name: size
+  type: 9
+  type_name: Vector3
+- name: texture
+  type: 24
+  type_name: Object
+description: ''
+aliases: []

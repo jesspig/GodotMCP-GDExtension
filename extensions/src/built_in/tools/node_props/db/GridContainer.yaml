@@ -1,9 +1,8 @@
 class: GridContainer
 inherits: Container
 properties:
-  - name: columns
-    type: 2
-  - name: h_separation
-    type: 2
-  - name: v_separation
-    type: 2
+- name: columns
+  type: 2
+  type_name: int
+description: Grid-based layout container.
+aliases: []

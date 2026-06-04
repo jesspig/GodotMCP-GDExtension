@@ -1,25 +1,38 @@
 class: Node3D
 inherits: Node
 properties:
-  - name: position
-    type: 7
-  - name: rotation
-    type: 7
-  - name: rotation_degrees
-    type: 7
-  - name: scale
-    type: 7
-  - name: transform
-    type: 13
-  - name: global_position
-    type: 7
-  - name: global_rotation
-    type: 7
-  - name: global_rotation_degrees
-    type: 7
-  - name: global_transform
-    type: 13
-  - name: visible
-    type: 1
-  - name: top_level
-    type: 1
+- name: transform
+  type: 18
+  type_name: Transform3D
+- name: position
+  type: 9
+  type_name: Vector3
+- name: rotation
+  type: 9
+  type_name: Vector3
+- name: quaternion
+  type: 15
+  type_name: Quaternion
+- name: basis
+  type: 17
+  type_name: Basis
+- name: scale
+  type: 9
+  type_name: Vector3
+- name: rotation_edit_mode
+  type: 2
+  type_name: int
+- name: rotation_order
+  type: 2
+  type_name: int
+- name: top_level
+  type: 1
+  type_name: bool
+- name: visible
+  type: 1
+  type_name: bool
+- name: visibility_parent
+  type: 22
+  type_name: NodePath
+description: Base class for 3D nodes.
+aliases: []

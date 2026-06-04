@@ -1,33 +1,71 @@
 class: Label
 inherits: Control
 properties:
-  - name: text
-    type: 4
-  - name: label_settings
-    type: 38
-  - name: horizontal_alignment
-    type: 2
-  - name: vertical_alignment
-    type: 2
-  - name: autowrap_mode
-    type: 2
-  - name: justification_flags
-    type: 2
-  - name: clip_text
-    type: 1
-  - name: text_overrun_behavior
-    type: 2
-  - name: ellipsis_char
-    type: 4
-  - name: uppercase
-    type: 1
-  - name: lines_skipped
-    type: 2
-  - name: max_lines_visible
-    type: 2
-  - name: visible_characters
-    type: 2
-  - name: visible_characters_behavior
-    type: 2
-  - name: visible_ratio
-    type: 3
+- name: text
+  type: 4
+  type_name: String
+- name: label_settings
+  type: 24
+  type_name: Object
+- name: horizontal_alignment
+  type: 2
+  type_name: int
+- name: vertical_alignment
+  type: 2
+  type_name: int
+- name: autowrap_mode
+  type: 2
+  type_name: int
+- name: autowrap_trim_flags
+  type: 2
+  type_name: int
+- name: justification_flags
+  type: 2
+  type_name: int
+- name: paragraph_separator
+  type: 4
+  type_name: String
+- name: clip_text
+  type: 1
+  type_name: bool
+- name: text_overrun_behavior
+  type: 2
+  type_name: int
+- name: ellipsis_char
+  type: 4
+  type_name: String
+- name: uppercase
+  type: 1
+  type_name: bool
+- name: tab_stops
+  type: 32
+  type_name: PackedFloat32Array
+- name: lines_skipped
+  type: 2
+  type_name: int
+- name: max_lines_visible
+  type: 2
+  type_name: int
+- name: visible_characters
+  type: 2
+  type_name: int
+- name: visible_characters_behavior
+  type: 2
+  type_name: int
+- name: visible_ratio
+  type: 3
+  type_name: float
+- name: text_direction
+  type: 2
+  type_name: int
+- name: language
+  type: 4
+  type_name: String
+- name: structured_text_bidi_override
+  type: 2
+  type_name: int
+- name: structured_text_bidi_override_options
+  type: 28
+  type_name: Array
+description: Text display control.
+aliases: []

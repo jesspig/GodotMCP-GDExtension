@@ -1,0 +1,17 @@
+class: VoxelGI
+inherits: VisualInstance3D
+properties:
+- name: subdiv
+  type: 2
+  type_name: int
+- name: size
+  type: 9
+  type_name: Vector3
+- name: camera_attributes
+  type: 24
+  type_name: Object
+- name: data
+  type: 24
+  type_name: Object
+description: A node that computes and stores baked voxel-based global illumination.
+aliases: []

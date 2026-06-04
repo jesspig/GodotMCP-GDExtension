@@ -1,0 +1,23 @@
+class: CSGTorus3D
+inherits: CSGPrimitive3D
+properties:
+- name: inner_radius
+  type: 3
+  type_name: float
+- name: outer_radius
+  type: 3
+  type_name: float
+- name: sides
+  type: 2
+  type_name: int
+- name: ring_sides
+  type: 2
+  type_name: int
+- name: smooth_faces
+  type: 1
+  type_name: bool
+- name: material
+  type: 24
+  type_name: Object
+description: ''
+aliases: []

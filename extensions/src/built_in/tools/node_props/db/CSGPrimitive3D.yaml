@@ -1,0 +1,8 @@
+class: CSGPrimitive3D
+inherits: CSGShape3D
+properties:
+- name: flip_faces
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

@@ -1,0 +1,8 @@
+class: TwoBoneIK3D
+inherits: IKModifier3D
+properties:
+- name: setting_count
+  type: 2
+  type_name: int
+description: ''
+aliases: []

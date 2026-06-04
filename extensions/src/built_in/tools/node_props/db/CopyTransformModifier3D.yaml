@@ -1,0 +1,8 @@
+class: CopyTransformModifier3D
+inherits: BoneConstraint3D
+properties:
+- name: setting_count
+  type: 2
+  type_name: int
+description: ''
+aliases: []

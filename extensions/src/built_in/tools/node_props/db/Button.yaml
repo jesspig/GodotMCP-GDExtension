@@ -1,35 +1,44 @@
 class: Button
-inherits: Control
+inherits: BaseButton
 properties:
-  - name: text
-    type: 4
-  - name: icon
-    type: 38
-  - name: flat
-    type: 1
-  - name: alignment
-    type: 2
-  - name: text_overrun_behavior
-    type: 2
-  - name: autowrap_mode
-    type: 2
-  - name: clip_text
-    type: 1
-  - name: icon_alignment
-    type: 2
-  - name: vertical_icon_alignment
-    type: 2
-  - name: expand_icon
-    type: 1
-  - name: shortcut
-    type: 38
-  - name: action_mode
-    type: 2
-  - name: button_mask
-    type: 2
-  - name: toggle_mode
-    type: 1
-  - name: button_pressed
-    type: 1
-  - name: keep_pressed_outside
-    type: 1
+- name: text
+  type: 4
+  type_name: String
+- name: icon
+  type: 24
+  type_name: Object
+- name: flat
+  type: 1
+  type_name: bool
+- name: alignment
+  type: 2
+  type_name: int
+- name: text_overrun_behavior
+  type: 2
+  type_name: int
+- name: autowrap_mode
+  type: 2
+  type_name: int
+- name: autowrap_trim_flags
+  type: 2
+  type_name: int
+- name: clip_text
+  type: 1
+  type_name: bool
+- name: icon_alignment
+  type: 2
+  type_name: int
+- name: vertical_icon_alignment
+  type: 2
+  type_name: int
+- name: expand_icon
+  type: 1
+  type_name: bool
+- name: text_direction
+  type: 2
+  type_name: int
+- name: language
+  type: 4
+  type_name: String
+description: Base class for button controls.
+aliases: []

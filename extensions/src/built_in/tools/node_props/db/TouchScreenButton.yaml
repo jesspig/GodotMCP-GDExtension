@@ -1,0 +1,32 @@
+class: TouchScreenButton
+inherits: Node2D
+properties:
+- name: texture_normal
+  type: 24
+  type_name: Object
+- name: texture_pressed
+  type: 24
+  type_name: Object
+- name: bitmask
+  type: 24
+  type_name: Object
+- name: shape
+  type: 24
+  type_name: Object
+- name: shape_centered
+  type: 1
+  type_name: bool
+- name: shape_visible
+  type: 1
+  type_name: bool
+- name: passby_press
+  type: 1
+  type_name: bool
+- name: action
+  type: 21
+  type_name: StringName
+- name: visibility_mode
+  type: 2
+  type_name: int
+description: A button specifically designed for touch screens.
+aliases: []

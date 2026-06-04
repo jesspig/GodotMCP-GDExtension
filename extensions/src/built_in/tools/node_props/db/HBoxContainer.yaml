@@ -1,7 +1,5 @@
 class: HBoxContainer
-inherits: Container
-properties:
-  - name: alignment
-    type: 2
-  - name: separation
-    type: 2
+inherits: BoxContainer
+properties: []
+description: Horizontal layout container.
+aliases: []

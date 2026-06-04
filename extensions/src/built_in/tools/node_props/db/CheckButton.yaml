@@ -1,0 +1,5 @@
+class: CheckButton
+inherits: Button
+properties: []
+description: A toggle button displayed as a check field.
+aliases: []

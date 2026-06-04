@@ -1,0 +1,20 @@
+class: RemoteTransform3D
+inherits: Node3D
+properties:
+- name: remote_path
+  type: 22
+  type_name: NodePath
+- name: use_global_coordinates
+  type: 1
+  type_name: bool
+- name: update_position
+  type: 1
+  type_name: bool
+- name: update_rotation
+  type: 1
+  type_name: bool
+- name: update_scale
+  type: 1
+  type_name: bool
+description: A node that transforms a remote Node3D based on its own transform.
+aliases: []

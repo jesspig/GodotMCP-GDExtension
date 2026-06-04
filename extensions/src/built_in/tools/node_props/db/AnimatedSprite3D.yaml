@@ -1,39 +1,23 @@
 class: AnimatedSprite3D
-inherits: Node3D
+inherits: SpriteBase3D
 properties:
-  - name: sprite_frames
-    type: 38
-  - name: animation
-    type: 4
-  - name: autoplay
-    type: 4
-  - name: frame
-    type: 2
-  - name: frame_progress
-    type: 3
-  - name: speed_scale
-    type: 3
-  - name: flip_h
-    type: 1
-  - name: flip_v
-    type: 1
-  - name: offset
-    type: 7
-  - name: modulate
-    type: 20
-  - name: opacity
-    type: 3
-  - name: pixel_size
-    type: 3
-  - name: billboard
-    type: 2
-  - name: transparent
-    type: 1
-  - name: double_sided
-    type: 1
-  - name: no_depth_test
-    type: 1
-  - name: fixed_size
-    type: 1
-  - name: alpha_cut
-    type: 2
+- name: sprite_frames
+  type: 24
+  type_name: Object
+- name: animation
+  type: 21
+  type_name: StringName
+- name: autoplay
+  type: 21
+  type_name: StringName
+- name: frame
+  type: 2
+  type_name: int
+- name: frame_progress
+  type: 3
+  type_name: float
+- name: speed_scale
+  type: 3
+  type_name: float
+description: 3D sprite with animation support.
+aliases: []

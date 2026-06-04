@@ -1,0 +1,5 @@
+class: LightmapProbe
+inherits: Node3D
+properties: []
+description: ''
+aliases: []
