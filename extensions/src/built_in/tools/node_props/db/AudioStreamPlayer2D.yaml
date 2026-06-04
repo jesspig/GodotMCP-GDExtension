@@ -1,0 +1,27 @@
+class: AudioStreamPlayer2D
+inherits: Node2D
+properties:
+  - name: stream
+    type: 38
+  - name: volume_db
+    type: 3
+  - name: pitch_scale
+    type: 3
+  - name: playing
+    type: 1
+  - name: autoplay
+    type: 1
+  - name: stream_paused
+    type: 1
+  - name: max_distance
+    type: 3
+  - name: attenuation
+    type: 3
+  - name: max_polyphony
+    type: 2
+  - name: panning_strength
+    type: 3
+  - name: bus
+    type: 4
+  - name: area_mask
+    type: 2

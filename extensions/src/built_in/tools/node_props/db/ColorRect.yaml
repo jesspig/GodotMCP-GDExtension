@@ -1,0 +1,5 @@
+class: ColorRect
+inherits: Control
+properties:
+  - name: color
+    type: 20

@@ -1,0 +1,38 @@
+class: CanvasItem
+inherits: Node
+properties:
+  - name: position
+    type: 5
+  - name: rotation
+    type: 3
+  - name: scale
+    type: 5
+  - name: skew
+    type: 3
+  - name: transform
+    type: 11
+  - name: modulate
+    type: 20
+  - name: self_modulate
+    type: 20
+  - name: visible
+    type: 1
+  - name: z_index
+    type: 2
+  - name: z_as_relative
+    type: 1
+  - name: y_sort_enabled
+    type: 1
+  - name: light_mask
+    type: 2
+  - name: visibility_layer
+    type: 2
+  - name: show_behind_parent
+    type: 1
+  - name: top_level
+    type: 1
+  - name: clip_children
+    type: 2
+aliases:
+  - Node2D
+  - Control

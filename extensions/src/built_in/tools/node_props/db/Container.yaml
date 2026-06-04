@@ -1,0 +1,5 @@
+class: Container
+inherits: Control
+properties:
+  - name: mouse_force_pass_scroll_events
+    type: 1

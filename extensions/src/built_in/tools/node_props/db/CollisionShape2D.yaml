@@ -1,0 +1,15 @@
+class: CollisionShape2D
+inherits: Node2D
+properties:
+  - name: shape
+    type: 38
+  - name: disabled
+    type: 1
+  - name: one_way_collision
+    type: 1
+  - name: one_way_collision_margin
+    type: 3
+  - name: debug_color
+    type: 20
+  - name: debug_shape_custom_outline
+    type: 31

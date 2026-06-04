@@ -1,0 +1,49 @@
+class: RichTextLabel
+inherits: Control
+properties:
+  - name: text
+    type: 4
+  - name: bbcode_enabled
+    type: 1
+  - name: fit_content
+    type: 1
+  - name: scroll_active
+    type: 1
+  - name: scroll_following
+    type: 1
+  - name: scroll_following
+    type: 1
+  - name: selection_enabled
+    type: 1
+  - name: override_selected_font_color
+    type: 1
+  - name: deselect_on_focus_loss_enabled
+    type: 1
+  - name: drag_and_drop_selection_enabled
+    type: 1
+  - name: visible_characters
+    type: 2
+  - name: visible_characters_behavior
+    type: 2
+  - name: visible_ratio
+    type: 3
+  - name: text_direction
+    type: 2
+  - name: language
+    type: 4
+  - name: autowrap_mode
+    type: 2
+  - name: tab_size
+    type: 2
+  - name: context_menu_enabled
+    type: 1
+  - name: shortcut_keys_enabled
+    type: 1
+  - name: horizontal_alignment
+    type: 2
+  - name: vertical_alignment
+    type: 2
+  - name: justification_flags
+    type: 2
+  - name: clip_contents
+    type: 1

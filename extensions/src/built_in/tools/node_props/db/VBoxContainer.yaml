@@ -1,0 +1,7 @@
+class: VBoxContainer
+inherits: Container
+properties:
+  - name: alignment
+    type: 2
+  - name: separation
+    type: 2

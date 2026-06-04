@@ -1,0 +1,51 @@
+class: LineEdit
+inherits: Control
+properties:
+  - name: text
+    type: 4
+  - name: placeholder_text
+    type: 4
+  - name: alignment
+    type: 2
+  - name: max_length
+    type: 2
+  - name: editable
+    type: 1
+  - name: expand_to_text_length
+    type: 1
+  - name: caret_blink
+    type: 1
+  - name: caret_blink_interval
+    type: 3
+  - name: caret_force_display
+    type: 1
+  - name: caret_mid_grapheme
+    type: 1
+  - name: secret
+    type: 1
+  - name: secret_character
+    type: 4
+  - name: selecting_enabled
+    type: 1
+  - name: deselect_on_focus_loss_enabled
+    type: 1
+  - name: drag_and_drop_selection_enabled
+    type: 1
+  - name: right_icon
+    type: 38
+  - name: flat
+    type: 1
+  - name: clear_button_enabled
+    type: 1
+  - name: shortcut_keys_enabled
+    type: 1
+  - name: virtual_keyboard_enabled
+    type: 1
+  - name: virtual_keyboard_type
+    type: 2
+  - name: clear_button_enabled
+    type: 1
+  - name: middle_mouse_paste_enabled
+    type: 1
+  - name: context_menu_enabled
+    type: 1

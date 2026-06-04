@@ -1,0 +1,45 @@
+class: Camera2D
+inherits: Node2D
+properties:
+  - name: offset
+    type: 5
+  - name: anchor_mode
+    type: 2
+  - name: ignore_rotation
+    type: 1
+  - name: enabled
+    type: 1
+  - name: zoom
+    type: 5
+  - name: process_callback
+    type: 2
+  - name: limit_left
+    type: 2
+  - name: limit_top
+    type: 2
+  - name: limit_right
+    type: 2
+  - name: limit_bottom
+    type: 2
+  - name: limit_smoothed
+    type: 1
+  - name: position_smoothing_enabled
+    type: 1
+  - name: position_smoothing_speed
+    type: 3
+  - name: rotation_smoothing_enabled
+    type: 1
+  - name: rotation_smoothing_speed
+    type: 3
+  - name: drag_horizontal_enabled
+    type: 1
+  - name: drag_vertical_enabled
+    type: 1
+  - name: drag_left_margin
+    type: 3
+  - name: drag_top_margin
+    type: 3
+  - name: drag_right_margin
+    type: 3
+  - name: drag_bottom_margin
+    type: 3

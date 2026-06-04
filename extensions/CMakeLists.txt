@@ -83,24 +83,27 @@ file(GLOB_RECURSE TOOL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*
 list(APPEND GODOT_MCP_SOURCES ${TOOL_SOURCES})
 
 # ---------------------------------------------------------------------------
-# Code generation: auto-registration from // @tool register comments
+# Code generation: auto-registration from // @tool register comments + YAML db
 # ---------------------------------------------------------------------------
 find_package(Python3 COMPONENTS Interpreter QUIET)
 
 set(CODEGEN_SCRIPT "${CMAKE_SOURCE_DIR}/tools/codegen.py")
 set(CODEGEN_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/generated_registration.cpp")
+set(NODE_PROPS_DB "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/node_props/db")
 
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 if(Python3_FOUND)
     file(GLOB_RECURSE TOOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.hpp")
+    file(GLOB_RECURSE NODE_PROP_YAMLS "${NODE_PROPS_DB}/*.yaml" "${NODE_PROPS_DB}/*.yml")
     add_custom_command(
         OUTPUT ${CODEGEN_OUTPUT}
         COMMAND ${Python3_EXECUTABLE} ${CODEGEN_SCRIPT}
             --source-dir "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools"
+            --node-props-db "${NODE_PROPS_DB}"
             --output "${CODEGEN_OUTPUT}"
-        DEPENDS ${CODEGEN_SCRIPT} ${TOOL_HEADERS}
-        COMMENT "Generating ITool registration code from // @tool register annotations..."
+        DEPENDS ${CODEGEN_SCRIPT} ${TOOL_HEADERS} ${NODE_PROP_YAMLS}
+        COMMENT "Generating ITool registration code from // @tool register + YAML db..."
     )
     list(APPEND GODOT_MCP_SOURCES ${CODEGEN_OUTPUT})
     set_source_files_properties(${CODEGEN_OUTPUT} PROPERTIES GENERATED TRUE)

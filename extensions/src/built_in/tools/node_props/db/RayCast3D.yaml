@@ -1,0 +1,19 @@
+class: RayCast3D
+inherits: Node3D
+properties:
+  - name: target_position
+    type: 7
+  - name: enabled
+    type: 1
+  - name: exclude_parent
+    type: 1
+  - name: collide_with_areas
+    type: 1
+  - name: collide_with_bodies
+    type: 1
+  - name: collision_mask
+    type: 2
+  - name: hit_from_inside
+    type: 1
+  - name: hit_back_faces
+    type: 1

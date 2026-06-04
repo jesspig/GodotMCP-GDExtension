@@ -1,0 +1,35 @@
+class: Button
+inherits: Control
+properties:
+  - name: text
+    type: 4
+  - name: icon
+    type: 38
+  - name: flat
+    type: 1
+  - name: alignment
+    type: 2
+  - name: text_overrun_behavior
+    type: 2
+  - name: autowrap_mode
+    type: 2
+  - name: clip_text
+    type: 1
+  - name: icon_alignment
+    type: 2
+  - name: vertical_icon_alignment
+    type: 2
+  - name: expand_icon
+    type: 1
+  - name: shortcut
+    type: 38
+  - name: action_mode
+    type: 2
+  - name: button_mask
+    type: 2
+  - name: toggle_mode
+    type: 1
+  - name: button_pressed
+    type: 1
+  - name: keep_pressed_outside
+    type: 1

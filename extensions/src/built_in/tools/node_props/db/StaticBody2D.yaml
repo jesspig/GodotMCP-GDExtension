@@ -1,0 +1,9 @@
+class: StaticBody2D
+inherits: CollisionObject2D
+properties:
+  - name: constant_linear_velocity
+    type: 5
+  - name: constant_angular_velocity
+    type: 3
+  - name: physics_material_override
+    type: 38

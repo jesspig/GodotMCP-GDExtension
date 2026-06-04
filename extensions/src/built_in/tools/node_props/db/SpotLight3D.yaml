@@ -1,0 +1,13 @@
+class: SpotLight3D
+inherits: Light3D
+properties:
+  - name: spot_range
+    type: 3
+  - name: spot_attenuation
+    type: 3
+  - name: spot_angle
+    type: 3
+  - name: spot_angle_attenuation
+    type: 3
+  - name: spot_shadow_mode
+    type: 2

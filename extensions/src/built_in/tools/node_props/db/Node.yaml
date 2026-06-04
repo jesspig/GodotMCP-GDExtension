@@ -1,0 +1,11 @@
+class: Node
+inherits: ""
+properties:
+  - name: process_mode
+    type: 2
+  - name: process_priority
+    type: 2
+  - name: process_physics_priority
+    type: 2
+  - name: editor_description
+    type: 4

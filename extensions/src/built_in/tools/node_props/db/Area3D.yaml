@@ -1,0 +1,27 @@
+class: Area3D
+inherits: CollisionObject3D
+properties:
+  - name: monitoring
+    type: 1
+  - name: monitorable
+    type: 1
+  - name: priority
+    type: 2
+  - name: gravity_space_override
+    type: 2
+  - name: gravity_point
+    type: 1
+  - name: gravity_distance_scale
+    type: 3
+  - name: gravity_direction
+    type: 7
+  - name: gravity
+    type: 3
+  - name: linear_damp_space_override
+    type: 2
+  - name: linear_damp
+    type: 3
+  - name: angular_damp_space_override
+    type: 2
+  - name: angular_damp
+    type: 3

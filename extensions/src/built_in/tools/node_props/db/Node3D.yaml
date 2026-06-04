@@ -1,0 +1,25 @@
+class: Node3D
+inherits: Node
+properties:
+  - name: position
+    type: 7
+  - name: rotation
+    type: 7
+  - name: rotation_degrees
+    type: 7
+  - name: scale
+    type: 7
+  - name: transform
+    type: 13
+  - name: global_position
+    type: 7
+  - name: global_rotation
+    type: 7
+  - name: global_rotation_degrees
+    type: 7
+  - name: global_transform
+    type: 13
+  - name: visible
+    type: 1
+  - name: top_level
+    type: 1

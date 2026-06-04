@@ -1,0 +1,13 @@
+class: ProgressBar
+inherits: Range
+properties:
+  - name: fill_mode
+    type: 2
+  - name: show_percentage
+    type: 1
+  - name: indeterminate
+    type: 1
+  - name: editor_show_percentage
+    type: 1
+  - name: rounded
+    type: 1

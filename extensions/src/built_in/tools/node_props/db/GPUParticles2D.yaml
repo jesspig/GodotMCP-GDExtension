@@ -1,0 +1,33 @@
+class: GPUParticles2D
+inherits: Node2D
+properties:
+  - name: emitting
+    type: 1
+  - name: amount
+    type: 2
+  - name: lifetime
+    type: 3
+  - name: one_shot
+    type: 1
+  - name: preprocess
+    type: 3
+  - name: speed_scale
+    type: 3
+  - name: explosiveness
+    type: 3
+  - name: randomness
+    type: 3
+  - name: fixed_fps
+    type: 2
+  - name: fract_delta
+    type: 1
+  - name: visibility_rect
+    type: 10
+  - name: local_coords
+    type: 1
+  - name: draw_order
+    type: 2
+  - name: process_material
+    type: 38
+  - name: texture
+    type: 38

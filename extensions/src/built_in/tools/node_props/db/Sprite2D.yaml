@@ -1,0 +1,27 @@
+class: Sprite2D
+inherits: Node2D
+properties:
+  - name: texture
+    type: 38
+  - name: centered
+    type: 1
+  - name: offset
+    type: 5
+  - name: flip_h
+    type: 1
+  - name: flip_v
+    type: 1
+  - name: hframes
+    type: 2
+  - name: vframes
+    type: 2
+  - name: frame
+    type: 2
+  - name: frame_coords
+    type: 6
+  - name: region_enabled
+    type: 1
+  - name: region_rect
+    type: 10
+  - name: region_filter_clip_enabled
+    type: 1

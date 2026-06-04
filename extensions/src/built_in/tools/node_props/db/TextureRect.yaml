@@ -1,0 +1,13 @@
+class: TextureRect
+inherits: Control
+properties:
+  - name: texture
+    type: 38
+  - name: expand_mode
+    type: 2
+  - name: stretch_mode
+    type: 2
+  - name: flip_h
+    type: 1
+  - name: flip_v
+    type: 1

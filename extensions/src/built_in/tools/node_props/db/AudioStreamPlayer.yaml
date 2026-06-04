@@ -1,0 +1,21 @@
+class: AudioStreamPlayer
+inherits: Node
+properties:
+  - name: stream
+    type: 38
+  - name: volume_db
+    type: 3
+  - name: pitch_scale
+    type: 3
+  - name: playing
+    type: 1
+  - name: autoplay
+    type: 1
+  - name: stream_paused
+    type: 1
+  - name: mix_target
+    type: 2
+  - name: max_polyphony
+    type: 2
+  - name: bus
+    type: 4

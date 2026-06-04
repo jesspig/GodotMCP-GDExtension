@@ -1,0 +1,73 @@
+class: TextEdit
+inherits: Control
+properties:
+  - name: text
+    type: 4
+  - name: placeholder_text
+    type: 4
+  - name: editable
+    type: 1
+  - name: caret_blink
+    type: 1
+  - name: caret_blink_interval
+    type: 3
+  - name: caret_move_on_right_click
+    type: 1
+  - name: caret_mid_grapheme
+    type: 1
+  - name: caret_force_display
+    type: 1
+  - name: selection_enabled
+    type: 1
+  - name: deselect_on_focus_loss_enabled
+    type: 1
+  - name: drag_and_drop_selection_enabled
+    type: 1
+  - name: wrap_mode
+    type: 2
+  - name: autowrap_mode
+    type: 2
+  - name: scroll_smooth
+    type: 1
+  - name: scroll_v_scroll_speed
+    type: 3
+  - name: scroll_horizontal
+    type: 2
+  - name: scroll_vertical
+    type: 3
+  - name: scroll_past_end_of_file
+    type: 1
+  - name: minimap_draw
+    type: 1
+  - name: minimap_width
+    type: 2
+  - name: caret_type
+    type: 2
+  - name: caret_row_mode_enabled
+    type: 1
+  - name: highlight_current_line
+    type: 1
+  - name: highlight_all_occurrences
+    type: 1
+  - name: draw_control_chars
+    type: 1
+  - name: virtual_keyboard_enabled
+    type: 1
+  - name: middle_mouse_paste_enabled
+    type: 1
+  - name: empty_selection_clipboard_enabled
+    type: 1
+  - name: context_menu_enabled
+    type: 1
+  - name: shortcut_keys_enabled
+    type: 1
+  - name: selecting_enabled
+    type: 1
+  - name: gutter_width
+    type: 2
+  - name: text_direction
+    type: 2
+  - name: language
+    type: 4
+  - name: structured_text_bidi_override
+    type: 2

@@ -289,6 +289,20 @@ static Dictionary cat_node_to_dict(const String &name, const String &label,
     return d;
 }
 
+// 分类路径映射：显式映射优先，node_prop/* 动态映射次之，原样传递兜底
+static String remap_category(const String &orig_cat) {
+    const String *remapped = category_remap().getptr(orig_cat);
+    if (remapped) {
+        return *remapped;
+    }
+    // Catch-all: node_prop/<path> → node/property/<path>
+    static const String kNodePropPrefix("node_prop/");
+    if (orig_cat.begins_with(kNodePropPrefix)) {
+        return String("node/property/") + orig_cat.substr(kNodePropPrefix.length());
+    }
+    return orig_cat;
+}
+
 Array HandlerRegistry::get_categories() const {
     struct CatNode {
         String name;
@@ -308,8 +322,8 @@ Array HandlerRegistry::get_categories() const {
 
         // 应用 category remap:把工具的原始 category 路径映射到新顶级分类
         // 例: "property/2d" -> "node/property/2d"
-        const String *remapped_cat = category_remap().getptr(orig_cat);
-        const String &cat = remapped_cat ? *remapped_cat : orig_cat;
+        //     "node_prop/Node/CanvasItem" -> "node/property/Node/CanvasItem"
+        const String cat = remap_category(orig_cat);
 
         const PackedStringArray segments = cat.split("/");
         CatNode *node = &root;
@@ -382,8 +396,8 @@ Array HandlerRegistry::get_tools_in_category(const String &category) const {
         if (!kv.value.enabled) continue;
         // 应用 category remap,使客户端能按新顶级路径查询
         // 例: 调用 "node/operation" 会查到原始 category = "node" 的 21 个工具
-        const String *remapped_cat = category_remap().getptr(kv.value.category);
-        const String &tool_cat = remapped_cat ? *remapped_cat : kv.value.category;
+        //     "node_prop/Node/CanvasItem" -> "node/property/Node/CanvasItem"
+        const String tool_cat = remap_category(kv.value.category);
         if (tool_cat == category || tool_cat.begins_with(prefix)) {
             Dictionary d;
             d["name"] = kv.value.name;

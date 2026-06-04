@@ -1,0 +1,7 @@
+class: CheckBox
+inherits: Button
+properties:
+  - name: checkbox_icon
+    type: 38
+  - name: checked
+    type: 1

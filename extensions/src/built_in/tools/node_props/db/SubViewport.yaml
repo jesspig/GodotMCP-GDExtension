@@ -1,0 +1,13 @@
+class: SubViewport
+inherits: Viewport
+properties:
+  - name: size
+    type: 6
+  - name: size_2d_override
+    type: 6
+  - name: size_2d_override_stretch
+    type: 1
+  - name: render_target_update_mode
+    type: 2
+  - name: clear_mode
+    type: 2

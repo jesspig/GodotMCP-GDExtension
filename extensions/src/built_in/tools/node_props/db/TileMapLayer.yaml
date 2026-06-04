@@ -1,0 +1,23 @@
+class: TileMapLayer
+inherits: Node2D
+properties:
+  - name: tile_set
+    type: 38
+  - name: rendering_quadrant_size
+    type: 2
+  - name: collision_enabled
+    type: 1
+  - name: use_kinematic_bodies
+    type: 1
+  - name: collision_visibility_mode
+    type: 2
+  - name: navigation_enabled
+    type: 1
+  - name: navigation_visibility_mode
+    type: 2
+  - name: x_draw_order_reversed
+    type: 1
+  - name: rendering_enabled
+    type: 1
+  - name: occlusion_enabled
+    type: 1

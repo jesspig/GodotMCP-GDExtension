@@ -1,0 +1,17 @@
+class: RayCast2D
+inherits: Node2D
+properties:
+  - name: target_position
+    type: 5
+  - name: enabled
+    type: 1
+  - name: exclude_parent
+    type: 1
+  - name: collide_with_areas
+    type: 1
+  - name: collide_with_bodies
+    type: 1
+  - name: collision_mask
+    type: 2
+  - name: hit_from_inside
+    type: 1

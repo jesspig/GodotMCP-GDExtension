@@ -1,0 +1,33 @@
+class: NavigationAgent2D
+inherits: Node
+properties:
+  - name: target_desired_distance
+    type: 3
+  - name: path_desired_distance
+    type: 3
+  - name: radius
+    type: 3
+  - name: navigation_layers
+    type: 2
+  - name: pathfinding_algorithm
+    type: 2
+  - name: path_postprocessing
+    type: 2
+  - name: avoid_enabled
+    type: 1
+  - name: avoid_map_use_async
+    type: 1
+  - name: avoid_map_threads
+    type: 2
+  - name: avoid_map_callback
+    type: 2
+  - name: target_position
+    type: 5
+  - name: target_location
+    type: 5
+  - name: simplify_path
+    type: 1
+  - name: simplify_epsilon
+    type: 3
+  - name: path_max_distance
+    type: 3

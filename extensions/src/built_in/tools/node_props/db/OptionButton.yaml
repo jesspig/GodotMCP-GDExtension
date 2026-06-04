@@ -1,0 +1,13 @@
+class: OptionButton
+inherits: Button
+properties:
+  - name: selected
+    type: 2
+  - name: allow_reselect
+    type: 1
+  - name: fit_to_longest_item
+    type: 1
+  - name: item_count
+    type: 2
+  - name: popup_in_viewport
+    type: 1

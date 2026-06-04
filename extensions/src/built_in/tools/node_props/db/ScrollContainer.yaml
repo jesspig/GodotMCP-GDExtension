@@ -1,0 +1,23 @@
+class: ScrollContainer
+inherits: Container
+properties:
+  - name: follow_focus
+    type: 1
+  - name: draw_focus_border
+    type: 1
+  - name: scroll_horizontal
+    type: 2
+  - name: scroll_vertical
+    type: 3
+  - name: scroll_deadzone
+    type: 2
+  - name: scroll_horizontal_custom_step
+    type: 3
+  - name: scroll_vertical_custom_step
+    type: 3
+  - name: horizontal_scroll_mode
+    type: 2
+  - name: vertical_scroll_mode
+    type: 2
+  - name: scroll_deadzone
+    type: 2

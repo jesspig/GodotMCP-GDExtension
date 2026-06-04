@@ -1,0 +1,29 @@
+class: CharacterBody2D
+inherits: CollisionObject2D
+properties:
+  - name: motion_mode
+    type: 2
+  - name: up_direction
+    type: 5
+  - name: floor_stop_on_slope
+    type: 1
+  - name: floor_constant_speed
+    type: 1
+  - name: floor_max_angle
+    type: 3
+  - name: floor_snap_length
+    type: 3
+  - name: wall_min_slide_angle
+    type: 3
+  - name: slide_on_ceiling
+    type: 1
+  - name: platform_on_leave
+    type: 2
+  - name: platform_floor_layers
+    type: 2
+  - name: platform_wall_layers
+    type: 2
+  - name: max_slides
+    type: 2
+  - name: safe_margin
+    type: 3

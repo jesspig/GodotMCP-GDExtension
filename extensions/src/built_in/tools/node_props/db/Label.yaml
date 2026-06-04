@@ -1,0 +1,33 @@
+class: Label
+inherits: Control
+properties:
+  - name: text
+    type: 4
+  - name: label_settings
+    type: 38
+  - name: horizontal_alignment
+    type: 2
+  - name: vertical_alignment
+    type: 2
+  - name: autowrap_mode
+    type: 2
+  - name: justification_flags
+    type: 2
+  - name: clip_text
+    type: 1
+  - name: text_overrun_behavior
+    type: 2
+  - name: ellipsis_char
+    type: 4
+  - name: uppercase
+    type: 1
+  - name: lines_skipped
+    type: 2
+  - name: max_lines_visible
+    type: 2
+  - name: visible_characters
+    type: 2
+  - name: visible_characters_behavior
+    type: 2
+  - name: visible_ratio
+    type: 3

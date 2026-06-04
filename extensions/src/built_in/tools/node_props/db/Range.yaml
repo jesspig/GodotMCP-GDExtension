@@ -1,0 +1,21 @@
+class: Range
+inherits: Control
+properties:
+  - name: value
+    type: 3
+  - name: min_value
+    type: 3
+  - name: max_value
+    type: 3
+  - name: step
+    type: 3
+  - name: page
+    type: 3
+  - name: exp_edit
+    type: 1
+  - name: ratio
+    type: 3
+  - name: allow_greater
+    type: 1
+  - name: allow_lesser
+    type: 1

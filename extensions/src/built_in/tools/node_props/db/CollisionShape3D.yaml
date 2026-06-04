@@ -1,0 +1,9 @@
+class: CollisionShape3D
+inherits: Node3D
+properties:
+  - name: shape
+    type: 38
+  - name: disabled
+    type: 1
+  - name: debug_color
+    type: 20

@@ -1,0 +1,9 @@
+class: PointLight2D
+inherits: Light2D
+properties:
+  - name: texture
+    type: 38
+  - name: offset
+    type: 5
+  - name: texture_scale
+    type: 3

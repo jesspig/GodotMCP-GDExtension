@@ -1,0 +1,13 @@
+class: SpinBox
+inherits: Range
+properties:
+  - name: alignment
+    type: 2
+  - name: editable
+    type: 1
+  - name: update_on_text_changed
+    type: 1
+  - name: prefix
+    type: 4
+  - name: suffix
+    type: 4

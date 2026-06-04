@@ -1,0 +1,21 @@
+class: AnimatedSprite2D
+inherits: Node2D
+properties:
+  - name: sprite_frames
+    type: 38
+  - name: animation
+    type: 4
+  - name: autoplay
+    type: 4
+  - name: frame
+    type: 2
+  - name: frame_progress
+    type: 3
+  - name: speed_scale
+    type: 3
+  - name: flip_h
+    type: 1
+  - name: flip_v
+    type: 1
+  - name: offset
+    type: 5
