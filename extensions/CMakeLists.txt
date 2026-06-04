@@ -146,7 +146,7 @@ endif()
 
 # Suppress noisy warnings from godot-cpp generated code on MSVC.
 if(MSVC)
-    target_compile_options(godot_mcp_gdext PRIVATE /utf-8 /W3 /wd4244 /wd4267)
+    target_compile_options(godot_mcp_gdext PRIVATE /utf-8 /bigobj /W3 /wd4244 /wd4267)
 else()
     target_compile_options(godot_mcp_gdext PRIVATE -Wall -Wno-unused-parameter)
 endif()

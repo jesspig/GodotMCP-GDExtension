@@ -105,6 +105,7 @@ def load_node_props_db(db_dir: str) -> dict[str, dict]:
         class_name = data["class"]
         nodes[class_name] = {
             "inherits": data.get("inherits", ""),
+            "description": data.get("description", ""),
             "properties": data.get("properties", []),
             "aliases": data.get("aliases", []),
         }
@@ -170,6 +171,7 @@ def generate_node_property_registrations(nodes: dict[str, dict]) -> list[str]:
             continue
 
         cat_path = "node_tools/property/" + build_inheritance_path(node_name, nodes)
+        node_desc = nodes[node_name].get("description", "")
 
         for prop in unique_props:
             prop_name = prop["name"]
@@ -177,13 +179,15 @@ def generate_node_property_registrations(nodes: dict[str, dict]) -> list[str]:
             get_name = f"get_{node_name.lower()}_{prop_name}"
             lines.append(f"    // {node_name}.{prop_name} (get)")
             lines.append(f"    reg.register_tool(std::make_unique<NodePropertyGetTool>(")
-            lines.append(f'        "{get_name}", "{cat_path}", "{node_name}", "{prop_name}"));')
+            lines.append(f'        "{get_name}", "{cat_path}", "{node_name}", "{prop_name}",')
+            lines.append(f'        String::utf8("{node_desc}")));')
             lines.append("")
             # Set tool
             set_name = f"set_{node_name.lower()}_{prop_name}"
             lines.append(f"    // {node_name}.{prop_name} (set)")
             lines.append(f"    reg.register_tool(std::make_unique<NodePropertySetTool>(")
-            lines.append(f'        "{set_name}", "{cat_path}", "{node_name}", "{prop_name}"));')
+            lines.append(f'        "{set_name}", "{cat_path}", "{node_name}", "{prop_name}",')
+            lines.append(f'        String::utf8("{node_desc}")));')
             lines.append("")
 
         # 别名注册
@@ -197,13 +201,15 @@ def generate_node_property_registrations(nodes: dict[str, dict]) -> list[str]:
                 alias_get = f"get_{alias_lower}_{prop_name}"
                 lines.append(f"    // {alias}.{prop_name} (alias of {node_name}, get)")
                 lines.append(f"    reg.register_tool(std::make_unique<NodePropertyGetTool>(")
-                lines.append(f'        "{alias_get}", "{alias_cat}", "{node_name}", "{prop_name}"));')
+                lines.append(f'        "{alias_get}", "{alias_cat}", "{node_name}", "{prop_name}",')
+                lines.append(f'        String::utf8("{node_desc}")));')
                 lines.append("")
                 # Set alias
                 alias_set = f"set_{alias_lower}_{prop_name}"
                 lines.append(f"    // {alias}.{prop_name} (alias of {node_name}, set)")
                 lines.append(f"    reg.register_tool(std::make_unique<NodePropertySetTool>(")
-                lines.append(f'        "{alias_set}", "{alias_cat}", "{node_name}", "{prop_name}"));')
+                lines.append(f'        "{alias_set}", "{alias_cat}", "{node_name}", "{prop_name}",')
+                lines.append(f'        String::utf8("{node_desc}")));')
                 lines.append("")
 
     return lines

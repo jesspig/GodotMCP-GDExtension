@@ -49,6 +49,8 @@ protected:
         }
 
         const String &cat_path = info->category;
+        const PackedStringArray cat_segments = cat_path.split("/");
+        const String cat_id = cat_segments.is_empty() ? cat_path : cat_segments[cat_segments.size() - 1];
 
         Dictionary data;
         data["id"] = info->name;
@@ -78,24 +80,25 @@ protected:
         ret["description"] = String::utf8("工具执行结果，包含 success 标志和 data 或 error 字段");
         data["return_value"] = ret;
 
-        data["category_id"] = info->category;
+        data["category_id"] = cat_id;
         data["category_path"] = cat_path;
 
-        // 生成使用示例
-        String example = String("{\n  \"tool_name\": \"") + tool_name + String("\",\n  \"arguments\": {");
+        // 生成使用示例（MCP 工具调用格式，直接传参）
+        String example = String("{\n");
         for (int i = 0; i < param_names.size(); ++i) {
             String pn = param_names[i];
             Dictionary pdef = props[pn];
             String ptype = pdef.get("type", "string");
             String val;
             if (ptype == "string") val = String("\"<") + pn + String(">\"");
-            else if (ptype == "integer" || ptype == "number") val = "0";
+            else if (ptype == "integer" || ptype == "number") val = String("<") + pn + String(">");
             else if (ptype == "boolean") val = "true";
             else val = String("\"<") + pn + String(">\"");
-            example += String("\n    \"") + pn + String("\": ") + val;
+            example += String("  \"") + pn + String("\": ") + val;
             if (i < param_names.size() - 1) example += ",";
+            example += "\n";
         }
-        example += "\n  }\n}";
+        example += "}";
         data["usage_example"] = example;
 
         return ToolResult::ok(data);

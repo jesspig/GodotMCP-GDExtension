@@ -29,13 +29,15 @@ class NodePropertyGetTool : public ITool {
     String node_type_;
     String prop_name_;
     String brief_;
+    String cat_desc_;
     Dictionary schema_;
 
 public:
     NodePropertyGetTool(const String &name, const String &category,
-                        const String &node_type, const String &prop_name) :
+                        const String &node_type, const String &prop_name,
+                        const String &cat_desc = {}) :
         name_(name), category_(category),
-        node_type_(node_type), prop_name_(prop_name) {
+        node_type_(node_type), prop_name_(prop_name), cat_desc_(cat_desc) {
         brief_ = String("Get ") + node_type_ + String(".") + prop_name_;
         Dictionary s;
         s["type"] = "object";
@@ -57,6 +59,7 @@ public:
     String description() const override {
         return String("Gets the ") + prop_name_ + String(" property of a ") + node_type_ + String(".");
     }
+    String category_description() const override { return cat_desc_; }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }
     Dictionary input_schema() const override { return schema_; }
@@ -85,13 +88,15 @@ class NodePropertySetTool : public ITool {
     String node_type_;
     String prop_name_;
     String brief_;
+    String cat_desc_;
     Dictionary schema_;
 
 public:
     NodePropertySetTool(const String &name, const String &category,
-                        const String &node_type, const String &prop_name) :
+                        const String &node_type, const String &prop_name,
+                        const String &cat_desc = {}) :
         name_(name), category_(category),
-        node_type_(node_type), prop_name_(prop_name) {
+        node_type_(node_type), prop_name_(prop_name), cat_desc_(cat_desc) {
         brief_ = String("Set ") + node_type_ + String(".") + prop_name_;
         Dictionary s;
         s["type"] = "object";
@@ -120,6 +125,7 @@ public:
         return String("Sets the ") + prop_name_ + String(" property of a ") + node_type_ +
             String(" with undo support.");
     }
+    String category_description() const override { return cat_desc_; }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }
     Dictionary input_schema() const override { return schema_; }

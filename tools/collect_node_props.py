@@ -2,8 +2,8 @@
 """
 collect_node_props.py — 从 Godot 运行时提取节点属性数据
 
-通过 Godot 的 --headless 模式运行 GDScript，从 ClassDB 中提取所有节点类型的
-独有属性，生成 YAML 文件到 extensions/src/built_in/tools/node_props/db/。
+通过 Godot 的 --headless 模式运行 GDScript，从 ClassDB 中提取所有 Node 派生类型的
+独有检查器属性，生成 YAML 文件到 extensions/src/built_in/tools/node_props/db/。
 
 用法:
     uv run python tools/collect_node_props.py --godot /path/to/godot
@@ -15,57 +15,79 @@ import argparse
 import os
 import subprocess
 import sys
-import yaml
+
+try:
+    import yaml
+except ImportError:
+    print("[collect] ERROR: pyyaml not installed. Run: uv add pyyaml", file=sys.stderr)
+    sys.exit(1)
 
 
 GDSCRIPT_TEMPLATE = """extends SceneTree
 
+var _variant_names = {}
+
 func _init():
-    var result = []
+    _variant_names = {
+        0: "NIL", 1: "bool", 2: "int", 3: "float", 4: "String",
+        5: "Vector2", 6: "Vector2i", 7: "Rect2", 8: "Rect2i",
+        9: "Vector3", 10: "Vector3i", 11: "Transform2D", 12: "Vector4",
+        13: "Vector4i", 14: "Plane", 15: "Quaternion", 16: "AABB",
+        17: "Basis", 18: "Transform3D", 19: "Projection", 20: "Color",
+        21: "StringName", 22: "NodePath", 23: "RID", 24: "Object",
+        25: "Callable", 26: "Signal", 27: "Dictionary", 28: "Array",
+        29: "PackedByteArray", 30: "PackedInt32Array", 31: "PackedInt64Array",
+        32: "PackedFloat32Array", 33: "PackedFloat64Array", 34: "PackedStringArray",
+        35: "PackedVector2Array", 36: "PackedVector3Array", 37: "PackedColorArray",
+        38: "PackedVector4Array",
+    }
+
+    var file = FileAccess.open("res://_node_props_export.yaml", FileAccess.WRITE)
+    if file == null:
+        print("ERROR: cannot open output file")
+        quit(1)
+
     var all_classes = ClassDB.get_class_list()
     all_classes.sort()
+    var processed = 0
 
-    for class_name in all_classes:
-        if not ClassDB.is_parent_class(class_name, "Node"):
+    for cname in all_classes:
+        if not ClassDB.is_parent_class(cname, "Node"):
             continue
 
-        # 获取继承链
-        var inherits = ClassDB.get_parent_class(class_name)
-        if inherits == "Object":
-            inherits = ""
+        var inherits = ClassDB.get_parent_class(cname)
 
-        # 获取当前类声明的属性（不含继承的）
         var own_props = []
-        var prop_list = ClassDB.class_get_property_list(class_name, true)
+        var prop_list = ClassDB.class_get_property_list(cname, true)
+        var STORAGE_OR_EDITOR = 2 | 4
+        var GROUP_FLAGS = (1<<12) | (1<<13)
+
         for prop in prop_list:
-            if prop.has("usage") and (prop["usage"] & PROPERTY_USAGE_STORAGE != 0):
-                # 过滤掉继承的属性
-                if not ClassDB.class_has_property(inherits, prop["name"]) if inherits != "" else true:
-                    own_props.append({
-                        "name": prop["name"],
-                        "type": prop["type"]
-                    })
+            var usage = prop.get("usage", 0)
+            if (usage & STORAGE_OR_EDITOR) == 0:
+                continue
+            if (usage & GROUP_FLAGS) != 0:
+                continue
+            var tn = _variant_names.get(prop["type"], "unknown")
+            own_props.append({
+                "name": prop["name"],
+                "type": prop["type"],
+                "type_name": tn
+            })
 
-        if own_props.size() > 0:
-            var node_data = {
-                "class": class_name,
-                "inherits": inherits,
-                "properties": own_props
-            }
-            result.append(node_data)
-
-    # 输出 YAML
-    var file = FileAccess.open("res://_node_props_export.yaml", FileAccess.WRITE)
-    for node_data in result:
         file.store_line("---")
-        file.store_line("class: " + node_data["class"])
-        file.store_line("inherits: " + node_data["inherits"])
+        file.store_line("class: " + cname)
+        file.store_line("inherits: " + inherits)
         file.store_line("properties:")
-        for prop in node_data["properties"]:
+        for prop in own_props:
             file.store_line("  - name: " + prop["name"])
             file.store_line("    type: " + str(prop["type"]))
+            file.store_line("    type_name: " + prop["type_name"])
+
+        processed += 1
+
     file.close()
-    print("Exported " + str(result.size()) + " node types to _node_props_export.yaml")
+    print("Exported " + str(processed) + " node types")
     quit()
 """
 
@@ -82,31 +104,35 @@ def main():
     parser.add_argument(
         "--output-dir",
         default=None,
-        help="Output directory for YAML files (default: extensions/src/built_in/tools/node_props/db)",
+        help="Output directory for YAML files",
     )
     args = parser.parse_args()
 
     output_dir = args.output_dir
     if not output_dir:
-        # Default to the project's db directory
         script_dir = os.path.dirname(os.path.abspath(__file__))
         output_dir = os.path.join(script_dir, "..", "extensions", "src", "built_in", "tools", "node_props", "db")
 
     os.makedirs(output_dir, exist_ok=True)
 
-    # Write temporary GDScript
-    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_collect_props.gd")
+    # 找 example 项目目录（用于 --path 参数，Godot 需要 project.godot）
+    example_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "example")
+    example_dir = os.path.normpath(example_dir)
+    if not os.path.isfile(os.path.join(example_dir, "project.godot")):
+        print(f"[collect] ERROR: example/project.godot not found at {example_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    script_path = os.path.join(example_dir, "_collect_props.gd")
     with open(script_path, "w", encoding="utf-8") as f:
         f.write(GDSCRIPT_TEMPLATE)
 
     try:
-        # Run Godot headless
         print(f"[collect] Running Godot to extract property data...")
         result = subprocess.run(
-            [args.godot, "--headless", "--script", script_path],
+            [args.godot, "--headless", "--path", example_dir, "--script", "_collect_props.gd"],
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=120,
         )
 
         if result.returncode != 0:
@@ -114,8 +140,7 @@ def main():
             print(result.stderr, file=sys.stderr)
             sys.exit(1)
 
-        # Parse the exported YAML
-        export_path = os.path.join(os.getcwd(), "_node_props_export.yaml")
+        export_path = os.path.join(example_dir, "_node_props_export.yaml")
         if not os.path.exists(export_path):
             print(f"[collect] ERROR: Export file not found at {export_path}", file=sys.stderr)
             sys.exit(1)
@@ -123,23 +148,46 @@ def main():
         with open(export_path, "r", encoding="utf-8") as f:
             documents = list(yaml.safe_load_all(f))
 
+        # 加载现有 YAML 文件，保留 description/aliases（ClassDB headless 模式无法提供）
+        existing = {}
+        if os.path.isdir(output_dir):
+            for fname in os.listdir(output_dir):
+                if not fname.endswith(".yaml"):
+                    continue
+                cls = fname[:-5]
+                with open(os.path.join(output_dir, fname), encoding="utf-8") as f:
+                    existing_data = yaml.safe_load(f)
+                if existing_data:
+                    existing[cls] = existing_data
+
         count = 0
         for doc in documents:
             if not doc or "class" not in doc:
                 continue
-            class_name = doc["class"]
-            yaml_path = os.path.join(output_dir, f"{class_name}.yaml")
+            cname = doc["class"]
+
+            # 合并：新数据（属性） + 现有元数据（description/aliases）
+            merged = {k: v for k, v in doc.items() if k in ("class", "inherits", "properties")}
+            if merged.get("properties") is None:
+                merged["properties"] = []
+            if cname in existing:
+                merged["description"] = existing[cname].get("description", "")
+                merged["aliases"] = existing[cname].get("aliases", [])
+            else:
+                merged["description"] = ""
+                merged["aliases"] = []
+
+            yaml_path = os.path.join(output_dir, f"{cname}.yaml")
             with open(yaml_path, "w", encoding="utf-8") as f:
-                yaml.dump(doc, f, default_flow_style=False, allow_unicode=True)
+                yaml.dump(merged, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
             count += 1
 
         print(f"[collect] Generated {count} YAML files in {output_dir}")
 
     finally:
-        # Cleanup
         if os.path.exists(script_path):
             os.remove(script_path)
-        export_yaml = os.path.join(os.getcwd(), "_node_props_export.yaml")
+        export_yaml = os.path.join(example_dir, "_node_props_export.yaml")
         if os.path.exists(export_yaml):
             os.remove(export_yaml)
 

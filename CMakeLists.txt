@@ -28,7 +28,7 @@ message(STATUS "GodotMCP version: ${PROJECT_VERSION}")
 
 # MSVC: treat source files & execution charset as UTF-8 (fixes CJK in string literals)
 if(MSVC)
-    add_compile_options(/utf-8)
+    add_compile_options(/utf-8 /bigobj)
 endif()
 
 add_subdirectory(extensions)
