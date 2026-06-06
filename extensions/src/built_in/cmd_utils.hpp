@@ -1,7 +1,7 @@
 // =====================================================================
 // commands/cmd_utils.hpp — Shared helpers for every command handler.
 //
-// Mirrors the public surface of crates/gdext/src/commands/mod.rs:
+// Shared helper functions for command handlers and ITool implementations:
 //   * resolve_node()             — flexible path resolution
 //   * get_root() / get_undo_redo() — edited-scene accessors
 //   * variant_to_json() / json_to_variant()

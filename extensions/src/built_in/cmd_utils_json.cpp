@@ -5,9 +5,7 @@
 // functions translate between Godot's structured Variant types and the
 // plain JSON shape the MCP protocol uses on the wire.
 //
-// Naming convention (mirrors Rust):
-//   variant_to_json(v)   == Rust v2j(&v)   �?Variant -> JSON-friendly
-//   json_to_variant(jv)  == Rust j2v(&v)   �?JSON Dict/Array -> Variant
+// Convert between Godot Variant and JSON-friendly structures:
 // =====================================================================
 
 #include "cmd_utils.hpp"

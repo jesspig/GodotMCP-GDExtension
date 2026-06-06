@@ -65,7 +65,7 @@ set(GODOT_MCP_SOURCES
     # Tool infrastructure (ITool)
     src/built_in/tool_base.cpp
 
-    # Legacy utilities (still needed by ITool implementations)
+    # Utility functions
     src/built_in/cmd_utils.cpp
     src/built_in/cmd_utils_json.cpp
 

@@ -78,7 +78,7 @@ stateDiagram-v2
     
     state Initializing {
         [*] --> ReadVersion: 读取引擎版本 + 插件版本
-        ReadVersion --> RegisterTools: register_all_tools()
+        ReadVersion --> RegisterTools: register_itools()
         RegisterTools --> ReadPort: 读取端口
         ReadPort --> StartServer: http_server_.start()
         StartServer --> ConnectSignal: connect process_frame

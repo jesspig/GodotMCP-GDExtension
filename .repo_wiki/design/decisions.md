@@ -163,4 +163,4 @@
 
 - **ADR-旧1: 双进程架构（Server + GDExtension）** → 被 ADR-001（单进程）取代
 - **ADR-旧2: WebSocket IPC** → 已移除，不再需要进程间通信
-- **ADR-旧3: 静态注册所有工具 Schema（Python 侧权威）** → 工具 Schema 现在由 C++ 侧 `tool_schemas.json` 管理
+- **ADR-旧3: 静态注册所有工具 Schema（Python 侧权威）** → 已被 ITool + codegen 编译时注册取代
