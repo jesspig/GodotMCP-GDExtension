@@ -11,11 +11,7 @@
 
 ### 连接成功后部分工具不可用
 
-工具 schemas 从 `res://addons/godot_mcp/tool_schemas.json` 加载。如果文件不存在或格式错误，工具仍可调用但客户端无参数提示。重新构建插件可修复：
-
-```bash
-py -3 build.py --no-zip
-```
+工具 schemas 通过 C++ 编译时由 `tools/codegen.py` 扫描 `// @tool register` 注释自动生成并嵌入插件，无需外部文件。确保工具头文件包含 `// @tool register` 注释后重新构建即可。
 
 ## 构建问题
 

@@ -165,7 +165,7 @@ extensions/                   C++ GDExtension plugin (godot-cpp 10.0.0-rc1)
   │   ├── server/             MCP 服务器 (HttpServer, McpHandler, HandlerRegistry)
   │   ├── built_in/           内置工具 (cmd_*.cpp)
   │   └── lsp/                LSP 客户端
-  ├── tools/tool_schemas.json 工具 schema 定义
+  ├── codegen.py              工具注册代码生成（扫描 // @tool register）
   └── CMakeLists.txt
 ├── CMakeLists.txt
 └── src/

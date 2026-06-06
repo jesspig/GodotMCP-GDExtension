@@ -79,8 +79,7 @@ stateDiagram-v2
     state Initializing {
         [*] --> ReadVersion: Read engine + plugin version
         ReadVersion --> RegisterTools: register_all_tools()
-        RegisterTools --> LoadSchemas: Load tool_schemas.json
-        LoadSchemas --> ReadPort: Read port
+        RegisterTools --> ReadPort: Read port
         ReadPort --> StartServer: http_server_.start()
         StartServer --> ConnectSignal: connect process_frame
         ConnectSignal --> [*]
