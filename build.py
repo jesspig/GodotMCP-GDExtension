@@ -16,6 +16,7 @@ import sys
 import multiprocessing
 import platform
 from pathlib import Path
+import json
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 BUILD_DIR = PROJECT_ROOT / "build"
@@ -27,6 +28,50 @@ STALE_CACHE_PATTERNS = [
     "CMAKE_C_COMPILER", # Compiler path changed
     "CMAKE_CXX_COMPILER",
 ]
+
+
+def _find_msvc_cl() -> str | None:
+    """Find MSVC cl.exe by scanning well-known Visual Studio installation directories."""
+    candidate_roots = [
+        Path("C:/Program Files/Microsoft Visual Studio"),
+        Path("C:/Program Files (x86)/Microsoft Visual Studio"),
+    ]
+    for root in candidate_roots:
+        if not root.exists():
+            continue
+        for d1 in root.iterdir():
+            for d2 in [d1] + sorted(d1.iterdir()) if d1.is_dir() else [d1]:
+                msvc_dir = Path(d2) / "VC" / "Tools" / "MSVC"
+                if not msvc_dir.exists():
+                    continue
+                for ver in sorted(msvc_dir.iterdir(), reverse=True):
+                    cl_exe = ver / "bin" / "Hostx64" / "x64" / "cl.exe"
+                    if cl_exe.exists():
+                        return str(cl_exe)
+    return None
+
+
+def _find_windows_sdk_tools() -> tuple[str | None, str | None]:
+    """Find rc.exe and mt.exe from the latest Windows SDK."""
+    sdk_roots = [
+        Path("C:/Program Files (x86)/Windows Kits/10/bin"),
+        Path("C:/Program Files/Windows Kits/10/bin"),
+    ]
+    for root in sdk_roots:
+        if not root.exists():
+            continue
+        versions = sorted(root.iterdir(), reverse=True)
+        for ver in versions:
+            x64 = ver / "x64"
+            if not x64.exists():
+                continue
+            rc = x64 / "rc.exe"
+            mt = x64 / "mt.exe"
+            rc_str = str(rc) if rc.exists() else None
+            mt_str = str(mt) if mt.exists() else None
+            if rc_str or mt_str:
+                return rc_str, mt_str
+    return None, None
 
 
 def detect_vctargetspath() -> str | None:
@@ -48,9 +93,45 @@ def detect_vctargetspath() -> str | None:
     return None
 
 
-def run(cmd: list, capture: bool = False) -> tuple[bool, str]:
+# Cache for VS dev environment (vcvarsall)
+_VS_DEV_ENV: dict[str, str] | None = None
+
+
+def _capture_vs_dev_env() -> dict[str, str] | None:
+    """Capture the VS developer command prompt environment via vcvarsall.bat."""
+    global _VS_DEV_ENV
+    if _VS_DEV_ENV is not None:
+        return _VS_DEV_ENV
+    cl_path = _find_msvc_cl()
+    if not cl_path:
+        return None
+    cl = Path(cl_path)
+    vcvarsall = None
+    for parent in cl.parents:
+        candidate = parent / "Auxiliary" / "Build" / "vcvarsall.bat"
+        if candidate.exists():
+            vcvarsall = candidate
+            break
+    if not vcvarsall:
+        return None
+    bat_content = f'@call "{vcvarsall}" x64 >nul 2>&1\n@python -c "import json,os; print(json.dumps(dict(os.environ)))"'
+    bat_path = PROJECT_ROOT / "build" / "_vs_env.bat"
+    bat_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        bat_path.write_text(bat_content, encoding="utf-8")
+        result = subprocess.run([str(bat_path)], capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if result.returncode == 0 and result.stdout:
+            _VS_DEV_ENV = json.loads(result.stdout)
+    finally:
+        bat_path.unlink(missing_ok=True)
+    return _VS_DEV_ENV
+
+
+def run(cmd: list, capture: bool = False, extra_env: dict[str, str] | None = None) -> tuple[bool, str]:
     print(f"\n$ {' '.join(cmd)}", flush=True)
     env = {**subprocess.os.environ, "PYTHONIOENCODING": "utf-8"}
+    if extra_env:
+        env.update(extra_env)
     if capture:
         result = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
         output = (result.stdout or "") + (result.stderr or "")
@@ -67,35 +148,35 @@ def is_stale_cache_error(output: str) -> bool:
 
 
 
-def _find_msvc_cl() -> str | None:
-    """Locate MSVC cl.exe via vswhere for Ninja builds on Windows."""
-    try:
-        result = subprocess.run(
-            ["vswhere", "-latest", "-property", "installationPath"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            vs_path = Path(result.stdout.strip())
-            vc_dir = vs_path / "VC" / "Tools" / "MSVC"
-            if vc_dir.exists():
-                for msvc_ver in sorted(vc_dir.iterdir(), reverse=True):
-                    cl_exe = msvc_ver / "bin" / "Hostx64" / "x64" / "cl.exe"
-                    if cl_exe.exists():
-                        return str(cl_exe)
-    except Exception:
-        pass
+def _get_vs_env() -> dict[str, str] | None:
+    """Return VS dev environment if using Ninja on Windows, else None."""
+    if platform.system() == "Windows" and shutil.which("ninja") and _find_msvc_cl():
+        return _capture_vs_dev_env()
     return None
+
 
 def configure(extra_defs: list, force_capture: bool = False) -> tuple[bool, str]:
     """Run CMake configure. Returns (success, output)."""
     cmd = ["cmake", "-B", str(BUILD_DIR), "-S", str(PROJECT_ROOT)] + extra_defs
+    vs_env = None
     # Auto-detect Ninja generator for faster incremental builds.
     if platform.system() == "Windows":
         cl_path = _find_msvc_cl()
         if shutil.which("ninja") and cl_path:
+            vs_env = _capture_vs_dev_env()
             cmd += ["-GNinja"]
             cmd += ["-DCMAKE_C_COMPILER:FILEPATH=" + cl_path]
             cmd += ["-DCMAKE_CXX_COMPILER:FILEPATH=" + cl_path]
+            if vs_env:
+                # Remove compiler override; vcvarsall env provides full toolchain context
+                pass
+            else:
+                # Fallback: try SDK tools
+                rc_path, mt_path = _find_windows_sdk_tools()
+                if rc_path:
+                    cmd += ["-DCMAKE_RC_COMPILER:FILEPATH=" + rc_path]
+                if mt_path:
+                    cmd += ["-DCMAKE_MT:FILEPATH=" + mt_path]
             print("[DETECT] Ninja + MSVC found, using -GNinja", flush=True)
         else:
             print("[DETECT] Ninja/MSVC not found, using default generator", flush=True)
@@ -105,13 +186,11 @@ def configure(extra_defs: list, force_capture: bool = False) -> tuple[bool, str]
     else:
         print("[DETECT] Ninja not found, using default generator", flush=True)
     if force_capture:
-        return run(cmd, capture=True)
-    # First attempt: stream output directly
-    ok, _ = run(cmd)
+        return run(cmd, capture=True, extra_env=vs_env)
+    ok, _ = run(cmd, extra_env=vs_env)
     if ok:
         return True, ""
-    # Second attempt: capture output to check for stale cache
-    return run(cmd, capture=True)
+    return run(cmd, capture=True, extra_env=vs_env)
 
 
 def main():
@@ -173,7 +252,7 @@ def main():
         else:
             n_cpus = args.jobs
             print(f"[BUILD] Using -j {args.jobs}", flush=True)
-    if not run(["cmake", "--build", str(BUILD_DIR), "--config", config, "-j", str(n_cpus)]):
+    if not run(["cmake", "--build", str(BUILD_DIR), "--config", config, "-j", str(n_cpus)], extra_env=_get_vs_env()):
         sys.exit(1)
 
     # --- Package ---

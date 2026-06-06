@@ -7,16 +7,6 @@
 
 using namespace godot;
 
-namespace {
-
-inline Error tcp_send(const Ref<StreamPeerTCP> &tcp, const PackedByteArray &data) {
-    const Error err = tcp->put_data(data);
-    tcp->poll();
-    return err;
-}
-
-} // anonymous namespace
-
 namespace godot_mcp {
 
 void HttpServer::send_sse_headers(int conn_id, Connection &conn) {

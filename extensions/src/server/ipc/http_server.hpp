@@ -10,6 +10,12 @@
 
 namespace godot_mcp {
 
+inline godot::Error tcp_send(const godot::Ref<godot::StreamPeerTCP> &tcp, const godot::PackedByteArray &data) {
+    const godot::Error err = tcp->put_data(data);
+    tcp->poll();
+    return err;
+}
+
 class TestEngine; // forward declaration (used for /run-tests)
 
 class HttpServer {

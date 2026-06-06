@@ -31,6 +31,7 @@ struct ToolInfo {
 class HandlerRegistry {
 public:
     HandlerRegistry();
+    ~HandlerRegistry();
 
     // ── SDK 自定义工具注册（CommandFn）──
     void register_custom_tool(const godot::String &name, const godot::String &category,

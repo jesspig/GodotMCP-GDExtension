@@ -9,6 +9,7 @@ using namespace godot;
 namespace godot_mcp {
 
 HandlerRegistry::HandlerRegistry() = default;
+HandlerRegistry::~HandlerRegistry() = default;
 
 // ---------------------------------------------------------------------------
 // Tool registration
