@@ -27,6 +27,8 @@
 
 namespace godot_mcp {
 
+constexpr int kMaxResolveDepth = 1024;
+
 // ---------------------------------------------------------------------
 // Edited-scene helpers
 // ---------------------------------------------------------------------
@@ -46,7 +48,7 @@ godot::Node *get_root_or_error(godot::Dictionary &out_error);
 //   "/root/<root_name>/Child"         -> Child under root
 //   "<root_name>/Child"               -> Child under root (auto-stripped)
 //   any other NodePath-compatible str -> root->get_node_or_null(path)
-godot::Node *resolve_node(godot::Node *root, const godot::String &path);
+godot::Node *resolve_node(godot::Node *root, const godot::String &path, int depth = 0);
 
 // Returns the EditorUndoRedoManager via EditorInterface. Never null when
 // the editor is running.

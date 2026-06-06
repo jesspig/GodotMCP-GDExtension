@@ -53,7 +53,7 @@ Node *get_root_or_error(Dictionary &out_error) {
     return root;
 }
 
-Node *resolve_node(Node *root, const String &path) {
+Node *resolve_node(Node *root, const String &path, int depth) {
     if (!root) {
         return nullptr;
     }
@@ -82,11 +82,11 @@ Node *resolve_node(Node *root, const String &path) {
     // Any other path is treated as a NodePath relative to root.
     Node *found = root->get_node_or_null(NodePath(path));
     if (found) return found;
-    // Recursive DFS for nodes moved into sub-trees (e.g. after move_node).
+    if (depth >= kMaxResolveDepth) return nullptr;
     for (int64_t i = 0; i < root->get_child_count(); i++) {
         Node *c = Object::cast_to<Node>(root->get_child(i));
         if (!c) continue;
-        Node *sub = resolve_node(c, path);
+        Node *sub = resolve_node(c, path, depth + 1);
         if (sub) return sub;
     }
     return nullptr;
