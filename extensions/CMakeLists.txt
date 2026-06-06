@@ -56,6 +56,9 @@ set(GODOT_MCP_SOURCES
 
     # Server
     src/server/ipc/http_server.cpp
+    src/server/ipc/http_parser.cpp
+    src/server/ipc/http_connection.cpp
+    src/server/ipc/http_sse.cpp
     src/server/mcp/mcp_handler.cpp
     src/server/registry/handler_registry.cpp
 
