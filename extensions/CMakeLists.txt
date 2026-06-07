@@ -134,20 +134,75 @@ target_compile_definitions(godot_mcp_gdext PRIVATE
     GODOT_MCP_PLUGIN_VERSION="${GODOT_MCP_PLUGIN_VERSION}"
 )
 
+# ---------------------------------------------------------------------------
+# Build optimization options (user-configurable via -D or env)
+# ---------------------------------------------------------------------------
+option(GODOTMCP_UNITY_BUILD "Enable unity (jumbo) build — faster full rebuilds" ON)
+set(GODOTMCP_UNITY_BATCH_SIZE "0" CACHE STRING
+    "Unity batch size (source files per batch; 0 = all in one, max parallelism)")
+option(GODOTMCP_USE_PCH "Use precompiled headers — reduces header parsing on MSVC" ON)
+
+# Auto-tune unity batch size: batch_size=0 means "match CPU count".
+# With N CPU cores and N batches, every core gets exactly one job.
+# This maximizes parallelism with minimal memory pressure.
+set(_unity_batch ${GODOTMCP_UNITY_BATCH_SIZE})
+if(_unity_batch STREQUAL "0")
+    include(ProcessorCount)
+    ProcessorCount(_cpu_count)
+    # Cap at 32 — beyond that, batches get too large (memory / ODR risk).
+    if(_cpu_count GREATER 32)
+        set(_cpu_count 32)
+    endif()
+    set(_unity_batch ${_cpu_count})
+    message(STATUS "Unity batch size: ${_unity_batch} (auto = ${_cpu_count} cores)")
+else()
+    message(STATUS "Unity batch size: ${_unity_batch} (user-specified)")
+endif()
+
 set_target_properties(godot_mcp_gdext PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
     POSITION_INDEPENDENT_CODE ON
-    # Drop the "lib" prefix on Unix to match the .gdextension declarations
-    # (Godot expects libgodot_mcp_gdext.so → keep prefix; on Windows there is none anyway).
-    UNITY_BUILD ON
-    UNITY_BUILD_BATCH_SIZE 8
+    UNITY_BUILD ${GODOTMCP_UNITY_BUILD}
+    UNITY_BUILD_BATCH_SIZE ${_unity_batch}
     PREFIX ""
 )
 # Restore the conventional "lib" prefix on Unix.
 if(UNIX)
     set_target_properties(godot_mcp_gdext PROPERTIES PREFIX "lib")
+endif()
+
+# ---------------------------------------------------------------------------
+# Precompiled headers (PCH) — ~30-50% speedup on MSVC.
+# Skipped automatically when non-Clang ccache is active (false cache hits).
+# ---------------------------------------------------------------------------
+if(GODOTMCP_USE_PCH AND MSVC)
+    # ccache with MSVC + PCH is safe; with GCC/Clang it causes false misses.
+    # We only disable for non-Clang + ccache combinations.
+    set(_pch_disabled FALSE)
+    if(GODOTMCP_CXX_LAUNCHER AND CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        set(_pch_disabled TRUE)
+        message(STATUS "PCH disabled: ccache + GCC may produce false cache hits")
+    endif()
+    if(NOT _pch_disabled)
+        target_precompile_headers(godot_mcp_gdext PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/pch.hpp"
+        )
+        message(STATUS "Precompiled headers enabled (MSVC)")
+    endif()
+endif()
+
+# ---------------------------------------------------------------------------
+# Linker optimization: prefer lld-link on MSVC for faster linking.
+# lld-link ships with LLVM (winget install LLVM).
+# ---------------------------------------------------------------------------
+if(MSVC)
+    find_program(GODOTMCP_LLD_LINK NAMES lld-link)
+    if(GODOTMCP_LLD_LINK)
+        target_link_options(godot_mcp_gdext PRIVATE "/lldlink")
+        message(STATUS "Using lld-link for faster linking")
+    endif()
 endif()
 
 # Suppress noisy warnings from godot-cpp generated code on MSVC.
