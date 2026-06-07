@@ -36,7 +36,7 @@ flowchart LR
     REG["HandlerRegistry::execute(name, args)"]
     ITBL["itool_table_<br/>std::map<String, unique_ptr<ITool>>"]
     TBL["table_<br/>HashMap<String, CommandFn>"]
-    BUILTIN["// @tool register 标记的工具<br/>(19 .hpp + 283 节点属性 + 419 资源属性)"]
+    BUILTIN["// @tool register 标记的工具<br/>(67 .hpp + 283 节点属性 + 419 资源属性)"]
     SDK["SDK 自定义工具<br/>(McpToolRegistry 带 custom_ 前缀)"]
     RES["返回 ToolResult 字典"]
     REG -->|"1. 查 itool_table_"| ITBL
@@ -62,7 +62,7 @@ flowchart LR
 |--------------|---------|-----------|------------------|
 | `meta_tools` | `meta_tools` | Meta Tools | 元工具与系统信息查询 |
 | `node_tools` | `node_tools` | Node Tools | 节点属性读取与修改工具，按 Godot 节点类型分类组织 |
-| `editor_tools` | `editor_tools` | Editor Tools | 编辑器操作工具：场景树 CRUD、剪贴板、脚本等 |
+| `editor_tools` | `editor_tools` | Editor Tools | 编辑器操作工具：场景树 CRUD、剪贴板、脚本、工作区切换、控制台、调试器、性能监视器等 |
 
 `get_categories()` (`handler_registry.cpp:223-305`) 直接按 `category()` 返回值的 `/` 分割自动建树，叶子节点的 `description` 由工具的 `category_description()` 填入。
 

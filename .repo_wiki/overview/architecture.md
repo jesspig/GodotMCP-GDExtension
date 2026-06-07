@@ -90,7 +90,8 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │       │   ├── node_property_tool.hpp  # NodePropertyGetTool / NodePropertySetTool
 │       │   └── db/                     # Node.yaml / CanvasItem.yaml / Label.yaml / ... (283 文件)
 │       └── editor_tools/
-│           └── scene_tree/      #   20 个场景树 CRUD 工具 + scene_tree_utils
+│           ├── scene_tree/      #   20 个场景树 CRUD 工具 + scene_tree_utils
+│           └── workspace/       #   24 个工作区工具（控制台、调试器、性能、工作区切换）
 ├── server/
 │   ├── ipc/
 │   │   └── http_server.cpp/.hpp # MCP Streamable HTTP 服务器

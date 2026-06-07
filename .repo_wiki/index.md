@@ -7,10 +7,11 @@
 | 维度 | 状态 |
 |------|------|
 | C++ 源码根 | `extensions/src/` |
-| ITool 头文件 | `extensions/src/built_in/tools/**/*.hpp`（19 个 `.hpp` 标 `// @tool register`） |
+| ITool 头文件 | `extensions/src/built_in/tools/**/*.hpp`（67 个 `.hpp` 标 `// @tool register`） |
 | 节点属性工具 | `extensions/src/built_in/tools/node_props/db/*.yaml`（283 节点类型） |
 | 资源属性工具 | `extensions/src/built_in/tools/node_resource/db/*.yaml`（419 资源类型） |
 | 场景树工具 | `extensions/src/built_in/tools/editor_tools/scene_tree/`（20 工具） |
+| 工作区工具 | `extensions/src/built_in/tools/editor_tools/workspace/`（24 工具） |
 | SDK 层 | `extensions/src/sdk/`（`McpToolDefinition` + `McpToolRegistry`） |
 | 测试框架 | C++ `TestEngine`（`/run-tests`）+ Python 编排器（`test_orchestrator.py`） |
 | 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） |
@@ -32,6 +33,7 @@
 | 元工具 | [modules/meta-tools.md](modules/meta-tools.md) |
 | 工具实现模式 | [modules/scene-commands.md](modules/scene-commands.md) |
 | 场景树工具 | [modules/scene-tree-tools.md](modules/scene-tree-tools.md) |
+| 工作区工具 | [modules/workspace-tools.md](modules/workspace-tools.md) |
 | 分组工具 | [modules/group-tools.md](modules/group-tools.md) |
 | 信号工具 | [modules/signal-tools.md](modules/signal-tools.md) |
 | 资源管理工具 | [modules/resource-tools.md](modules/resource-tools.md) |
