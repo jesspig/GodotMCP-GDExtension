@@ -1,8 +1,6 @@
 # Godot MCP — 项目知识库
 
 > C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 `godot-cpp 10.0.0-rc1`，`// @tool register` + codegen 自动注册工具，rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。
->
-> **架构演化（重要）**：项目已完成从「自由函数 + 17 个 `register_<group>()` 显式注册」到「`ITool` 接口 + codegen 注释驱动自动注册」的统一重构。当前源码根为 `extensions/src/`（不再有 `extensions/gdext/`、`commands/cmd_*.cpp`、旧 17 组工具目录）。
 
 ## 项目快照
 
@@ -12,11 +10,14 @@
 | ITool 头文件 | `extensions/src/built_in/tools/**/*.hpp`（19 个 `.hpp` 标 `// @tool register`） |
 | 节点属性工具 | `extensions/src/built_in/tools/node_props/db/*.yaml`（283 节点类型） |
 | 资源属性工具 | `extensions/src/built_in/tools/node_resource/db/*.yaml`（419 资源类型） |
+| 场景树工具 | `extensions/src/built_in/tools/editor_tools/scene_tree/`（20 工具） |
 | SDK 层 | `extensions/src/sdk/`（`McpToolDefinition` + `McpToolRegistry`） |
 | 测试框架 | C++ `TestEngine`（`/run-tests`）+ Python 编排器（`test_orchestrator.py`） |
 | 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） |
 | Pinned deps | `godot-cpp 10.0.0-rc1`、`ryml v0.7.0` |
 | 版本号 | 仅 `CMakeLists.txt:22` `PROJECT_VERSION`（CMake 自动生成 `plugin.cfg` + `.gdextension`） |
+| 构建产物 | `example/addons/godot_mcp/bin/godot_mcp_gdext.{dll,so,dylib}` |
+| 编译器优化 | sccache/ccache、PCH(MSVC)、Unity(jumbo) build、lld-link |
 
 ## 快速导航
 
@@ -24,11 +25,14 @@
 |------|------|
 | 架构总览 | [overview/architecture.md](overview/architecture.md) · [overview/threading-model.md](overview/threading-model.md) |
 | GDExtension 实现 | [extensions/gdext.md](extensions/gdext.md) |
+| 代码生成 | [modules/codegen.md](modules/codegen.md) |
 | 命令路由 | [modules/command-routing.md](modules/command-routing.md) |
 | MCP 传输 | [modules/ipc-bridge.md](modules/ipc-bridge.md) · [specification/ipc-protocol.md](specification/ipc-protocol.md) |
 | 插件生命周期 | [modules/editor-plugin.md](modules/editor-plugin.md) · [modules/dock-ui.md](modules/dock-ui.md) |
+| 元工具 | [modules/meta-tools.md](modules/meta-tools.md) |
 | 工具实现模式 | [modules/scene-commands.md](modules/scene-commands.md) |
 | 场景树工具 | [modules/scene-tree-tools.md](modules/scene-tree-tools.md) |
+| 分组工具 | [modules/group-tools.md](modules/group-tools.md) |
 | 信号工具 | [modules/signal-tools.md](modules/signal-tools.md) |
 | 资源管理工具 | [modules/resource-tools.md](modules/resource-tools.md) |
 | SDK 层 | `extensions/src/sdk/mcp_tool_definition.hpp` · `mcp_tool_registry.hpp`（详见源代码） |
@@ -64,14 +68,16 @@
 
 1. **从 `overview/architecture.md` 开始** — 理解单进程架构、数据流、目录布局
 2. **阅读 `modules/command-routing.md`** — 理解 ITool 接口 + HandlerRegistry 调度
-3. **添加新工具时**：见 AGENTS.md「添加内置工具」章节 + `extensions/src/built_in/tools/<dir>/<tool>.hpp` 现有样例
-4. **运行测试前**：见 AGENTS.md「测试」章节 + `tests/.env` 配置
-5. **遇到具体模块问题**：上表点击对应模块文档
+3. **阅读 `modules/codegen.md`** — 理解代码生成如何工作，添加新工具流程
+4. **添加新工具时**：见 `AGENTS.md`「添加内置工具」章节 + `extensions/src/built_in/tools/<dir>/<tool>.hpp` 现有样例
+5. **运行测试前**：见 `AGENTS.md`「测试」章节 + `tests/.env` 配置
+6. **遇到具体模块问题**：上表点击对应模块文档
 
 ## 给 Agent 的提醒
 
 - **不要修改** `extensions/src/register_types.cpp:45` 的入口符号 `gdext_rust_init`（遗留名，`.gdextension` 引用）
-- **不要修改** `extensions/CMakeLists.txt:15` 的 `GODOTCPP_API_VERSION "4.6"` 与根 `CMakeLists.txt:60` 的 `compatibility_minimum = "4.6"` 之间的绑定
+- **不要修改** `extensions/CMakeLists.txt:15` 的 `GODOTCPP_API_VERSION "4.6"` 与根 `CMakeLists.txt:72` 的 `compatibility_minimum = "4.6"` 之间的绑定
 - **升级 godot-cpp / ryml 前必测** —— 二者均为 FetchContent 拉取，缓存键与版本绑定
-- **MSVC UTF-8** —— 含非 ASCII 的字符串字面量必须用 `String::utf8("中文")`
-- **DLL 文件锁** —— Godot 编辑器持有 `addons/bin/godot_mcp_gdext.dll`，重建失败时先关闭编辑器
+- **MSVC UTF-8** —— 含非 ASCII 的字符串字面量必须用 `String::utf8("中文")`，根 `CMakeLists.txt:43` 已加 `/utf-8 /bigobj`
+- **DLL 文件锁** —— Godot 编辑器持有 `example/addons/godot_mcp/bin/godot_mcp_gdext.dll`，重建失败时先关闭编辑器或禁用插件
+- **构建优化** —— sccache/ccache、PCH（MSVC）、Unity jumbo build、lld-link 均已在 CMakeLists.txt 中配置，增量构建默认加速

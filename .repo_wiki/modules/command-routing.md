@@ -36,7 +36,7 @@ flowchart LR
     REG["HandlerRegistry::execute(name, args)"]
     ITBL["itool_table_<br/>std::map<String, unique_ptr<ITool>>"]
     TBL["table_<br/>HashMap<String, CommandFn>"]
-    BUILTIN["// @tool register 标记的工具<br/>(19 .hpp + 200+ YAML 节点属性)"]
+    BUILTIN["// @tool register 标记的工具<br/>(19 .hpp + 283 节点属性 + 419 资源属性)"]
     SDK["SDK 自定义工具<br/>(McpToolRegistry 带 custom_ 前缀)"]
     RES["返回 ToolResult 字典"]
     REG -->|"1. 查 itool_table_"| ITBL
@@ -49,31 +49,34 @@ flowchart LR
 
 | 步骤 | 文件:行 | 行为 |
 |------|---------|------|
-| 1 | `handler_registry.cpp:50` | `register_tool(unique_ptr<ITool>)` 存入 `itool_table_` |
-| 2 | `handler_registry.cpp:17` | `register_custom_tool(name, ...)` 存入 `table_`（CommandFn 后备表） |
+| 1 | `handler_registry.cpp:51` | `register_tool(unique_ptr<ITool>)` 存入 `itool_table_` |
+| 2 | `handler_registry.cpp:18` | `register_custom_tool(name, ...)` 存入 `table_`（CommandFn 后备表） |
 | 3 | `editor_plugin.cpp:48` | `_enter_tree()` 调 `register_itools(registry_)` —— codegen 自动生成 |
-| 4 | execute | 先查 `itool_table_` → 未命中查 `table_` |
+| 4 | execute | 先查 `itool_table_` → 未命中查 `table_`（`handler_registry.cpp:79-96`） |
 
 ## 顶级分类
 
-`top_level_meta()` 硬编码于 `handler_registry.cpp:182-189`：
+`top_level_meta()` 硬编码于 `handler_registry.cpp:183-192`：
 
 | 原始 category | 顶级路径 | 顶级 label | 顶级 description |
 |--------------|---------|-----------|------------------|
 | `meta_tools` | `meta_tools` | Meta Tools | 元工具与系统信息查询 |
 | `node_tools` | `node_tools` | Node Tools | 节点属性读取与修改工具，按 Godot 节点类型分类组织 |
+| `editor_tools` | `editor_tools` | Editor Tools | 编辑器操作工具：场景树 CRUD、剪贴板、脚本等 |
 
-**注意**：旧的 17 组 category → 6 顶级 remap 已被简化。`get_categories()` (`handler_registry.cpp:220-302`) 直接按 `category()` 返回值的 `/` 分割自动建树，叶子节点的 `description` 由工具的 `category_description()` 填入。
+`get_categories()` (`handler_registry.cpp:223-305`) 直接按 `category()` 返回值的 `/` 分割自动建树，叶子节点的 `description` 由工具的 `category_description()` 填入。
 
-## ITool 接口契约（`extensions/src/built_in/tool_base.hpp:48-55`）
+## ITool 接口契约（`extensions/src/built_in/tool_base.hpp:29-68`）
 
 ```cpp
 class ITool {
 public:
     virtual String name() const = 0;             // 注册名
-    virtual String category() const = 0;         // 顶级分类
+    virtual String category() const = 0;         // 分类路径（如 "editor_tools/scene_tree"）
     virtual String brief() const = 0;
     virtual String description() const = 0;
+    virtual String category_label() const { return category(); }
+    virtual String category_description() const { return {}; }
     virtual Dictionary input_schema() const = 0;
     virtual bool is_meta() const { return false; }    // 渐进式披露
     virtual bool needs_scene() const { return false; }// 触发 ctx.root 注入
@@ -101,11 +104,11 @@ protected:
 | 维度 | 字段 | 用途 |
 |------|------|------|
 | 可见性 | `is_meta()` | meta 工具始终在 `tools/list` 可见；非 meta 工具需通过 `get_categories` → `get_tools` 二级发现（渐进式披露） |
-| 分组 | `category()` | 顶级分类；多级用 `/` 分割（如 `node_tools` / `node_tools/group`） |
+| 分组 | `category()` | 顶级分类；多级用 `/` 分割（如 `editor_tools/scene_tree`） |
 
 ## 注意事项
 
 - 所有命令在 Godot 主线程同步执行（`EditorPlugin::_on_process_frame()` 驱动 `HttpServer::poll()`）
 - 添加新内置工具仅需创建 `.hpp` + `// @tool register` 注释，运行 codegen 自动注册
-- SDK 自定义工具通过 `McpToolRegistry` 注册，**自动加 `custom_` 前缀**（`mcp_tool_registry.cpp:113-160`）
-- 顶级 `top_level_meta` 当前只有 `meta_tools` + `node_tools`；新增顶级需同步加 meta + `String::utf8("标签")` + 描述
+- SDK 自定义工具通过 `McpToolRegistry` 注册，**自动加 `custom_` 前缀**（`mcp_tool_registry.cpp:38-42`）
+- 顶级 `top_level_meta` 当前有 3 个分类（meta_tools、node_tools、editor_tools）；新增顶级需同步加 meta + `String::utf8("标签")` + 描述
