@@ -75,7 +75,7 @@ sequenceDiagram
     "godot_version": { "major": 4, "minor": 6, "patch": 0, ... }
   },
   "plugin": {
-    "version": "0.2.0-dev3",
+    "version": "0.2.0-dev4",
     "builtin_tool_count": 124,
     "custom_tool_count": 0
   },
