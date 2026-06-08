@@ -144,3 +144,96 @@ uv run python tools/codegen.py \
 {"mcp": {"godot-mcp": {"type": "remote", "url": "http://127.0.0.1:9600/mcp"}}}
 ```
 启动 Godot 编辑器并启用插件后，即可通过 Godot MCP 工具直接操作编辑器。
+
+## 市场分析与优化路线图
+
+### 竞品生态全景
+
+市面 20+ Godot MCP 项目按技术路线分四大阵营：
+
+| 阵营 | 代表项目 | Stars | 工具数 | 特点 |
+|------|---------|-------|--------|------|
+| **Node.js + GDScript Plugin** | Coding-Solo/godot-mcp | **4,068** | ~20 | 最热门，npx 一键启动 |
+| | alexmeckes/godot-mcp | ~150 | **99** | Shader/Animation/Nav/UI/Procedural 生成 |
+| | Sods2/godot-mcp | ~120 | **77** | **断点调试/堆栈跟踪/单步执行** |
+| | satelliteoflove/godot-mcp | ~80 | 11 | 观察优先，截图/运行时/动画/TileMap |
+| | tomyud1/godot-mcp | ~200 | **42** | **交互式项目可视化器** |
+| | Dreamer568/godot-mcp | ~60 | ~80 | 资产分配强，每秒写 godot_state.json |
+| | Djentinga/godot-mcp | ~15 | **149** | Coding-Solo 极限 fork |
+| **Python + GDScript Plugin** | xulek/godotmcp | ~20 | ~70 | 守卫操作、工作流检查点 |
+| | Rufaty/godot-mcp-enhanced | ~17 | ~40 | 输入模拟、插件检测、性能监控 |
+| **C++ GDExtension（同阵营）** | **本项目 GodotMCP** | — | **~11,734** | **C++ 进程内、纯主线程、Codegen** |
+| | MeowMeowZi/meow-godot-mcp | 2 | **50** | 架构最接近，有游戏桥接/输入/截图/TileMap/UI/动画 |
+| | nklisch/theatre | 0 | 47 | Rust 实现，spatial snapshot 概念 |
+| **其他** | Sharks820/godot-mcp-ultimate | ~10 | 47+15 子 Agent | 死代码检测/信号流分析/项目健康面板 |
+
+### 功能缺口（vs 竞品）
+
+**P0 — 必须补（竞品都有，缺失即硬伤）：**
+
+| 能力 | 本项目 | Meow | alexmeckes | Sods2 | satellite |
+|------|--------|------|------------|-------|-----------|
+| 游戏运行时桥接 | ❌ | ✅ | ✅ | ✅ | ✅ |
+| 编辑器/游戏截图 | ❌ | ✅ | ✅ | ✅ | ✅ |
+| 脚本读写编辑 | ❌ | ✅ | ✅ | ✅ | ❌ |
+
+**P1 — 应该补（显著提升竞争力）：**
+
+| 能力 | 本项目 | Meow | alexmeckes | Sods2 | satellite |
+|------|--------|------|------------|-------|-----------|
+| 动画系统工具 | ❌ | ✅ | ✅ | ❌ | ✅ |
+| UI/Control 工具 | ❌ | ✅ | ✅ | ❌ | ❌ |
+| TileMap 操作 | ❌ | ✅ | ❌ | ❌ | ✅ |
+| 碰撞形状一键创建 | ❌ | ✅ | ❌ | ❌ | ❌ |
+
+**P2 — 加分项（差异化竞争）：**
+
+| 能力 | 本项目 | 拥有者 |
+|------|--------|--------|
+| 断点调试集成 | ❌ | Sods2（独有） |
+| MCP Resources + Prompts | ❌ | Meow、ee0pdt |
+| 项目可视化器 | ❌ | tomyud1（独有） |
+| Godot 文档查询 | ❌ | satelliteoflove、dreamvision-dev |
+| 项目脚手架 | ❌ | MhrnMhrn |
+| 导出/插件管理 | ❌ | Raunaksplanet |
+| 输入映射管理 | ❌ | Funplay |
+| Shader 工具 | ❌ | alexmeckes（11 种预设） |
+
+### 核心竞争力
+
+本项目**唯一不可替代的优势**：**C++ GDExtension 进程内运行 + 零外部依赖**。
+
+- 启动速度：零（插件随编辑器加载）
+- 调用延迟：函数调用级别，非 IPC
+- 资源开销：无额外进程
+- 部署复杂度：一个 `.dll` 文件
+
+### 优化路线图
+
+```
+Phase 1 (P0) — 入场券
+├── 游戏运行时桥接（EditorDebuggerPlugin + TCP/WS）
+│   ├── 输入注入（键盘/鼠标/Action）
+│   ├── 运行时属性读取
+│   ├── 运行时场景树获取
+│   └── GDScript 表达式执行
+├── 编辑器/游戏截图（EditorInterface viewport → ImageContent）
+└── 脚本读写编辑（read/write/edit/patch/attach/detach）
+
+Phase 2 (P1) — 竞争力
+├── 动画系统（AnimationPlayer + AnimationLibrary + 轨道/关键帧 CRUD）
+├── UI/Control 工具（Control 创建、布局预设、主题覆盖、StyleBox）
+├── TileMap 操作（批量放置/擦除/查询）
+└── 碰撞形状一键创建（CollisionShape2D/3D + 9 种形状）
+
+Phase 3 (P2) — 差异化
+├── 断点调试集成（set_breakpoint / stack_trace / step_over）
+├── MCP Resources + Prompts（godot:// 资源 + 工作流模板）
+├── 项目可视化器（力导向图 + 场景图浏览器）
+├── Godot 文档查询（get_class_info / search_docs）
+├── 项目脚手架（create_project）
+├── 导出/插件/输入映射管理
+└── Shader 工具（预设效果模板）
+```
+
+详细规划见 `.repo_wiki/design/roadmap.md`（含追踪清单）。

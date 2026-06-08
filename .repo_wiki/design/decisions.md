@@ -172,6 +172,175 @@
 - 负面：极端场景（非 unity 构建、无 ccache）下编译略慢于有 PCH 时
 - 参考：`codegen.py` 生成的 `using namespace godot;` 确保工具头文件中非限定 `String`/`Dictionary` 等 godot 类型正确解析
 
+## ADR-014: 功能优化路线图（P0/P1/P2 三阶段）
+
+**状态**：已接受（规划阶段）
+**日期**：2026-06-08
+**背景**：市场分析显示，市面 20+ Godot MCP 项目中，本项目（~11,734 工具）在架构上（C++ GDExtension 进程内、纯主线程无锁、Codegen 自动注册）具有唯一不可替代优势，但功能覆盖存在显著缺口。竞品普遍具备的游戏运行时桥接、编辑器/游戏截图、脚本读写编辑等核心能力，本项目缺失。
+
+**决策**：按 P0/P1/P2 三级优先级实施功能补全，每阶段完成后进入下一阶段。
+
+### Phase 1 (P0) — 入场券
+
+**目标**：消除所有"竞品都有，缺失即硬伤"的功能缺口。
+
+#### 1.1 游戏运行时桥接
+
+**实现路径**：通过 `EditorDebuggerPlugin` 与运行中的游戏双向通信。
+
+| 子能力 | 实现方式 | 参考 |
+|--------|---------|------|
+| 输入注入（键盘/鼠标/Action） | EditorDebuggerPlugin → 运行中游戏 | Meow、alexmeckes |
+| 运行时属性读取 | 游戏端 GDScript autoload 暴露属性查询 API | satelliteoflove |
+| 运行时场景树获取 | 游戏端遍历场景树序列化后返回 | Meow |
+| GDScript 表达式执行 | 游戏端 `Expression.execute()` | Sods2、Dreamer568 |
+
+**架构决策**：
+- 在 GDExtension 内启动一个 TCP/WebSocket 服务端（端口待定，建议 9601）
+- 游戏端通过 `EditorDebuggerPlugin` 注入一个 autoload 脚本，该脚本连接到此端口
+- MCP 工具调用时，GDExtension 通过此连接转发请求到运行中的游戏
+- 游戏退出时连接自动断开，GDExtension 检测到断开后返回"游戏未运行"错误
+
+**注意**：`EditorDebuggerPlugin` 是编辑器内部类，不在 godot-cpp 绑定中。需通过 `find_children("*", "EditorDebuggerPlugin", true, false)` 遍历场景树 + `call()` 动态调用。
+
+#### 1.2 编辑器/游戏截图
+
+**实现路径**：
+- 编辑器截图：`EditorInterface::get_singleton()->get_editor_viewport_2d/3d()->get_texture()->get_image()`
+- 游戏截图：通过运行时桥接获取游戏视口截图
+- 返回格式：MCP `ImageContent`（本项目已支持 spec 2025-03-26）
+
+#### 1.3 脚本读写编辑
+
+**实现路径**：
+
+| 工具 | 实现方式 |
+|------|---------|
+| `read_script` | `FileAccess::open()` 读取 `.gd` 文件 |
+| `write_script` | `FileAccess::open()` 写入新文件 |
+| `edit_script` | 读取 → 修改 → 写入 |
+| `patch_script` | 精确替换指定行/段（参考 Dreamer568 的 `patch_script`） |
+| `attach_script` | `node.set_script(ResourceLoader::load(path))` |
+| `detach_script` | `node.set_script(Variant())` |
+
+### Phase 2 (P1) — 竞争力
+
+**目标**：补齐显著提升竞争力的功能模块。
+
+#### 2.1 动画系统工具
+
+| 工具 | 实现方式 |
+|------|---------|
+| `create_animation_player` | 创建 AnimationPlayer 节点 + AnimationLibrary |
+| `create_animation_clip` | 在 AnimationLibrary 中创建 Animation |
+| `add_animation_track` | 添加 value/position/rotation/scale 轨道 |
+| `set_keyframe` | 插入/修改/删除关键帧 |
+| `get_animation_info` | 查询动画列表、轨道结构、关键帧数据 |
+
+#### 2.2 UI/Control 工具
+
+| 工具 | 实现方式 |
+|------|---------|
+| `create_control` | 创建 Control 子类节点（Button/Label/Panel 等） |
+| `set_layout_preset` | 设置锚点预设（full_rect/center 等） |
+| `set_theme_override` | 批量设置主题覆盖（颜色/字体/字号） |
+| `create_stylebox` | 创建 StyleBoxFlat 并应用到节点 |
+
+#### 2.3 TileMap 操作
+
+| 工具 | 实现方式 |
+|------|---------|
+| `set_tilemap_cells` | 批量放置瓦片到指定网格坐标 |
+| `erase_tilemap_cells` | 批量擦除指定坐标的瓦片 |
+| `get_tilemap_info` | 查询 TileMapLayer 元信息 |
+
+#### 2.4 碰撞形状一键创建
+
+| 工具 | 实现方式 |
+|------|---------|
+| `create_collision_shape` | 一步创建 CollisionShape2D/3D + 配置形状（RectangleShape2D/CircleShape2D/CapsuleShape2D 等 9 种） |
+
+### Phase 3 (P2) — 差异化
+
+**目标**：实现竞品没有或只有少数竞品有的差异化功能。
+
+#### 3.1 断点调试集成
+
+参考 Sods2 的实现，通过 `EditorDebuggerPlugin` 与调试器通信：
+
+| 工具 | 实现方式 |
+|------|---------|
+| `set_breakpoint` | 通过 `EditorDebuggerNode` 设置断点 |
+| `remove_breakpoint` | 移除断点 |
+| `list_breakpoints` | 列出所有活跃断点 |
+| `get_stack_trace` | 获取当前堆栈跟踪 |
+| `get_locals` | 获取局部变量 |
+| `step_over/into/out` | 单步执行 |
+| `continue` | 继续执行 |
+
+**注意**：`EditorDebuggerNode` 是编辑器内部类，需通过 `find_children()` + `call()` 动态调用。
+
+#### 3.2 MCP Resources + Prompts
+
+| 资源 URI | 内容 |
+|----------|------|
+| `godot://scene/current` | 当前打开的场景信息 |
+| `godot://project/info` | 项目元数据 |
+| `godot://script/current` | 当前打开的脚本 |
+
+| Prompt 模板 | 用途 |
+|-------------|------|
+| `create_player_controller` | 创建玩家控制器 |
+| `setup_scene_structure` | 设置场景结构 |
+| `debug_physics` | 调试物理问题 |
+| `create_ui_layout` | 创建 UI 布局 |
+| `setup_animation` | 设置动画 |
+
+#### 3.3 项目可视化器
+
+参考 tomyud1 的方案：启动一个 HTTP 服务（如 `:6510`）提供浏览器端力导向图，展示脚本关系、场景图、依赖关系。
+
+#### 3.4 Godot 文档查询
+
+| 工具 | 实现方式 |
+|------|---------|
+| `get_class_info` | 调用 Godot 的 `ClassDB` API |
+| `search_docs` | 使用 `--doctool` 生成的文档缓存 |
+| `get_best_practices` | 预置最佳实践知识库 |
+
+#### 3.5 项目脚手架
+
+| 工具 | 实现方式 |
+|------|---------|
+| `create_project` | 调用 Godot CLI 创建新项目 |
+
+#### 3.6 导出/插件/输入映射管理
+
+| 工具 | 实现方式 |
+|------|---------|
+| `get_export_presets` / `run_export` | 读取/调用导出预设 |
+| `list_plugins` / `set_plugin_enabled` | 管理编辑器插件 |
+| `list_input_actions` / `add_input_action` | 管理输入映射 |
+
+#### 3.7 Shader 工具
+
+| 工具 | 实现方式 |
+|------|---------|
+| `create_shader` | 创建 `.gdshader` 文件 |
+| `read_shader` | 读取 shader 源码 |
+| `apply_shader_preset` | 应用预设效果（dissolve/outline/hologram 等，参考 alexmeckes 的 11 种预设） |
+
+### 实施原则
+
+1. **每阶段完成后才能进入下一阶段**：P0 未完成前不开始 P1，以此类推
+2. **优先利用 GDExtension 优势**：做 Node.js 方案做不到的事（底层 API 调用、实时性能数据、编辑器 UI 自动化）
+3. **保持 codegen 体系**：新工具应尽量利用 `// @tool register` + codegen 自动注册
+4. **工具发现优化**：~11,734 工具中大部分是属性 get/set 噪音，考虑按使用频率分级或合并为通用工具
+5. **每项功能完成后**：更新 `.repo_wiki/log.md` 并补充对应模块文档
+6. **测试先行**：每项新工具必须附带 YAML 测试用例
+
+**详细追踪清单见 [roadmap.md](roadmap.md)**。
+
 ## 已废弃的决策
 
 以下 ADR 随 Python 服务器移除而废弃：

@@ -58,6 +58,7 @@
 | 工具目录 | [reference/tools-catalog.md](reference/tools-catalog.md) |
 | 项目结构 | [specification/project-structure.md](specification/project-structure.md) |
 | 设计决策（ADR） | [design/decisions.md](design/decisions.md) |
+| 优化路线图（含追踪清单） | [design/roadmap.md](design/roadmap.md) |
 | 测试框架总览 | [testing/overview.md](testing/overview.md) |
 | C++ 测试引擎 | [testing/test-engine.md](testing/test-engine.md) |
 | Python 编排器 | [testing/orchestrator.md](testing/orchestrator.md) |
@@ -77,8 +78,9 @@
 2. **阅读 `modules/command-routing.md`** — 理解 ITool 接口 + HandlerRegistry 调度
 3. **阅读 `modules/codegen.md`** — 理解代码生成如何工作，添加新工具流程
 4. **添加新工具时**：见 `AGENTS.md`「添加内置工具」章节 + `extensions/src/built_in/tools/<dir>/<tool>.hpp` 现有样例
-5. **运行测试前**：见 `AGENTS.md`「测试」章节 + `tests/.env` 配置
-6. **遇到具体模块问题**：上表点击对应模块文档
+5. **了解优化方向**：见 `AGENTS.md`「市场分析与优化路线图」章节 + `design/decisions.md#ADR-014`
+6. **运行测试前**：见 `AGENTS.md`「测试」章节 + `tests/.env` 配置
+7. **遇到具体模块问题**：上表点击对应模块文档
 
 ## 给 Agent 的提醒
 
