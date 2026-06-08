@@ -16,8 +16,7 @@ stateDiagram-v2
         RegisterTools --> InitSDK: 初始化 McpToolRegistry 单例
         InitSDK --> ReadPort: 读取端口
         ReadPort --> StartServer: http_server_.start()
-        StartServer --> CreateDock: 创建 TestRunnerDock 底部面板
-        CreateDock --> ConnectProcessFrame: connect("process_frame", callable_mp)
+        StartServer --> ConnectProcessFrame: connect("process_frame", callable_mp)
         ConnectProcessFrame --> [*]
     }
     

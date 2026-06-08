@@ -15,7 +15,7 @@ flowchart LR
             HTTP["HttpServer<br/>(:9600, SSE)"]
             MCPHandler["McpHandler<br/>(JSON-RPC 2.0)"]
             Registry["HandlerRegistry<br/>(ITool 统一调度)"]
-            Tools["built_in/tools/<br/>+ node_props/db/*.yaml<br/>+ node_resource/db/*.yaml"]
+            Tools["built_in/tools/<br/>+ node_props/db/*.yaml<br/>+ node_resource/db/*.yaml<br/>+ settings/db/*.yaml"]
         end
         Main["主线程 process_frame<br/>→ HttpServer::poll()"]
     end
@@ -36,7 +36,7 @@ flowchart LR
 | 线程模型 | **纯主线程**（`EditorPlugin::_on_process_frame` 驱动） |
 | 入口符号 | `gdext_rust_init`（`register_types.cpp:45`，遗留名） |
 | 编码规范 | 根 `CMakeLists.txt:43` 已加 `/utf-8 /bigobj`（MSVC） |
-| 构建优化 | sccache/ccache（自动检测）、PCH(MSVC)、Unity(jumbo)、lld-link |
+| 构建优化 | sccache/ccache（自动检测）、Unity(jumbo)、lld-link |
 | 持久化 | C++ 侧无独立状态；Godot 编辑器持有数据 |
 
 ## 数据流（一次工具调用）
@@ -72,14 +72,13 @@ sequenceDiagram
 extensions/src/                  # C++ GDExtension 唯一源码根
 ├── register_types.cpp           # GDExtension 入口 (gdext_rust_init)
 ├── editor_plugin.cpp/.hpp       # McpEditorPlugin 生命周期 + process_frame 泵
-├── pch.hpp                      # 预编译头 (STL + Godot 核心类型)
 ├── logging.hpp                  # 日志 inline 函数
 ├── built_in/
 │   ├── tool_base.hpp/.cpp       # ITool + ToolResult + ToolContext
 │   ├── cmd_utils.hpp/.cpp       # 共享工具（resolve_node / undoable_set / notify_file_changed）
 │   ├── cmd_utils_json.cpp       # JSON↔Variant 递归转换
 │   └── tools/                   # 所有 ITool 子类 (CMake GLOB 自动编译)
-│       ├── meta/                #   5 个元工具（get_info / get_categories / get_tools / get_tool_detail / call_tool）
+│       ├── meta/                #   5 个元工具
 │       ├── node_tools/          #   资源工具模板
 │       │   └── general/         #     6 个（load/clear/new/duplicate/save/get_resource_info）
 │       ├── node_resource/       #   资源属性 YAML 数据库（419 文件）
@@ -87,11 +86,16 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │       ├── group/               #   4 个分组工具
 │       ├── signal/              #   4 个信号工具
 │       ├── node_props/          #   节点属性 YAML 数据库（283 文件）+ 模板
-│       │   ├── node_property_tool.hpp  # NodePropertyGetTool / NodePropertySetTool
-│       │   └── db/                     # Node.yaml / CanvasItem.yaml / Label.yaml / ... (283 文件)
+│       │   ├── node_property_tool.hpp
+│       │   └── db/
 │       └── editor_tools/
-│           ├── scene_tree/      #   20 个场景树 CRUD 工具 + scene_tree_utils
-│           └── workspace/       #   24 个工作区工具（控制台、调试器、性能、工作区切换）
+│           ├── scene_tree/      #   25 个场景树 CRUD 工具 + scene_tree_utils
+│           ├── workspace/       #   24 个工作区工具
+│           ├── filesystem/      #   14 个文件系统工具
+│           └── settings/        #   4 个兜底工具 + 24 个 YAML 数据库
+│               ├── settings_tool.hpp
+│               ├── get_setting.hpp / set_setting.hpp / reset_setting.hpp / list_settings.hpp
+│               └── db/          #     24 个分类 YAML（844 设置项）
 ├── server/
 │   ├── ipc/
 │   │   └── http_server.cpp/.hpp # MCP Streamable HTTP 服务器
@@ -104,19 +108,18 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │   └── mcp_tool_registry.hpp/.cpp     # 单例 SDK 注册表
 ├── lsp/
 │   └── client.cpp/.hpp          # GDScript LSP 验证（StreamPeerTCP）
-├── testing/
-│   ├── test_engine.cpp/.hpp     # C++ 进程内测试引擎
-│   ├── yaml_parser.hpp          # ryml → Godot Variant
-│   ├── test_assertions.hpp      # 断言运行器
-│   ├── godot_file_verifier.hpp  # 磁盘文件校验
-│   └── type_utils.hpp           # 类型辅助
-└── plugin/
-    └── test_runner_dock.cpp/.hpp  # 编辑器底部面板（TestRunnerDock）
+└── testing/
+    ├── test_engine.cpp/.hpp     # C++ 进程内测试引擎
+    ├── yaml_parser.hpp          # ryml → Godot Variant
+    ├── test_assertions.hpp      # 断言运行器
+    ├── godot_file_verifier.hpp  # 磁盘文件校验
+    └── type_utils.hpp           # 类型辅助
 
 extensions/CMakeLists.txt        # FetchContent + codegen + add_library + 编译优化
 tools/
 ├── codegen.py                   # // @tool register 扫描 + YAML 数据库 → 注册代码
-└── collect_node_props.py        # Godot 运行时收集属性 → YAML 数据库
+├── collect_node_props.py        # Godot 运行时收集节点/资源属性 → YAML
+└── collect_settings.py          # Godot 运行时收集项目设置 → YAML
 
 example/addons/godot_mcp/        # 构建产物（CMake 生成 + copy-gdext target）
 ├── plugin.cfg                   # 由根 CMakeLists.txt 从 PROJECT_VERSION 生成

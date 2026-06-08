@@ -2,6 +2,8 @@
 
 > 10 个聚合设置工具，将分散在 `ProjectSettings` 中的相关属性打包为 get/set 对。**当前实现位置**：`extensions/src/built_in/tools/` 下的 ITool。
 >
+> **注意**：此模块已被 `editor_tools/settings/` 的 1688 个专属工具 + 4 个兜底工具替代。专属工具为每项设置生成独立 get/set，覆盖更全、可发现性更好。此文档保留作为历史参考。
+>
 > **历史路径**：`extensions/gdext/src/commands/project_settings_ext.cpp`（已删除，参见 commit `c4318ee`）。
 
 ## 工具列表

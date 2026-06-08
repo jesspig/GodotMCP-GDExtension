@@ -25,10 +25,9 @@ CMake 自动处理：
 | 优化 | 状态 | 说明 |
 |------|:----:|------|
 | **sccache/ccache** | 自动检测 | 根 `CMakeLists.txt:29-35`，加速增量构建 2-5x |
-| **PCH** | MSVC 启用 | `extensions/CMakeLists.txt:180-194`，~30-50% 加速，GCC+ccache 时禁用 |
 | **Unity (jumbo) build** | 默认 ON | `extensions/CMakeLists.txt:140-170`，batch size 自动匹配 CPU 核数（上限 32） |
-| **lld-link** | 自动检测 | `extensions/CMakeLists.txt:200-206`，MSVC + lld-link 加速链接 |
-| **PCH 头文件** | `pch.hpp` | `extensions/src/pch.hpp`（包含 godot-cpp 常用头） |
+| **lld-link** | 自动检测 | `extensions/CMakeLists.txt:179-185`，MSVC + lld-link 加速链接 |
+| **PCH** | 已移除 | ADR-013：Unity Build 已覆盖其优化价值，移除以简化构建 |
 
 ### 安装方式
 

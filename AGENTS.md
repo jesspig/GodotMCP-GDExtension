@@ -20,7 +20,7 @@ cmake --build build --target deep-clean # 仅清 addons/bin/ + _deps/
 - **FetchContent 缓存**：`godot-cpp 10.0.0-rc1` + `ryml v0.7.0` 在 `build/_deps/`。`--clean` 和 `--clean-all` 均保留 `_deps/`，仅 `--purge-cache` 清除。
 - **SSL 自动降级**：`build.py:168-175` 检测 `CRYPT_E_REVOCATION_OFFLINE` 等 schannel 错误，自动以 `CMAKE_TLS_VERIFY=0` 重试。
 - **DLL 文件锁**：`example/addons/godot_mcp/bin/godot_mcp_gdext.dll` 被 Godot 编辑器持有，重建失败时先关编辑器或禁用插件。
-- **构建优化**：sccache/ccache 自动检测（CMakeLists.txt:29-35）；Unity build 默认开启（`GODOTMCP_UNITY_BUILD=ON`，batch_size 自动匹配 CPU 核心数）；PCH 已移除（Unity 已覆盖优化，详见 `.repo_wiki/design/decisions.md` ADR-013）；lld-link 自动检测。
+- **构建优化**：sccache/ccache 自动检测（CMakeLists.txt:29-35）；Unity build 默认开启（batch_size 自动匹配 CPU 核心数）；PCH 已移除（Unity 已覆盖）；lld-link 自动检测。
 
 ## 关键约束
 
@@ -41,6 +41,7 @@ AI 客户端 ── Streamable HTTP :9600 ──► godot_mcp_gdext (C++ GDExten
 - **端口**：默认 9600，env `GODOT_MCP_HTTP_PORT` 覆盖（含范围校验）。
 - **端点**：`/mcp`（JSON-RPC 2.0 + SSE），`/run-tests`（YAML 测试）。
 - **双重注册**：`GDREGISTER` 注册 SDK 类 + EditorPlugin；`HandlerRegistry` 管理 `ITool` 主表与 SDK `CommandFn` 旁路表。
+- **当前注册工具数**：~11734（84 个 @tool register + 283 节点属性 ×2 + 419 资源属性 ×2 + 844 设置项 ×2）。
 
 ## 添加内置工具
 
@@ -50,7 +51,6 @@ AI 客户端 ── Streamable HTTP :9600 ──► godot_mcp_gdext (C++ GDExten
 // extensions/src/built_in/tools/<category>/my_tool.hpp
 // @tool register
 class MyTool : public ITool {
-    void set_registry(HandlerRegistry *reg) override { reg_ = reg; }
     String name() const override { return "my_tool"; }
     String category() const override { return "node_tools"; }
     String brief() const override { ... }
@@ -65,11 +65,26 @@ class MyTool : public ITool {
 
 - **`description()` 是纯虚函数**，所有 `ITool` 子类必须实现。简单场景返回 `brief()`。
 - **`// @tool register` 注释**是 codegen 识别的唯一标记，缺少则工具不注册。
-- **顶级分类**硬编码于 `handler_registry.cpp:183-192` 的 `top_level_meta()`。新顶级分类**必须**同步加 meta。
-- **YAML 属性数据库**（`node_props/db/*.yaml` ~283 节点，`node_resource/db/*.yaml` ~419 资源）→ 模板 `node_property_tool.hpp`。用 `tools/collect_node_props.py --godot /path/to/godot` 重新生成。
-- **现有分类目录**：`meta/`、`group/`、`signal/`、`node_tools/general/`、`node_props/`、`node_resource/`、`editor_tools/scene_tree/`、`editor_tools/workspace/`。
+- **顶级分类**硬编码于 `handler_registry.cpp` 的 `top_level_meta()`：`meta_tools`、`node_tools`、`editor_tools`。新顶级分类**必须**同步加 meta。
+- **现有分类目录**：`meta/`、`group/`、`signal/`、`node_tools/general/`、`node_props/`、`node_resource/`、`editor_tools/scene_tree/`、`editor_tools/workspace/`、`editor_tools/filesystem/`、`editor_tools/settings/`。
 - **场景树修改**：必须使用 `EditorUndoRedoManager`（通过 `EditorInterface::get_singleton()->get_editor_undo_redo()`），不用裸 `UndoRedo`。剪贴板通过 `PackedScene::pack()` / `instantiate()`。
 - **写入文件**：不能直接写 `.tscn`，必须经 EditorInterface API 或写后调用 `notify_file_changed()`。
+
+## YAML 数据库驱动的自动生成工具
+
+三类工具通过 codegen 从 YAML 数据库自动生成注册代码，无需手动编写 `.hpp`：
+
+| 类型 | YAML 目录 | 文件数 | 模板 |
+|---|---|---|---|
+| 节点属性 | `node_props/db/*.yaml` | 283 | `node_property_tool.hpp` → `NodePropertyGetTool`/`NodePropertySetTool` |
+| 资源属性 | `node_resource/db/*.yaml` | 419 | `node_resource_tool.hpp` → `NodeResourceGetTool`/`NodeResourceSetTool` |
+| 项目设置 | `editor_tools/settings/db/*.yaml` | 24 | `settings_tool.hpp` → `SettingGetTool`/`SettingSetTool` |
+
+重新生成 YAML 数据库：
+```bash
+uv run python tools/collect_node_props.py --godot /path/to/godot
+uv run python tools/collect_settings.py --godot /path/to/godot
+```
 
 ## C++ 注意事项
 
@@ -98,30 +113,8 @@ uv run python tests/test_orchestrator.py       # 完整套件
 - **测试文件**：`tests/yaml_tests/*.yaml`（18 文件）。
 - **清理**：双源追踪（EditorFileSystem 快照 + 工具返回值取交集），只删测试自建文件。
 - **报告**：`tests/output/`（gitignored），JSON + Markdown。
-- **带内 UI**：编辑器底部 "Tests" 面板（`TestRunnerDock`）可手工运行 YAML。
+- **带内 UI**：编辑器底部 "Tests" 面板可手工运行 YAML。
 - **测试依赖**：`pytest`、`pytest-asyncio`、`httpx`、`python-dotenv`、`PyYAML`、`mcp`。
-
-## 文档站点
-
-```bash
-pnpm install
-pnpm run dev    # Rspress 开发服务器
-pnpm run build  # 构建 docs/
-```
-
-- `docs/` — Rspress 站点（中/英双语，`i18n.json` 驱动）。
-- `.repo_wiki/` — 项目知识库（架构、ADR、变更日志）。优先查这里获取设计细节。
-- `package.json` 中 `"type": "module"`。
-
-## CI（Ubuntu-only）
-
-```bash
-cmake -B build -S .
-cmake --build build --config Debug
-```
-
-- Release 构建见 `.github/workflows/release.yml`，平台矩阵（ubuntu/macos/windows）生成 addons.zip 并发布 GitHub Release。
-- godot-cpp 缓存 key: `godot-cpp-${{ runner.os }}-10.0.0-rc1`。
 
 ## Codegen
 
@@ -130,14 +123,24 @@ uv run python tools/codegen.py \
   --source-dir extensions/src/built_in/tools \
   --node-props-db extensions/src/built_in/tools/node_props/db \
   --resource-props-db extensions/src/built_in/tools/node_resource/db \
+  --settings-db extensions/src/built_in/tools/editor_tools/settings/db \
   --output build/generated/generated_registration.cpp
 ```
 
 - 扫描 `.hpp` 中的 `// @tool register`，正则 `^class\s+(\w+)\s*[:]` 提取类名。
 - **UTF-8 BOM 会导致 codegen 无法识别 `// @tool register`**。用 `Set-Content`（PowerShell）创建的文件带 BOM，必须用 `$PSDefaultParameterValues['Out-File:Encoding']='utf8'` 或 Python 写入。
-- YAML 数据库可选：无 PyYAML 时跳过属性工具生成。
-- CMake 自动在 `extensions/CMakeLists.txt:101-116` 中驱动 codegen 作为自定义命令。
+- CMake 自动在 `extensions/CMakeLists.txt` 中驱动 codegen 作为自定义命令。
 
-## 项目知识库
+## 文档
 
-- [`.repo_wiki/index.md`](.repo_wiki/index.md)
+- `docs/` — Rspress 站点（中/英双语，`i18n.json` 驱动）。`pnpm run dev` / `pnpm run build`。
+- `.repo_wiki/` — 项目知识库（架构、ADR、变更日志）。优先查这里获取设计细节。
+- [项目 Wiki](.repo_wiki/index.md) — 模块文档索引、快照数据、Agent 上手指南。
+
+## 本地开发 MCP 连接
+
+`.opencode/opencode.json` 已预配本地 Godot MCP 连接：
+```json
+{"mcp": {"godot-mcp": {"type": "remote", "url": "http://127.0.0.1:9600/mcp"}}}
+```
+启动 Godot 编辑器并启用插件后，即可通过 Godot MCP 工具直接操作编辑器。

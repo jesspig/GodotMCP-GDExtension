@@ -2,6 +2,19 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-08 — 项目设置工具集 + 文件系统工具文档 + 知识库同步
+
+- **新增** `modules/settings-tools.md`：1688 个专属 get/set 工具 + 4 个兜底工具完整文档（架构图、YAML 数据库、特性标签变体、设计决策）
+- **新增** `modules/filesystem-tools.md`：14 个文件系统工具文档
+- **更新** `index.md`：工具计数 67→11734，新增 settings/filesystem 导航链接
+- **更新** `overview/architecture.md`：目录树新增 filesystem/、settings/、collect_settings.py
+- **重写** `modules/codegen.md`：新增 settings-db 输入 + YAML 格式示例 + collect_settings.py
+- **更新** `reference/tools-catalog.md`：同步工具计数 84+566+838+1688=11734
+- **更新** `reference/build-and-package.md`：移除 PCH 引用（ADR-013 已移除）
+- **更新** `modules/editor-plugin.md`：移除 TestRunnerDock 引用（已删除）
+- **更新** `modules/project-settings-ext.md`：标注已被 settings-tools 替代
+- **更新** `AGENTS.md`：追加 wiki 链接
+
 ## 2026-06-04 — 场景树工具方案 + ADR-012 + 锚定摘要
 
 - **新增** `modules/scene-tree-tools.md`：20 个场景树操作工具完整文档（4 批，Undo/Redo 模式、剪贴板策略、跳过列表）

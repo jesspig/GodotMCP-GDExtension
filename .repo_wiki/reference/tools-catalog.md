@@ -1,19 +1,22 @@
 # 工具目录
 
-> **已废弃——历史参考。** 本文档描述了 commit `c4318ee refactor(tools): 删除旧工具文件` 之前（~2026-06-02）的工具快照，含 17 组 124 个工具。
+> **已废弃——历史参考。** 本文档描述了 commit `c4318ee` 之前（~2026-06-02）的工具快照。
 >
 > **当前真相**：
-> - **19 个手写 ITool**（`extensions/src/built_in/tools/**/*.hpp` 标 `// @tool register`）
-> - **200+ YAML 自动生成的节点属性工具**（`extensions/src/built_in/tools/node_props/db/*.yaml` + `NodePropertyGetTool` / `NodePropertySetTool` 通用模板）
+> - **84 个 @tool register 工具**（`extensions/src/built_in/tools/**/*.hpp`）
+> - **283 节点属性 ×2 = 566 get/set**（`node_props/db/*.yaml` + `NodePropertyGetTool/SetTool`）
+> - **419 资源属性 ×2 = 838 get/set**（`node_resource/db/*.yaml` + `NodeResourceGetTool/SetTool`）
+> - **844 设置项 ×2 = 1688 get/set**（`editor_tools/settings/db/*.yaml` + `SettingGetTool/SetTool`）
+> - **总计 ~11734 个 register_tool 调用**
 >
 > **如何获取当前真实工具列表**：
 >
 > ```bash
-> # 方法 1：通过 MCP 元工具查询
+> # 通过 MCP 元工具查询
 > list_tools(category="")  # 或留空 category 获取所有
 >
-> # 方法 2：直接读生成代码
-> cat build/extensions/generated/generated_registration.cpp | grep '"get_\|"set_\|"list_\|"add_\|"remove_\|"create_\|"delete_\|"update_\|"save_\|"load_\|"call_\|"play_\|"stop_\|"is_\|"godot_\|"csharp_\|"rename_\|"duplicate_\|"move_\|"find_\|"search_\|"validate_\|"attach_\|"detach_\|"reset_\|"set_as_\|"batch_\|"refresh_\|"undo\|"redo'
+> # 直接读生成代码
+> grep 'register_tool' build/generated/generated_registration.cpp | wc -l
 > ```
 >
 > **保留此文档仅作为设计演进参考**，新工具/新查询请使用上方方法。
@@ -45,15 +48,11 @@
 ```mermaid
 flowchart TB
     subgraph Meta["meta_tools (5)"]
-        M1[godot_info]
-        M2[list_tool_categories]
-        M3[list_tools]
-        M4[get_tool_schema]
+        M1[get_info]
+        M2[get_categories]
+        M3[get_tools]
+        M4[get_tool_detail]
         M5[call_tool]
-    end
-    subgraph NodeTools["node_tools"]
-        N1[node_resource_tool<br/>包装器]
-        N2["general/ (6)<br/>load, clear, new,<br/>duplicate, save,<br/>get_resource_info"]
     end
     subgraph Group["group (4)"]
         G1[add_to_group]
@@ -67,14 +66,40 @@ flowchart TB
         S3[list_signals]
         S4[get_signal_connections]
     end
-    subgraph Generated["200+ YAML 自动生成"]
-        GEN["get_node2d_position /<br/>set_node2d_position /<br/>get_canvasitem_visible /<br/>set_label_text /<br/>... (YAML 数据库驱动)"]
+    subgraph Resources["node_tools/general (6)"]
+        R1[load_resource]
+        R2[new_resource]
+        R3[duplicate_resource]
+        R4[save_resource]
+        R5[clear_resource]
+        R6[get_resource_info]
     end
-    Meta --> HandlerRegistry
-    NodeTools --> HandlerRegistry
-    Group --> HandlerRegistry
-    Signal --> HandlerRegistry
-    Generated --> HandlerRegistry
+    subgraph Scene["editor_tools/scene_tree (25)"]
+        SC1[add_node / delete_node / ...]
+    end
+    subgraph Workspace["editor_tools/workspace (24)"]
+        W1[get_fps / debugger_break / ...]
+    end
+    subgraph FS["editor_tools/filesystem (14)"]
+        F1[list_directory / create / ...]
+    end
+    subgraph Settings["editor_tools/settings (4+1688)"]
+        S1[get_setting / set_setting / ...]
+        S2[get_display_window_size_viewport_width / ...]
+    end
+    subgraph Generated["YAML 自动生成"]
+        GEN1["node_props (566 get/set)"]
+        GEN2["node_resource (838 get/set)"]
+    end
+    Meta --> Registry["HandlerRegistry"]
+    Group --> Registry
+    Signal --> Registry
+    Resources --> Registry
+    Scene --> Registry
+    Workspace --> Registry
+    FS --> Registry
+    Settings --> Registry
+    Generated --> Registry
 ```
 
 ## 详细工具文档迁移映射
