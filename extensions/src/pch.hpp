@@ -29,4 +29,11 @@
 #include <godot_cpp/variant/variant.hpp>
 #include <godot_cpp/variant/char_string.hpp>
 
+// Expose godot types in all TUs at global scope.
+// Tool headers (@tool register) use unqualified String / Dictionary / Variant
+// etc. Without this, generated_registration.cpp (in a separate unity batch
+// from register_types.cpp) fails to resolve them.
+// PCH propagates this to every translation unit automatically.
+using namespace godot;
+
 #endif // GODOTMCP_PCH_HPP

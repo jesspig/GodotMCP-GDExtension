@@ -234,6 +234,9 @@ def generate_code(tools: list[dict], nodes: dict[str, dict] = None,
         '#include "server/registry/handler_registry.hpp"',
         '#include "built_in/tool_base.hpp"',
         "",
+        '// PCH provides this, but include here for non-PCH builds',
+        'using namespace godot;',
+        "",
     ]
 
     # #include 每个 @tool register 工具头文件

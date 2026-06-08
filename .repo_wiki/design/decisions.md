@@ -157,6 +157,21 @@
 
 完整方案见 [场景树工具模块文档](../modules/scene-tree-tools.md)。
 
+## ADR-013: 移除预编译头（PCH），仅保留 Unity Build
+
+**状态**：已接受
+**日期**：2026-06-08
+**背景**：启用 Unity Build（batch_size = CPU 核心数）后，源文件从 ~16 个 TU 合并为 ~2 个 unity batch，godot-cpp 头文件仅需解析 2 次。PCH 在此之上的边际收益仅为节省 1 次解析，却带来 ~100MB `.pch` 文件、编译器 flag 变更时全量重编、PCH 头文件修改触发全量重建等开销。同时，PCH 原本承担注入 `using namespace godot;` 的作用，现由 `codegen.py` 在 `generated_registration.cpp` 中直接生成该声明，PCH 已无必要。
+**决策**：移除 PCH（`GODOTMCP_USE_PCH` 选项、`target_precompile_headers` 调用及相关 CMake 逻辑）。`pch.hpp` 保留作为参考，不再参与编译。
+**后果**：
+
+- 正面：构建系统简化，消除 PCH 管理复杂度
+- 正面：消除 ~100MB `.pch` 文件磁盘占用
+- 正面：无 PCH 失效导致的意外全量重编
+- 正面：不改变增量构建性能——Unity 已提供主要优化，ccache 覆盖重复构建
+- 负面：极端场景（非 unity 构建、无 ccache）下编译略慢于有 PCH 时
+- 参考：`codegen.py` 生成的 `using namespace godot;` 确保工具头文件中非限定 `String`/`Dictionary` 等 godot 类型正确解析
+
 ## 已废弃的决策
 
 以下 ADR 随 Python 服务器移除而废弃：

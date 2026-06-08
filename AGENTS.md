@@ -8,7 +8,8 @@ Godot 4.6+ 编辑器 MCP 服务器（C++ GDExtension，纯主线程无锁，HTTP
 uv run python build.py                  # Debug + addons.zip
 uv run python build.py --release        # Release + addons.zip
 uv run python build.py --clean          # 清 CMake 缓存（保留 _deps/）
-uv run python build.py --clean-all      # 完全清除 build/（含 _deps/）
+uv run python build.py --clean-all      # 清除 build/（含 _deps/，慎用）
+uv run python build.py --purge-cache    # 仅清除 _deps/（强制重下载，保留 build 缓存）
 uv run python build.py --no-zip         # 跳过 zip 快速迭代
 uv run python build.py -j N             # 并行编译作业数
 cmake --build build --target deep-clean # 仅清 addons/bin/ + _deps/
@@ -16,9 +17,10 @@ cmake --build build --target deep-clean # 仅清 addons/bin/ + _deps/
 
 - **始终用 `uv run python`**（非 `py -3`）。`uv` 保证依赖一致且自动激活 .venv。
 - **陈旧缓存自动重试**：`build.py:145-147` 检测 MSB4019/VCTargetsPath 等错误，自动 `--clean` 后重试。
-- **FetchContent 缓存**：`godot-cpp 10.0.0-rc1` + `ryml v0.7.0` 在 `build/_deps/`。
+- **FetchContent 缓存**：`godot-cpp 10.0.0-rc1` + `ryml v0.7.0` 在 `build/_deps/`。`--clean` 和 `--clean-all` 均保留 `_deps/`，仅 `--purge-cache` 清除。
+- **SSL 自动降级**：`build.py:168-175` 检测 `CRYPT_E_REVOCATION_OFFLINE` 等 schannel 错误，自动以 `CMAKE_TLS_VERIFY=0` 重试。
 - **DLL 文件锁**：`example/addons/godot_mcp/bin/godot_mcp_gdext.dll` 被 Godot 编辑器持有，重建失败时先关编辑器或禁用插件。
-- **构建优化**：sccache/ccache 自动检测（CMakeLists.txt:29-35）；PCH（MSVC 约 30-50% 加速，`extensions/src/pch.hpp`）；Unity build 默认开启；lld-link 自动检测。
+- **构建优化**：sccache/ccache 自动检测（CMakeLists.txt:29-35）；Unity build 默认开启（`GODOTMCP_UNITY_BUILD=ON`，batch_size 自动匹配 CPU 核心数）；PCH 已移除（Unity 已覆盖优化，详见 `.repo_wiki/design/decisions.md` ADR-013）；lld-link 自动检测。
 
 ## 关键约束
 

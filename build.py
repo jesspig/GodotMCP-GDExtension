@@ -2,11 +2,12 @@
 """Thin wrapper around CMake + CPack for building and packaging GodotMCP.
 
 Usage:
-    uv run python build.py                # debug build + addons.zip
-    uv run python build.py --release      # release build + addons.zip
-    uv run python build.py --no-zip       # build only, skip zip
-    uv run python build.py --clean        # wipe build cache before building
-    uv run python build.py --clean-all    # remove entire build/ including FetchContent _deps/
+    uv run python build.py                               # debug build + addons.zip
+    uv run python build.py --release                     # release build + addons.zip
+    uv run python build.py --no-zip                      # build only, skip zip
+    uv run python build.py --clean                       # wipe build/ (keeps _deps/)
+    uv run python build.py --clean-all                   # same as --clean (keeps _deps/)
+    uv run python build.py --purge-cache                 # also wipe _deps/ (force re-download)
 """
 
 import argparse
@@ -27,6 +28,11 @@ STALE_CACHE_PATTERNS = [
     "VCTargetsPath",    # VC++ targets path resolution failure
     "CMAKE_C_COMPILER", # Compiler path changed
     "CMAKE_CXX_COMPILER",
+]
+
+SSL_ERROR_PATTERNS = [
+    "CRYPT_E_REVOCATION_OFFLINE",  # schannel CRL check failed (codeload.github.com)
+    "SSL connect error",           # generic SSL handshake failure
 ]
 
 
@@ -155,23 +161,23 @@ def _get_vs_env() -> dict[str, str] | None:
     return None
 
 
-def configure(extra_defs: list, force_capture: bool = False) -> tuple[bool, str]:
-    """Run CMake configure. Returns (success, output)."""
+def configure(extra_defs: list) -> tuple[bool, str]:
+    """Run CMake configure. Returns (success, output).
+
+    Auto-retries with CMAKE_TLS_VERIFY=0 when schannel SSL revocation
+    checks fail (common on networks blocking CRL endpoints).
+    """
     cmd = ["cmake", "-B", str(BUILD_DIR), "-S", str(PROJECT_ROOT)] + extra_defs
-    vs_env = None
+    extra_env = None
     # Auto-detect Ninja generator for faster incremental builds.
     if platform.system() == "Windows":
         cl_path = _find_msvc_cl()
         if shutil.which("ninja") and cl_path:
-            vs_env = _capture_vs_dev_env()
+            extra_env = _capture_vs_dev_env()
             cmd += ["-GNinja"]
             cmd += ["-DCMAKE_C_COMPILER:FILEPATH=" + cl_path]
             cmd += ["-DCMAKE_CXX_COMPILER:FILEPATH=" + cl_path]
-            if vs_env:
-                # Remove compiler override; vcvarsall env provides full toolchain context
-                pass
-            else:
-                # Fallback: try SDK tools
+            if not extra_env:
                 rc_path, mt_path = _find_windows_sdk_tools()
                 if rc_path:
                     cmd += ["-DCMAKE_RC_COMPILER:FILEPATH=" + rc_path]
@@ -185,19 +191,24 @@ def configure(extra_defs: list, force_capture: bool = False) -> tuple[bool, str]
         print("[DETECT] Ninja found, using -GNinja", flush=True)
     else:
         print("[DETECT] Ninja not found, using default generator", flush=True)
-    if force_capture:
-        return run(cmd, capture=True, extra_env=vs_env)
-    ok, _ = run(cmd, extra_env=vs_env)
+    ok, output = run(cmd, capture=True, extra_env=extra_env)
     if ok:
         return True, ""
-    return run(cmd, capture=True, extra_env=vs_env)
+    if any(p in output for p in SSL_ERROR_PATTERNS):
+        print("\n[AUTO-SSL] SSL revocation check failed, retrying with CMAKE_TLS_VERIFY=0", flush=True)
+        ssl_env = {**(extra_env or {}), "CMAKE_TLS_VERIFY": "0"}
+        ok, output = run(cmd, capture=True, extra_env=ssl_env)
+        if ok:
+            return True, ""
+    return False, output
 
 
 def main():
     parser = argparse.ArgumentParser(description="Build and package GodotMCP via CMake")
     parser.add_argument("--release", action="store_true", help="Build with Release configuration")
     parser.add_argument("--clean", action="store_true", help="Wipe build/ cache (preserves _deps/ FetchContent cache)")
-    parser.add_argument("--clean-all", action="store_true", help="Remove entire build/ directory including FetchContent _deps/")
+    parser.add_argument("--clean-all", action="store_true", help="Remove entire build/ directory (including _deps/ — re-downloads deps)")
+    parser.add_argument("--purge-cache", action="store_true", help="Remove build/_deps/ only (re-downloads deps, keeps build cache)")
     parser.add_argument("--no-zip", action="store_true", help="Skip producing addons.zip")
     parser.add_argument("-j", "--jobs", type=int, default=None, help="Number of parallel build jobs (default: auto-detect CPU count)")
     args = parser.parse_args()
@@ -207,16 +218,21 @@ def main():
     if args.release:
         cmake_defs += ["-DRELEASE=ON"]
 
+    if args.purge_cache:
+        deps_dir = BUILD_DIR / "_deps"
+        if deps_dir.exists():
+            print(f"[PURGE-CACHE] Removing {deps_dir}", flush=True)
+            shutil.rmtree(deps_dir, ignore_errors=True)
+
     if args.clean_all and BUILD_DIR.exists():
         print(f"[CLEAN-ALL] Removing entire build directory", flush=True)
         shutil.rmtree(BUILD_DIR, ignore_errors=True)
 
     if args.clean and BUILD_DIR.exists():
         print(f"\n[CLEAN] Removing CMake cache in {BUILD_DIR}", flush=True)
-        # Only remove CMake cache files, preserve _deps (FetchContent cache)
         for item in BUILD_DIR.iterdir():
             if item.name == "_deps":
-                continue  # Preserve FetchContent cache (godot-cpp)
+                continue
             if item.is_dir():
                 shutil.rmtree(item, ignore_errors=True)
             else:
@@ -230,7 +246,7 @@ def main():
             subprocess.os.environ["VCTargetsPath"] = vc_path
 
     # --- Configure ---
-    ok, output = configure(cmake_defs, force_capture=args.clean is False and BUILD_DIR.exists())
+    ok, output = configure(cmake_defs)
     if not ok:
         # Auto-retry with clean if stale cache detected
         if BUILD_DIR.exists() and is_stale_cache_error(output):

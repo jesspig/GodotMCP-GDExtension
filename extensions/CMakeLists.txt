@@ -17,6 +17,7 @@ set(GODOTCPP_API_VERSION "4.6" CACHE STRING "Godot API version to target")
 FetchContent_Declare(
     godot-cpp
     URL https://github.com/godotengine/godot-cpp/archive/refs/tags/10.0.0-rc1.zip
+    URL_HASH SHA256=ddb8beb99b709e7c0c6831d62149bb225a9abec80e13621dc789cbcd9186e2a1
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
@@ -75,8 +76,7 @@ set(GODOT_MCP_SOURCES
     # Testing engine
     src/testing/test_engine.cpp
 
-    # Plugin: TestRunnerDock
-    src/plugin/test_runner_dock.cpp
+
 )
 
 # ---------------------------------------------------------------------------
@@ -140,7 +140,6 @@ target_compile_definitions(godot_mcp_gdext PRIVATE
 option(GODOTMCP_UNITY_BUILD "Enable unity (jumbo) build — faster full rebuilds" ON)
 set(GODOTMCP_UNITY_BATCH_SIZE "0" CACHE STRING
     "Unity batch size (source files per batch; 0 = all in one, max parallelism)")
-option(GODOTMCP_USE_PCH "Use precompiled headers — reduces header parsing on MSVC" ON)
 
 # Auto-tune unity batch size: batch_size=0 means "match CPU count".
 # With N CPU cores and N batches, every core gets exactly one job.
@@ -171,26 +170,6 @@ set_target_properties(godot_mcp_gdext PROPERTIES
 # Restore the conventional "lib" prefix on Unix.
 if(UNIX)
     set_target_properties(godot_mcp_gdext PROPERTIES PREFIX "lib")
-endif()
-
-# ---------------------------------------------------------------------------
-# Precompiled headers (PCH) — ~30-50% speedup on MSVC.
-# Skipped automatically when non-Clang ccache is active (false cache hits).
-# ---------------------------------------------------------------------------
-if(GODOTMCP_USE_PCH AND MSVC)
-    # ccache with MSVC + PCH is safe; with GCC/Clang it causes false misses.
-    # We only disable for non-Clang + ccache combinations.
-    set(_pch_disabled FALSE)
-    if(GODOTMCP_CXX_LAUNCHER AND CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        set(_pch_disabled TRUE)
-        message(STATUS "PCH disabled: ccache + GCC may produce false cache hits")
-    endif()
-    if(NOT _pch_disabled)
-        target_precompile_headers(godot_mcp_gdext PRIVATE
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/pch.hpp"
-        )
-        message(STATUS "Precompiled headers enabled (MSVC)")
-    endif()
 endif()
 
 # ---------------------------------------------------------------------------
