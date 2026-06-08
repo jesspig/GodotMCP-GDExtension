@@ -1,0 +1,14 @@
+class: OmniLight3D
+inherits: Light3D
+properties:
+- name: omni_range
+  type: 3
+  type_name: float
+- name: omni_attenuation
+  type: 3
+  type_name: float
+- name: omni_shadow_mode
+  type: 2
+  type_name: int
+description: Omnidirectional 3D light.
+aliases: []

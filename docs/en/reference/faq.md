@@ -11,11 +11,7 @@
 
 ### Some tools unavailable after successful connection
 
-Tool schemas are loaded from `res://addons/godot_mcp/tool_schemas.json`. If the file is missing or malformed, tools can still be called but the client will have no parameter hints. Rebuild the plugin to fix:
-
-```bash
-py -3 build.py --no-zip
-```
+Tool schemas are generated at compile time by `tools/codegen.py` scanning `// @tool register` comments and embedded directly into the plugin — no external file needed. Ensure your tool header contains the `// @tool register` annotation, then rebuild.
 
 ## Build Issues
 

@@ -1,0 +1,50 @@
+class: Area2D
+inherits: CollisionObject2D
+properties:
+- name: monitoring
+  type: 1
+  type_name: bool
+- name: monitorable
+  type: 1
+  type_name: bool
+- name: priority
+  type: 2
+  type_name: int
+- name: gravity_space_override
+  type: 2
+  type_name: int
+- name: gravity_point
+  type: 1
+  type_name: bool
+- name: gravity_point_unit_distance
+  type: 3
+  type_name: float
+- name: gravity_point_center
+  type: 5
+  type_name: Vector2
+- name: gravity_direction
+  type: 5
+  type_name: Vector2
+- name: gravity
+  type: 3
+  type_name: float
+- name: linear_damp_space_override
+  type: 2
+  type_name: int
+- name: linear_damp
+  type: 3
+  type_name: float
+- name: angular_damp_space_override
+  type: 2
+  type_name: int
+- name: angular_damp
+  type: 3
+  type_name: float
+- name: audio_bus_override
+  type: 1
+  type_name: bool
+- name: audio_bus_name
+  type: 21
+  type_name: StringName
+description: 2D area for detection and influence.
+aliases: []

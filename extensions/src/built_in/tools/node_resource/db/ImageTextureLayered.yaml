@@ -1,0 +1,8 @@
+class: ImageTextureLayered
+inherits: TextureLayered
+properties:
+- name: _images
+  type: 28
+  type_name: Array
+description: ''
+aliases: []

@@ -1,0 +1,11 @@
+class: OpenXRActionMap
+inherits: Resource
+properties:
+- name: action_sets
+  type: 28
+  type_name: Array
+- name: interaction_profiles
+  type: 28
+  type_name: Array
+description: ''
+aliases: []

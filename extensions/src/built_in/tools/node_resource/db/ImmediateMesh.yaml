@@ -1,0 +1,5 @@
+class: ImmediateMesh
+inherits: Mesh
+properties: []
+description: ''
+aliases: []

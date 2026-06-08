@@ -1,0 +1,5 @@
+class: VisualShaderNodeTexture3DParameter
+inherits: VisualShaderNodeTextureParameter
+properties: []
+description: ''
+aliases: []

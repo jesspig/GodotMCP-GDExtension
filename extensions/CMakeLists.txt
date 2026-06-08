@@ -17,6 +17,7 @@ set(GODOTCPP_API_VERSION "4.6" CACHE STRING "Godot API version to target")
 FetchContent_Declare(
     godot-cpp
     URL https://github.com/godotengine/godot-cpp/archive/refs/tags/10.0.0-rc1.zip
+    URL_HASH SHA256=ddb8beb99b709e7c0c6831d62149bb225a9abec80e13621dc789cbcd9186e2a1
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
@@ -56,13 +57,16 @@ set(GODOT_MCP_SOURCES
 
     # Server
     src/server/ipc/http_server.cpp
+    src/server/ipc/http_parser.cpp
+    src/server/ipc/http_connection.cpp
+    src/server/ipc/http_sse.cpp
     src/server/mcp/mcp_handler.cpp
     src/server/registry/handler_registry.cpp
 
     # Tool infrastructure (ITool)
     src/built_in/tool_base.cpp
 
-    # Legacy utilities (still needed by ITool implementations)
+    # Utility functions
     src/built_in/cmd_utils.cpp
     src/built_in/cmd_utils_json.cpp
 
@@ -72,8 +76,7 @@ set(GODOT_MCP_SOURCES
     # Testing engine
     src/testing/test_engine.cpp
 
-    # Plugin: TestRunnerDock
-    src/plugin/test_runner_dock.cpp
+
 )
 
 # ---------------------------------------------------------------------------
@@ -83,24 +86,33 @@ file(GLOB_RECURSE TOOL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*
 list(APPEND GODOT_MCP_SOURCES ${TOOL_SOURCES})
 
 # ---------------------------------------------------------------------------
-# Code generation: auto-registration from // @tool register comments
+# Code generation: auto-registration from // @tool register comments + YAML db
 # ---------------------------------------------------------------------------
 find_package(Python3 COMPONENTS Interpreter QUIET)
 
 set(CODEGEN_SCRIPT "${CMAKE_SOURCE_DIR}/tools/codegen.py")
 set(CODEGEN_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/generated_registration.cpp")
+set(NODE_PROPS_DB "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/node_props/db")
+set(RESOURCE_PROPS_DB "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/node_resource/db")
+set(SETTINGS_DB "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/editor_tools/settings/db")
 
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 if(Python3_FOUND)
     file(GLOB_RECURSE TOOL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.hpp")
+    file(GLOB_RECURSE NODE_PROP_YAMLS "${NODE_PROPS_DB}/*.yaml" "${NODE_PROPS_DB}/*.yml")
+    file(GLOB_RECURSE RESOURCE_PROP_YAMLS "${RESOURCE_PROPS_DB}/*.yaml" "${RESOURCE_PROPS_DB}/*.yml")
+    file(GLOB_RECURSE SETTINGS_YAMLS "${SETTINGS_DB}/*.yaml" "${SETTINGS_DB}/*.yml")
     add_custom_command(
         OUTPUT ${CODEGEN_OUTPUT}
         COMMAND ${Python3_EXECUTABLE} ${CODEGEN_SCRIPT}
             --source-dir "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools"
+            --node-props-db "${NODE_PROPS_DB}"
+            --resource-props-db "${RESOURCE_PROPS_DB}"
+            --settings-db "${SETTINGS_DB}"
             --output "${CODEGEN_OUTPUT}"
-        DEPENDS ${CODEGEN_SCRIPT} ${TOOL_HEADERS}
-        COMMENT "Generating ITool registration code from // @tool register annotations..."
+        DEPENDS ${CODEGEN_SCRIPT} ${TOOL_HEADERS} ${NODE_PROP_YAMLS} ${RESOURCE_PROP_YAMLS} ${SETTINGS_YAMLS}
+        COMMENT "Generating ITool registration code from // @tool register + YAML db..."
     )
     list(APPEND GODOT_MCP_SOURCES ${CODEGEN_OUTPUT})
     set_source_files_properties(${CODEGEN_OUTPUT} PROPERTIES GENERATED TRUE)
@@ -125,15 +137,37 @@ target_compile_definitions(godot_mcp_gdext PRIVATE
     GODOT_MCP_PLUGIN_VERSION="${GODOT_MCP_PLUGIN_VERSION}"
 )
 
+# ---------------------------------------------------------------------------
+# Build optimization options (user-configurable via -D or env)
+# ---------------------------------------------------------------------------
+option(GODOTMCP_UNITY_BUILD "Enable unity (jumbo) build — faster full rebuilds" ON)
+set(GODOTMCP_UNITY_BATCH_SIZE "0" CACHE STRING
+    "Unity batch size (source files per batch; 0 = all in one, max parallelism)")
+
+# Auto-tune unity batch size: batch_size=0 means "match CPU count".
+# With N CPU cores and N batches, every core gets exactly one job.
+# This maximizes parallelism with minimal memory pressure.
+set(_unity_batch ${GODOTMCP_UNITY_BATCH_SIZE})
+if(_unity_batch STREQUAL "0")
+    include(ProcessorCount)
+    ProcessorCount(_cpu_count)
+    # Cap at 32 — beyond that, batches get too large (memory / ODR risk).
+    if(_cpu_count GREATER 32)
+        set(_cpu_count 32)
+    endif()
+    set(_unity_batch ${_cpu_count})
+    message(STATUS "Unity batch size: ${_unity_batch} (auto = ${_cpu_count} cores)")
+else()
+    message(STATUS "Unity batch size: ${_unity_batch} (user-specified)")
+endif()
+
 set_target_properties(godot_mcp_gdext PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
     POSITION_INDEPENDENT_CODE ON
-    # Drop the "lib" prefix on Unix to match the .gdextension declarations
-    # (Godot expects libgodot_mcp_gdext.so → keep prefix; on Windows there is none anyway).
-    UNITY_BUILD ON
-    UNITY_BUILD_BATCH_SIZE 8
+    UNITY_BUILD ${GODOTMCP_UNITY_BUILD}
+    UNITY_BUILD_BATCH_SIZE ${_unity_batch}
     PREFIX ""
 )
 # Restore the conventional "lib" prefix on Unix.
@@ -141,9 +175,21 @@ if(UNIX)
     set_target_properties(godot_mcp_gdext PROPERTIES PREFIX "lib")
 endif()
 
+# ---------------------------------------------------------------------------
+# Linker optimization: prefer lld-link on MSVC for faster linking.
+# lld-link ships with LLVM (winget install LLVM).
+# ---------------------------------------------------------------------------
+if(MSVC)
+    find_program(GODOTMCP_LLD_LINK NAMES lld-link)
+    if(GODOTMCP_LLD_LINK)
+        target_link_options(godot_mcp_gdext PRIVATE "/lldlink")
+        message(STATUS "Using lld-link for faster linking")
+    endif()
+endif()
+
 # Suppress noisy warnings from godot-cpp generated code on MSVC.
 if(MSVC)
-    target_compile_options(godot_mcp_gdext PRIVATE /utf-8 /W3 /wd4244 /wd4267)
+    target_compile_options(godot_mcp_gdext PRIVATE /utf-8 /bigobj /W3 /wd4244 /wd4267)
 else()
     target_compile_options(godot_mcp_gdext PRIVATE -Wall -Wno-unused-parameter)
 endif()

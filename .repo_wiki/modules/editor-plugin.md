@@ -12,13 +12,11 @@ stateDiagram-v2
     
     state Initializing {
         [*] --> ReadVersion: 读取引擎版本 + 插件版本
-        ReadVersion --> RegisterTools: register_all_tools(registry_) + register_itools(registry_)
-        RegisterTools --> LoadSchemas: load_tool_schemas() from tool_schemas.json
-        LoadSchemas --> InitSDK: 初始化 McpToolRegistry 单例
+        ReadVersion --> RegisterTools: register_itools(registry_)  via codegen
+        RegisterTools --> InitSDK: 初始化 McpToolRegistry 单例
         InitSDK --> ReadPort: 读取端口
-        ReadPort --> StartServers: http_server_.start()
-        StartServers --> CreateDock: 创建 TestRunnerDock 底部面板
-        CreateDock --> ConnectProcessFrame: connect("process_frame", callable_mp)
+        ReadPort --> StartServer: http_server_.start()
+        StartServer --> ConnectProcessFrame: connect("process_frame", callable_mp)
         ConnectProcessFrame --> [*]
     }
     
@@ -53,11 +51,8 @@ void McpEditorPlugin::_enter_tree() {
     
     registry_.set_engine_version(...);     // 引擎版本
     registry_.set_plugin_version(GODOT_MCP_PLUGIN_VERSION);  // 编译时版本
-    
-    register_all_tools(registry_);         // → register_itools() (codegen)
-    register_itools(registry_);            // 二次确保注册（幂等）
-    
-    load_tool_schemas();                   // 从 tool_schemas.json 加载描述和 schema
+
+    register_itools(registry_);            // codegen 生成，注册所有 ITool + YAML 工具
     
     // 初始化 SDK 单例
     McpToolRegistry *sdk_reg = McpToolRegistry::get_singleton();
@@ -71,7 +66,12 @@ void McpEditorPlugin::_enter_tree() {
     // 创建 TestRunnerDock
     test_dock_ = memnew(TestRunnerDock);
     test_dock_->set_test_engine(&test_engine_);
-    add_control_to_bottom_panel(test_dock_, "Tests");
+    // add_control_to_bottom_panel 在 godot-cpp 10.0.0-rc1 未绑定，用 call() 兜底
+    if (has_method("add_control_to_bottom_panel")) {
+        call("add_control_to_bottom_panel", test_dock_, "Tests");
+    } else {
+        add_child(test_dock_);
+    }
     
     started_ = true;
     
@@ -96,7 +96,11 @@ void McpEditorPlugin::_exit_tree() {
     if (!started_) return;
     // 移除底部面板
     if (test_dock_) {
-        remove_control_from_bottom_panel(test_dock_);
+        if (has_method("remove_control_from_bottom_panel")) {
+            call("remove_control_from_bottom_panel", test_dock_);
+        } else if (test_dock_->get_parent()) {
+            test_dock_->get_parent()->remove_child(test_dock_);
+        }
         test_dock_ = nullptr;
     }
     SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
@@ -112,6 +116,6 @@ void McpEditorPlugin::_exit_tree() {
 - **端口**：通过 `GODOT_MCP_HTTP_PORT` 环境变量覆盖
 - **`process_frame` 而非 `_process()`**：`EditorPlugin::_process()` 在场景播放时停止触发。`SceneTree::process_frame` 信号在场景播放时继续触发，确保实时工具（如 `play_current_scene`、`stop_scene`）正常工作
 - **启动条件**：`EditorPlugin::_enter_tree()` 首先检查 `Engine::get_singleton()->is_editor_hint()`——非编辑器模式直接返回
-- **Schema 加载**: `tool_schemas.json` 提供工具描述和 JSON Schema，C++ 侧不需要硬编码这些信息
+- **Schema 自描述**: 每个 ITool 通过 `input_schema()` 提供自身 JSON Schema，无需外部配置文件
 - **TestRunnerDock**: 编辑器底部面板，提供 GUI 方式运行 YAML 测试，与 C++ `TestEngine` 集成
 - **SDK 初始化**: `McpToolRegistry` 单例在初始化时注入 `HandlerRegistry` 和 `McpHandler` 指针，供 GDScript/C# 自定义工具使用

@@ -1,0 +1,5 @@
+class: EditorSyntaxHighlighter
+inherits: SyntaxHighlighter
+properties: []
+description: ''
+aliases: []

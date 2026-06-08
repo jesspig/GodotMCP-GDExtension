@@ -1,0 +1,8 @@
+class: AnimationNodeTimeSeek
+inherits: AnimationNode
+properties:
+- name: explicit_elapse
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

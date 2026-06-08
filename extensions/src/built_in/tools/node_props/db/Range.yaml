@@ -1,0 +1,32 @@
+class: Range
+inherits: Control
+properties:
+- name: min_value
+  type: 3
+  type_name: float
+- name: max_value
+  type: 3
+  type_name: float
+- name: step
+  type: 3
+  type_name: float
+- name: page
+  type: 3
+  type_name: float
+- name: value
+  type: 3
+  type_name: float
+- name: exp_edit
+  type: 1
+  type_name: bool
+- name: rounded
+  type: 1
+  type_name: bool
+- name: allow_greater
+  type: 1
+  type_name: bool
+- name: allow_lesser
+  type: 1
+  type_name: bool
+description: Base class for range-based controls.
+aliases: []

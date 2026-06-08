@@ -1,0 +1,8 @@
+class: BoxShape3D
+inherits: Shape3D
+properties:
+- name: size
+  type: 9
+  type_name: Vector3
+description: ''
+aliases: []

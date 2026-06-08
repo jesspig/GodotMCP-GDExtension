@@ -1,0 +1,20 @@
+class: ConeTwistJoint3D
+inherits: Joint3D
+properties:
+- name: swing_span
+  type: 3
+  type_name: float
+- name: twist_span
+  type: 3
+  type_name: float
+- name: bias
+  type: 3
+  type_name: float
+- name: softness
+  type: 3
+  type_name: float
+- name: relaxation
+  type: 3
+  type_name: float
+description: ''
+aliases: []

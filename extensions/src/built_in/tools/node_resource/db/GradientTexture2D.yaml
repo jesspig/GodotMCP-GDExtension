@@ -1,0 +1,30 @@
+class: GradientTexture2D
+inherits: Texture2D
+properties:
+- name: gradient
+  type: 24
+  type_name: Object
+  class_name: Gradient
+- name: width
+  type: 2
+  type_name: int
+- name: height
+  type: 2
+  type_name: int
+- name: use_hdr
+  type: 1
+  type_name: bool
+- name: fill
+  type: 2
+  type_name: int
+- name: fill_from
+  type: 5
+  type_name: Vector2
+- name: fill_to
+  type: 5
+  type_name: Vector2
+- name: repeat
+  type: 2
+  type_name: int
+description: ''
+aliases: []

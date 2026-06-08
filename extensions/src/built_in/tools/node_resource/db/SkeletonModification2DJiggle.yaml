@@ -1,0 +1,26 @@
+class: SkeletonModification2DJiggle
+inherits: SkeletonModification2D
+properties:
+- name: target_nodepath
+  type: 22
+  type_name: NodePath
+- name: jiggle_data_chain_length
+  type: 2
+  type_name: int
+- name: stiffness
+  type: 3
+  type_name: float
+- name: mass
+  type: 3
+  type_name: float
+- name: damping
+  type: 3
+  type_name: float
+- name: use_gravity
+  type: 1
+  type_name: bool
+- name: gravity
+  type: 5
+  type_name: Vector2
+description: ''
+aliases: []

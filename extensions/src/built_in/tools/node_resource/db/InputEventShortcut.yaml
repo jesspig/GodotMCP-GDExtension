@@ -1,0 +1,9 @@
+class: InputEventShortcut
+inherits: InputEvent
+properties:
+- name: shortcut
+  type: 24
+  type_name: Object
+  class_name: Shortcut
+description: ''
+aliases: []

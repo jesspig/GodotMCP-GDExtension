@@ -1,0 +1,20 @@
+class: PlaneMesh
+inherits: PrimitiveMesh
+properties:
+- name: size
+  type: 5
+  type_name: Vector2
+- name: subdivide_width
+  type: 2
+  type_name: int
+- name: subdivide_depth
+  type: 2
+  type_name: int
+- name: center_offset
+  type: 9
+  type_name: Vector3
+- name: orientation
+  type: 2
+  type_name: int
+description: ''
+aliases: []

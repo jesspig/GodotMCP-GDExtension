@@ -1,0 +1,5 @@
+class: Texture3D
+inherits: Texture
+properties: []
+description: ''
+aliases: []

@@ -49,7 +49,11 @@ inline godot::Variant parse_scalar(const c4::csubstr &val) {
 inline godot::Variant ryml_to_variant(ryml::ConstNodeRef node) {
     using namespace godot;
 
-    if (node.is_stream()) return Variant();
+    if (node.is_stream()) {
+        Dictionary err;
+        err["error"] = "YAML stream node not supported";
+        return err;
+    }
 
     if (node.is_map()) {
         Dictionary dict;

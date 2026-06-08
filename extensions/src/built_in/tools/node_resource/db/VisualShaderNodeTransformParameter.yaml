@@ -1,0 +1,11 @@
+class: VisualShaderNodeTransformParameter
+inherits: VisualShaderNodeParameter
+properties:
+- name: default_value_enabled
+  type: 1
+  type_name: bool
+- name: default_value
+  type: 18
+  type_name: Transform3D
+description: ''
+aliases: []

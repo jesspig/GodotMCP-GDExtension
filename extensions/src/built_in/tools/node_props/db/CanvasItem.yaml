@@ -1,0 +1,53 @@
+class: CanvasItem
+inherits: Node
+properties:
+- name: visible
+  type: 1
+  type_name: bool
+- name: modulate
+  type: 20
+  type_name: Color
+- name: self_modulate
+  type: 20
+  type_name: Color
+- name: show_behind_parent
+  type: 1
+  type_name: bool
+- name: top_level
+  type: 1
+  type_name: bool
+- name: clip_children
+  type: 2
+  type_name: int
+- name: light_mask
+  type: 2
+  type_name: int
+- name: visibility_layer
+  type: 2
+  type_name: int
+- name: z_index
+  type: 2
+  type_name: int
+- name: z_as_relative
+  type: 1
+  type_name: bool
+- name: y_sort_enabled
+  type: 1
+  type_name: bool
+- name: texture_filter
+  type: 2
+  type_name: int
+- name: texture_repeat
+  type: 2
+  type_name: int
+- name: material
+  type: 24
+  type_name: Object
+  class_name: CanvasItemMaterial,ShaderMaterial
+- name: use_parent_material
+  type: 1
+  type_name: bool
+description: Base class for all 2D drawable nodes.
+aliases:
+- Node2D
+- Control

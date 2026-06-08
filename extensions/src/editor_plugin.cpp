@@ -66,18 +66,6 @@ void McpEditorPlugin::_enter_tree() {
     // Wire up TestEngine
     http_server_.set_test_engine(&test_engine_);
 
-    // Create and add TestRunnerDock to bottom panel
-    test_dock_ = memnew(TestRunnerDock);
-    test_dock_->set_test_engine(&test_engine_);
-    // add_control_to_bottom_panel may not be bound in godot-cpp 10.0.0-rc1,
-    // use call() as a safe fallback.
-    if (has_method("add_control_to_bottom_panel")) {
-        call("add_control_to_bottom_panel", test_dock_, "Tests");
-    } else {
-        log_warn("plugin", "add_control_to_bottom_panel not bound — adding dock as child");
-        add_child(test_dock_);
-    }
-
     started_ = true;
 
     SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
@@ -93,16 +81,6 @@ void McpEditorPlugin::_enter_tree() {
 
 void McpEditorPlugin::_exit_tree() {
     if (!started_) return;
-
-    // Remove dock
-    if (test_dock_) {
-        if (has_method("remove_control_from_bottom_panel")) {
-            call("remove_control_from_bottom_panel", test_dock_);
-        } else if (test_dock_->get_parent()) {
-            test_dock_->get_parent()->remove_child(test_dock_);
-        }
-        test_dock_ = nullptr;
-    }
 
     SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
     if (tree && tree->is_connected("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame))) {

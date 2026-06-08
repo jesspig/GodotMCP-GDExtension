@@ -1,0 +1,20 @@
+class: SphereMesh
+inherits: PrimitiveMesh
+properties:
+- name: radius
+  type: 3
+  type_name: float
+- name: height
+  type: 3
+  type_name: float
+- name: radial_segments
+  type: 2
+  type_name: int
+- name: rings
+  type: 2
+  type_name: int
+- name: is_hemisphere
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

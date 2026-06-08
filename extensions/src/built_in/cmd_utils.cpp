@@ -53,7 +53,7 @@ Node *get_root_or_error(Dictionary &out_error) {
     return root;
 }
 
-Node *resolve_node(Node *root, const String &path) {
+Node *resolve_node(Node *root, const String &path, int depth) {
     if (!root) {
         return nullptr;
     }
@@ -82,11 +82,11 @@ Node *resolve_node(Node *root, const String &path) {
     // Any other path is treated as a NodePath relative to root.
     Node *found = root->get_node_or_null(NodePath(path));
     if (found) return found;
-    // Recursive DFS for nodes moved into sub-trees (e.g. after move_node).
+    if (depth >= kMaxResolveDepth) return nullptr;
     for (int64_t i = 0; i < root->get_child_count(); i++) {
         Node *c = Object::cast_to<Node>(root->get_child(i));
         if (!c) continue;
-        Node *sub = resolve_node(c, path);
+        Node *sub = resolve_node(c, path, depth + 1);
         if (sub) return sub;
     }
     return nullptr;
@@ -193,6 +193,13 @@ String globalize_path(const String &path) {
 }
 
 bool ensure_parent_dir(const String &res_path) {
+    // For "res://file.ext" → no directory component → root exists
+    if (res_path.begins_with("res://") && res_path.find("/", 6) < 0) {
+        return true;
+    }
+    if (res_path.begins_with("user://") && res_path.find("/", 7) < 0) {
+        return true;
+    }
     const int slash = res_path.rfind("/");
     if (slash <= 0) {
         return true;

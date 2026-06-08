@@ -1,0 +1,17 @@
+class: VisualShaderNode
+inherits: Resource
+properties:
+- name: output_port_for_preview
+  type: 2
+  type_name: int
+- name: default_input_values
+  type: 28
+  type_name: Array
+- name: expanded_output_ports
+  type: 28
+  type_name: Array
+- name: linked_parent_graph_frame
+  type: 2
+  type_name: int
+description: ''
+aliases: []

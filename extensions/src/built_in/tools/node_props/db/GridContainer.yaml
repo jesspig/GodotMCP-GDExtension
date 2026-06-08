@@ -1,0 +1,8 @@
+class: GridContainer
+inherits: Container
+properties:
+- name: columns
+  type: 2
+  type_name: int
+description: Grid-based layout container.
+aliases: []

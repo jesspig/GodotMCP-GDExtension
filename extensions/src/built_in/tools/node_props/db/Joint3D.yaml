@@ -1,0 +1,17 @@
+class: Joint3D
+inherits: Node3D
+properties:
+- name: node_a
+  type: 22
+  type_name: NodePath
+- name: node_b
+  type: 22
+  type_name: NodePath
+- name: solver_priority
+  type: 2
+  type_name: int
+- name: exclude_nodes_from_collision
+  type: 1
+  type_name: bool
+description: Abstract base class for all 3D physics joints.
+aliases: []

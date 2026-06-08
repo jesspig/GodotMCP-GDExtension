@@ -1,0 +1,11 @@
+class: ArrayOccluder3D
+inherits: Occluder3D
+properties:
+- name: vertices
+  type: 36
+  type_name: PackedVector3Array
+- name: indices
+  type: 30
+  type_name: PackedInt32Array
+description: ''
+aliases: []

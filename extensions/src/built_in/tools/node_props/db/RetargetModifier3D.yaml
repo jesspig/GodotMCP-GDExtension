@@ -1,0 +1,15 @@
+class: RetargetModifier3D
+inherits: SkeletonModifier3D
+properties:
+- name: profile
+  type: 24
+  type_name: Object
+  class_name: SkeletonProfile
+- name: use_global_pose
+  type: 1
+  type_name: bool
+- name: enable
+  type: 2
+  type_name: int
+description: ''
+aliases: []

@@ -1,0 +1,60 @@
+class: TextMesh
+inherits: PrimitiveMesh
+properties:
+- name: text
+  type: 4
+  type_name: String
+- name: font
+  type: 24
+  type_name: Object
+  class_name: Font
+- name: font_size
+  type: 2
+  type_name: int
+- name: horizontal_alignment
+  type: 2
+  type_name: int
+- name: vertical_alignment
+  type: 2
+  type_name: int
+- name: uppercase
+  type: 1
+  type_name: bool
+- name: line_spacing
+  type: 3
+  type_name: float
+- name: autowrap_mode
+  type: 2
+  type_name: int
+- name: justification_flags
+  type: 2
+  type_name: int
+- name: pixel_size
+  type: 3
+  type_name: float
+- name: curve_step
+  type: 3
+  type_name: float
+- name: depth
+  type: 3
+  type_name: float
+- name: width
+  type: 3
+  type_name: float
+- name: offset
+  type: 5
+  type_name: Vector2
+- name: text_direction
+  type: 2
+  type_name: int
+- name: language
+  type: 4
+  type_name: String
+- name: structured_text_bidi_override
+  type: 2
+  type_name: int
+- name: structured_text_bidi_override_options
+  type: 28
+  type_name: Array
+description: ''
+aliases: []

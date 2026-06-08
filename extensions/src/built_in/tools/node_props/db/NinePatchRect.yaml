@@ -1,0 +1,34 @@
+class: NinePatchRect
+inherits: Control
+properties:
+- name: texture
+  type: 24
+  type_name: Object
+  class_name: Texture2D
+- name: draw_center
+  type: 1
+  type_name: bool
+- name: region_rect
+  type: 7
+  type_name: Rect2
+- name: patch_margin_left
+  type: 2
+  type_name: int
+- name: patch_margin_top
+  type: 2
+  type_name: int
+- name: patch_margin_right
+  type: 2
+  type_name: int
+- name: patch_margin_bottom
+  type: 2
+  type_name: int
+- name: axis_stretch_horizontal
+  type: 2
+  type_name: int
+- name: axis_stretch_vertical
+  type: 2
+  type_name: int
+description: A control that scales a texture in 9 parts to create panels and other
+  containers.
+aliases: []

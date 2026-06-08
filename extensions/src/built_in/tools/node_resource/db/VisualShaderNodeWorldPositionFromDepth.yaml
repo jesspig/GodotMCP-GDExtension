@@ -1,0 +1,5 @@
+class: VisualShaderNodeWorldPositionFromDepth
+inherits: VisualShaderNode
+properties: []
+description: ''
+aliases: []

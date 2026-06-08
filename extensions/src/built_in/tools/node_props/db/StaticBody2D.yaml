@@ -1,0 +1,15 @@
+class: StaticBody2D
+inherits: PhysicsBody2D
+properties:
+- name: physics_material_override
+  type: 24
+  type_name: Object
+  class_name: PhysicsMaterial
+- name: constant_linear_velocity
+  type: 5
+  type_name: Vector2
+- name: constant_angular_velocity
+  type: 3
+  type_name: float
+description: Static 2D physics body.
+aliases: []

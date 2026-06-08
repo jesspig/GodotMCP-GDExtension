@@ -1,0 +1,5 @@
+class: ScriptEditor
+inherits: PanelContainer
+properties: []
+description: ''
+aliases: []

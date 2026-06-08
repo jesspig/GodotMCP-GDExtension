@@ -23,12 +23,24 @@ set(PROJECT_VERSION "0.2.0-dev3")
 message(STATUS "GodotMCP version: ${PROJECT_VERSION}")
 
 # ---------------------------------------------------------------------------
+# Compiler launcher (sccache/ccache) — speeds up incremental builds 2-5x.
+# Installed via: winget install sccache  |  choco install sccache
+# ---------------------------------------------------------------------------
+find_program(GODOTMCP_CXX_LAUNCHER NAMES sccache ccache)
+if(GODOTMCP_CXX_LAUNCHER)
+    message(STATUS "Using compiler launcher: ${GODOTMCP_CXX_LAUNCHER}")
+    # Propagate to all targets (including godot-cpp via FetchContent)
+    set(CMAKE_C_COMPILER_LAUNCHER "${GODOTMCP_CXX_LAUNCHER}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${GODOTMCP_CXX_LAUNCHER}")
+endif()
+
+# ---------------------------------------------------------------------------
 # C++ GDExtension (godot-cpp 10.0.0-rc1 via FetchContent)
 # ---------------------------------------------------------------------------
 
 # MSVC: treat source files & execution charset as UTF-8 (fixes CJK in string literals)
 if(MSVC)
-    add_compile_options(/utf-8)
+    add_compile_options(/utf-8 /bigobj)
 endif()
 
 add_subdirectory(extensions)

@@ -1,0 +1,8 @@
+class: SpriteFrames
+inherits: Resource
+properties:
+- name: animations
+  type: 28
+  type_name: Array
+description: ''
+aliases: []

@@ -1,0 +1,20 @@
+class: IterateIK3D
+inherits: ChainIK3D
+properties:
+- name: max_iterations
+  type: 2
+  type_name: int
+- name: min_distance
+  type: 3
+  type_name: float
+- name: angular_delta_limit
+  type: 3
+  type_name: float
+- name: deterministic
+  type: 1
+  type_name: bool
+- name: setting_count
+  type: 2
+  type_name: int
+description: ''
+aliases: []

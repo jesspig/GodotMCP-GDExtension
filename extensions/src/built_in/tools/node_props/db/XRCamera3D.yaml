@@ -1,0 +1,5 @@
+class: XRCamera3D
+inherits: Camera3D
+properties: []
+description: ''
+aliases: []

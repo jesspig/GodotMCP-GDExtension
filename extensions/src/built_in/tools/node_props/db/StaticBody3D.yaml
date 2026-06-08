@@ -1,0 +1,15 @@
+class: StaticBody3D
+inherits: PhysicsBody3D
+properties:
+- name: physics_material_override
+  type: 24
+  type_name: Object
+  class_name: PhysicsMaterial
+- name: constant_linear_velocity
+  type: 9
+  type_name: Vector3
+- name: constant_angular_velocity
+  type: 9
+  type_name: Vector3
+description: Static 3D physics body.
+aliases: []

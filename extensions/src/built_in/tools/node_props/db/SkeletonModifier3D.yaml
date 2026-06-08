@@ -1,0 +1,11 @@
+class: SkeletonModifier3D
+inherits: Node3D
+properties:
+- name: active
+  type: 1
+  type_name: bool
+- name: influence
+  type: 3
+  type_name: float
+description: ''
+aliases: []

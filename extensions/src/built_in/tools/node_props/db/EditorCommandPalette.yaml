@@ -1,0 +1,5 @@
+class: EditorCommandPalette
+inherits: ConfirmationDialog
+properties: []
+description: ''
+aliases: []

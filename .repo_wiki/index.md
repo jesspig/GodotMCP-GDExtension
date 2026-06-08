@@ -1,68 +1,90 @@
 # Godot MCP — 项目知识库
 
-> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 godot-cpp 10.0.0-rc1，124 个 ITool 子类（`// @tool register` + codegen 自动注册），rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。
+> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 `godot-cpp 10.0.0-rc1`，`// @tool register` + codegen 自动注册工具，rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。
+
+## 项目快照
+
+| 维度 | 状态 |
+|------|------|
+| C++ 源码根 | `extensions/src/` |
+| @tool register 工具 | `extensions/src/built_in/tools/**/*.hpp`（84 个 `.hpp` 标 `// @tool register`） |
+| 节点属性工具 | `node_props/db/*.yaml`（283 节点类型 ×2 = 566 get/set） |
+| 资源属性工具 | `node_resource/db/*.yaml`（419 资源类型 ×2 = 838 get/set） |
+| 项目设置工具 | `editor_tools/settings/db/*.yaml`（24 分类，844 设置项 ×2 = 1688 get/set） |
+| 场景树工具 | `editor_tools/scene_tree/`（25 工具） |
+| 工作区工具 | `editor_tools/workspace/`（24 工具） |
+| 文件系统工具 | `editor_tools/filesystem/`（14 工具） |
+| 总注册工具数 | **~11734**（含所有 YAML 生成的 get/set） |
+| SDK 层 | `extensions/src/sdk/`（`McpToolDefinition` + `McpToolRegistry`） |
+| 测试框架 | C++ `TestEngine`（`/run-tests`）+ Python 编排器（`test_orchestrator.py`） |
+| 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） |
+| Pinned deps | `godot-cpp 10.0.0-rc1`、`ryml v0.7.0` |
+| 版本号 | 仅 `CMakeLists.txt:22` `PROJECT_VERSION`（CMake 自动生成 `plugin.cfg` + `.gdextension`） |
+| 构建产物 | `example/addons/godot_mcp/bin/godot_mcp_gdext.{dll,so,dylib}` |
+| 编译器优化 | sccache/ccache、Unity(jumbo) build、lld-link（PCH 已移除，Unity 已覆盖） |
 
 ## 快速导航
 
-| 章节 | 说明 |
+| 类别 | 文档 |
 |------|------|
-| [架构总览](overview/architecture.md) | 单进程架构、完整数据流、目录布局 |
-| [线程模型](overview/threading-model.md) | 纯主线程模型，HTTP 服务器 poll |
+| 架构总览 | [overview/architecture.md](overview/architecture.md) · [overview/threading-model.md](overview/threading-model.md) |
+| GDExtension 实现 | [extensions/gdext.md](extensions/gdext.md) |
+| 代码生成 | [modules/codegen.md](modules/codegen.md) |
+| 命令路由 | [modules/command-routing.md](modules/command-routing.md) |
+| MCP 传输 | [modules/ipc-bridge.md](modules/ipc-bridge.md) · [specification/ipc-protocol.md](specification/ipc-protocol.md) |
+| 插件生命周期 | [modules/editor-plugin.md](modules/editor-plugin.md) · [modules/dock-ui.md](modules/dock-ui.md) |
+| 元工具 | [modules/meta-tools.md](modules/meta-tools.md) |
+| 工具实现模式 | [modules/scene-commands.md](modules/scene-commands.md) |
+| 场景树工具 | [modules/scene-tree-tools.md](modules/scene-tree-tools.md) |
+| 工作区工具 | [modules/workspace-tools.md](modules/workspace-tools.md) |
+| 文件系统工具 | [modules/filesystem-tools.md](modules/filesystem-tools.md) |
+| 项目设置工具 | [modules/settings-tools.md](modules/settings-tools.md) |
+| 分组工具 | [modules/group-tools.md](modules/group-tools.md) |
+| 信号工具 | [modules/signal-tools.md](modules/signal-tools.md) |
+| 资源管理工具 | [modules/resource-tools.md](modules/resource-tools.md) |
+| SDK 层 | `extensions/src/sdk/mcp_tool_definition.hpp` · `mcp_tool_registry.hpp`（详见源代码） |
+| 节点属性系统 | `node_props/db/*.yaml`（283 文件）· `node_property_tool.hpp` |
+| 资源属性系统 | [modules/resource-property-tools.md](modules/resource-property-tools.md) |
+| 项目设置扩展（旧） | [modules/project-settings-ext.md](modules/project-settings-ext.md) |
+| LSP 客户端 | [modules/lsp-client.md](modules/lsp-client.md) |
+| 输入映射 | [modules/input-map.md](modules/input-map.md) |
+| 插件管理 | [modules/plugin-management.md](modules/plugin-management.md) |
+| 编辑器控制 | [modules/editor-control-gdext.md](modules/editor-control-gdext.md) |
+| C# 解决方案 | [modules/csharp-solution.md](modules/csharp-solution.md) |
+| 日志 | [modules/logging.md](modules/logging.md) |
+| 构建与打包 | [reference/build-and-package.md](reference/build-and-package.md) |
+| CI/CD | [reference/ci-cd.md](reference/ci-cd.md) |
+| 客户端配置 | [reference/client-config.md](reference/client-config.md) · [client-quirks.md](reference/client-quirks.md) |
+| 工具目录 | [reference/tools-catalog.md](reference/tools-catalog.md) |
+| 项目结构 | [specification/project-structure.md](specification/project-structure.md) |
+| 设计决策（ADR） | [design/decisions.md](design/decisions.md) |
+| 测试框架总览 | [testing/overview.md](testing/overview.md) |
+| C++ 测试引擎 | [testing/test-engine.md](testing/test-engine.md) |
+| Python 编排器 | [testing/orchestrator.md](testing/orchestrator.md) |
+| 变更日志 | [log.md](log.md) |
 
-## 核心组件
+## 已废弃文档（仅供历史参考）
 
-| 文件 | 说明 |
+| 文档 | 原因 |
 |------|------|
-| [GDExtension C++](extensions/gdext.md) | **唯一实现**：`extensions/src/` C++ GDExtension，124 个 ITool 子类（17 组），codegen 自动注册，MCP Streamable HTTP 传输 |
+| `testing/phase-system.md` | 18 个 `phase_XX_*.py` 阶段文件已于 2026-06 阶段 1 清理中删除。YAML `TestEngine` 为唯一测试路径。 |
+| `testing/file-verifier.md` | `file_verifier.py` 已被 C++ `godot_file_verifier.hpp` 替代。 |
+| `testing/mcp-client.md` | `mcp_client.py` 已被删除（仅 Python MCP fallback 路径使用）。`test_orchestrator.py` 通过 `/run-tests` HTTP 端点而非 MCP 客户端运行测试。 |
 
-## 模块文档
+## Agent 上手指南
 
-| 模块 | 说明 |
-|------|------|
-| [命令路由](modules/command-routing.md) | 从 MCP `call_tool` 到 `HandlerRegistry::execute()` 的完整链路；ITool + 自定义工具统一调度 |
-| [Scene / Node / Property 命令模式](modules/scene-commands.md) | 节点/属性/场景工具模式；C++ 的 `Dictionary`/`JSON` 原生操作 |
-| [MCP Streamable HTTP](modules/ipc-bridge.md) | `HttpServer`（:9600）+ `McpHandler`（JSON-RPC 2.0 会话管理 + SSE） |
-| [编辑器插件](modules/editor-plugin.md) | C++ `McpEditorPlugin` 生命周期（`_enter_tree` → `process_frame` → `_exit_tree`） |
-| [日志](modules/logging.md) | 直接 `UtilityFunctions::print/push_warning/push_error`，28 行实现 |
-| [Editor Control（gdext）](modules/editor-control-gdext.md) | gdext 侧的编辑器控制：play/stop/refresh/get_editor_info |
-| [ProjectSettings 扩展](modules/project-settings-ext.md) | 聚合设置工具：显示、物理、渲染、项目信息、层名称 |
-| [输入映射](modules/input-map.md) | InputMap 命令：列出/添加/设置/移除输入动作 |
-| [插件管理](modules/plugin-management.md) | 列出/启用/禁用编辑器插件 |
-| [LSP 验证客户端](modules/lsp-client.md) | 通过 Godot LSP 服务器实现 GDScript 语法验证（`StreamPeerTCP`） |
-| [C# 解决方案生成](modules/csharp-solution.md) | 直接在 gdext 中生成 `.sln` + `.csproj`，无需启动第二个 Godot 进程 |
-| [Dock UI](modules/dock-ui.md) | 右侧 Dock 面板状态（当前未实现，计划中） |
+1. **从 `overview/architecture.md` 开始** — 理解单进程架构、数据流、目录布局
+2. **阅读 `modules/command-routing.md`** — 理解 ITool 接口 + HandlerRegistry 调度
+3. **阅读 `modules/codegen.md`** — 理解代码生成如何工作，添加新工具流程
+4. **添加新工具时**：见 `AGENTS.md`「添加内置工具」章节 + `extensions/src/built_in/tools/<dir>/<tool>.hpp` 现有样例
+5. **运行测试前**：见 `AGENTS.md`「测试」章节 + `tests/.env` 配置
+6. **遇到具体模块问题**：上表点击对应模块文档
 
-## 参考文档
+## 给 Agent 的提醒
 
-| 文档 | 说明 |
-|------|------|
-| [工具目录](reference/tools-catalog.md) | 全部工具的 ITool 描述、参数、返回值 |
-| [客户端配置](reference/client-config.md) | Streamable HTTP 配置模板（opencode / Claude Code / Cursor / JetBrains） |
-| [客户端 quirks](reference/client-quirks.md) | 各客户端配置怪癖速查表 |
-| [CI/CD 流水线](reference/ci-cd.md) | GitHub Actions 工作流：CI 门禁 + 跨平台 Release 发布 |
-| [构建与打包](reference/build-and-package.md) | `build.py` 标志、CMake 流程、文件锁限制 |
-
-## 规范文档
-
-| 文档 | 说明 |
-|------|------|
-| [IPC 协议](specification/ipc-protocol.md) | MCP Streamable HTTP 协议（JSON-RPC 2.0 + SSE） |
-| [项目结构](specification/project-structure.md) | 完整目录布局、构建与测试命令 |
-
-## 测试框架
-
-| 文档 | 说明 |
-|------|------|
-| [测试框架总览](testing/overview.md) | C++ 进程内引擎 + Python 编排器 |
-| [C++ 测试引擎](testing/test-engine.md) | TestEngine + YAML 配置 + 磁盘校验 + 双源清理 |
-| [编排器](testing/orchestrator.md) | 生命周期管理：启动 → 连接 → 运行 → 报告 |
-| [磁盘文件验证](testing/file-verifier.md) | 纯 Python tscn 解析器（旧，已被 C++ 引擎替代） |
-
-## 设计文档
-
-| 文档 | 说明 |
-|------|------|
-| [统一工具架构](design/unified-architecture-plan.md) | ITool 接口 + 组合式能力声明 + 注释驱动自动注册 |
-| [优化与清理计划](design/cleanup-plan.md) | 全项目代码审查后的 4 阶段优化方案（死代码删除 → Bug 修复 → 结构简化 → DRY 提取） |
-| [设计决策](design/decisions.md) | ADR 风格的架构选择记录 |
-| [变更日志](log.md) | 仅追加的项目变更记录
+- **不要修改** `extensions/src/register_types.cpp:45` 的入口符号 `gdext_rust_init`（遗留名，`.gdextension` 引用）
+- **不要修改** `extensions/CMakeLists.txt:15` 的 `GODOTCPP_API_VERSION "4.6"` 与根 `CMakeLists.txt:72` 的 `compatibility_minimum = "4.6"` 之间的绑定
+- **升级 godot-cpp / ryml 前必测** —— 二者均为 FetchContent 拉取，缓存键与版本绑定
+- **MSVC UTF-8** —— 含非 ASCII 的字符串字面量必须用 `String::utf8("中文")`，根 `CMakeLists.txt:43` 已加 `/utf-8 /bigobj`
+- **DLL 文件锁** —— Godot 编辑器持有 `example/addons/godot_mcp/bin/godot_mcp_gdext.dll`，重建失败时先关闭编辑器或禁用插件
+- **构建优化** —— sccache/ccache、Unity jumbo build、lld-link 均已在 CMakeLists.txt 中配置，增量构建默认加速

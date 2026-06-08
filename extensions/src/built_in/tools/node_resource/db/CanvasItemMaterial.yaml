@@ -1,0 +1,23 @@
+class: CanvasItemMaterial
+inherits: Material
+properties:
+- name: blend_mode
+  type: 2
+  type_name: int
+- name: light_mode
+  type: 2
+  type_name: int
+- name: particles_animation
+  type: 1
+  type_name: bool
+- name: particles_anim_h_frames
+  type: 2
+  type_name: int
+- name: particles_anim_v_frames
+  type: 2
+  type_name: int
+- name: particles_anim_loop
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

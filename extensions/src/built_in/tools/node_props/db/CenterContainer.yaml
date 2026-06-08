@@ -1,0 +1,8 @@
+class: CenterContainer
+inherits: Container
+properties:
+- name: use_top_left
+  type: 1
+  type_name: bool
+description: A container that keeps child controls in its center.
+aliases: []

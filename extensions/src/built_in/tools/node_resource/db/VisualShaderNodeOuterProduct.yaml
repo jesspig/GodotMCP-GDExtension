@@ -1,0 +1,5 @@
+class: VisualShaderNodeOuterProduct
+inherits: VisualShaderNode
+properties: []
+description: ''
+aliases: []

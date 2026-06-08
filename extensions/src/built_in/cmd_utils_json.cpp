@@ -5,9 +5,7 @@
 // functions translate between Godot's structured Variant types and the
 // plain JSON shape the MCP protocol uses on the wire.
 //
-// Naming convention (mirrors Rust):
-//   variant_to_json(v)   == Rust v2j(&v)   �?Variant -> JSON-friendly
-//   json_to_variant(jv)  == Rust j2v(&v)   �?JSON Dict/Array -> Variant
+// Convert between Godot Variant and JSON-friendly structures:
 // =====================================================================
 
 #include "cmd_utils.hpp"
@@ -142,8 +140,6 @@ Variant variant_to_json(const Variant &v) {
             return dst;
         }
         case Variant::OBJECT: {
-            // Encode Resources by their res:// path so the other side can
-            // round-trip the value via json_to_variant.
             Object *obj = v;
             if (!obj) {
                 return Variant();
@@ -151,7 +147,12 @@ Variant variant_to_json(const Variant &v) {
             Resource *res = Object::cast_to<Resource>(obj);
             if (res) {
                 Dictionary d;
+                // Primary round-trip key: the resource path (empty for unsaved).
                 d["resource_path"] = res->get_path();
+                // Informational fields for AI clients to understand the resource.
+                d["resource_name"] = res->get_name();
+                d["resource_type"] = res->get_class();
+                d["is_built_in"] = res->is_built_in();
                 return d;
             }
             return obj->to_string();

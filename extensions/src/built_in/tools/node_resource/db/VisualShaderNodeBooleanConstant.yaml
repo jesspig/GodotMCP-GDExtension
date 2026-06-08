@@ -1,0 +1,8 @@
+class: VisualShaderNodeBooleanConstant
+inherits: VisualShaderNodeConstant
+properties:
+- name: constant
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

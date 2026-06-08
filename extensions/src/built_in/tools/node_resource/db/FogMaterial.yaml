@@ -1,0 +1,24 @@
+class: FogMaterial
+inherits: Material
+properties:
+- name: density
+  type: 3
+  type_name: float
+- name: albedo
+  type: 20
+  type_name: Color
+- name: emission
+  type: 20
+  type_name: Color
+- name: height_falloff
+  type: 3
+  type_name: float
+- name: edge_fade
+  type: 3
+  type_name: float
+- name: density_texture
+  type: 24
+  type_name: Object
+  class_name: Texture3D
+description: ''
+aliases: []

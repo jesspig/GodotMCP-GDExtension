@@ -1,6 +1,8 @@
-# Input Map 命令
+# Input Map 工具
 
-> 4 个工具，管理 Godot 的输入动作映射（InputMap）。实现在 `extensions/gdext/src/commands/input_map.cpp`。
+> 4 个工具，管理 Godot 的输入动作映射（InputMap）。**当前实现位置**：`extensions/src/built_in/tools/` 下的 ITool（具体文件见 codegen 生成的 `generated_registration.cpp`，分类在 `node_tools` 顶级下）。
+>
+> **历史路径**：`extensions/gdext/src/commands/input_map.cpp`（已删除，参见 commit `c4318ee`）。
 
 ## 工具列表
 

@@ -1,0 +1,11 @@
+class: VisualShaderNodeBillboard
+inherits: VisualShaderNode
+properties:
+- name: billboard_type
+  type: 2
+  type_name: int
+- name: keep_scale
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

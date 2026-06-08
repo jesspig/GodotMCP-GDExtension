@@ -1,0 +1,29 @@
+class: InputEventMIDI
+inherits: InputEvent
+properties:
+- name: channel
+  type: 2
+  type_name: int
+- name: message
+  type: 2
+  type_name: int
+- name: pitch
+  type: 2
+  type_name: int
+- name: velocity
+  type: 2
+  type_name: int
+- name: instrument
+  type: 2
+  type_name: int
+- name: pressure
+  type: 2
+  type_name: int
+- name: controller_number
+  type: 2
+  type_name: int
+- name: controller_value
+  type: 2
+  type_name: int
+description: ''
+aliases: []

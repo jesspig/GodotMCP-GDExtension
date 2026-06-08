@@ -1,0 +1,5 @@
+class: SkeletonModification2DStackHolder
+inherits: SkeletonModification2D
+properties: []
+description: ''
+aliases: []

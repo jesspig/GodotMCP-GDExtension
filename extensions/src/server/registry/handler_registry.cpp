@@ -9,6 +9,7 @@ using namespace godot;
 namespace godot_mcp {
 
 HandlerRegistry::HandlerRegistry() = default;
+HandlerRegistry::~HandlerRegistry() = default;
 
 // ---------------------------------------------------------------------------
 // Tool registration
@@ -107,6 +108,7 @@ const ToolInfo *HandlerRegistry::find_tool_info(const String &name) const {
 Dictionary HandlerRegistry::make_tool_entry(const ToolInfo &info) const {
     Dictionary d;
     d["name"] = info.name;
+    d["brief"] = info.brief;
     d["description"] = info.description;
 
     // MCP 协议要求 inputSchema.type == "object"。
@@ -157,85 +159,20 @@ void HandlerRegistry::set_tool_enabled(const String &name, bool enabled) {
 // ---------------------------------------------------------------------------
 //
 // get_categories() 输出字段契约(每个分类节点):
-//   name        : 分类 ID(段名,如 "node"、"property"),用于 list_tools_in_category 查询
-//   label       : 分类展示名(如 "Node"、"Property"),客户端 UI 显示用
+//   id          : 分类段名(如 "node"、"property"),用于 get_tools 查询
+//   name        : 分类展示名(如 "Node"、"Property"),客户端 UI 显示用
+//   path        : 完整分类路径(如 "node/property"),用于 get_tools 查询
 //   description : 分类描述(权威源,来自 top_level_meta 硬编码或工具 category_description())
-//   tool_count  : 直接挂载到该分类的工具数(不含子分类)。
-//                 客户端 UI 可用于显示小角标或完全忽略。
-//   total       : 包含子分类的累加值(向后兼容)
-//   subcategories : 子分类列表(数组),若无则省略
-//
-// 17 个原始分类被 category_remap() 重组到 6 个顶级:
-//   node     (54 工具): collision / find / node / property/2d / property/3d
-//   scene    (16 工具): scene
-//   editor   (10 工具): editor_control / search
-//   script   (14 工具): script/csharp / script_gd / script_helpers
-//   settings (21 工具): settings/core / settings/extended / input_map
-//   other    ( 9 工具): meta / plugin_management / undo
-
+//   tool_count  : 直接挂载到该分类的工具数(不含子分类)
+//   total       : 包含子分类的累加值
+//   subcategories : 子分类列表(数组),递归结构一致,若无则省略
 namespace {
 
-// 把分类段名转成展示名
-//   "2d" -> "2D", "3d" -> "3D"
-//   "csharp" -> "C#", "gdscript" -> "GDScript"
-//   "input_map" -> "Input Map", "plugin_management" -> "Plugin Management"
-//   "operation" -> "Operation", "project" -> "Project", "general" -> "General"
-//   其他 -> 首字母大写
 String prettify_segment(const String &seg) {
-    if (seg == "2d") return String("2D");
-    if (seg == "3d") return String("3D");
-    if (seg == "csharp") return String("C#");
-    if (seg == "gdscript") return String("GDScript");
-    if (seg == "input_map") return String("Input Map");
-    if (seg == "plugin_management") return String("Plugin Management");
-    if (seg == "operation") return String("Operation");
-    if (seg == "project") return String("Project");
-    if (seg == "general") return String("General");
     if (seg.is_empty()) return seg;
-    // 首字母大写,其他字符保留(godot-cpp 无 char_uppercase 静态方法)
     return seg.substr(0, 1).to_upper() + seg.substr(1);
 }
 
-// 把工具的原始 category 路径映射到新顶级分类下的路径
-// 例: "property/2d" -> "node/property/2d"
-//     "settings/core" -> "settings/project"
-//     "input_map" -> "settings/input_map"
-//     "meta" -> "other/meta"
-const HashMap<String, String> &category_remap() {
-    static const HashMap<String, String> kRemap = {
-        // node 顶级
-        {String("collision"),         String("node/collision")},
-        {String("find"),              String("node/find")},
-        {String("node"),              String("node/operation")},
-        {String("property/2d"),       String("node/property/2d")},
-        {String("property/3d"),       String("node/property/3d")},
-        // scene 顶级
-        {String("scene"),             String("scene")},
-        // editor 顶级
-        {String("editor_control"),    String("editor/general")},
-        {String("search"),            String("editor/search")},
-        // script 顶级
-        {String("script/csharp"),     String("script/csharp")},
-        {String("script_gd"),         String("script/gdscript")},
-        {String("script_helpers"),    String("script/helpers")},
-        // settings 顶级
-        {String("settings/core"),     String("settings/project")},
-        {String("settings/extended"), String("settings/extended")},
-        {String("input_map"),         String("settings/input_map")},
-        // other 顶级
-        {String("meta"),              String("other/meta")},
-        {String("plugin_management"), String("other/plugin_management")},
-        {String("undo"),              String("other/undo")},
-    };
-    return kRemap;
-}
-
-// 顶级分类的硬编码元数据(label + description)
-// 6 个顶级,desc 作为权威源,避免依赖"子分类反填"或"工具 brief 兜底"。
-//
-// 字符串必须用 String::utf8() 包裹:handler_registry.cpp 是 UTF-8 无 BOM,
-// MSVC 默认按系统 GBK 解释源文件中的非 ASCII 字节,不显式标记会导致运行时
-// 中文乱码。
 struct TopLevelMeta {
     String label;
     String description;
@@ -245,18 +182,12 @@ struct TopLevelMeta {
 };
 const HashMap<String, TopLevelMeta> &top_level_meta() {
     static const HashMap<String, TopLevelMeta> kTopLevel = {
-        {String("node"),     TopLevelMeta(String::utf8("Node"),
-                                          String::utf8("节点的创建、操作与管理"))},
-        {String("scene"),    TopLevelMeta(String::utf8("Scene"),
-                                          String::utf8("场景的创建、保存与操作"))},
-        {String("editor"),   TopLevelMeta(String::utf8("Editor"),
-                                          String::utf8("编辑器控制与信息查询"))},
-        {String("script"),   TopLevelMeta(String::utf8("Script"),
-                                          String::utf8("脚本的创建、编辑与管理"))},
-        {String("settings"), TopLevelMeta(String::utf8("Settings"),
-                                          String::utf8("项目设置(显示、输入、物理层等)"))},
-        {String("other"),    TopLevelMeta(String::utf8("Other"),
-                                          String::utf8("元工具、插件管理、撤销等辅助工具"))},
+        {String("meta_tools"), TopLevelMeta(String::utf8("Meta Tools"),
+                                            String::utf8("元工具与系统信息查询"))},
+        {String("node_tools"), TopLevelMeta(String::utf8("Node Tools"),
+                                            String::utf8("节点属性读取与修改工具，按 Godot 节点类型分类组织"))},
+        {String("editor_tools"), TopLevelMeta(String::utf8("Editor Tools"),
+                                              String::utf8("编辑器操作工具：场景树 CRUD、剪贴板、脚本、工作区切换、控制台、调试器、性能监视器等"))},
     };
     return kTopLevel;
 }
@@ -264,22 +195,22 @@ const HashMap<String, TopLevelMeta> &top_level_meta() {
 }  // namespace
 
 // 把 CatNode 序列化为 Dictionary(MCP 协议输出契约)。
-//   name        : 分类 ID(段名,如 "node"、"property"),用于 list_tools_in_category 查询
-//   label       : 分类展示名(如 "Node"、"Property"),客户端 UI 显示用
+//   id          : 分类段名(如 "node"、"property"),用于 get_tools 查询
+//   name        : 分类展示名(如 "Node"、"Property"),客户端 UI 显示用
+//   path        : 完整分类路径(如 "node/property"),用于 get_tools 查询
 //   description : 分类描述(权威源,来自 top_level_meta 硬编码或工具 category_description())
-//   tool_count  : 直接挂载到该分类的工具数(不含子分类)。
-//                 这虽然指向"工具"而非"分类",但仍是分类节点的属性——
-//                 表示"该分类下直接挂载的工具数",不包含子分类内的工具。
-//                 客户端 UI 可用于显示"(tool_count)"小角标或完全忽略。
-//   total       : 包含子分类的累加值(向后兼容;若客户端想算总数可读此字段)
-//   subcategories : 子分类列表(数组),若无则省略
-static Dictionary cat_node_to_dict(const String &name, const String &label,
+//   tool_count  : 直接挂载到该分类的工具数(不含子分类)
+//   total       : 包含子分类的累加值
+//   subcategories : 子分类列表(数组),递归结构一致,若无则省略
+static Dictionary cat_node_to_dict(const String &id, const String &name,
+                                   const String &path,
                                    int direct, int total,
                                    const String &description,
                                    const Array &subs) {
     Dictionary d;
-    d["name"] = name;
-    d["label"] = label.is_empty() ? name : label;
+    d["id"] = id;
+    d["name"] = name.is_empty() ? id : name;
+    d["path"] = path;
     d["tool_count"] = direct;
     d["total"] = total;
     if (!description.is_empty())
@@ -306,12 +237,7 @@ Array HandlerRegistry::get_categories() const {
         const String &orig_cat = kv.value.category;
         if (orig_cat.is_empty()) continue;
 
-        // 应用 category remap:把工具的原始 category 路径映射到新顶级分类
-        // 例: "property/2d" -> "node/property/2d"
-        const String *remapped_cat = category_remap().getptr(orig_cat);
-        const String &cat = remapped_cat ? *remapped_cat : orig_cat;
-
-        const PackedStringArray segments = cat.split("/");
+        const PackedStringArray segments = orig_cat.split("/");
         CatNode *node = &root;
         for (int i = 0; i < segments.size(); i++) {
             const String seg = segments[i];
@@ -346,20 +272,23 @@ Array HandlerRegistry::get_categories() const {
     }
 
     // Recursive converter: CatNode → Array of Dictionaries, sorted by name
-    std::function<Array(const CatNode &)> node_to_subs =
-        [&](const CatNode &parent) -> Array {
+    std::function<Array(const CatNode &, const String &)> node_to_subs =
+        [&](const CatNode &parent, const String &parent_path) -> Array {
             std::vector<Dictionary> entries;
             for (const KeyValue<String, CatNode> &kv : parent.children) {
                 const CatNode &child = kv.value;
+                const String child_path = parent_path.is_empty()
+                                              ? child.name
+                                              : parent_path + String("/") + child.name;
                 const Array subs = child.children.is_empty()
                                        ? Array()
-                                       : node_to_subs(child);
-                // label: 硬编码优先,否则 prettify
-                const String label = child.label.is_empty()
-                                         ? prettify_segment(child.name)
-                                         : child.label;
+                                       : node_to_subs(child, child_path);
+                const String name = child.label.is_empty()
+                                        ? prettify_segment(child.name)
+                                        : child.label;
                 entries.push_back(cat_node_to_dict(
-                    child.name, label, child.direct, child.total,
+                    child.name, name, child_path,
+                    child.direct, child.total,
                     child.description, subs));
             }
             std::sort(entries.begin(), entries.end(),
@@ -372,23 +301,15 @@ Array HandlerRegistry::get_categories() const {
             return sorted;
         };
 
-    return node_to_subs(root);
+    return node_to_subs(root, String());
 }
 
 Array HandlerRegistry::get_tools_in_category(const String &category) const {
     Array result;
-    const String prefix = String(category) + String("/");
     for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
         if (!kv.value.enabled) continue;
-        // 应用 category remap,使客户端能按新顶级路径查询
-        // 例: 调用 "node/operation" 会查到原始 category = "node" 的 21 个工具
-        const String *remapped_cat = category_remap().getptr(kv.value.category);
-        const String &tool_cat = remapped_cat ? *remapped_cat : kv.value.category;
-        if (tool_cat == category || tool_cat.begins_with(prefix)) {
-            Dictionary d;
-            d["name"] = kv.value.name;
-            d["brief"] = kv.value.brief;
-            result.push_back(d);
+        if (kv.value.category == category) {
+            result.push_back(make_tool_entry(kv.value));
         }
     }
     return result;

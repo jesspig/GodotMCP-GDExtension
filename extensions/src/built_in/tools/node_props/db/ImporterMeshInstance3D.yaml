@@ -1,0 +1,37 @@
+class: ImporterMeshInstance3D
+inherits: Node3D
+properties:
+- name: mesh
+  type: 24
+  type_name: Object
+  class_name: ImporterMesh
+- name: skin
+  type: 24
+  type_name: Object
+  class_name: Skin
+- name: skeleton_path
+  type: 22
+  type_name: NodePath
+- name: layer_mask
+  type: 2
+  type_name: int
+- name: cast_shadow
+  type: 2
+  type_name: int
+- name: visibility_range_begin
+  type: 3
+  type_name: float
+- name: visibility_range_begin_margin
+  type: 3
+  type_name: float
+- name: visibility_range_end
+  type: 3
+  type_name: float
+- name: visibility_range_end_margin
+  type: 3
+  type_name: float
+- name: visibility_range_fade_mode
+  type: 2
+  type_name: int
+description: ''
+aliases: []

@@ -1,0 +1,5 @@
+class: AudioStream
+inherits: Resource
+properties: []
+description: ''
+aliases: []

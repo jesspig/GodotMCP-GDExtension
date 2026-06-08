@@ -1,0 +1,23 @@
+class: GLTFBufferView
+inherits: Resource
+properties:
+- name: buffer
+  type: 2
+  type_name: int
+- name: byte_offset
+  type: 2
+  type_name: int
+- name: byte_length
+  type: 2
+  type_name: int
+- name: byte_stride
+  type: 2
+  type_name: int
+- name: indices
+  type: 1
+  type_name: bool
+- name: vertex_attributes
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

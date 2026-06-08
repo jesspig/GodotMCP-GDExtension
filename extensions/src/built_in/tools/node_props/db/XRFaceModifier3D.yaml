@@ -1,0 +1,11 @@
+class: XRFaceModifier3D
+inherits: Node3D
+properties:
+- name: face_tracker
+  type: 4
+  type_name: String
+- name: target
+  type: 22
+  type_name: NodePath
+description: ''
+aliases: []

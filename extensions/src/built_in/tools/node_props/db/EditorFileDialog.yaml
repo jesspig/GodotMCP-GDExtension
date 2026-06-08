@@ -1,0 +1,8 @@
+class: EditorFileDialog
+inherits: FileDialog
+properties:
+- name: disable_overwrite_warning
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

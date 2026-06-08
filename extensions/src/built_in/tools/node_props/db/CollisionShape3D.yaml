@@ -1,0 +1,18 @@
+class: CollisionShape3D
+inherits: Node3D
+properties:
+- name: shape
+  type: 24
+  type_name: Object
+  class_name: Shape3D
+- name: disabled
+  type: 1
+  type_name: bool
+- name: debug_color
+  type: 20
+  type_name: Color
+- name: debug_fill
+  type: 1
+  type_name: bool
+description: 3D collision shape container.
+aliases: []

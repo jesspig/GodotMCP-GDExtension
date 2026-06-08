@@ -1,0 +1,5 @@
+class: VisualShaderNodeScreenUVToSDF
+inherits: VisualShaderNode
+properties: []
+description: ''
+aliases: []

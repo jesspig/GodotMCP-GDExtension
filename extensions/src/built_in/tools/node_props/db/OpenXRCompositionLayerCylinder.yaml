@@ -1,0 +1,17 @@
+class: OpenXRCompositionLayerCylinder
+inherits: OpenXRCompositionLayer
+properties:
+- name: radius
+  type: 3
+  type_name: float
+- name: aspect_ratio
+  type: 3
+  type_name: float
+- name: central_angle
+  type: 3
+  type_name: float
+- name: fallback_segments
+  type: 2
+  type_name: int
+description: ''
+aliases: []

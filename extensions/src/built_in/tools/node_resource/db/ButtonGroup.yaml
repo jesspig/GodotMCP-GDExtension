@@ -1,0 +1,8 @@
+class: ButtonGroup
+inherits: Resource
+properties:
+- name: allow_unpress
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

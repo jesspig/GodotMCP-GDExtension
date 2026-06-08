@@ -1,0 +1,8 @@
+class: VisualShaderNodeRemap
+inherits: VisualShaderNode
+properties:
+- name: op_type
+  type: 2
+  type_name: int
+description: ''
+aliases: []

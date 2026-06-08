@@ -1,0 +1,11 @@
+class: BoneTwistDisperser3D
+inherits: SkeletonModifier3D
+properties:
+- name: mutable_bone_axes
+  type: 1
+  type_name: bool
+- name: setting_count
+  type: 2
+  type_name: int
+description: ''
+aliases: []

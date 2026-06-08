@@ -1,0 +1,5 @@
+class: AnimationRootNode
+inherits: AnimationNode
+properties: []
+description: ''
+aliases: []

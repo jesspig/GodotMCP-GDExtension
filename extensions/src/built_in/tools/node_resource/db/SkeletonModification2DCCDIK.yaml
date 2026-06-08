@@ -1,0 +1,14 @@
+class: SkeletonModification2DCCDIK
+inherits: SkeletonModification2D
+properties:
+- name: target_nodepath
+  type: 22
+  type_name: NodePath
+- name: tip_nodepath
+  type: 22
+  type_name: NodePath
+- name: ccdik_data_chain_length
+  type: 2
+  type_name: int
+description: ''
+aliases: []

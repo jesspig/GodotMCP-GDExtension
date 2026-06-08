@@ -204,7 +204,7 @@ cmake --build build --target deep-clean       # 同时删除 _deps/（FetchConte
 - **依赖锁定**：`godot-cpp` 固定为 `10.0.0-rc1`（FetchContent）。未经测试不要升级。
 - **`godot_mcp.gdextension`**：入口符号 `gdext_rust_init`，`compatibility_minimum = "4.6"`，`reloadable = true`。
 - **版本**在 `CMakeLists.txt` 中维护（`set(PROJECT_VERSION "...")`）。仅在此处修改——`plugin.cfg` 由 CMake 生成。
-- **新增工具**：在 `extensions/src/built_in/` 中创建 `cmd_<group>.cpp` → 实现 `register_<group>(HandlerRegistry &)` 自由函数 → 在 `handler_registry.cpp` 中添加声明并在 `register_all_tools()` 中调用。
+- **新增内置工具**：在 `extensions/src/built_in/tools/` 下创建头文件，添加 `// @tool register` 注释并继承 `ITool`，重新构建即可自动注册。
 
 ## 文档
 

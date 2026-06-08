@@ -1,0 +1,8 @@
+class: InputEventMagnifyGesture
+inherits: InputEventGesture
+properties:
+- name: factor
+  type: 3
+  type_name: float
+description: ''
+aliases: []

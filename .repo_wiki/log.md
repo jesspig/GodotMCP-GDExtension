@@ -2,125 +2,100 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
-## 2026-06-02 — 全项目代码审查 + 优化清理计划
+## 2026-06-08 — 项目设置工具集 + 文件系统工具文档 + 知识库同步
 
-- **新增** `design/cleanup-plan.md`：全项目代码审查后的完整优化清理方案（4 阶段：死代码删除 → Bug 修复 → 结构简化 → DRY 提取）
-- **更新** `AGENTS.md`：修正 `source()` → `is_meta()`（两轴分类实际字段名）、删除 `tool_schemas.json` 引用（过渡期已结束）、删除旧 Python 阶段测试引用、追加优化清理计划
-- **更新** `overview/architecture.md`：删除 `mcp_tool_adapter.hpp` 引用、删除 `CommandFn 后备(空)` 标注改为准确描述
-- **更新** `extensions/gdext.md`：删除 `mcp_tool_adapter.hpp` 引用、更新工具注册说明（删除 `register_all_tools` 透传、直接用 `register_itools`）
-- **更新** `modules/command-routing.md`：删除 `source()` 引用改为 `is_meta()`、更新 HandlerRegistry 说明（删除零调用者的旧 API）
-- **更新** `testing/overview.md`：删除旧 Python 阶段框架的过渡期描述，明确 C++ YAML 引擎为唯一测试路径
-- **更新** `design/unified-architecture-plan.md`：标注 `mcp_tool_adapter.hpp` 为未采用方案，标注 `tool_schemas.json` 为已删除
-- **更新** `index.md`：删除旧测试文档链接（mcp-client/phase-system）
-- **更新** `design/decisions.md`：ADR-010 状态更新为"已接受"，标注 `source()` 实际未采用、改用 `is_meta()`
+- **新增** `modules/settings-tools.md`：1688 个专属 get/set 工具 + 4 个兜底工具完整文档（架构图、YAML 数据库、特性标签变体、设计决策）
+- **新增** `modules/filesystem-tools.md`：14 个文件系统工具文档
+- **更新** `index.md`：工具计数 67→11734，新增 settings/filesystem 导航链接
+- **更新** `overview/architecture.md`：目录树新增 filesystem/、settings/、collect_settings.py
+- **重写** `modules/codegen.md`：新增 settings-db 输入 + YAML 格式示例 + collect_settings.py
+- **更新** `reference/tools-catalog.md`：同步工具计数 84+566+838+1688=11734
+- **更新** `reference/build-and-package.md`：移除 PCH 引用（ADR-013 已移除）
+- **更新** `modules/editor-plugin.md`：移除 TestRunnerDock 引用（已删除）
+- **更新** `modules/project-settings-ext.md`：标注已被 settings-tools 替代
+- **更新** `AGENTS.md`：追加 wiki 链接
 
-## 2026-06-02 — Wiki 全面同步：CommandFn → ITool 迁移完成
+## 2026-06-04 — 场景树工具方案 + ADR-012 + 锚定摘要
 
-- **重写** `modules/command-routing.md`：从旧 CommandFn 系统更新为 ITool + codegen 统一调度，17 组原始 category 到 6 个顶级分类的 remap 映射，两轴分类系统说明
-- **重写** `overview/architecture.md`：架构图、数据流、目录布局全部更新为 ITool/`extensions/src/`/124 工具
-- **重写** `extensions/gdext.md`：路径从 `extensions/gdext/` 更正为 `extensions/src/`，工具注册表从 17 个 `register_<group>()` 函数更新为 ITool + codegen 系统
-- **更新** `reference/tools-catalog.md`：Meta 工具从 3 个（ping/get_engine_version/get_plugin_version）更新为 5 个（godot_info/list_tool_categories/list_tools/call_tool/get_tool_schema），工具数 129→124，所有分组名从 Commands 改为 Tools
-- **更新** `reference/build-and-package.md`：版本号 `0.1.5`→`0.2.0-dev2`，构建路径 `extensions/gdext`→`extensions`
-- **更新** `modules/ipc-bridge.md`：序列图中 `CommandFn(args)`→`ITool::execute_impl(ctx)`
-- **更新** `modules/editor-plugin.md`：生命周期状态图和代码片段反映当前实现（register_itools、TestRunnerDock、SDK 初始化）
-- **更新** `index.md`：工具描述同步
-- **更新** `AGENTS.md`：追加项目知识库章节
+- **新增** `modules/scene-tree-tools.md`：20 个场景树操作工具完整文档（4 批，Undo/Redo 模式、剪贴板策略、跳过列表）
+- **新增** `design/decisions.md` ADR-012：场景树工具分类、Undo/Redo 策略、`EditorUndoRedoManager` 统一使用、禁止 `set_scene_root`
+- **更新** `index.md`：添加 `modules/scene-tree-tools.md` 导航链接
+- **更新** `AGENTS.md`：添加场景树工具分类说明（`EditorUndoRedoManager`、`PackedScene` 剪贴板）
 
-## 2026-06-02 — 测试框架设计方案 + AGENTS.md 清理
+## 2026-06-04 — 知识库补充 + 清理已实现设计文档
 
-- **新增** `testing/test-engine.md`：C++ 进程内测试引擎完整设计——TestEngine、YAML 配置、ryml 解析、断言引擎、磁盘校验（tscn/tres/project.godot）、双源追踪清理策略、TestRunnerDock UI
-- **重写** `testing/overview.md`：双轨测试架构（C++ 引擎主推 + 旧 Python 框架过渡）
-- **重写** `AGENTS.md`：清理旧 P1-P6 规划信息，替换为当前 124 ITool 架构 + 测试引擎设计文档
-- **清理** `design/unified-architecture-plan.md` 中的 P1-P6 迁移路线部分（已全部完成）
-- **更新** `index.md`：添加 test-engine 链接，更新工具计数和描述
+- **新增** `modules/signal-tools.md`（4 个信号工具文档）
+- **新增** `modules/resource-tools.md`（6 个资源管理工具文档）
+- **新增** `modules/resource-property-tools.md`（419 个资源类型 YAML 属性系统文档）
+- **重写** `index.md`：列出当前 ITool + 283 节点属性 + 419 资源属性工具；标记已废弃测试文档
+- **重写** `overview/architecture.md`：目录树从 `extensions/gdext/` → `extensions/src/`；双重注册路径图
+- **重写** `extensions/gdext.md`：文件树 + 19 `.hpp` `// @tool register` 列表 + `cmd_utils.hpp` 函数表
+- **重写** `modules/command-routing.md`：17 组 → 2 顶级分类；`top_level_meta()`；ITool 接口契约
+- **重写** `modules/dock-ui.md`：纠正"未实现"错误
+- **重写** `specification/project-structure.md`：新目录树 + CMake 构建流程图
+- **修复** `modules/editor-plugin.md`：删除已不存在的 `tool_schemas.json`、`register_all_tools()`、`load_tool_schemas()`；修正 `add_control_to_bottom_panel` 为 `call()` 兜底
+- **修复** `reference/build-and-package.md` 与 `reference/client-quirks.md` 中 `py -3` → `uv run python`
+- **删除** 3 个已实现设计文档：`design/unified-architecture-plan.md`、`design/cleanup-plan.md`、`design/node-property-system.md`
+- **更新** `index.md`：移除上述删除文档的导航链接
+
+## 2026-06-02 — Code review + CommandFn→ITool 迁移 + 测试框架文档
+
+- **新增** `design/cleanup-plan.md`：全项目代码审查后的优化清理方案（4 阶段，全部已完成）
+- **新增** `testing/test-engine.md`：C++ 进程内测试引擎完整设计
+- **重写** `modules/command-routing.md`：从旧 CommandFn 系统更新为 ITool + codegen 统一调度
+- **重写** `overview/architecture.md`：架构图、数据流、目录布局全部更新为 ITool/`extensions/src/`
+- **重写** `extensions/gdext.md`：路径从 `extensions/gdext/` 更正为 `extensions/src/`
+- **重写** `testing/overview.md`：明确 C++ YAML 引擎为唯一测试路径
+- **重写** `AGENTS.md`：清理旧 P1-P6 规划信息；修正 `source()` → `is_meta()`；删除 `tool_schemas.json` 引用
+- **更新** `reference/tools-catalog.md`：Meta 工具 3→5，工具数 129→124
+- **更新** `reference/build-and-package.md`：版本号 `0.1.5`→`0.2.0-dev2`
+- **更新** `modules/ipc-bridge.md`、`modules/editor-plugin.md`：反映当前实现
+- **更新** `design/unified-architecture-plan.md`：标注 `mcp_tool_adapter.hpp` 未采用
+- **更新** `design/decisions.md`：ADR-010 状态"已接受"
 
 ## 2026-06-01 — 统一工具架构重构计划
 
-- **新增** `design/unified-architecture-plan.md`：完整重构计划——ITool 接口、ToolResult 统一信封、组合式能力声明、两轴分类（source + category）、注释驱动自动注册、SDK 桥接适配器、YAML 驱动测试
+- **新增** `design/unified-architecture-plan.md`：ITool 接口、ToolResult 统一信封、组合式能力声明、两轴分类、注释驱动自动注册、SDK 桥接
 - **新增** `design/decisions.md` 中 ADR-010：统一工具架构决策记录
 
 ## 2026-05-31 — 真相修复 + 测试框架文档
 
-- **修复** `register_script_cs` 状态：所有 `register_*()` 函数（共 17 个）均在 `register_all_tools()` 中调用，C# 工具已激活
-- **修复** 工具计数：129 个模式定义（`tool_schemas.json`），~122 个实际可用；更正所有页面中"121 工具/115 活跃/16 组"的错误描述
-- **修复** `editor_control.cpp` 工具数：6 → 7（新增 `godot_editor_restart`）
-- **修复** ADR-009：标记为"已反转"——`register_script_cs` 已调用
-- **修复** 构建命令：`py -3` → `uv run python`（build-and-package.md、project-structure.md）
-- **新增** `testing/` 模块：overview.md、orchestrator.md、mcp-client.md、phase-system.md、file-verifier.md
-- **更新** `index.md`：添加测试框架导航，更新工具计数
-- **更新** `AGENTS.md`：末尾追加项目 Wiki 链接
+- **修复** `register_script_cs` 状态：C# 工具已激活（17 组全部在 `register_all_tools()` 中调用）
+- **修复** 工具计数：129 模式定义 ≈ 122 实际可用
+- **修复** 构建命令：`py -3` → `uv run python`
+- **新增** `testing/` 模块文档（overview / orchestrator / mcp-client / phase-system / file-verifier）
 
-## 2026-05-30 — Wiki 代码对齐修复
-
-- **修复** 多处与实际代码不一致的地方
-- **修复** `editor-plugin.md`：将不存在的 `mcp_handler_.set_registry()` 改为构造函数传递，修正 `http_server_.start()` 签名（只接受 port + McpHandler*）
-- **修复** `ipc-bridge.md`：错误码改为 `mcp_handler.hpp` 中的实际常量（kParseError/kInvalidRequest/kMethodNotFound/kInvalidParams/kInternalError/kResourceNotFound/kServerTerminated）；移除未实现的分页声明
-- **修复** `threading-model.md`：修正 `_enter_tree()` 代码片段
-- **修复** `specification/project-structure.md` / `extensions/gdext.md` / `overview/architecture.md`：移除已不存在的 `protocol/` 目录引用
-- **修复** `specification/ipc-protocol.md`：移除分页声明；错误处理表改用实际常量
-- **补充** `reference/build-and-package.md`：添加 `deep-clean` CMake target 和 `build.py` stale cache 自动恢复说明
-
-## 2026-05-30 — 移除 Python 服务器，统一为单进程架构
+## 2026-05-30 — 代码对齐 + 单进程架构统一
 
 - **删除** `modules/server.md`（Python/Cython MCP 服务器文档）
-- **删除** `reference/editor-control.md`（服务器端编辑器控制工具文档）
-- **重写** `overview/architecture.md`：双进程 → 单进程（C++ GDExtension only，MCP Streamable HTTP :9600）
-- **重写** `overview/threading-model.md`：移除 WsServer，仅保留 HttpServer poll
-- **重写** `modules/ipc-bridge.md`：移除 WebSocket 路径 A，仅保留 MCP Streamable HTTP
-- **重写** `specification/ipc-protocol.md`：移除 WebSocket IPC 协议，仅保留 HTTP JSON-RPC 2.0
+- **删除** `reference/editor-control.md`
+- **重写** `overview/architecture.md`、`overview/threading-model.md`、`modules/ipc-bridge.md`、`specification/ipc-protocol.md`：双进程 → 单进程（C++ GDExtension only，Streamable HTTP :9600）
 - **重写** `reference/client-config.md`：stdio → streamable-http 配置
 - **重写** `design/decisions.md`：更新 ADR 反映单进程架构
-- **更新** `index.md`：移除 Python 服务器引用，更新描述
-- **更新** `modules/editor-plugin.md`：移除 ws_server_ 引用
-- **更新** `modules/command-routing.md`：移除 stdio/WebSocket 路径
-- **更新** `modules/lsp-client.md`：移除 Python 服务器中转
-- **更新** `modules/editor-control-gdext.md`：移除服务器端对比
-- **更新** `modules/dock-ui.md`：WebSocket → HTTP
-- **更新** `modules/csharp-solution.md`：移除端口 9500 引用
-- **更新** `specification/project-structure.md`：移除 server/ 目录
-- **更新** `reference/ci-cd.md`：移除 Python/Cython/server 引用
-- **更新** `reference/build-and-package.md`：移除 Python 服务器构建流程
-- **更新** `reference/tools-catalog.md`：移除服务器端工具（125 → 121）
-- **更新** `reference/client-quirks.md`：更新为 Streamable HTTP
-- **更新** `extensions/gdext.md`：移除 WsServer 和 Python 客户端引用
+- **修复** 多处代码引用与实际不一致的问题（`editor-plugin.md`、`ipc-bridge.md`、`threading-model.md`、`project-structure.md`、`extensions/gdext.md`、`overview/architecture.md`）
+- **更新** 10+ 模块文件移除 WebSocket/ws_server/Python 服务器引用
+- **补充** `reference/build-and-package.md`：`deep-clean` target + stale cache 自动恢复
 
-## 2026-05-29 — 全面更新：HTTP 服务器、工具计数修正、架构文档重构
+## 2026-05-29 — HTTP 服务器、工具计数修正、架构文档重构
 
-- **新增记录**: MCP Streamable HTTP 传输（`HttpServer` :9600 + `McpHandler` JSON-RPC 2.0 会话管理）
-- **修正工具计数**: 17 个处理器文件定义 121 个工具；16 组在 `register_all_tools()` 中活跃注册（115 个）；`register_script_cs`（6 个 C# 工具）已声明但未调用
-- **修正 `IpcResponse.code` 类型**: `int` → `str`（Python protocol.py 中 `code` 是字符串）
-- **修正路径引用**: `tools/patch_entry_c.py` → `server/tools/patch_entry_c.py`；`.venv` 位于项目根目录
-- **修正 ProjectSettingsCommands**: 工具数从 3 更正为 7（含 autoload 和场景列表）
-- **新增 ADR-010**: MCP Streamable HTTP 传输决策
-- **新增 ADR-011**: `register_script_cs` 声明但未注册状态
-- **更新架构总览**: 双传输路径图（stdio/WebSocket + HTTP 直连）
-- **更新线程模型**: 双服务器 poll（WsServer + HttpServer）
-- **更新 IPC 协议规范**: 两条路径的完整协议文档
-- **更新 CI/CD**: `cd server && pytest` → `pytest`（从根目录运行）；`source .venv/bin/activate` → 无需激活
-- **更新项目结构**: `pyproject.toml` 仅在根目录；移除 `server/pyproject.toml` 引用
+- **新增**：MCP Streamable HTTP 传输（`HttpServer` :9600 + `McpHandler` JSON-RPC 2.0）
+- **修正**：工具计数 115→122、`IpcResponse.code` 类型 int→str、ProjectSettingsCommands 工具数 3→7
+- **新增** ADR-010（MCP Streamable HTTP）、ADR-011（`register_script_cs` 未注册）
+- **更新** 架构总览、线程模型、IPC 协议、CI/CD、项目结构
 
-## 2026-05-28 — 全面清理 Rust 遗留引用，对齐实际代码
+## 2026-05-28 — 全面清理 Rust 遗留引用
 
-- **删除** 4 个纯 Rust 遗留页面：`crates/core.md`、`crates/gdext.md`、`modules/dispatcher.md`、`specification/workspace.md`
-- **新增** `modules/server.md`（从 `crates/server.md` 重写，移除 Rust 引用）
-- **新增** `specification/project-structure.md`（替换 `workspace.md`，移除 Cargo 引用）
-- **全量更新** 所有页面统一版本号为 `0.1.5-dev2`
-- **修复** 工具计数：17 组 C++ 处理器（含 search），修正 tool counts 与实际 `registry.py` 一致
-- **清理** 所有页面中的 Rust 语言/架构对比/代码示例引用
-- **修复** 事实错误：`editor_ctl.py` 版本源（pyproject.toml 非硬编码）、`entry.py`（非 `.pyx`）、IPC 错误码字符串值、CI/CD `cargo test` → `pytest`
-- **更新** `design/decisions.md` 中 ADR 以反映 Rust 代码已被完全移除
+- **删除** 4 个 Rust 遗留页面（`crates/core.md`、`crates/gdext.md`、`modules/dispatcher.md`、`specification/workspace.md`）
+- **新增** `modules/server.md`、`specification/project-structure.md`
+- **全量更新** 所有页面统一版本号 `0.1.5-dev2`
+- **清理** 所有页面中的 Rust 语言/架构对比引用
 
-## 2026-05-27 — 知识库与 Rust 遗留代码对齐
+## 2026-05-27 — 知识库与 C++ 实现对齐
 
-- 完成了 `.repo_wiki/` 的完整协调，与当前 C++ 实现对齐
-- 25 个 Wiki 页面更新/编写：架构总览、线程模型、各模块（日志、调度器、IPC、编辑器插件、场景命令、LSP 客户端、C# 解决方案、插件管理、输入映射、Dock UI 等）、引用文档、规范、设计决策
-- 过时的 Rust 页面明确标记为"仅遗留/仅用于测试"
-- 添加了 ADR-009 记录 C++ GDExtension 重写决策
-- 构建系统页面更新（CMake + Cython 端，无 Corrosion）
-- CI/CD 页面更新（无 cargo fmt/clippy）
-- Workspace 页面更新（C++ 中心项目结构）
+- 25 个 Wiki 页面更新/编写（架构总览、线程模型、模块文档、引用文档、规范、设计决策）
+- 过时 Rust 页面标记为"仅遗留"
+- 新增 ADR-009（C++ GDExtension 重写决策）
 
 ## 初始版本
 
-- 使用 Rust `gdext` crate（v0.5）创建初始 Wiki 文档
-- 文档涵盖 28 个文件、7 个目录
+- 使用 Rust `gdext` crate（v0.5）创建初始 Wiki 文档（28 文件、7 目录）

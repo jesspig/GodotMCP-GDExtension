@@ -1,0 +1,11 @@
+class: OpenXRRenderModelManager
+inherits: Node3D
+properties:
+- name: tracker
+  type: 2
+  type_name: int
+- name: make_local_to_pose
+  type: 4
+  type_name: String
+description: ''
+aliases: []

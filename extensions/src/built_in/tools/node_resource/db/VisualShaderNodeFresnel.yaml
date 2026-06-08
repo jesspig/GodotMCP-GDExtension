@@ -1,0 +1,5 @@
+class: VisualShaderNodeFresnel
+inherits: VisualShaderNode
+properties: []
+description: ''
+aliases: []

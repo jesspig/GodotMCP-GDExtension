@@ -1,0 +1,27 @@
+class: NavigationLink3D
+inherits: Node3D
+properties:
+- name: enabled
+  type: 1
+  type_name: bool
+- name: bidirectional
+  type: 1
+  type_name: bool
+- name: navigation_layers
+  type: 2
+  type_name: int
+- name: start_position
+  type: 9
+  type_name: Vector3
+- name: end_position
+  type: 9
+  type_name: Vector3
+- name: enter_cost
+  type: 3
+  type_name: float
+- name: travel_cost
+  type: 3
+  type_name: float
+description: A link between two positions on NavigationRegion3Ds that agents can be
+  routed through.
+aliases: []

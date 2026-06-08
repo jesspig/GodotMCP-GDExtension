@@ -1,0 +1,5 @@
+class: SceneReplicationConfig
+inherits: Resource
+properties: []
+description: ''
+aliases: []

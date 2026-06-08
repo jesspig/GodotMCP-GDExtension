@@ -1,0 +1,5 @@
+class: VisualShaderNodeConstant
+inherits: VisualShaderNode
+properties: []
+description: ''
+aliases: []

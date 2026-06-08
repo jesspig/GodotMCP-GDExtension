@@ -1,0 +1,21 @@
+class: ArrayMesh
+inherits: Mesh
+properties:
+- name: _blend_shape_names
+  type: 34
+  type_name: PackedStringArray
+- name: _surfaces
+  type: 28
+  type_name: Array
+- name: blend_shape_mode
+  type: 2
+  type_name: int
+- name: custom_aabb
+  type: 16
+  type_name: AABB
+- name: shadow_mesh
+  type: 24
+  type_name: Object
+  class_name: ArrayMesh
+description: ''
+aliases: []

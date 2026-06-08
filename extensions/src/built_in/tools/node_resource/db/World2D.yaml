@@ -1,0 +1,5 @@
+class: World2D
+inherits: Resource
+properties: []
+description: ''
+aliases: []

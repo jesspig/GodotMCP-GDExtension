@@ -1,0 +1,29 @@
+class: AnimationNodeAnimation
+inherits: AnimationRootNode
+properties:
+- name: animation
+  type: 21
+  type_name: StringName
+- name: play_mode
+  type: 2
+  type_name: int
+- name: advance_on_start
+  type: 1
+  type_name: bool
+- name: use_custom_timeline
+  type: 1
+  type_name: bool
+- name: timeline_length
+  type: 3
+  type_name: float
+- name: stretch_time_scale
+  type: 1
+  type_name: bool
+- name: start_offset
+  type: 3
+  type_name: float
+- name: loop_mode
+  type: 2
+  type_name: int
+description: ''
+aliases: []

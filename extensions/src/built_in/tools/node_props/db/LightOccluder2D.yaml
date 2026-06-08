@@ -1,0 +1,15 @@
+class: LightOccluder2D
+inherits: Node2D
+properties:
+- name: occluder
+  type: 24
+  type_name: Object
+  class_name: OccluderPolygon2D
+- name: sdf_collision
+  type: 1
+  type_name: bool
+- name: occluder_light_mask
+  type: 2
+  type_name: int
+description: Occludes light cast by a Light2D, casting shadows.
+aliases: []

@@ -1,0 +1,24 @@
+class: CollisionPolygon3D
+inherits: Node3D
+properties:
+- name: depth
+  type: 3
+  type_name: float
+- name: disabled
+  type: 1
+  type_name: bool
+- name: polygon
+  type: 35
+  type_name: PackedVector2Array
+- name: margin
+  type: 3
+  type_name: float
+- name: debug_color
+  type: 20
+  type_name: Color
+- name: debug_fill
+  type: 1
+  type_name: bool
+description: A node that provides a thickened polygon shape (a prism) to a CollisionObject3D
+  parent.
+aliases: []

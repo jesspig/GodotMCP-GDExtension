@@ -1,0 +1,35 @@
+class: OpenXRDpadBindingModifier
+inherits: OpenXRIPBindingModifier
+properties:
+- name: action_set
+  type: 24
+  type_name: Object
+  class_name: OpenXRActionSet
+- name: input_path
+  type: 4
+  type_name: String
+- name: threshold
+  type: 3
+  type_name: float
+- name: threshold_released
+  type: 3
+  type_name: float
+- name: center_region
+  type: 3
+  type_name: float
+- name: wedge_angle
+  type: 3
+  type_name: float
+- name: is_sticky
+  type: 1
+  type_name: bool
+- name: on_haptic
+  type: 24
+  type_name: Object
+  class_name: OpenXRHapticBase
+- name: off_haptic
+  type: 24
+  type_name: Object
+  class_name: OpenXRHapticBase
+description: ''
+aliases: []

@@ -1,0 +1,5 @@
+class: SpringBoneCollisionPlane3D
+inherits: SpringBoneCollision3D
+properties: []
+description: ''
+aliases: []

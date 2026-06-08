@@ -1,0 +1,20 @@
+class: Timer
+inherits: Node
+properties:
+- name: process_callback
+  type: 2
+  type_name: int
+- name: wait_time
+  type: 3
+  type_name: float
+- name: one_shot
+  type: 1
+  type_name: bool
+- name: autostart
+  type: 1
+  type_name: bool
+- name: ignore_time_scale
+  type: 1
+  type_name: bool
+description: Countdown timer with interval.
+aliases: []

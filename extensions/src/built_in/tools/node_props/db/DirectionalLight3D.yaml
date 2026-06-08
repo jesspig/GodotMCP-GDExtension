@@ -1,0 +1,32 @@
+class: DirectionalLight3D
+inherits: Light3D
+properties:
+- name: directional_shadow_mode
+  type: 2
+  type_name: int
+- name: directional_shadow_split_1
+  type: 3
+  type_name: float
+- name: directional_shadow_split_2
+  type: 3
+  type_name: float
+- name: directional_shadow_split_3
+  type: 3
+  type_name: float
+- name: directional_shadow_blend_splits
+  type: 1
+  type_name: bool
+- name: directional_shadow_fade_start
+  type: 3
+  type_name: float
+- name: directional_shadow_max_distance
+  type: 3
+  type_name: float
+- name: directional_shadow_pancake_size
+  type: 3
+  type_name: float
+- name: sky_mode
+  type: 2
+  type_name: int
+description: A directional 3D light node.
+aliases: []

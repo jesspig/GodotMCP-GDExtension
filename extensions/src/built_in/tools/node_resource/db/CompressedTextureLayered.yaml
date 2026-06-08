@@ -1,0 +1,8 @@
+class: CompressedTextureLayered
+inherits: TextureLayered
+properties:
+- name: load_path
+  type: 4
+  type_name: String
+description: ''
+aliases: []

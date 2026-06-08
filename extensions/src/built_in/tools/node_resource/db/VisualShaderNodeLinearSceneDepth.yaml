@@ -1,0 +1,5 @@
+class: VisualShaderNodeLinearSceneDepth
+inherits: VisualShaderNode
+properties: []
+description: ''
+aliases: []

@@ -1,0 +1,12 @@
+class: CSGBox3D
+inherits: CSGPrimitive3D
+properties:
+- name: size
+  type: 9
+  type_name: Vector3
+- name: material
+  type: 24
+  type_name: Object
+  class_name: BaseMaterial3D,ShaderMaterial
+description: ''
+aliases: []

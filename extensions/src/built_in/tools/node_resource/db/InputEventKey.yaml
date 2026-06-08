@@ -1,0 +1,26 @@
+class: InputEventKey
+inherits: InputEventWithModifiers
+properties:
+- name: pressed
+  type: 1
+  type_name: bool
+- name: keycode
+  type: 2
+  type_name: int
+- name: physical_keycode
+  type: 2
+  type_name: int
+- name: key_label
+  type: 2
+  type_name: int
+- name: unicode
+  type: 2
+  type_name: int
+- name: location
+  type: 2
+  type_name: int
+- name: echo
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

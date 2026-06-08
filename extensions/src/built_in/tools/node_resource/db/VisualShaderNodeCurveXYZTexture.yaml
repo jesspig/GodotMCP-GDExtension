@@ -1,0 +1,9 @@
+class: VisualShaderNodeCurveXYZTexture
+inherits: VisualShaderNodeResizableBase
+properties:
+- name: texture
+  type: 24
+  type_name: Object
+  class_name: CurveXYZTexture
+description: ''
+aliases: []

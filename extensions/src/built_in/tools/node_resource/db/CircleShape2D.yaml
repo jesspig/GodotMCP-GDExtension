@@ -1,0 +1,8 @@
+class: CircleShape2D
+inherits: Shape2D
+properties:
+- name: radius
+  type: 3
+  type_name: float
+description: ''
+aliases: []

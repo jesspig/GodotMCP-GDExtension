@@ -1,0 +1,9 @@
+category: memory
+settings:
+- name: memory/limits/message_queue/max_size_mb
+  type: 2
+  type_name: int
+  hint: 1
+  hint_string: 1,512,1,or_greater
+  basic: false
+  restart: true

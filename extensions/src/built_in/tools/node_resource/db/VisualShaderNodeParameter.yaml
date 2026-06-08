@@ -1,0 +1,14 @@
+class: VisualShaderNodeParameter
+inherits: VisualShaderNode
+properties:
+- name: parameter_name
+  type: 21
+  type_name: StringName
+- name: qualifier
+  type: 2
+  type_name: int
+- name: instance_index
+  type: 2
+  type_name: int
+description: ''
+aliases: []
