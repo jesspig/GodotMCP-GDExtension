@@ -3,23 +3,22 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
-#include "filesystem_utils.hpp"
+#include "built_in/tools/editor_tools/scripts/script_utils.hpp"
+#include "built_in/tools/editor_tools/filesystem/filesystem_utils.hpp"
 
 #include <godot_cpp/classes/file_access.hpp>
 
 namespace godot_mcp {
 
-class CreateGdScriptTool : public ITool {
+class WriteGdScriptTool : public ITool {
 public:
-    String name() const override { return "create_gd_script"; }
-    String category() const override { return "editor_tools/filesystem"; }
+    String name() const override { return "write_gd_script"; }
+    String category() const override { return "editor_tools/scripts"; }
     String brief() const override {
-        return String::utf8("创建 GDScript (.gd) 文件");
+        return String::utf8("写入/创建 GDScript (.gd) 文件");
     }
     String description() const override {
-        return String::utf8("在指定的 res:// 路径创建一个 GDScript 文件。"
-                            "使用 FileAccess 写入文本内容，然后通知 EditorFileSystem 刷新。"
-                            "不提供 content 时使用默认模板。");
+        return String::utf8("创建或覆盖一个 GDScript 文件。提供 content 时直接写入；不提供 content 时创建最小合法脚本（extends Node）。AI 客户端应自行提供完整脚本内容。");
     }
     Dictionary input_schema() const override {
         Dictionary props;
@@ -32,20 +31,8 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：脚本内容（留空使用默认模板）");
+            p["description"] = String::utf8("可选：脚本内容（留空则创建最小脚本）");
             props["content"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String::utf8("可选：继承的父类（默认 Node）");
-            props["extends"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String::utf8("可选：类名（注册为全局类）");
-            props["class_name"] = p;
         }
         Dictionary s;
         s["type"] = "object";
@@ -58,8 +45,6 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String path = args_string(ctx.args, "path");
         String content = args_string(ctx.args, "content");
-        String extends = args_string(ctx.args, "extends");
-        String class_name = args_string(ctx.args, "class_name");
 
         Dictionary verr = fs_utils::validate_res_path(path);
         if (!verr.is_empty()) {
@@ -73,22 +58,14 @@ protected:
             return ToolResult::err("MKDIR_FAILED",
                 String::utf8("无法创建父目录"));
         }
+
         if (content.is_empty()) {
-            if (extends.is_empty()) {
-                extends = String("Node");
-            }
-            content = String("extends ") + extends + String("\n");
-            if (!class_name.is_empty()) {
-                content += String("class_name ") + class_name + String("\n");
-            }
-            content += String("\n")
-                + String::utf8("# 这是自动生成的 GDScript 文件\n")
-                + String("\n\nfunc _ready():\n\tpass\n");
+            content = String("extends Node\n");
         }
 
         Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
         if (file.is_null()) {
-            return ToolResult::err("CREATE_FAILED",
+            return ToolResult::err("WRITE_FAILED",
                 String::utf8("无法打开文件进行写入"));
         }
         file->store_string(content);
@@ -99,6 +76,8 @@ protected:
         Dictionary data;
         data["path"] = path;
         data["name"] = fs_utils::get_file_name(path);
+        data["language"] = String("gdscript");
+        data["size"] = (int64_t)content.length();
         return ToolResult::ok(data);
     }
 };

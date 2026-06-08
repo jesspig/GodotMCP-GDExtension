@@ -26,10 +26,9 @@ public:
         return String::utf8("根据路径扩展名自动选择创建策略的复合工具："
                             ".tscn → PackedScene::pack() + ResourceSaver::save() "
                             ".tres/.res → ResourceSaver::save() "
-                            ".gd/.gdshader/.cs/.csharp → FileAccess 写入文本 "
+                            ".gdshader → FileAccess 写入文本 "
                             "其他 → 创建空文件。"
-                            "是专用工具（create_gd_script / create_scene 等）的兜底入口。"
-                            "专用工具提供更精细的控制参数，优先使用。");
+                            ".gd/.cs 脚本创建请使用 write_gd_script / write_csharp_script 专用工具。");
     }
     Dictionary input_schema() const override {
         Dictionary props;
@@ -167,30 +166,10 @@ private:
                                 const String &ext) {
         String actual_content = content;
         if (actual_content.is_empty()) {
-            if (ext == "gd") {
-                actual_content = String("extends Node\n\n")
-                    + String::utf8("# 自动创建的 GDScript\n\n")
-                    + String("func _ready():\n\tpass\n");
-            } else if (ext == "gdshader") {
+            if (ext == "gdshader") {
                 actual_content = String("shader_type canvas_item;\n\n")
                     + String("void fragment() {\n")
                     + String("\tCOLOR = vec4(1.0);\n")
-                    + String("}\n");
-            } else if (ext == "cs" || ext == "csharp") {
-                String class_name = fs_utils::get_file_base_name(path);
-                String sanitized;
-                for (int i = 0; i < class_name.length(); i++) {
-                    char32_t c = class_name.unicode_at(i);
-                    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-                        (c >= '0' && c <= '9') || c == '_') {
-                        sanitized += String::chr(c);
-                    }
-                }
-                if (sanitized.is_empty()) sanitized = "ScriptClass";
-                if (sanitized.length() > 0 && sanitized.unicode_at(0) >= '0' && sanitized.unicode_at(0) <= '9') sanitized = String("_") + sanitized;
-                actual_content = String("using Godot;\n\n")
-                    + String("public partial class ") + sanitized + String(" : Node\n")
-                    + String("{\n")
                     + String("}\n");
             } else {
                 actual_content = String();
