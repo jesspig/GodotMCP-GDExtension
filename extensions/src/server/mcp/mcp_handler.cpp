@@ -1,5 +1,6 @@
 #include "mcp_handler.hpp"
 
+#include "built_in/cmd_utils.hpp"
 #include "logging.hpp"
 
 #include <godot_cpp/classes/engine.hpp>
@@ -354,6 +355,27 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
 
     log_info("mcp", String("tools/call: ") + tool_name);
 
+    // Log key parameters (limit to first 200 chars to avoid flooding)
+    {
+        String param_log;
+        Array param_keys = args.keys();
+        for (int i = 0; i < param_keys.size(); i++) {
+            if (!param_log.is_empty()) param_log += ", ";
+            String k = param_keys[i];
+            Variant v = args[k];
+            param_log += k + String("=");
+            if (v.get_type() == Variant::STRING) {
+                String sv = v;
+                if (sv.length() > 80) sv = sv.substr(0, 80) + String("...");
+                param_log += String("\"") + sv + String("\"");
+            } else {
+                param_log += json_stringify_safe(v);
+            }
+        }
+        if (param_log.length() > 200) param_log = param_log.substr(0, 200) + String("...");
+        log_info("mcp", String("  args: ") + param_log);
+    }
+
     const Variant meta = params.get("_meta", Variant());
     String progress_token;
     if (meta.get_type() == Variant::DICTIONARY) {
@@ -384,10 +406,51 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
         tool_result = registry_->execute(tool_name, args);
     } catch (const std::exception &e) {
         pending_requests_.erase(JSON::stringify(id));
+        log_warn("mcp", String("tools/call FAILED (exception): ") + tool_name + String(" - ") + String(e.what()));
         return make_jsonrpc_error(id, kInternalError, String(e.what()));
     }
 
     pending_requests_.erase(JSON::stringify(id));
+
+    // Log result summary
+    {
+        bool success = true;
+        String summary;
+        if (tool_result.has("error")) {
+            success = false;
+            Variant err_val = tool_result["error"];
+            if (err_val.get_type() == Variant::DICTIONARY) {
+                Dictionary ed = err_val;
+                summary = String("error=") + String(ed.get("code", "?")) + String(": ") + String(ed.get("message", "?"));
+            } else {
+                summary = String("error=") + String(err_val);
+            }
+        } else if (tool_result.has("success") && !tool_result["success"].operator bool()) {
+            success = false;
+            summary = String("success=false");
+        } else if (tool_result.has("data") && tool_result["data"].get_type() == Variant::DICTIONARY) {
+            Dictionary data = tool_result["data"];
+            Array dk = data.keys();
+            for (int i = 0; i < dk.size() && summary.length() < 120; i++) {
+                if (!summary.is_empty()) summary += ", ";
+                String k = dk[i];
+                Variant v = data[k];
+                summary += k + String("=");
+                if (v.get_type() == Variant::STRING) {
+                    String sv = v;
+                    if (sv.length() > 60) sv = sv.substr(0, 60) + String("...");
+                    summary += String("\"") + sv + String("\"");
+                } else {
+                    summary += json_stringify_safe(v);
+                }
+            }
+        }
+        if (success) {
+            log_info("mcp", String("  -> ok: ") + summary);
+        } else {
+            log_warn("mcp", String("  -> FAIL: ") + summary);
+        }
+    }
 
     // 错误检测：兼容旧格式 {"error": "..."} 和新格式 {"success": false, "error": {"code": "...", "message": "..."}}
     if (tool_result.has("error")) {
