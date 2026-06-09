@@ -11,7 +11,7 @@ namespace godot_mcp {
 class RunSpecificSceneTool : public ITool {
 public:
     String name() const override { return "run_specific_scene"; }
-    String category() const override { return "editor_tools/runtime"; }
+    String category() const override { return "runtime_tools/lifecycle"; }
     String brief() const override { return String::utf8("运行指定的场景文件"); }
     String description() const override {
         return String::utf8("运行指定的场景文件路径。路径应以 res:// 开头，指向一个 .tscn 或 .scn 文件。"

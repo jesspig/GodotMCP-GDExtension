@@ -12,7 +12,7 @@ class PauseProjectTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
     String name() const override { return "pause_project"; }
-    String category() const override { return "editor_tools/runtime"; }
+    String category() const override { return "runtime_tools/lifecycle"; }
     String brief() const override { return String::utf8("暂停或恢复运行中的项目"); }
     String description() const override {
         return String::utf8("暂停或恢复运行中的项目。暂停时游戏场景的 _process 和 _physics_process 停止处理，"

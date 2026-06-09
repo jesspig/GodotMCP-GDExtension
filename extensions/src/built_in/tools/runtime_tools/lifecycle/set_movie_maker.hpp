@@ -11,7 +11,7 @@ namespace godot_mcp {
 class SetMovieMakerTool : public ITool {
 public:
     String name() const override { return "set_movie_maker"; }
-    String category() const override { return "editor_tools/runtime"; }
+    String category() const override { return "runtime_tools/lifecycle"; }
     String brief() const override { return String::utf8("启用或关闭 Movie Maker（录像）模式"); }
     String description() const override {
         return String::utf8("启用或关闭 Godot 的 Movie Maker（录像）模式。启用后运行项目时会自动录制生成视频文件。"

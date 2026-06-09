@@ -12,7 +12,7 @@ class SimulateGameInputTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
     String name() const override { return "simulate_game_input"; }
-    String category() const override { return "editor_tools/runtime"; }
+    String category() const override { return "runtime_tools/bridge"; }
     String brief() const override { return String::utf8("向运行中的游戏模拟输入"); }
     String description() const override {
         return String::utf8("向运行中的游戏发送键盘、鼠标或 Action 输入事件。"

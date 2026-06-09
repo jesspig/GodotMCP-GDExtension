@@ -7,14 +7,15 @@
 
 namespace godot_mcp {
 
-class StopProjectTool : public ITool {
+class RunProjectTool : public ITool {
 public:
-    String name() const override { return "stop_project"; }
-    String category() const override { return "editor_tools/runtime"; }
-    String brief() const override { return String::utf8("停止运行中的项目"); }
+    String name() const override { return "run_project"; }
+    String category() const override { return "runtime_tools/lifecycle"; }
+    String brief() const override { return String::utf8("运行项目的默认主场景"); }
     String description() const override {
-        return String::utf8("停止当前正在运行的项目。等同于在编辑器中按 F8（或点击「停止」按钮）。"
-                             "如果项目未运行则不做任何操作。");
+        return String::utf8("运行项目的默认主场景（在 ProjectSettings 中配置的 application/run/main_scene）。"
+                             "等同于在编辑器中按 F5（或点击「运行项目」按钮）。"
+                             "场景运行后可通过 stop_project 停止。");
     }
     Dictionary input_schema() const override {
         Dictionary s;
@@ -29,11 +30,10 @@ protected:
         if (!ei) {
             return ToolResult::err("NO_EDITOR", String::utf8("EditorInterface 不可用"));
         }
-        bool was_playing = ei->is_playing_scene();
-        ei->stop_playing_scene();
+        ei->play_main_scene();
         Dictionary data;
-        data["action"] = "stop_playing_scene";
-        data["was_running"] = was_playing;
+        data["action"] = "play_main_scene";
+        data["status"] = "started";
         return ToolResult::ok(data);
     }
 };

@@ -12,7 +12,7 @@ class GetGameSceneTreeTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
     String name() const override { return "get_game_scene_tree"; }
-    String category() const override { return "editor_tools/runtime"; }
+    String category() const override { return "runtime_tools/bridge"; }
     String brief() const override { return String::utf8("获取运行中游戏的场景树"); }
     String description() const override {
         return String::utf8("获取运行中游戏的完整场景树，包括所有节点的名称、类型和路径。"

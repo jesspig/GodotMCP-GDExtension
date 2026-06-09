@@ -12,7 +12,7 @@ class CaptureGameScreenshotTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
     String name() const override { return "capture_game_screenshot"; }
-    String category() const override { return "editor_tools/runtime"; }
+    String category() const override { return "runtime_tools/bridge"; }
     String brief() const override { return String::utf8("截取运行中游戏的游戏视口"); }
     String description() const override {
         return String::utf8("截取运行中游戏的游戏视口截图，返回 Base64 编码的图片数据。"
