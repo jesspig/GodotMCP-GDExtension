@@ -7,7 +7,6 @@
 #include "testing/test_engine.hpp"
 
 #include <godot_cpp/classes/editor_plugin.hpp>
-#include <godot_cpp/classes/resource.hpp>
 
 namespace godot_mcp {
 
@@ -31,9 +30,6 @@ private:
 
     void _on_process_frame();
 
-    void _register_debugger_plugin();
-    void _unregister_debugger_plugin();
-
     HandlerRegistry registry_;
     McpHandler mcp_handler_{&registry_};
     HttpServer http_server_;
@@ -42,7 +38,6 @@ private:
     int http_port_ = 9600;
     bool started_ = false;
     bool game_was_running_ = false;
-    godot::Ref<godot::Resource> debugger_plugin_;
 };
 
 }  // namespace godot_mcp

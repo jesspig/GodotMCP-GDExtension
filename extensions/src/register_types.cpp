@@ -3,7 +3,6 @@
 //
 // Registers SDK classes (McpToolDefinition, McpToolRegistry) and the
 // McpEditorPlugin at MODULE_INITIALIZATION_LEVEL_EDITOR.
-// Entry symbol kept as `gdext_rust_init` for .gdextension compatibility.
 // =====================================================================
 
 #include "editor_plugin.hpp"
@@ -40,9 +39,7 @@ static void uninitialize_godot_mcp(ModuleInitializationLevel p_level) {
 
 extern "C" {
 
-// Entry symbol referenced by godot_mcp.gdextension.
-// Kept as `gdext_rust_init` to avoid changing the existing config file.
-GDExtensionBool GDE_EXPORT gdext_rust_init(
+GDExtensionBool GDE_EXPORT gdext_mcp_init(
         GDExtensionInterfaceGetProcAddress p_get_proc_address,
         const GDExtensionClassLibraryPtr p_library,
         GDExtensionInitialization *r_initialization) {
