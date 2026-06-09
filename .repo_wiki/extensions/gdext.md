@@ -40,7 +40,7 @@ flowchart TB
 
 ```
 extensions/src/
-├── register_types.cpp              # GDExtension 入口：gdext_rust_init（遗留名称）
+├── register_types.cpp              # GDExtension 入口：gdext_mcp_init
 ├── editor_plugin.cpp/.hpp          # McpEditorPlugin 生命周期 + process_frame 泵
 ├── pch.hpp                         # 预编译头（STL + Godot 核心类型）
 ├── logging.hpp                     # log_info/warn/error（28 行）
