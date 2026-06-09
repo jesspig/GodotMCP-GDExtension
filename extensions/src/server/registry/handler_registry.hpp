@@ -13,6 +13,7 @@ namespace godot_mcp {
 
 // 前向声明
 class ITool;
+class RuntimeBridge;
 
 using CommandFn = std::function<godot::Dictionary(const godot::Dictionary &args)>;
 
@@ -62,6 +63,10 @@ public:
     int builtin_tool_count() const;
     int custom_tool_count() const;
 
+    // --- Runtime bridge ---
+    void set_runtime_bridge(RuntimeBridge *bridge) { runtime_bridge_ = bridge; }
+    RuntimeBridge *get_runtime_bridge() const { return runtime_bridge_; }
+
     // --- Version info ---
     void set_engine_version(const godot::String &v) { engine_version_ = v; }
     const godot::String &engine_version() const { return engine_version_; }
@@ -74,6 +79,7 @@ private:
     godot::HashMap<godot::String, CommandFn> table_;
     std::map<godot::String, std::unique_ptr<ITool>> itool_table_;
     godot::HashMap<godot::String, ToolInfo> tool_info_;
+    RuntimeBridge *runtime_bridge_ = nullptr;
     godot::String engine_version_;
     godot::String plugin_version_;
 };

@@ -2,11 +2,13 @@
 #include "logging.hpp"
 #include "sdk/mcp_tool_registry.hpp"
 
+#include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/engine.hpp>
-#include <limits>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/scene_tree.hpp>
+#include <limits>
 #include <godot_cpp/variant/string.hpp>
 
 #ifndef GODOT_MCP_PLUGIN_VERSION
@@ -56,6 +58,16 @@ void McpEditorPlugin::_enter_tree() {
     sdk_registry->set_handler_registry(&registry_);
     sdk_registry->set_mcp_handler(&mcp_handler_);
 
+    // Wire RuntimeBridge into HandlerRegistry (runtime tools need it)
+    registry_.set_runtime_bridge(&runtime_bridge_);
+
+    // Load bridge port from env (default 9601)
+    int bridge_port = read_port_from_env("GODOT_MCP_BRIDGE_PORT", 9601);
+    runtime_bridge_.set_port(bridge_port);
+
+    // Register EditorDebuggerPlugin for runtime bridge
+    _register_debugger_plugin();
+
     http_port_ = read_port_from_env("GODOT_MCP_HTTP_PORT", 9600);
 
     if (!http_server_.start(http_port_, &mcp_handler_)) {
@@ -87,6 +99,12 @@ void McpEditorPlugin::_exit_tree() {
         tree->disconnect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
     }
 
+    // Disconnect runtime bridge
+    runtime_bridge_.disconnect();
+
+    // Unregister EditorDebuggerPlugin
+    _unregister_debugger_plugin();
+
     http_server_.stop();
     started_ = false;
     log_info("plugin", "Godot MCP shut down");
@@ -95,6 +113,42 @@ void McpEditorPlugin::_exit_tree() {
 void McpEditorPlugin::_on_process_frame() {
     if (!started_) return;
     http_server_.poll();
+
+    // Runtime bridge connection lifecycle
+    EditorInterface *ei = EditorInterface::get_singleton();
+    if (!ei) return;
+
+    bool game_running = ei->is_playing_scene();
+    if (game_running && !game_was_running_) {
+        // Game just started playing — connect to bridge
+        runtime_bridge_.connect();
+    } else if (!game_running && game_was_running_) {
+        // Game just stopped — disconnect
+        runtime_bridge_.disconnect();
+    }
+    game_was_running_ = game_running;
+
+    // Poll bridge connection state
+    runtime_bridge_.poll();
+}
+
+void McpEditorPlugin::_register_debugger_plugin() {
+    String path = "res://addons/godot_mcp/mcp_debugger_plugin.gd";
+    Ref<Resource> res = ResourceLoader::get_singleton()->load(path);
+    if (res.is_null()) {
+        log_warn("plugin", String("Failed to load debugger plugin: ") + path);
+        return;
+    }
+    debugger_plugin_ = res;
+    call("add_debugger_plugin", debugger_plugin_);
+    log_info("plugin", "EditorDebuggerPlugin registered");
+}
+
+void McpEditorPlugin::_unregister_debugger_plugin() {
+    if (debugger_plugin_.is_valid()) {
+        call("remove_debugger_plugin", debugger_plugin_);
+        debugger_plugin_.unref();
+    }
 }
 
 }  // namespace godot_mcp
