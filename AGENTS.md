@@ -24,7 +24,7 @@ cmake --build build --target deep-clean # 仅清 addons/bin/ + _deps/
 
 ## 关键约束
 
-- **版本号**只在根 `CMakeLists.txt:22`（`PROJECT_VERSION "0.2.0-dev5"`）。`plugin.cfg` 与 `.gdextension` 由 CMake 自动生成。
+- **版本号**只在根 `CMakeLists.txt:22`（`PROJECT_VERSION "0.2.0-dev6"`）。`plugin.cfg` 与 `.gdextension` 由 CMake 自动生成。
 - **入口符号** `gdext_rust_init`（`register_types.cpp:45`）——遗留名，**不要改**。
 - **`compatibility_minimum = "4.6"`** 与 `GODOTCPP_API_VERSION "4.6"`（`extensions/CMakeLists.txt:15`）必须同步。
 - **Pinned deps**: `godot-cpp 10.0.0-rc1`、`ryml v0.7.0`。升级前必须测试。
