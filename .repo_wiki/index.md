@@ -84,7 +84,7 @@
 
 ## 给 Agent 的提醒
 
-- **不要修改** `extensions/src/register_types.cpp:45` 的入口符号 `gdext_rust_init`（遗留名，`.gdextension` 引用）
+- **入口符号** `gdext_mcp_init`（`register_types.cpp:45`）
 - **不要修改** `extensions/CMakeLists.txt:15` 的 `GODOTCPP_API_VERSION "4.6"` 与根 `CMakeLists.txt:72` 的 `compatibility_minimum = "4.6"` 之间的绑定
 - **升级 godot-cpp / ryml 前必测** —— 二者均为 FetchContent 拉取，缓存键与版本绑定
 - **MSVC UTF-8** —— 含非 ASCII 的字符串字面量必须用 `String::utf8("中文")`，根 `CMakeLists.txt:43` 已加 `/utf-8 /bigobj`

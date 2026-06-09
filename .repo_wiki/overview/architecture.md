@@ -34,7 +34,7 @@ flowchart LR
 | 传输 | MCP Streamable HTTP，端口 `:9600` |
 | 工具注册 | `// @tool register` + `tools/codegen.py` 编译期自动注册 |
 | 线程模型 | **纯主线程**（`EditorPlugin::_on_process_frame` 驱动） |
-| 入口符号 | `gdext_rust_init`（`register_types.cpp:45`，遗留名） |
+| 入口符号 | `gdext_mcp_init`（`register_types.cpp:45`） |
 | 编码规范 | 根 `CMakeLists.txt:43` 已加 `/utf-8 /bigobj`（MSVC） |
 | 构建优化 | sccache/ccache（自动检测）、Unity(jumbo)、lld-link |
 | 持久化 | C++ 侧无独立状态；Godot 编辑器持有数据 |
@@ -70,7 +70,7 @@ sequenceDiagram
 
 ```
 extensions/src/                  # C++ GDExtension 唯一源码根
-├── register_types.cpp           # GDExtension 入口 (gdext_rust_init)
+├── register_types.cpp           # GDExtension 入口 (gdext_mcp_init)
 ├── editor_plugin.cpp/.hpp       # McpEditorPlugin 生命周期 + process_frame 泵
 ├── logging.hpp                  # 日志 inline 函数
 ├── built_in/
@@ -123,7 +123,7 @@ tools/
 
 example/addons/godot_mcp/        # 构建产物（CMake 生成 + copy-gdext target）
 ├── plugin.cfg                   # 由根 CMakeLists.txt 从 PROJECT_VERSION 生成
-├── godot_mcp.gdextension        # entry_symbol = gdext_rust_init
+├── godot_mcp.gdextension        # entry_symbol = gdext_mcp_init
 └── bin/                         # godot_mcp_gdext.{dll,so,dylib}（gitignored）
 ```
 

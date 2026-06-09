@@ -116,7 +116,7 @@ Client HTTP POST /mcp {"method":"tools/call","params":{"name":"get_node_position
 
 ```
 extensions/src/
-├── register_types.cpp       # GDExtension entry (symbol: gdext_rust_init)
+├── register_types.cpp       # GDExtension entry (symbol: gdext_mcp_init)
 ├── editor_plugin.cpp/.hpp   # EditorPlugin assembler
 ├── logging.hpp              # Logging utilities
 ├── sdk/
