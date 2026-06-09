@@ -119,10 +119,13 @@ void McpEditorPlugin::_on_process_frame() {
     if (!ei) return;
 
     bool game_running = ei->is_playing_scene();
-    if (game_running && !game_was_running_) {
-        // Game just started playing — connect to bridge
-        runtime_bridge_.connect();
-    } else if (!game_running && game_was_running_) {
+    if (game_running) {
+        // Keep retrying while game runs but bridge not connected
+        // (game TCP server may not be ready on first attempt)
+        if (!game_was_running_ || !runtime_bridge_.is_connected()) {
+            runtime_bridge_.connect();
+        }
+    } else if (game_was_running_) {
         // Game just stopped — disconnect
         runtime_bridge_.disconnect();
     }
