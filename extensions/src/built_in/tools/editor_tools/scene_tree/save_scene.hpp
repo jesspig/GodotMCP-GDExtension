@@ -63,8 +63,7 @@ protected:
                 return ToolResult::err("MKDIR_FAILED",
                     String::utf8("无法创建父目录: ") + path);
             }
-            ei->save_scene_as(path);
-            notify_file_changed(path);
+            ei->save_scene_as(path, false);
         }
 
         Dictionary data;

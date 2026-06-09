@@ -481,7 +481,7 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
         }
     }
 
-    // ToolResult 格式下，展开 data 中的字段
+    // 展开 data 中的字段到顶层
     if (tool_result.has("data") && tool_result["data"].get_type() == Variant::DICTIONARY) {
         const Dictionary data = tool_result["data"];
         const Array data_keys = data.keys();

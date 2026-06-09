@@ -1,0 +1,67 @@
+name: capture_viewport
+description: 编辑器/游戏视口截图测试
+
+tests:
+  - tool: capture_viewport
+    description: 捕获 2D 视口截图（默认）
+    args: { viewport_type: "2d", format: "png" }
+    expect:
+      status: success
+      has_keys: [file_path, width, height, format]
+      field_checks:
+        - path: width
+          type: int
+          gt: 0
+        - path: height
+          type: int
+          gt: 0
+        - path: format
+          type: string
+          equals: "png"
+        - path: file_path
+          type: string
+          not_empty: true
+
+  - tool: capture_viewport
+    description: 捕获 3D 视口截图
+    args: { viewport_type: "3d", format: "png" }
+    expect:
+      status: success
+      has_keys: [file_path, width, height, format]
+      field_checks:
+        - path: width
+          type: int
+          gt: 0
+        - path: height
+          type: int
+          gt: 0
+        - path: format
+          type: string
+          equals: "png"
+
+  - tool: capture_viewport
+    description: 捕获 2D 视口 JPG 格式
+    args: { viewport_type: "2d", format: "jpg" }
+    expect:
+      status: success
+      has_keys: [file_path, width, height, format]
+      field_checks:
+        - path: format
+          type: string
+          equals: "jpg"
+
+  - tool: capture_viewport
+    description: 自定义保存路径
+    args: { viewport_type: "2d", format: "png", save_path: "res://screenshots/custom_test.png" }
+    expect:
+      status: success
+      field_checks:
+        - path: file_path
+          type: string
+          equals: "res://screenshots/custom_test.png"
+
+  - tool: capture_game_viewport
+    description: 游戏未运行时返回错误
+    args: {}
+    expect:
+      status: error
