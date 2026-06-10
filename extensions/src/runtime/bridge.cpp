@@ -131,4 +131,20 @@ Dictionary RuntimeBridge::read_response(int timeout_ms) {
     return r;
 }
 
+Dictionary RuntimeBridge::make_response(const Dictionary &raw) {
+    if (!raw.has("ok") || !raw["ok"]) {
+        Dictionary error;
+        error["code"] = "BRIDGE_ERROR";
+        error["message"] = raw.get("error", String::utf8("命令执行失败"));
+        Dictionary r;
+        r["success"] = false;
+        r["error"] = error;
+        return r;
+    }
+    Dictionary r;
+    r["success"] = true;
+    r["data"] = raw.get("data", Variant());
+    return r;
+}
+
 } // namespace godot_mcp

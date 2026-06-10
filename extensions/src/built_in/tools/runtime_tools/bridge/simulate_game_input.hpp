@@ -79,7 +79,7 @@ protected:
         }
         Dictionary params;
         params["actions"] = ctx.args.get("actions", Array());
-        return bridge->send_command("simulate_input", params);
+        return RuntimeBridge::make_response(bridge->send_command("simulate_input", params));
     }
 };
 

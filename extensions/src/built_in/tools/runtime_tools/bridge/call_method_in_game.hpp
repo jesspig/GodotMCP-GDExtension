@@ -59,7 +59,7 @@ protected:
         params["node_path"] = args_string(ctx.args, "node_path");
         params["method"] = args_string(ctx.args, "method");
         params["args"] = ctx.args.get("args", Array());
-        return bridge->send_command("call_method", params);
+        return RuntimeBridge::make_response(bridge->send_command("call_method", params));
     }
 };
 

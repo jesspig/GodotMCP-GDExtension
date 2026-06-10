@@ -19,6 +19,7 @@ public:
 
     void _enter_tree() override;
     void _exit_tree() override;
+    void _process(double delta) override;
 
     godot::String _get_plugin_name() const override;
 
@@ -28,7 +29,7 @@ protected:
 private:
     static int read_port_from_env(const godot::String &env_var, int default_port);
 
-    void _on_process_frame();
+    void _try_bridge_connect();
 
     HandlerRegistry registry_;
     McpHandler mcp_handler_{&registry_};

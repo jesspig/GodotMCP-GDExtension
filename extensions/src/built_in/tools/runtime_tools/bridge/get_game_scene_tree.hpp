@@ -44,7 +44,7 @@ protected:
         }
         Dictionary params;
         params["max_depth"] = args_int(ctx.args, "max_depth", -1);
-        return bridge->send_command("get_scene_tree", params);
+        return RuntimeBridge::make_response(bridge->send_command("get_scene_tree", params));
     }
 };
 

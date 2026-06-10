@@ -59,7 +59,7 @@ protected:
         params["node_path"] = args_string(ctx.args, "node_path");
         params["property"] = args_string(ctx.args, "property");
         params["value"] = ctx.args.get("value", Variant());
-        return bridge->send_command("set_property", params);
+        return RuntimeBridge::make_response(bridge->send_command("set_property", params));
     }
 };
 

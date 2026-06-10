@@ -72,6 +72,7 @@ set(GODOT_MCP_SOURCES
 
     # Runtime bridge
     src/runtime/bridge.cpp
+    src/runtime/game_bridge.cpp
 
     # LSP
     src/lsp/client.cpp

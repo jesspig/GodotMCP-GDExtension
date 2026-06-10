@@ -6,7 +6,6 @@
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
-#include <godot_cpp/classes/scene_tree.hpp>
 #include <limits>
 #include <godot_cpp/variant/string.hpp>
 
@@ -76,11 +75,6 @@ void McpEditorPlugin::_enter_tree() {
 
     started_ = true;
 
-    SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
-    if (tree) {
-        tree->connect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
-    }
-
     log_info("plugin", String("Godot MCP v") + String(GODOT_MCP_PLUGIN_VERSION) +
                            String(" ready on HTTP :") + String::num_int64(http_port_) +
                            String(" (") + String::num_int64(registry_.builtin_tool_count()) +
@@ -90,12 +84,6 @@ void McpEditorPlugin::_enter_tree() {
 void McpEditorPlugin::_exit_tree() {
     if (!started_) return;
 
-    SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
-    if (tree && tree->is_connected("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame))) {
-        tree->disconnect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
-    }
-
-    // Disconnect runtime bridge
     runtime_bridge_.disconnect();
 
     http_server_.stop();
@@ -103,29 +91,29 @@ void McpEditorPlugin::_exit_tree() {
     log_info("plugin", "Godot MCP shut down");
 }
 
-void McpEditorPlugin::_on_process_frame() {
+void McpEditorPlugin::_process(double delta) {
     if (!started_) return;
+
     http_server_.poll();
 
-    // Runtime bridge connection lifecycle
+    _try_bridge_connect();
+
+    runtime_bridge_.poll();
+}
+
+void McpEditorPlugin::_try_bridge_connect() {
     EditorInterface *ei = EditorInterface::get_singleton();
     if (!ei) return;
 
     bool game_running = ei->is_playing_scene();
     if (game_running) {
-        // Keep retrying while game runs but bridge not connected
-        // (game TCP server may not be ready on first attempt)
         if (!game_was_running_ || !runtime_bridge_.is_connected()) {
             runtime_bridge_.connect();
         }
     } else if (game_was_running_) {
-        // Game just stopped — disconnect
         runtime_bridge_.disconnect();
     }
     game_was_running_ = game_running;
-
-    // Poll bridge connection state
-    runtime_bridge_.poll();
 }
 
 }  // namespace godot_mcp

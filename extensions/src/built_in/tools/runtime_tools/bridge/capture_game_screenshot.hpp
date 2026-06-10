@@ -44,7 +44,7 @@ protected:
         }
         Dictionary params;
         params["format"] = args_string(ctx.args, "format", "png");
-        return bridge->send_command("screenshot", params);
+        return RuntimeBridge::make_response(bridge->send_command("screenshot", params));
     }
 };
 

@@ -22,6 +22,12 @@ public:
 
     godot::Dictionary send_command(const godot::String &cmd, const godot::Dictionary &params, int timeout_ms = 5000);
 
+    // Flatten a bridge JSON-RPC response into a tool-friendly envelope.
+    // Bridge responses have {"ok":bool,"data":...,"id":int}.
+    // This extracts the inner data and wraps in {"success":true,"data":...}
+    // or {"success":false,"error":{"code":"BRIDGE_ERROR","message":"..."}}.
+    static godot::Dictionary make_response(const godot::Dictionary &raw);
+
     void set_port(int port) { port_ = port; }
     int port() const { return port_; }
 

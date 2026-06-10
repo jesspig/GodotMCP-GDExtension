@@ -52,7 +52,7 @@ protected:
         Dictionary params;
         params["node_path"] = args_string(ctx.args, "node_path");
         params["property"] = args_string(ctx.args, "property");
-        return bridge->send_command("get_property", params);
+        return RuntimeBridge::make_response(bridge->send_command("get_property", params));
     }
 };
 
