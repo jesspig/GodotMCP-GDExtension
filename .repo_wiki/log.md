@@ -2,6 +2,12 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-10 — 下一代工具架构设计（ADR-015）+ 架构分析
+
+- **新增** `design/decisions.md` ADR-015：下一代工具架构（搜索引擎 + 自动 Undo + SDK 平权 + 三层工具体系），含 10 项子决策和四阶段实施路线图，依赖 ADR-014 全部完成后启动
+- **更新** `design/roadmap.md`：新增 Phase 4（ADR-015）追踪清单，覆盖基础架构/Undo+SDK/三层工具/MCP 差异化四个子阶段
+- **分析** 完成全项目深潜分析（源码 40+ 文件 + 竞品 + Godot UndoRedo 文档），涵盖：ITool 接口/HandlerRegistry/codegen/undo 覆盖/SDK 注册/分类系统/工具架构等维度
+
 ## 2026-06-10 — Wiki 知识库同步（运行时桥接、架构修正、ADR 更新）
 
 - **新增** `modules/runtime-bridge.md`：GameBridgeNode TCP :9601 + RuntimeBridge 客户端完整文档（架构图、数据流、7 个命令、状态机、已知问题）

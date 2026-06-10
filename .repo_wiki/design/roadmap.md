@@ -315,3 +315,43 @@
 4. **工具发现优化**：~11,734 工具中大部分是属性 get/set 噪音，考虑按使用频率分级或合并为通用工具
 5. **每项功能完成后**：更新 `.repo_wiki/log.md` 并补充对应模块文档
 6. **测试先行**：每项新工具必须附带 YAML 测试用例
+
+---
+
+## 架构优化阶段（Phase 4 — ADR-015）
+
+> 待 P1（动画/UI/TileMap/碰撞）全部完成后启动。完整方案见 [ADR-015](decisions.md#ADR-015)。
+
+### Phase 0 — 基础架构
+
+| 任务 | 状态 |
+|------|:----:|
+| ToolSearchEngine + find_tool 元工具（完整搜索：exact/prefix/fuzzy/fulltext + 别名 + 分类过滤 + 频次排序） | ❌ |
+| ToolOutput 统一信封增强（meta/confirm/recoverable 字段） | ❌ |
+| 自动 Input Schema 校验 | ❌ |
+| 全工具描述英文化 | ❌ |
+| `completion/complete` 集成 ToolSearchEngine | ❌ |
+
+### Phase 1 — Undo/Redo + SDK 平权
+
+| 任务 | 状态 |
+|------|:----:|
+| supports_undo/is_destructive 能力声明 | ❌ |
+| HandlerRegistry 自动 Undo 包装 | ❌ |
+| IToolAdapter（SDK → ITool，SDK 工具注册到 itool_table_ 主表） | ❌ |
+| SDK 工具可通过属性声明 needs_scene/needs_node/supports_undo | ❌ |
+
+### Phase 2 — 三层工具体系
+
+| 任务 | 状态 |
+|------|:----:|
+| 通用兜底工具：get/set_node_property, get/set_resource_property, call_node_method, run_editor_script | ❌ |
+| 复合工具：edit_transform, edit_node, edit_resource, batch_set_property, duplicate_nodes, create_scene_skeleton | ❌ |
+| 分类系统 YAML 驱动取代 top_level_meta() 硬编码 | ❌ |
+
+### Phase 3 — MCP 差异化
+
+| 任务 | 状态 |
+|------|:----:|
+| MCP Resources：godot://scene/current, godot://project/config | ❌ |
+| MCP Prompts：create_player_controller, debug_performance, setup_collision_shapes | ❌ |

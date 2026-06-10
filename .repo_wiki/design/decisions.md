@@ -350,6 +350,256 @@
 
 **详细追踪清单见 [roadmap.md](roadmap.md)**。
 
+## ADR-015: 下一代工具架构（搜索引擎 + 自动 Undo + SDK 平权 + 三层工具体系）
+
+**状态**：待实施（依赖 ADR-014 全部完成后启动）
+**日期**：2026-06-10
+**ADR-014 完成条件**：P1（动画/UI/TileMap/碰撞）全部实施完毕
+**前置 ADR**：ADR-010（统一 ITool 接口）、ADR-012（Undo/Redo 策略）、ADR-014（P0/P1/P2 路线图）
+
+**背景**：ADR-014 功能优化路线图的 P0 阶段完成后，项目在核心功能覆盖上已追平竞品。但在架构层面仍有以下待解决问题：
+
+1. **工具发现困难**：~11,758 工具中无搜索能力，AI 只能通过分类逐层浏览或精准名称调用
+2. **Undo/Redo 覆盖不全**：节点属性 set 和场景树工具有 undo，但资源属性/setting 工具无 undo
+3. **SDK 工具降级**：GDScript/C# 自定义工具走 CommandFn 后备表，无法享受 ITool 的前置检查（`needs_scene`/`needs_node`）和自动 Undo
+4. **工具描述未国际化**：中英混用，AI 客户端对非英文工具理解准确度下降
+5. **输入输出结构半统一**：新旧两种返回格式兼容代码存在（`McpHandler::456`），Schema 靠手工校验
+6. **无通用兜底工具**：引擎升级新增属性时，YAML 数据库未更新前无法操作
+7. **MCP Resources/Prompts 空实现**：协议已声明支持但返回空数据
+
+**决策**：实施下一代工具架构重构，分为四层共 11 项子决策。
+
+---
+
+### 决策 1：ToolSearchEngine — 内置搜索引擎
+
+在 `HandlerRegistry` 中嵌入完整的搜索引擎服务：
+
+- **索引构建**：`register_tool()` / `unregister_custom_tool()` 时自动维护倒排索引
+- **索引维度**：工具名（小写）| brief | description | category | 别名（YAML `aliases` 字段）| 调用频次
+- **搜索模式**：
+  - `exact`：工具名/别名精确匹配（最高优先级）
+  - `prefix`：工具名前缀匹配（高优先级）
+  - `fuzzy`：Levenshtein 距离 ≤ max(2, len/3)（工具名）
+  - `fulltext`：子串匹配 brief/description（兜底）
+  - `auto`：自动选择最佳模式（默认）
+- **排序算法**：匹配类型权重 × 调用频次权重，支持 `category` 过滤 + `limit`/`offset` 分页
+- **集成 completion/complete**：对 `node`/`class`/`property`/`tool` 参数提供自动补全
+
+**新元工具**：`find_tool`（`meta_tools` 分类）
+
+```json
+{
+  "query": "string [required]",
+  "mode": "string? [auto|exact|prefix|fuzzy|fulltext]",
+  "category": "string?",
+  "limit": "integer? [1-100, default 20]",
+  "offset": "integer? [default 0]"
+}
+```
+
+---
+
+### 决策 2：ToolOutput 统一信封增强
+
+在 ADR-010 的 `ToolResult` 基础上升级为 `ToolOutput`：
+
+- **成功**：`{"success": true, "data": {...}, "meta": {"undoable": bool, "destructive": bool, "duration_ms": int}}`
+- **失败**：`{"success": false, "error": {"code": "NODE_NOT_FOUND", "message": "...", "recoverable": bool, "details": {...}}}`
+- **确认**：`{"success": false, "error": {"code": "CONFIRMATION_REQUIRED", "message": "...", "destructive": true, "confirm_token": "..."}}`（破坏性操作二次确认）
+- `McpHandler::handle_tools_call()` 统一识别三种类型，`CONFIRMATION_REQUIRED` 返回特殊错误码
+
+---
+
+### 决策 3：自动 Input Schema 校验
+
+`ITool::execute()` 模板方法在执行 `execute_impl()` 前自动校验入参：
+
+- 检查 `input_schema()["required"]` 中所有字段是否存在
+- 检测类型不匹配（string → int 自动转换，复杂类型提示）
+- 失败返回 `ToolOutput::err("MISSING_REQUIRED", ..., recoverable=true)`
+- AI 客户端通过 `recoverable=true` 标记可自动重试
+
+---
+
+### 决策 4：全英文化
+
+所有内置工具的 `brief()` / `description()` / `category_description()` 统一使用英文。分类标签保持英文。
+
+---
+
+### 决策 5：自动 Undo 包装
+
+在 `HandlerRegistry::execute()` 中对声明 `supports_undo() == true` + `needs_scene() == true` 的工具自动应用 Undo/Redo 包装：
+
+- **ITool 新增能力声明**：
+  - `supports_undo() → bool`：此操作可否撤销
+  - `is_destructive() → bool`：此操作是否不可逆（如文件删除）
+- **自动包装逻辑**：
+  - 对已知属性修改（参数含 `node` + `property` + `value`），自动记录修改前值
+  - 执行后自动创建 `EditorUndoRedoManager` action
+  - 对批量操作（复合工具），整批注册为一个 action
+- **声明矩阵**：
+
+| 工具类型 | supports_undo | is_destructive |
+|---------|:------------:|:-------------:|
+| scene_tree CRUD | ✅ | ❌ |
+| NodePropertySetTool | ✅ | ❌ |
+| NodeResourceSetTool | ✅ | ❌ |
+| SettingSetTool | ✅ | ❌ |
+| 复合工具 | ✅ | ❌ |
+| 文件创建 | ❌ | ❌ |
+| 文件删除 | ❌ | ✅ |
+| 运行时桥接 | ❌ | ❌ |
+
+---
+
+### 决策 6：SDK 工具平权（IToolAdapter）
+
+移除当前 SDK 工具走 `CommandFn` 后备表的降级路径，改用 `IToolAdapter` 包装后注册到 `itool_table_` 主表：
+
+```cpp
+class IToolAdapter : public ITool {
+    // 通过构造函数参数指定能力声明（needs_scene/needs_node/supports_undo）
+    // execute_impl() 委托给原始 CommandFn / Callable
+};
+```
+
+**效果**：
+- SDK 工具自动享受 `needs_scene`/`needs_node` 前置检查
+- SDK 工具自动享受 Undo 包装
+- SDK 工具自动享受 Schema 校验
+- SDK 工具与内置工具的**唯一差异**：名称自动加 `custom_` 前缀
+- SDK 工具可通过 `McpToolDefinition` 扩展属性声明（如 `set_needs_scene(true)`）
+
+---
+
+### 决策 7：三层工具体系
+
+工具分类为三层，互补共存：
+
+| 层 | 定位 | 示例 | 生成方式 |
+|----|------|------|---------|
+| **原子工具** | 精准操作，覆盖已知属性 | `get_Node2D_position`, `set_Node2D_rotation` | YAML codegen |
+| **通用兜底工具** | 引擎升级/未知属性时的后备 | `set_node_property`, `get_resource_property`, `run_editor_script` | 手动编码（~5 个） |
+| **复合工具** | 合并常用操作组合 | `edit_transform`, `edit_node`, `batch_set_property` | 手动编码（~6 个） |
+
+**通用兜底工具列表**（`scene/general` 分类）：
+
+| 工具 | 功能 | 说明 |
+|------|------|------|
+| `get_node_property` | 按属性路径字符串读任意属性 | 引擎升级后新属性也可用 |
+| `set_node_property` | 按属性路径字符串写任意属性（带 undo） | 同上 |
+| `get_resource_property` | 按属性路径读资源属性 | 资源文件属性兜底 |
+| `set_resource_property` | 按属性路径写资源属性 | 同上 |
+| `call_node_method` | 调用节点任意方法 | 无对应工具时兜底 |
+| `run_editor_script` | 编辑器进程内执行 GDScript | 终极兜底 |
+
+**复合工具列表**（`scene/general` 分类）：
+
+| 工具 | 合并的操作 | 一次 MCP 调用代替 |
+|------|-----------|------------------|
+| `edit_transform` | position + rotation + scale | 3 次 |
+| `edit_node` | 任意多个属性一次性设值 | N 次 |
+| `edit_resource` | 任意多个资源属性设值 | N 次 |
+| `batch_set_property` | 多节点同一属性 | N 次 |
+| `duplicate_nodes` | 多节点复制 + 布局排列 | N 次 |
+| `create_scene_skeleton` | 批量创建 + 命名 + 层级 | N 次 |
+
+---
+
+### 决策 8：分类系统 YAML 驱动（取代硬编码）
+
+当前 `top_level_meta()` 硬编码 4 个顶级分类，改为通过首个注册工具的 `category_meta()` 自动发现：
+
+```cpp
+class ITool {
+    // 新增：分类元数据，只在该分类的第一个工具注册时生效
+    virtual Dictionary category_meta() const { return {}; }
+    // 返回: {"label": "...", "description": "..."}
+};
+```
+
+系统自动根据工具的 `category()` 构建分类树，无需手动维护顶级分类列表。现有的 4 个顶级分类由对应分类下第一个注册的工具携带 `category_meta()` 维持。
+
+---
+
+### 决策 9：MCP Resources + Prompts 补齐
+
+**Resources**：
+- `godot://scene/current` → 当前场景结构快照
+- `godot://project/config` → 项目配置摘要
+
+**Prompts**：
+- `create_player_controller` → 创建玩家控制器引导
+- `debug_performance` → 性能调试引导
+- `setup_collision_shapes` → 碰撞体设置引导
+
+---
+
+### 决策 10：`completion/complete` 增强
+
+利用 `ToolSearchEngine` 提供上下文感知的自动补全：
+
+| 参数名 | 补全来源 |
+|--------|---------|
+| `tool` / `tool_name` | ToolSearchEngine |
+| `category` | 当前已注册分类路径 |
+| `node` / `node_path` | 当前场景节点路径列表 |
+| `class` / `class_name` | Godot ClassDB |
+| `property` | 节点类型的可用属性 |
+| `path` / `res_path` | 文件系统 `res://` 路径 |
+
+---
+
+### 实施路线图
+
+```
+Phase 0 — 基础架构（完成后发布 v0.3.0）
+  [ ] ToolSearchEngine + find_tool 元工具
+  [ ] ToolOutput 统一信封 + Schema 校验
+  [ ] 全工具描述英文化
+
+Phase 1 — Undo/Redo + SDK 平权（v0.4.0）
+  [ ] supports_undo/is_destructive 能力声明
+  [ ] HandlerRegistry 自动 Undo 包装
+  [ ] IToolAdapter + SDK 注册路径改造
+
+Phase 2 — 工具体系（v0.5.0）
+  [ ] 通用兜底工具（6 个）
+  [ ] 复合工具（6 个）
+  [ ] completion/complete 增强
+
+Phase 3 — 差异化（v0.6.0）
+  [ ] MCP Resources + Prompts
+  [ ] 分类系统 YAML 驱动
+  [ ] 集成测试 + 文档更新
+```
+
+### 后果
+
+**正面**：
+- 搜索能力覆盖全部 ~11,758 工具，AI 从"知道确切名字才能用"变为"描述意图即可发现"
+- Undo/Redo 覆盖全部可逆操作，用户 Ctrl+Z 行为与 Godot 原生一致
+- SDK 工具与内置工具完全平权，降低用户自定义工具的门槛
+- 三层工具体系覆盖所有场景：精确 → 兜底 → 高效
+- 全英文减少 AI 非英语语言模型的歧义
+- Resources/Prompts 充分使用 MCP 协议能力
+- 引擎升级无需等待 YAML 数据库更新即可操作新属性
+
+**负面**：
+- ToolSearchEngine 增加 ~500 行 C++ 代码
+- 自动 Undo 包装对非常规操作（调用方法而非设值）需手动处理
+- SDK 工具必须显式声明 `needs_scene`/`needs_node` 等能力，否则默认为 false
+- 全英文化对中文用户的学习曲线略有增加（但 AI 客户端无此问题）
+- 复合工具的参数 Schema 比原子工具更复杂
+
+**保留**：
+- 原子工具的数量优势（~11,758）不变，codegen 体系不变
+- 单进程 GDExtension 架构不变（ADR-001）
+- `// @tool register` + codegen 自动注册机制不变（ADR-010）
+- 纯主线程无锁模型不变
+
 ## 已废弃的决策
 
 以下 ADR 随 Python 服务器移除而废弃：
