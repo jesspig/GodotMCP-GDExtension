@@ -22,7 +22,7 @@
   "plugins": [
     {
       "name": "Godot MCP",
-      "version": "0.2.0-dev2",
+      "version": "0.2.0-dev7",
       "author": "",
       "description": "Model Context Protocol bridge for Godot Engine.",
       "enabled": true
