@@ -2,6 +2,14 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-10 — ADR-014 P1/P2 全部完成 + 提交
+
+- **新增** 33 个 P1/P2 工具和 save_resource_as（总工具数 11,790）：Animation(5)、Control(4)、TileMap(3)、Collision(1)、Debugger(5)、Export(2)、Plugin(3)、InputMap(1)、Shader(3)、Docs(3)、Scaffold(1)、Visualizer(1)、save_resource_as(1)
+- **新增** mcp_handler 集成：3 个 Resources（scene-tree/project-settings/editor-info）+ 1 个 Resource Template（scene-node/{path}）+ 5 个 Prompts
+- **修复** 3 个 bug：Plugin 自毁守卫（禁止操作 godot_mcp 自身）；CollisionShape add_do_method 顺序（消除 Invalid owner）；set_keyframe Vector2→Vector3 自动转换
+- **提交** feat(p1) + feat(p2) 两次提交至 feature/cleanup 分支
+- **更新** wiki 文档：decisions.md ADR-014 标记完成；roadmap.md P0/P1/P2 追踪表全部标记 ✅
+
 ## 2026-06-10 — 下一代工具架构设计（ADR-015）+ 架构分析
 
 - **新增** `design/decisions.md` ADR-015：下一代工具架构（搜索引擎 + 自动 Undo + SDK 平权 + 三层工具体系），含 10 项子决策和四阶段实施路线图，依赖 ADR-014 全部完成后启动

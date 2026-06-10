@@ -187,9 +187,9 @@
 
 ## ADR-014: 功能优化路线图（P0/P1/P2 三阶段）
 
-**状态**：P0 已完成（2026-06 实施完毕），P1/P2 待规划
-**日期**：2026-06-08（原始），2026-06-10（P0 完成）
-**背景**：市场分析显示，市面 20+ Godot MCP 项目中，本项目（~11,734 工具）在架构上（C++ GDExtension 进程内、纯主线程无锁、Codegen 自动注册）具有唯一不可替代优势，但功能覆盖存在显著缺口。竞品普遍具备的游戏运行时桥接、编辑器/游戏截图、脚本读写编辑等核心能力，本项目缺失。
+**状态**：全部已完成（2026-06-10 实施完毕）
+**日期**：2026-06-08（原始），2026-06-10（P0 完成），2026-06-10（P1/P2 完成）
+**背景**：市场分析显示，市面 20+ Godot MCP 项目中，本项目（~11,790 工具）在架构上（C++ GDExtension 进程内、纯主线程无锁、Codegen 自动注册）具有唯一不可替代优势，但功能覆盖存在显著缺口。竞品普遍具备的游戏运行时桥接、编辑器/游戏截图、脚本读写编辑等核心能力，本项目缺失。
 
 **决策**：按 P0/P1/P2 三级优先级实施功能补全，每阶段完成后进入下一阶段。
 
@@ -232,7 +232,7 @@
 | `list_gd_scripts` / `grep_scripts` / `glob_scripts` | 目录遍历 | ✅ |
 | 对应 C# 工具（7 个） | 同上，`.cs` 扩展 | ✅ |
 
-### Phase 2 (P1) — 竞争力（待开发）
+### Phase 2 (P1) — 竞争力 ✅（已完成）
 
 **目标**：补齐显著提升竞争力的功能模块。
 
@@ -269,7 +269,7 @@
 |------|---------|
 | `create_collision_shape` | 一步创建 CollisionShape2D/3D + 配置形状（RectangleShape2D/CircleShape2D/CapsuleShape2D 等 9 种） |
 
-### Phase 3 (P2) — 差异化
+### Phase 3 (P2) — 差异化 ✅（已完成）
 
 **目标**：实现竞品没有或只有少数竞品有的差异化功能。
 
@@ -289,21 +289,22 @@
 
 **注意**：`EditorDebuggerNode` 是编辑器内部类，需通过 `find_children()` + `call()` 动态调用。
 
-#### 3.2 MCP Resources + Prompts
+#### 3.2 MCP Resources + Prompts ✅
 
 | 资源 URI | 内容 |
 |----------|------|
-| `godot://scene/current` | 当前打开的场景信息 |
-| `godot://project/info` | 项目元数据 |
-| `godot://script/current` | 当前打开的脚本 |
+| `godot://scene/current` → `scene-tree` | 当前打开的场景信息 |
+| `godot://project/info` → `project-settings` | 项目元数据 |
+| `editor-info` | 编辑器版本与项目信息（新增） |
+| `scene-node/{path}` | 场景节点详情（Resource Template，新增） |
 
 | Prompt 模板 | 用途 |
 |-------------|------|
-| `create_player_controller` | 创建玩家控制器 |
-| `setup_scene_structure` | 设置场景结构 |
-| `debug_physics` | 调试物理问题 |
-| `create_ui_layout` | 创建 UI 布局 |
-| `setup_animation` | 设置动画 |
+| `create_scene` | 创建新场景（替代 setup_scene_structure） |
+| `create_node` | 创建新节点 |
+| `fix_error` | 修复编辑器错误（替代 debug_physics） |
+| `explain_node` | 解释节点类型和用途 |
+| `code_review` | 代码审查 |
 
 #### 3.3 项目可视化器
 
@@ -344,7 +345,7 @@
 1. **每阶段完成后才能进入下一阶段**：P0 未完成前不开始 P1，以此类推
 2. **优先利用 GDExtension 优势**：做 Node.js 方案做不到的事（底层 API 调用、实时性能数据、编辑器 UI 自动化）
 3. **保持 codegen 体系**：新工具应尽量利用 `// @tool register` + codegen 自动注册
-4. **工具发现优化**：~11,734 工具中大部分是属性 get/set 噪音，考虑按使用频率分级或合并为通用工具
+4. **工具发现优化**：~11,790 工具中大部分是属性 get/set 噪音，考虑按使用频率分级或合并为通用工具
 5. **每项功能完成后**：更新 `.repo_wiki/log.md` 并补充对应模块文档
 6. **测试先行**：每项新工具必须附带 YAML 测试用例
 
@@ -354,7 +355,7 @@
 
 **状态**：待实施（依赖 ADR-014 全部完成后启动）
 **日期**：2026-06-10
-**ADR-014 完成条件**：P1（动画/UI/TileMap/碰撞）全部实施完毕
+**ADR-014 完成条件**：P1（动画/UI/TileMap/碰撞）+ P2（调试器/导出/插件/文档/着色器/脚手架/MCP）全部实施完毕
 **前置 ADR**：ADR-010（统一 ITool 接口）、ADR-012（Undo/Redo 策略）、ADR-014（P0/P1/P2 路线图）
 
 **背景**：ADR-014 功能优化路线图的 P0 阶段完成后，项目在核心功能覆盖上已追平竞品。但在架构层面仍有以下待解决问题：
