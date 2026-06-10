@@ -188,6 +188,8 @@ const HashMap<String, TopLevelMeta> &top_level_meta() {
                                             String::utf8("节点属性读取与修改工具，按 Godot 节点类型分类组织"))},
         {String("editor_tools"), TopLevelMeta(String::utf8("Editor Tools"),
                                               String::utf8("编辑器操作工具：场景树 CRUD、剪贴板、脚本、工作区切换、控制台、调试器、性能监视器等"))},
+        {String("runtime_tools"), TopLevelMeta(String::utf8("Runtime Tools"),
+                                               String::utf8("游戏运行时桥接工具：场景树查询、属性读写、脚本执行、输入模拟、截图、UI 发现等"))},
     };
     return kTopLevel;
 }

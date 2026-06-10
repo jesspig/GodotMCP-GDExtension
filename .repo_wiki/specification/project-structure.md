@@ -33,12 +33,12 @@ GodotMCP/
 │   ├── .gitignore                 #
 │   └── addons/godot_mcp/          # 构建产物目录
 │       ├── plugin.cfg             # 由 CMake 从 PROJECT_VERSION 生成
-│       ├── godot_mcp.gdextension  # entry_symbol = gdext_rust_init, compatibility_minimum = 4.6
+│       ├── godot_mcp.gdextension  # entry_symbol = gdext_mcp_init, compatibility_minimum = 4.6
 │       └── bin/                   # godot_mcp_gdext.dll/.so/.dylib（gitignored）
 ├── extensions/
 │   ├── CMakeLists.txt             # godot-cpp + ryml FetchContent
 │   └── src/                       # C++ 源码唯一根
-│       ├── register_types.cpp     # GDExtension 入口（gdext_rust_init）
+│       ├── register_types.cpp     # GDExtension 入口（gdext_mcp_init）
 │       ├── editor_plugin.cpp/.hpp # McpEditorPlugin 生命周期
 │       ├── built_in/              # ITool + cmd_utils + tools/ + node_props/
 │       ├── server/                # ipc/ + mcp/ + registry/

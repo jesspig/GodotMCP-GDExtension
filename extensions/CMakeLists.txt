@@ -70,6 +70,10 @@ set(GODOT_MCP_SOURCES
     src/built_in/cmd_utils.cpp
     src/built_in/cmd_utils_json.cpp
 
+    # Runtime bridge
+    src/runtime/bridge.cpp
+    src/runtime/game_bridge.cpp
+
     # LSP
     src/lsp/client.cpp
 

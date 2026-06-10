@@ -6,7 +6,7 @@
 
 ```mermaid
 flowchart LR
-    subgraph Client["AI 客户端<br/>(Claude Code / OpenCode / Cursor / Copilot / Codex / …)"]
+    subgraph Client["AI 客户端<br/>(Claude Code / OpenCode / Cursor / …)"]
         MCP[HTTP Client]
     end
     subgraph Godot["Godot Editor 进程"]
@@ -15,15 +15,21 @@ flowchart LR
             HTTP["HttpServer<br/>(:9600, SSE)"]
             MCPHandler["McpHandler<br/>(JSON-RPC 2.0)"]
             Registry["HandlerRegistry<br/>(ITool 统一调度)"]
-            Tools["built_in/tools/<br/>+ node_props/db/*.yaml<br/>+ node_resource/db/*.yaml<br/>+ settings/db/*.yaml"]
+            Tools["built_in/tools/<br/>4 顶级分类 ~11758 工具"]
+            RB["RuntimeBridge<br/>(TCP :9601 客户端)"]
         end
-        Main["主线程 process_frame<br/>→ HttpServer::poll()"]
+        Main["_process() 每帧驱动<br/>poll HTTP + poll Bridge"]
+    end
+    subgraph Game["Godot Game 进程"]
+        GB["GameBridgeNode<br/>(TCP :9601 服务端)"]
     end
     MCP <-->|POST/GET/DELETE /mcp<br/>MCP Streamable HTTP| HTTP
     HTTP --> MCPHandler
     MCPHandler --> Registry
     Registry --> Tools
     Main --> HTTP
+    Main --> RB
+    RB <-->|TCP JSON :9601| GB
 ```
 
 ## 关键属性
@@ -33,8 +39,8 @@ flowchart LR
 | 进程数 | **1**（C++ GDExtension 加载到 Godot 编辑器内） |
 | 传输 | MCP Streamable HTTP，端口 `:9600` |
 | 工具注册 | `// @tool register` + `tools/codegen.py` 编译期自动注册 |
-| 线程模型 | **纯主线程**（`EditorPlugin::_on_process_frame` 驱动） |
-| 入口符号 | `gdext_rust_init`（`register_types.cpp:45`，遗留名） |
+| 线程模型 | **纯主线程**（`McpEditorPlugin::_process()` 驱动） |
+| 入口符号 | `gdext_mcp_init`（`register_types.cpp:45`） |
 | 编码规范 | 根 `CMakeLists.txt:43` 已加 `/utf-8 /bigobj`（MSVC） |
 | 构建优化 | sccache/ccache（自动检测）、Unity(jumbo)、lld-link |
 | 持久化 | C++ 侧无独立状态；Godot 编辑器持有数据 |
@@ -70,7 +76,7 @@ sequenceDiagram
 
 ```
 extensions/src/                  # C++ GDExtension 唯一源码根
-├── register_types.cpp           # GDExtension 入口 (gdext_rust_init)
+├── register_types.cpp           # GDExtension 入口 (gdext_mcp_init)
 ├── editor_plugin.cpp/.hpp       # McpEditorPlugin 生命周期 + process_frame 泵
 ├── logging.hpp                  # 日志 inline 函数
 ├── built_in/
@@ -88,21 +94,25 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │       ├── node_props/          #   节点属性 YAML 数据库（283 文件）+ 模板
 │       │   ├── node_property_tool.hpp
 │       │   └── db/
-│       └── editor_tools/
-│           ├── scene_tree/      #   25 个场景树 CRUD 工具 + scene_tree_utils
-│           ├── workspace/       #   24 个工作区工具
-│           ├── filesystem/      #   14 个文件系统工具
-│           └── settings/        #   4 个兜底工具 + 24 个 YAML 数据库
-│               ├── settings_tool.hpp
-│               ├── get_setting.hpp / set_setting.hpp / reset_setting.hpp / list_settings.hpp
-│               └── db/          #     24 个分类 YAML（844 设置项）
+│       ├── editor_tools/
+│       │   ├── scene_tree/      #   25+ 场景树 CRUD 工具 + scene_tree_utils
+│       │   ├── workspace/       #   24 个工作区工具
+│       │   ├── filesystem/      #   14 个文件系统工具
+│       │   ├── scripts/         #   12 个脚本读写验证工具
+│       │   └── settings/        #   4 个兜底工具 + 24 个 YAML 数据库
+│       │       ├── settings_tool.hpp
+│       │       ├── get_setting.hpp / set_setting.hpp / reset_setting.hpp / list_settings.hpp
+│       │       └── db/          #     24 个分类 YAML（844 设置项）
+│       └── runtime_tools/
+│           ├── bridge/          #   6 个运行时桥接工具
+│           └── lifecycle/       #   5 个游戏生命周期工具
 ├── server/
 │   ├── ipc/
 │   │   └── http_server.cpp/.hpp # MCP Streamable HTTP 服务器
 │   ├── mcp/
 │   │   └── mcp_handler.cpp/.hpp # JSON-RPC 2.0 会话管理
 │   └── registry/
-│       └── handler_registry.cpp/.hpp  # ITool 调度 + top_level_meta（3 个顶级分类）
+│       └── handler_registry.cpp/.hpp  # ITool 调度 + top_level_meta（4 个顶级分类）
 ├── sdk/
 │   ├── mcp_tool_definition.hpp/.cpp   # GDScript/C# 可继承基类
 │   └── mcp_tool_registry.hpp/.cpp     # 单例 SDK 注册表
@@ -123,9 +133,19 @@ tools/
 
 example/addons/godot_mcp/        # 构建产物（CMake 生成 + copy-gdext target）
 ├── plugin.cfg                   # 由根 CMakeLists.txt 从 PROJECT_VERSION 生成
-├── godot_mcp.gdextension        # entry_symbol = gdext_rust_init
+├── godot_mcp.gdextension        # entry_symbol = gdext_mcp_init
 └── bin/                         # godot_mcp_gdext.{dll,so,dylib}（gitignored）
 ```
+
+## 运行时桥接
+
+编辑器 ↔ 游戏进程的 TCP JSON 通道，端口 9601：
+
+- **GameBridgeNode**（游戏进程）：`register_types.cpp:23` 在 `LEVEL_SCENE` 创建，`call_deferred` 加入场景树，7 个命令 handler
+- **RuntimeBridge**（编辑器进程）：`McpEditorPlugin` 持有，`_process()` 每帧 `poll()` 驱动
+- **生命周期**：`_try_bridge_connect()` 通过 `ei->is_playing_scene()` 感知游戏启停
+
+详见 [modules/runtime-bridge.md](../modules/runtime-bridge.md)。
 
 ## 双重注册路径
 

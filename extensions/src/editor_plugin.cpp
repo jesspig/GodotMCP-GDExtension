@@ -2,11 +2,11 @@
 #include "logging.hpp"
 #include "sdk/mcp_tool_registry.hpp"
 
+#include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/engine.hpp>
-#include <limits>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
-#include <godot_cpp/classes/scene_tree.hpp>
+#include <limits>
 #include <godot_cpp/variant/string.hpp>
 
 #ifndef GODOT_MCP_PLUGIN_VERSION
@@ -56,6 +56,13 @@ void McpEditorPlugin::_enter_tree() {
     sdk_registry->set_handler_registry(&registry_);
     sdk_registry->set_mcp_handler(&mcp_handler_);
 
+    // Wire RuntimeBridge into HandlerRegistry (runtime tools need it)
+    registry_.set_runtime_bridge(&runtime_bridge_);
+
+    // Load bridge port from env (default 9601)
+    int bridge_port = read_port_from_env("GODOT_MCP_BRIDGE_PORT", 9601);
+    runtime_bridge_.set_port(bridge_port);
+
     http_port_ = read_port_from_env("GODOT_MCP_HTTP_PORT", 9600);
 
     if (!http_server_.start(http_port_, &mcp_handler_)) {
@@ -68,11 +75,6 @@ void McpEditorPlugin::_enter_tree() {
 
     started_ = true;
 
-    SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
-    if (tree) {
-        tree->connect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
-    }
-
     log_info("plugin", String("Godot MCP v") + String(GODOT_MCP_PLUGIN_VERSION) +
                            String(" ready on HTTP :") + String::num_int64(http_port_) +
                            String(" (") + String::num_int64(registry_.builtin_tool_count()) +
@@ -82,19 +84,36 @@ void McpEditorPlugin::_enter_tree() {
 void McpEditorPlugin::_exit_tree() {
     if (!started_) return;
 
-    SceneTree *tree = Object::cast_to<SceneTree>(get_tree());
-    if (tree && tree->is_connected("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame))) {
-        tree->disconnect("process_frame", callable_mp(this, &McpEditorPlugin::_on_process_frame));
-    }
+    runtime_bridge_.disconnect();
 
     http_server_.stop();
     started_ = false;
     log_info("plugin", "Godot MCP shut down");
 }
 
-void McpEditorPlugin::_on_process_frame() {
+void McpEditorPlugin::_process(double delta) {
     if (!started_) return;
+
     http_server_.poll();
+
+    _try_bridge_connect();
+
+    runtime_bridge_.poll();
+}
+
+void McpEditorPlugin::_try_bridge_connect() {
+    EditorInterface *ei = EditorInterface::get_singleton();
+    if (!ei) return;
+
+    bool game_running = ei->is_playing_scene();
+    if (game_running) {
+        if (!game_was_running_ || !runtime_bridge_.is_connected()) {
+            runtime_bridge_.connect();
+        }
+    } else if (game_was_running_) {
+        runtime_bridge_.disconnect();
+    }
+    game_was_running_ = game_running;
 }
 
 }  // namespace godot_mcp

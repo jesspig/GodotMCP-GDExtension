@@ -40,7 +40,7 @@ flowchart TB
 
 ```
 extensions/src/
-├── register_types.cpp              # GDExtension 入口：gdext_rust_init（遗留名称）
+├── register_types.cpp              # GDExtension 入口：gdext_mcp_init
 ├── editor_plugin.cpp/.hpp          # McpEditorPlugin 生命周期 + process_frame 泵
 ├── pch.hpp                         # 预编译头（STL + Godot 核心类型）
 ├── logging.hpp                     # log_info/warn/error（28 行）
@@ -59,8 +59,15 @@ extensions/src/
 │       ├── node_props/             #   YAML 数据库（283 节点类型属性）+ 模板
 │       │   ├── node_property_tool.hpp
 │       │   └── db/
-│       └── editor_tools/
-│           └── scene_tree/         #   20 个场景树 CRUD 工具 + utils
+│       ├── editor_tools/
+│       │   ├── scene_tree/         #   25+ 场景树 CRUD 工具 + utils
+│       │   ├── workspace/          #   24 个工作区工具
+│       │   ├── filesystem/         #   14 个文件系统工具
+│       │   ├── scripts/            #   12 个脚本读写验证工具
+│       │   └── settings/           #   4 个兜底工具 + 24 YAML 数据库
+│       └── runtime_tools/
+│           ├── bridge/             #   6 个运行时桥接工具
+│           └── lifecycle/          #   5 个游戏生命周期工具
 ├── server/
 │   ├── ipc/
 │   │   └── http_server.cpp/.hpp        # MCP Streamable HTTP 服务器（:9600）
@@ -68,6 +75,9 @@ extensions/src/
 │   │   └── mcp_handler.cpp/.hpp        # MCP JSON-RPC 2.0 会话管理
 │   └── registry/
 │       └── handler_registry.cpp/.hpp   # ITool 主表 + CommandFn 后备表 + top_level_meta
+├── runtime/
+│   ├── bridge.hpp/.cpp                # RuntimeBridge：编辑器侧 TCP 客户端（→9601）
+│   └── game_bridge.hpp/.cpp           # GameBridgeNode：游戏进程 TCP 服务端（:9601）
 ├── sdk/
 │   ├── mcp_tool_definition.hpp/.cpp    # GDScript/C# 可继承的 RefCounted 基类
 │   └── mcp_tool_registry.hpp/.cpp      # 单例注册表
@@ -104,13 +114,14 @@ extensions/src/
 
 ## 顶级分类
 
-`HandlerRegistry::top_level_meta()`（`handler_registry.cpp:183-192`）硬编码三个顶级分类：
+`HandlerRegistry::top_level_meta()`（`handler_registry.cpp`）硬编码四个顶级分类：
 
 | category | label | description |
 |----------|-------|-------------|
 | `meta_tools` | Meta Tools | 元工具与系统信息查询 |
 | `node_tools` | Node Tools | 节点/资源属性读取与修改工具，按 Godot 类型分类组织 |
 | `editor_tools` | Editor Tools | 编辑器操作工具：场景树 CRUD、剪贴板、脚本等 |
+| `runtime_tools` | Runtime Tools | 游戏运行时桥接：属性读写、方法调用、截图、输入模拟 |
 
 新增顶级分类需同步修改 `top_level_meta()`：加 `String::utf8("标签")` + 描述。
 

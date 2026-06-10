@@ -2,6 +2,7 @@
 #pragma once
 
 #include "built_in/tool_base.hpp"
+#include "runtime/bridge.hpp"
 #include "server/registry/handler_registry.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
@@ -71,6 +72,17 @@ protected:
         }
         editor["error_count"] = 0;
         result["editor"] = editor;
+
+        Dictionary bridge;
+        if (reg_) {
+            RuntimeBridge *rb = reg_->get_runtime_bridge();
+            if (rb) {
+                bridge["status"] = (int)rb->status();
+                bridge["port"] = rb->port();
+                bridge["connected"] = rb->is_connected();
+            }
+        }
+        result["bridge"] = bridge;
 
         return ToolResult::ok(result);
     }

@@ -116,7 +116,7 @@ stateDiagram-v2
 
 ```
 extensions/src/
-├── register_types.cpp       # GDExtension 入口（符号: gdext_rust_init）
+├── register_types.cpp       # GDExtension 入口（符号: gdext_mcp_init）
 ├── editor_plugin.cpp/.hpp   # EditorPlugin 组装者
 ├── logging.hpp              # 日志工具
 ├── sdk/

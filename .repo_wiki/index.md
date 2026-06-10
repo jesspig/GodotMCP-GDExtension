@@ -7,17 +7,21 @@
 | 维度 | 状态 |
 |------|------|
 | C++ 源码根 | `extensions/src/` |
-| @tool register 工具 | `extensions/src/built_in/tools/**/*.hpp`（84 个 `.hpp` 标 `// @tool register`） |
+| @tool register 工具 | `extensions/src/built_in/tools/**/*.hpp`（~84 个 `.hpp` 标 `// @tool register`） |
 | 节点属性工具 | `node_props/db/*.yaml`（283 节点类型 ×2 = 566 get/set） |
 | 资源属性工具 | `node_resource/db/*.yaml`（419 资源类型 ×2 = 838 get/set） |
 | 项目设置工具 | `editor_tools/settings/db/*.yaml`（24 分类，844 设置项 ×2 = 1688 get/set） |
-| 场景树工具 | `editor_tools/scene_tree/`（25 工具） |
+| 场景树工具 | `editor_tools/scene_tree/`（25+ 工具） |
 | 工作区工具 | `editor_tools/workspace/`（24 工具） |
 | 文件系统工具 | `editor_tools/filesystem/`（14 工具） |
-| 总注册工具数 | **~11734**（含所有 YAML 生成的 get/set） |
+| 脚本工具 | `editor_tools/scripts/`（12 工具：GDScript + C#） |
+| 运行时桥接工具 | `runtime_tools/bridge/`（6 工具）|
+| 游戏生命周期工具 | `runtime_tools/lifecycle/`（5 工具）|
+| 总注册工具数 | **~11758**（含所有 YAML 生成的 get/set） |
 | SDK 层 | `extensions/src/sdk/`（`McpToolDefinition` + `McpToolRegistry`） |
 | 测试框架 | C++ `TestEngine`（`/run-tests`）+ Python 编排器（`test_orchestrator.py`） |
-| 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） |
+| HTTP 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） |
+| 桥接端口 | `:9601`（env `GODOT_MCP_BRIDGE_PORT` 覆盖） |
 | Pinned deps | `godot-cpp 10.0.0-rc1`、`ryml v0.7.0` |
 | 版本号 | 仅 `CMakeLists.txt:22` `PROJECT_VERSION`（CMake 自动生成 `plugin.cfg` + `.gdextension`） |
 | 构建产物 | `example/addons/godot_mcp/bin/godot_mcp_gdext.{dll,so,dylib}` |
@@ -32,6 +36,7 @@
 | 代码生成 | [modules/codegen.md](modules/codegen.md) |
 | 命令路由 | [modules/command-routing.md](modules/command-routing.md) |
 | MCP 传输 | [modules/ipc-bridge.md](modules/ipc-bridge.md) · [specification/ipc-protocol.md](specification/ipc-protocol.md) |
+| 运行时桥接 | [modules/runtime-bridge.md](modules/runtime-bridge.md) |
 | 插件生命周期 | [modules/editor-plugin.md](modules/editor-plugin.md) · [modules/dock-ui.md](modules/dock-ui.md) |
 | 元工具 | [modules/meta-tools.md](modules/meta-tools.md) |
 | 工具实现模式 | [modules/scene-commands.md](modules/scene-commands.md) |
@@ -77,14 +82,14 @@
 1. **从 `overview/architecture.md` 开始** — 理解单进程架构、数据流、目录布局
 2. **阅读 `modules/command-routing.md`** — 理解 ITool 接口 + HandlerRegistry 调度
 3. **阅读 `modules/codegen.md`** — 理解代码生成如何工作，添加新工具流程
-4. **添加新工具时**：见 `AGENTS.md`「添加内置工具」章节 + `extensions/src/built_in/tools/<dir>/<tool>.hpp` 现有样例
-5. **了解优化方向**：见 `AGENTS.md`「市场分析与优化路线图」章节 + `design/decisions.md#ADR-014`
+4. **阅读 `modules/runtime-bridge.md`** — 理解运行时桥接设计（GameBridgeNode + RuntimeBridge）
+5. **添加新工具时**：见 `AGENTS.md`「添加内置工具」章节 + `extensions/src/built_in/tools/<dir>/<tool>.hpp` 现有样例
 6. **运行测试前**：见 `AGENTS.md`「测试」章节 + `tests/.env` 配置
 7. **遇到具体模块问题**：上表点击对应模块文档
 
 ## 给 Agent 的提醒
 
-- **不要修改** `extensions/src/register_types.cpp:45` 的入口符号 `gdext_rust_init`（遗留名，`.gdextension` 引用）
+- **入口符号** `gdext_mcp_init`（`register_types.cpp:45`）
 - **不要修改** `extensions/CMakeLists.txt:15` 的 `GODOTCPP_API_VERSION "4.6"` 与根 `CMakeLists.txt:72` 的 `compatibility_minimum = "4.6"` 之间的绑定
 - **升级 godot-cpp / ryml 前必测** —— 二者均为 FetchContent 拉取，缓存键与版本绑定
 - **MSVC UTF-8** —— 含非 ASCII 的字符串字面量必须用 `String::utf8("中文")`，根 `CMakeLists.txt:43` 已加 `/utf-8 /bigobj`

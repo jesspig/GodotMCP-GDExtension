@@ -1,0 +1,53 @@
+#pragma once
+
+#include <godot_cpp/classes/node.hpp>
+#include <godot_cpp/classes/ref.hpp>
+#include <godot_cpp/classes/tcp_server.hpp>
+#include <godot_cpp/classes/stream_peer_tcp.hpp>
+#include <godot_cpp/variant/dictionary.hpp>
+#include <godot_cpp/variant/array.hpp>
+
+namespace godot_mcp {
+
+class GameBridgeNode : public godot::Node {
+    GDCLASS(GameBridgeNode, godot::Node)
+
+public:
+    GameBridgeNode();
+    ~GameBridgeNode() override;
+
+    void _ready() override;
+    void _process(double delta) override;
+    void _exit_tree() override;
+
+    void _self_add();
+
+    static void _bind_methods();
+
+private:
+    void start_server();
+    void stop_server();
+    void accept_clients();
+    void read_clients();
+    void send_response(const godot::Ref<godot::StreamPeerTCP> &client, const godot::Dictionary &msg);
+    godot::Dictionary dispatch(const godot::String &cmd, const godot::Dictionary &params);
+
+    godot::Dictionary handle_get_scene_tree(const godot::Dictionary &params);
+    godot::Dictionary handle_get_property(const godot::Dictionary &params);
+    godot::Dictionary handle_set_property(const godot::Dictionary &params);
+    godot::Dictionary handle_call_method(const godot::Dictionary &params);
+    godot::Dictionary handle_screenshot(const godot::Dictionary &params);
+    godot::Dictionary handle_simulate_input(const godot::Dictionary &params);
+    godot::Dictionary handle_set_pause(const godot::Dictionary &params);
+
+    godot::Dictionary node_to_dict(godot::Node *node, int max_depth, int depth);
+    static int read_port();
+
+    godot::Ref<godot::TCPServer> server_;
+    godot::Ref<godot::StreamPeerTCP> client_;
+    godot::PackedByteArray read_buf_;
+    int port_ = 9601;
+    static const int BUFFER_LIMIT = 65536;
+};
+
+} // namespace godot_mcp

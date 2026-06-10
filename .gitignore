@@ -127,3 +127,5 @@ doc_build/
 *.pid
 *.cache
 *.local/
+
+/godot

@@ -165,7 +165,7 @@ py -3 build.py
 extensions/                   C++ GDExtension 插件（godot-cpp 10.0.0-rc1）
 ├── CMakeLists.txt
 └── src/
-    ├── register_types.cpp  GDExtension 入口（符号：gdext_rust_init）
+    ├── register_types.cpp  GDExtension 入口（符号：gdext_mcp_init）
     ├── editor_plugin.cpp   EditorPlugin — 组装者，注入依赖
     ├── sdk/
     │   ├── mcp_tool_definition.cpp/hpp  SDK 基类（GDScript 可继承）
@@ -202,7 +202,7 @@ cmake --build build --target deep-clean       # 同时删除 _deps/（FetchConte
 ### 关键约束
 
 - **依赖锁定**：`godot-cpp` 固定为 `10.0.0-rc1`（FetchContent）。未经测试不要升级。
-- **`godot_mcp.gdextension`**：入口符号 `gdext_rust_init`，`compatibility_minimum = "4.6"`，`reloadable = true`。
+- **`godot_mcp.gdextension`**：入口符号 `gdext_mcp_init`，`compatibility_minimum = "4.6"`，`reloadable = true`。
 - **版本**在 `CMakeLists.txt` 中维护（`set(PROJECT_VERSION "...")`）。仅在此处修改——`plugin.cfg` 由 CMake 生成。
 - **新增内置工具**：在 `extensions/src/built_in/tools/` 下创建头文件，添加 `// @tool register` 注释并继承 `ITool`，重新构建即可自动注册。
 

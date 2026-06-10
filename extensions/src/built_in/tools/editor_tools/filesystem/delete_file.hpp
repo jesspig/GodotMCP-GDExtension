@@ -60,8 +60,11 @@ protected:
                 String::utf8("路径不存在: ") + path);
         }
 
+        // Capture before deletion — is_file() returns false after file is deleted
+        bool was_dir = !fs_utils::is_file(path);
+
         Error err;
-        if (fs_utils::is_file(path)) {
+        if (!was_dir) {
             err = DirAccess::remove_absolute(path);
         } else if (recursive) {
             err = fs_utils::remove_recursive(path);
@@ -79,7 +82,7 @@ protected:
 
         Dictionary data;
         data["path"] = path;
-        data["was_directory"] = !fs_utils::is_file(path);
+        data["was_directory"] = was_dir;
         return ToolResult::ok(data);
     }
 };
