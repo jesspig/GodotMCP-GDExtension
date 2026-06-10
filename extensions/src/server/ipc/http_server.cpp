@@ -62,6 +62,8 @@ bool HttpServer::is_listening() const {
 // -------------------------------------------------------------------------
 void HttpServer::poll() {
     if (!tcp_server_.is_valid() || !tcp_server_->is_listening()) return;
+    if (polling_) return; // Re-entrancy guard (EditorProgress → Main::iteration → _process → poll)
+    polling_ = true;
 
     check_timeouts();
 
@@ -210,12 +212,13 @@ void HttpServer::poll() {
             }
             dispatch_request(conn_id, conn);
             if (!conn.is_sse_stream && connections_.has(conn_id)) {
-                close_connection(conn_id);
+                dead.push_back(conn_id);
             }
         }
     }
 
     for (int i = 0; i < dead.size(); ++i) close_connection(dead[i]);
+    polling_ = false;
 }
 
 // -------------------------------------------------------------------------

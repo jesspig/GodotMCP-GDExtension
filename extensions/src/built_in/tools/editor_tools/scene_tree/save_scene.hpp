@@ -44,16 +44,18 @@ protected:
         }
 
         if (path.is_empty()) {
-            if (ctx.root->get_scene_file_path().is_empty()) {
+            // Capture path BEFORE save — ei->save_scene() may reload the scene
+            // and invalidate ctx.root (dangling pointer → crash).
+            path = ctx.root->get_scene_file_path();
+            if (path.is_empty()) {
                 return ToolResult::err("NO_PATH",
                     String::utf8("场景未保存过且未提供 path 参数"));
             }
-            godot::Error err = ei->save_scene();
-            if (err != godot::OK) {
-                return ToolResult::err("SAVE_FAILED",
-                    String::utf8("保存失败，错误码: ") + String::num_int64((int64_t)err));
-            }
-            path = ctx.root->get_scene_file_path();
+            // Use save_scene_as(path, false) directly to bypass EditorProgress
+            // (_save_scene_with_preview). EditorProgress::step() calls
+            // Main::iteration() internally, which triggers a recursive
+            // _process() → http_server_.poll() and causes crashes.
+            ei->save_scene_as(path, false);
         } else {
             if (!path.ends_with(".tscn") && !path.ends_with(".scn")) {
                 return ToolResult::err("BAD_EXTENSION",

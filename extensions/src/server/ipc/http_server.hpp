@@ -89,6 +89,7 @@ private:
     TestEngine *test_engine_ = nullptr;
     int port_ = 0;
     uint64_t timeout_msec_ = 30000;
+    bool polling_ = false;
 
 };
 
