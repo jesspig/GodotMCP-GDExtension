@@ -2,6 +2,8 @@
 
 #include "../registry/handler_registry.hpp"
 
+#include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/templates/hash_map.hpp>
 #include <godot_cpp/templates/vector.hpp>
 #include <godot_cpp/variant/array.hpp>
@@ -83,6 +85,7 @@ private:
     Dictionary handle_resources_list(const Variant &id);
     Dictionary handle_resources_read(const Dictionary &params, const Variant &id);
     Dictionary handle_resources_templates_list(const Variant &id);
+    Dictionary _build_scene_tree_node(Node *node) const;
 
     // Prompts
     Dictionary handle_prompts_list(const Variant &id);

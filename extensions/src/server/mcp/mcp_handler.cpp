@@ -3,8 +3,12 @@
 #include "built_in/cmd_utils.hpp"
 #include "logging.hpp"
 
+#include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/engine.hpp>
+#include <godot_cpp/classes/json.hpp>
+#include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/time.hpp>
+#include <godot_cpp/core/object.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include <charconv>
@@ -500,8 +504,31 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
 // resources/list
 // -------------------------------------------------------------------------
 Dictionary McpHandler::handle_resources_list(const Variant &id) {
+    Array resources;
+
+    Dictionary scene_tree_res;
+    scene_tree_res["uri"] = "godot://scene-tree";
+    scene_tree_res["name"] = "Scene Tree";
+    scene_tree_res["description"] = "Current scene tree structure as JSON";
+    scene_tree_res["mimeType"] = "application/json";
+    resources.append(scene_tree_res);
+
+    Dictionary proj_settings_res;
+    proj_settings_res["uri"] = "godot://project-settings";
+    proj_settings_res["name"] = "Project Settings";
+    proj_settings_res["description"] = "Project configuration settings";
+    proj_settings_res["mimeType"] = "application/json";
+    resources.append(proj_settings_res);
+
+    Dictionary editor_info_res;
+    editor_info_res["uri"] = "godot://editor-info";
+    editor_info_res["name"] = "Editor Info";
+    editor_info_res["description"] = "Editor version, state, and capabilities";
+    editor_info_res["mimeType"] = "application/json";
+    resources.append(editor_info_res);
+
     Dictionary result;
-    result["resources"] = Array();
+    result["resources"] = resources;
     return make_jsonrpc_result(id, result);
 }
 
@@ -510,16 +537,130 @@ Dictionary McpHandler::handle_resources_list(const Variant &id) {
 // -------------------------------------------------------------------------
 Dictionary McpHandler::handle_resources_read(const Dictionary &params, const Variant &id) {
     const String uri = params.get("uri", "");
-    return make_jsonrpc_error(id, kResourceNotFound,
-                               String("Resource not found: ") + uri);
+
+    // Handle template-based URIs first (must check before exact match)
+    if (uri.begins_with("godot://scene-node/")) {
+        String path = uri.substr(18); // length of "godot://scene-node/"
+        EditorInterface *ei = EditorInterface::get_singleton();
+        if (ei) {
+            Node *root = ei->get_edited_scene_root();
+            if (root) {
+                Node *target = root->get_node<Node>(NodePath(path));
+                if (target) {
+                    Dictionary data = _build_scene_tree_node(target);
+                    Array contents;
+                    Dictionary text_item;
+                    text_item["type"] = "text";
+                    text_item["text"] = JSON::stringify(data);
+                    contents.append(text_item);
+                    Dictionary result;
+                    result["contents"] = contents;
+                    return make_jsonrpc_result(id, result);
+                }
+            }
+        }
+        Dictionary empty_data;
+        empty_data["message"] = "Node not found";
+        Array contents;
+        Dictionary text_item;
+        text_item["type"] = "text";
+        text_item["text"] = JSON::stringify(empty_data);
+        contents.append(text_item);
+        Dictionary result;
+        result["contents"] = contents;
+        return make_jsonrpc_result(id, result);
+    }
+
+    if (uri == "godot://scene-tree") {
+        Dictionary data;
+        EditorInterface *ei = EditorInterface::get_singleton();
+        if (ei) {
+            Node *root = ei->get_edited_scene_root();
+            if (root) {
+                data = _build_scene_tree_node(root);
+            } else {
+                data["message"] = "No scene open";
+            }
+        } else {
+            data["message"] = "Editor interface not available";
+        }
+        Array contents;
+        Dictionary text_item;
+        text_item["type"] = "text";
+        text_item["text"] = JSON::stringify(data);
+        contents.append(text_item);
+        Dictionary result;
+        result["contents"] = contents;
+        return make_jsonrpc_result(id, result);
+    }
+
+    if (uri == "godot://project-settings") {
+        Dictionary data;
+        ProjectSettings *ps = ProjectSettings::get_singleton();
+        if (ps) {
+            data["project_name"] = ps->get_setting("application/config/name");
+            data["description"] = ps->get_setting("application/config/description");
+            data["version"] = ps->get_setting("application/config/version");
+            data["boot_splash"] = ps->get_setting("application/boot_splash/image");
+            data["icon"] = ps->get_setting("application/config/icon");
+            data["window_size"] = ps->get_setting("display/window/size/viewport_width");
+            data["window_height"] = ps->get_setting("display/window/size/viewport_height");
+            data["window_mode"] = ps->get_setting("display/window/size/mode");
+            data["vsync"] = ps->get_setting("display/window/vsync/vsync_mode");
+            data["renderer"] = ps->get_setting("rendering/renderer/rendering_method");
+        }
+        Array contents;
+        Dictionary text_item;
+        text_item["type"] = "text";
+        text_item["text"] = JSON::stringify(data);
+        contents.append(text_item);
+        Dictionary result;
+        result["contents"] = contents;
+        return make_jsonrpc_result(id, result);
+    }
+
+    if (uri == "godot://editor-info") {
+        Dictionary data;
+        EditorInterface *ei = EditorInterface::get_singleton();
+        if (ei) {
+            data["has_scene_open"] = ei->get_edited_scene_root() != nullptr;
+            data["is_playing"] = ei->is_playing_scene();
+            data["editor_version"] = "Godot 4.6+";
+        }
+        Engine *engine = Engine::get_singleton();
+        if (engine) {
+            Dictionary vi = engine->get_version_info();
+            data["engine_version"] = vi;
+        }
+        data["plugin_version"] = registry_ ? registry_->plugin_version() : "unknown";
+        Array contents;
+        Dictionary text_item;
+        text_item["type"] = "text";
+        text_item["text"] = JSON::stringify(data);
+        contents.append(text_item);
+        Dictionary result;
+        result["contents"] = contents;
+        return make_jsonrpc_result(id, result);
+    }
+
+    return make_jsonrpc_error(id, kResourceNotFound, String("Resource not found: ") + uri);
 }
 
 // -------------------------------------------------------------------------
 // resources/templates/list
 // -------------------------------------------------------------------------
 Dictionary McpHandler::handle_resources_templates_list(const Variant &id) {
+    Array templates;
+
+    Dictionary scene_node_tpl;
+    scene_node_tpl["uriTemplate"] = "godot://scene-node/{path}";
+    scene_node_tpl["name"] = "Scene Node";
+    scene_node_tpl["description"] = "Get info about a specific node in the scene tree by its path";
+    scene_node_tpl["mimeType"] = "application/json";
+    templates.append(scene_node_tpl);
+
     Dictionary result;
-    result["resourceTemplates"] = Array();
+    result["resourceTemplates"] = templates;
     return make_jsonrpc_result(id, result);
 }
 
@@ -527,8 +668,80 @@ Dictionary McpHandler::handle_resources_templates_list(const Variant &id) {
 // prompts/list
 // -------------------------------------------------------------------------
 Dictionary McpHandler::handle_prompts_list(const Variant &id) {
+    Array prompts;
+
+    Dictionary p1;
+    p1["name"] = "create_scene";
+    p1["description"] = "Guide for creating a new scene with recommended setup";
+    Array p1_args;
+    Dictionary p1_arg1;
+    p1_arg1["name"] = "scene_type";
+    p1_arg1["description"] = "Scene type: 2d, 3d, or empty";
+    p1_arg1["required"] = true;
+    p1_args.append(p1_arg1);
+    p1["arguments"] = p1_args;
+    prompts.append(p1);
+
+    Dictionary p2;
+    p2["name"] = "create_node";
+    p2["description"] = "Guide for adding a node to the scene";
+    Array p2_args;
+    Dictionary p2_arg1;
+    p2_arg1["name"] = "parent_path";
+    p2_arg1["description"] = "Path to the parent node";
+    p2_arg1["required"] = true;
+    p2_args.append(p2_arg1);
+    Dictionary p2_arg2;
+    p2_arg2["name"] = "node_type";
+    p2_arg2["description"] = "Type of node to create (e.g., Node2D, Control, Sprite2D)";
+    p2_arg2["required"] = true;
+    p2_args.append(p2_arg2);
+    p2["arguments"] = p2_args;
+    prompts.append(p2);
+
+    Dictionary p3;
+    p3["name"] = "fix_error";
+    p3["description"] = "Analyze an editor error or script error and suggest fixes";
+    Array p3_args;
+    Dictionary p3_arg1;
+    p3_arg1["name"] = "error_text";
+    p3_arg1["description"] = "The error message to analyze";
+    p3_arg1["required"] = true;
+    p3_args.append(p3_arg1);
+    p3["arguments"] = p3_args;
+    prompts.append(p3);
+
+    Dictionary p4;
+    p4["name"] = "explain_node";
+    p4["description"] = "Explain what a Godot node type does and common usage patterns";
+    Array p4_args;
+    Dictionary p4_arg1;
+    p4_arg1["name"] = "node_type";
+    p4_arg1["description"] = "The node class name to explain";
+    p4_arg1["required"] = true;
+    p4_args.append(p4_arg1);
+    p4["arguments"] = p4_args;
+    prompts.append(p4);
+
+    Dictionary p5;
+    p5["name"] = "code_review";
+    p5["description"] = "Review GDScript or C# script for best practices and potential issues";
+    Array p5_args;
+    Dictionary p5_arg1;
+    p5_arg1["name"] = "script_path";
+    p5_arg1["description"] = "Path to the script file to review";
+    p5_arg1["required"] = true;
+    p5_args.append(p5_arg1);
+    Dictionary p5_arg2;
+    p5_arg2["name"] = "language";
+    p5_arg2["description"] = "Language: gdscript or csharp";
+    p5_arg2["required"] = false;
+    p5_args.append(p5_arg2);
+    p5["arguments"] = p5_args;
+    prompts.append(p5);
+
     Dictionary result;
-    result["prompts"] = Array();
+    result["prompts"] = prompts;
     return make_jsonrpc_result(id, result);
 }
 
@@ -536,7 +749,138 @@ Dictionary McpHandler::handle_prompts_list(const Variant &id) {
 // prompts/get
 // -------------------------------------------------------------------------
 Dictionary McpHandler::handle_prompts_get(const Dictionary &params, const Variant &id) {
-    return make_jsonrpc_error(id, kInvalidParams, "No prompts available");
+    const String name = params.get("name", "");
+    Dictionary args_dict = params.has("arguments") && params["arguments"].get_type() == Variant::DICTIONARY
+                               ? Dictionary(params["arguments"])
+                               : Dictionary();
+
+    if (name == "create_scene") {
+        String scene_type = args_dict.get("scene_type", "2d");
+        String prompt_text;
+        if (scene_type == "2d") {
+            prompt_text = "Create a new 2D scene using the 'New Scene' button, then add a Node2D as root. "
+                          "For the root, set a meaningful name like 'Game' or 'Level'. "
+                          "Then add child nodes as needed (Sprite2D, CollisionShape2D, etc.). "
+                          "Save the scene using Ctrl+S.";
+        } else if (scene_type == "3d") {
+            prompt_text = "Create a new 3D scene, add a Node3D as root. "
+                          "Consider adding a WorldEnvironment for lighting, a Camera3D for view, and MeshInstance3D for objects.";
+        } else {
+            prompt_text = "Create a new empty scene with any root node type you need.";
+        }
+
+        Array messages;
+        Dictionary msg;
+        msg["role"] = "user";
+        Dictionary content;
+        content["type"] = "text";
+        content["text"] = prompt_text;
+        msg["content"] = content;
+        messages.append(msg);
+
+        Dictionary result;
+        result["description"] = "Guide for creating a " + scene_type + " scene";
+        result["messages"] = messages;
+        return make_jsonrpc_result(id, result);
+    }
+
+    if (name == "create_node") {
+        String node_type = args_dict.get("node_type", "Node");
+        String prompt_text = "To add a " + node_type + " to the scene: "
+                             "1. Ensure the scene is open and the target parent is selected. "
+                             "2. Use the add_node tool with parent_path and class_name='" + node_type + "'. "
+                             "3. Configure the node's properties as needed.";
+
+        Array messages;
+        Dictionary msg;
+        msg["role"] = "user";
+        Dictionary content;
+        content["type"] = "text";
+        content["text"] = prompt_text;
+        msg["content"] = content;
+        messages.append(msg);
+
+        Dictionary result;
+        result["description"] = "Guide for adding a " + node_type;
+        result["messages"] = messages;
+        return make_jsonrpc_result(id, result);
+    }
+
+    if (name == "fix_error") {
+        String error_text = args_dict.get("error_text", "");
+        String prompt_text = "Error analysis for: " + error_text + "\n\n"
+                             "Suggested steps:\n"
+                             "1. Check for typos in node paths and variable names.\n"
+                             "2. Verify that all required nodes are present in the scene.\n"
+                             "3. Check signal connections for correct target methods.\n"
+                             "4. Ensure exported variables are assigned in the editor.\n";
+
+        Array messages;
+        Dictionary msg;
+        msg["role"] = "user";
+        Dictionary content;
+        content["type"] = "text";
+        content["text"] = prompt_text;
+        msg["content"] = content;
+        messages.append(msg);
+
+        Dictionary result;
+        result["description"] = "Error fix guidance";
+        result["messages"] = messages;
+        return make_jsonrpc_result(id, result);
+    }
+
+    if (name == "explain_node") {
+        String node_type = args_dict.get("node_type", "Node");
+        String prompt_text = "The " + node_type + " node in Godot 4.6:\n"
+                             "- Inherits from: depends on the type\n"
+                             "- Primary use: [description depends on node type]\n"
+                             "- Key properties: [list common properties]\n"
+                             "- Common child nodes: [common children]\n"
+                             "- Best practices: [usage tips]\n";
+
+        Array messages;
+        Dictionary msg;
+        msg["role"] = "user";
+        Dictionary content;
+        content["type"] = "text";
+        content["text"] = prompt_text;
+        msg["content"] = content;
+        messages.append(msg);
+
+        Dictionary result;
+        result["description"] = "Explanation of " + node_type;
+        result["messages"] = messages;
+        return make_jsonrpc_result(id, result);
+    }
+
+    if (name == "code_review") {
+        String script_path = args_dict.get("script_path", "");
+        String language = args_dict.get("language", "gdscript");
+        String prompt_text = "Review the script at " + script_path + ":\n"
+                             "- Check for proper indentation and formatting.\n"
+                             "- Verify type hints and annotations.\n"
+                             "- Look for potential null reference errors.\n"
+                             "- Check for proper node path references.\n"
+                             "- Verify signal connection patterns.\n"
+                             "- Suggest performance improvements.\n";
+
+        Array messages;
+        Dictionary msg;
+        msg["role"] = "user";
+        Dictionary content;
+        content["type"] = "text";
+        content["text"] = prompt_text;
+        msg["content"] = content;
+        messages.append(msg);
+
+        Dictionary result;
+        result["description"] = "Code review for " + script_path;
+        result["messages"] = messages;
+        return make_jsonrpc_result(id, result);
+    }
+
+    return make_jsonrpc_error(id, kInvalidParams, "No such prompt: " + name);
 }
 
 // -------------------------------------------------------------------------
@@ -614,6 +958,27 @@ void McpHandler::notify_tools_list_changed() {
             enqueue_event(kv.key, notification);
         }
     }
+}
+
+// -------------------------------------------------------------------------
+// _build_scene_tree_node — recursive helper for scene-tree resource
+// -------------------------------------------------------------------------
+Dictionary McpHandler::_build_scene_tree_node(Node *node) const {
+    Dictionary d;
+    d["name"] = node->get_name();
+    d["type"] = node->get_class();
+    d["node_path"] = node->get_path();
+    d["child_count"] = node->get_child_count();
+
+    Array children;
+    for (int i = 0; i < node->get_child_count(); i++) {
+        Node *child = Object::cast_to<Node>(node->get_child(i));
+        if (child) {
+            children.append(_build_scene_tree_node(child));
+        }
+    }
+    d["children"] = children;
+    return d;
 }
 
 } // namespace godot_mcp
