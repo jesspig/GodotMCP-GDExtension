@@ -28,16 +28,17 @@
 - 正面：AI 客户端配置简单（仅一个 URL）
 - 负面：需要在 C++ 中实现 HTTP 解析和会话管理
 
-## ADR-003: `process_frame` 而非 `EditorPlugin::_process()` 用于驱动
+## ADR-003: `_process()` 重写用于驱动（原 `process_frame` 信号已替换）
 
-**状态**：已接受
-**背景**：`EditorPlugin::_process()` 在场景播放时停止触发，不适合需要持续轮询的 HTTP 服务器。
-**决策**：使用 `SceneTree::process_frame` 信号来驱动 `HttpServer::poll()`，而不是重写 `_process()`。
+**状态**：已替换（2026-06，`feature/runtime` 分支改为 `_process()` 重写）
+**背景**：`EditorPlugin::_process()` 在场景播放时停止触发。原决策使用 `SceneTree::process_frame` 信号，但在引入 `RuntimeBridge`（需 `ei->is_playing_scene()` 检测游戏启停）后，`_process()` 重写可同时承载 HTTP 轮询 + 桥接连接管理。
+**决策**：用 `_process(delta)` 重写替代 `process_frame` 信号。`_process()` 中三合一驱动：`http_server_.poll()` + `_try_bridge_connect()` + `runtime_bridge_.poll()`。游戏运行时 `_try_bridge_connect()` 通过 `ei->is_playing_scene()` 自动感知，不影响桥接功能。
 **后果**：
 
-- 正面：`process_frame` 在场景播放时继续触发，确保实时工具正常工作
-- 正面：`McpEditorPlugin::_process()` 被有意留空——清楚表明不在此处运行逻辑
-- 负面：增加了一层间接
+- 正面：消除 `process_frame` 信号的一层间接
+- 正面：`_process()` 自然承载 HTTP 轮询 + 桥接连接 + 桥接轮询三者
+- 正面：`_exit_tree()` 中无需特殊清理（`_process()` 跟随 EditorPlugin 生命周期自动停止）
+- 负面：`_process()` 在场景播放时不触发，但桥接检测不依赖此机制（`is_playing_scene()` 状态检查）
 
 ## ADR-004: 使用 CMake 构建
 
@@ -133,7 +134,19 @@
 - 负面：`mcp_tool_adapter.hpp`（SDK → ITool 适配器）未采用，为零引用死代码待删除
 - 负面：`tool_schemas.json` 过渡期遗留待清理
 
-完整方案见 [统一工具架构重构计划](unified-architecture-plan.md)。
+## ADR-011: 运行时桥接设计（GameBridgeNode TCP + RuntimeBridge 客户端）
+
+**状态**：已接受（2026-06，`feature/runtime` 分支实现）
+**背景**：需要让 AI 客户端能查询和控制运行中的游戏（获取场景树、读写属性、调用方法、截图、模拟输入等）。
+**决策**：双组件架构——游戏进程内 `GameBridgeNode`（Node）作为 TCP 服务端（:9601），编辑器进程内 `RuntimeBridge` 作为 TCP 客户端。JSON-RPC 风格通信（非标准 JSON-RPC，自定义 `{cmd, params, id}` 格式）。编辑器通过 `ei->is_playing_scene()` 感知游戏启停。
+**后果**：
+
+- 正面：纯 GDExtension 实现，无外部依赖
+- 正面：一个 DLL 双端复用，`Engine::is_editor_hint()` 区分行为
+- 正面：TCP 同步通道简单可靠，无 WebSocket 握手开销
+- 负面：`send_command()` 忙等待最长 5 秒，阻塞 `_process()` 帧循环
+- 负面：TCP 无加密/认证，仅限 localhost 使用
+- 负面：`EditorDebuggerPlugin` 方案更符合 Godot 架构，但不在 godot-cpp 绑定中，需 `find_children()` + `call()` 动态调用
 
 ## ADR-012: 场景树工具分类与 Undo/Redo 策略
 
@@ -174,56 +187,52 @@
 
 ## ADR-014: 功能优化路线图（P0/P1/P2 三阶段）
 
-**状态**：已接受（规划阶段）
-**日期**：2026-06-08
+**状态**：P0 已完成（2026-06 实施完毕），P1/P2 待规划
+**日期**：2026-06-08（原始），2026-06-10（P0 完成）
 **背景**：市场分析显示，市面 20+ Godot MCP 项目中，本项目（~11,734 工具）在架构上（C++ GDExtension 进程内、纯主线程无锁、Codegen 自动注册）具有唯一不可替代优势，但功能覆盖存在显著缺口。竞品普遍具备的游戏运行时桥接、编辑器/游戏截图、脚本读写编辑等核心能力，本项目缺失。
 
 **决策**：按 P0/P1/P2 三级优先级实施功能补全，每阶段完成后进入下一阶段。
 
-### Phase 1 (P0) — 入场券
+### Phase 1 (P0) — 入场券 ✅（已完成）
 
 **目标**：消除所有"竞品都有，缺失即硬伤"的功能缺口。
 
-#### 1.1 游戏运行时桥接
+#### 1.1 游戏运行时桥接 ✅
 
-**实现路径**：通过 `EditorDebuggerPlugin` 与运行中的游戏双向通信。
+**实现路径**：GDExtension TCP 双组件架构：
 
-| 子能力 | 实现方式 | 参考 |
+| 子能力 | 实现方式 | 状态 |
 |--------|---------|------|
-| 输入注入（键盘/鼠标/Action） | EditorDebuggerPlugin → 运行中游戏 | Meow、alexmeckes |
-| 运行时属性读取 | 游戏端 GDScript autoload 暴露属性查询 API | satelliteoflove |
-| 运行时场景树获取 | 游戏端遍历场景树序列化后返回 | Meow |
-| GDScript 表达式执行 | 游戏端 `Expression.execute()` | Sods2、Dreamer568 |
+| 输入注入（键盘/鼠标/Action） | GameBridgeNode TCP :9601 + `simulate_input` 命令 | ✅ |
+| 运行时属性读取 | `get_property` 命令 | ✅ |
+| 运行时属性设置 | `set_property` 命令 + `json_to_variant` 转换 | ✅ |
+| 运行时场景树获取 | `get_scene_tree` 命令 + `node_to_dict()` 递归 | ✅ |
+| 运行时方法调用 | `call_method` 命令 + 参数转换 | ✅ |
+| 游戏截图 | `screenshot` 命令（PNG/JPG，Base64） | ✅ |
+| 暂停控制 | `set_pause` 命令 | ✅ |
 
-**架构决策**：
-- 在 GDExtension 内启动一个 TCP/WebSocket 服务端（端口待定，建议 9601）
-- 游戏端通过 `EditorDebuggerPlugin` 注入一个 autoload 脚本，该脚本连接到此端口
-- MCP 工具调用时，GDExtension 通过此连接转发请求到运行中的游戏
-- 游戏退出时连接自动断开，GDExtension 检测到断开后返回"游戏未运行"错误
+实际实现使用 **纯 TCP :9601**（非 EditorDebuggerPlugin），仅限 localhost。
 
-**注意**：`EditorDebuggerPlugin` 是编辑器内部类，不在 godot-cpp 绑定中。需通过 `find_children("*", "EditorDebuggerPlugin", true, false)` 遍历场景树 + `call()` 动态调用。
+#### 1.2 编辑器/游戏截图 ✅
 
-#### 1.2 编辑器/游戏截图
+- 编辑器截图：`meta_screenshot` 工具（通过 EditorInterface API）
+- 游戏截图：`capture_game_screenshot` 工具（通过运行时桥接）
+- 返回格式：MCP ImageContent
 
-**实现路径**：
-- 编辑器截图：`EditorInterface::get_singleton()->get_editor_viewport_2d/3d()->get_texture()->get_image()`
-- 游戏截图：通过运行时桥接获取游戏视口截图
-- 返回格式：MCP `ImageContent`（本项目已支持 spec 2025-03-26）
+#### 1.3 脚本读写编辑 ✅
 
-#### 1.3 脚本读写编辑
+| 工具 | 实现方式 | 状态 |
+|------|---------|------|
+| `read_gd_script` | `FileAccess::open()` 读取 `.gd` 文件 | ✅ |
+| `write_gd_script` | `FileAccess::open()` 写入 | ✅ |
+| `patch_gd_script` | 精确替换指定行/段 | ✅ |
+| `validate_gd_script` | LSP 客户端验证 | ✅ |
+| `attach_script` | `node.set_script(ResourceLoader::load(path))` | ✅ |
+| `detach_script` | `node.set_script(Variant())` | ✅ |
+| `list_gd_scripts` / `grep_scripts` / `glob_scripts` | 目录遍历 | ✅ |
+| 对应 C# 工具（7 个） | 同上，`.cs` 扩展 | ✅ |
 
-**实现路径**：
-
-| 工具 | 实现方式 |
-|------|---------|
-| `read_script` | `FileAccess::open()` 读取 `.gd` 文件 |
-| `write_script` | `FileAccess::open()` 写入新文件 |
-| `edit_script` | 读取 → 修改 → 写入 |
-| `patch_script` | 精确替换指定行/段（参考 Dreamer568 的 `patch_script`） |
-| `attach_script` | `node.set_script(ResourceLoader::load(path))` |
-| `detach_script` | `node.set_script(Variant())` |
-
-### Phase 2 (P1) — 竞争力
+### Phase 2 (P1) — 竞争力（待开发）
 
 **目标**：补齐显著提升竞争力的功能模块。
 

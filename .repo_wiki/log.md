@@ -2,6 +2,16 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-10 — Wiki 知识库同步（运行时桥接、架构修正、ADR 更新）
+
+- **新增** `modules/runtime-bridge.md`：GameBridgeNode TCP :9601 + RuntimeBridge 客户端完整文档（架构图、数据流、7 个命令、状态机、已知问题）
+- **更新** `overview/architecture.md`：架构图增加 GameBridgeNode/RuntimeBridge 组件；线程模型改为 `_process()` 驱动；目录树增加 `runtime/` 和 `runtime_tools/`；顶级分类改为 4 个（新增 `runtime_tools`）；新增"运行时桥接"章节
+- **更新** `extensions/gdext.md`：文件结构增加 `runtime/` 子目录；工具分类表新增 `runtime_tools`；目录树展开编辑器工具子分类
+- **更新** `modules/editor-plugin.md`：`_process()` 替换 `process_frame` 信号；Processing 状态增加桥接连接/轮询；`_exit_tree()` 增加 `runtime_bridge_.disconnect()`
+- **更新** `design/decisions.md`：ADR-003 标记为已替换（`process_frame` → `_process()`）；新增 ADR-011 运行时桥接设计；ADR-014 标记 P0 阶段已完成（Phase 1 各项标记 ✅）
+- **更新** `index.md`：快照表增加桥接端口、脚本工具、运行时工具计数；导航表新增运行时桥接；上手指南增加第 4 步
+- **更新** `AGENTS.md`：末尾追加 `项目知识库` 章节，链接至 `.repo_wiki/index.md`
+
 ## 2026-06-08 — 市场分析 + ADR-014 优化路线图 + AGENTS.md 同步
 
 - **新增** `AGENTS.md`「市场分析与优化路线图」章节：竞品生态全景（4 阵营 20+ 项目）、功能缺口分析（P0/P1/P2 三级）、核心竞争力定位、三阶段优化路线图
