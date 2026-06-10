@@ -4,6 +4,8 @@
 #include "built_in/tool_base.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/project_settings.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
 
 namespace godot_mcp {
 
@@ -29,6 +31,12 @@ protected:
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", String::utf8("EditorInterface 不可用"));
+        }
+        // Check main scene exists before running
+        String main_scene = ProjectSettings::get_singleton()->get_setting("application/run/main_scene", "");
+        if (!main_scene.is_empty() && !ResourceLoader::get_singleton()->exists(main_scene)) {
+            return ToolResult::err("SCENE_FILE_MISSING",
+                String::utf8("主场景文件已被删除: ") + main_scene);
         }
         ei->play_main_scene();
         Dictionary data;

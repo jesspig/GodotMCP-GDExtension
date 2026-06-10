@@ -4,6 +4,7 @@
 #include "built_in/tool_base.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
 
 namespace godot_mcp {
 
@@ -34,6 +35,10 @@ protected:
         Node *root = ei->get_edited_scene_root();
         if (root) {
             current_scene = root->get_scene_file_path();
+            if (!current_scene.is_empty() && !ResourceLoader::get_singleton()->exists(current_scene)) {
+                return ToolResult::err("SCENE_FILE_MISSING",
+                    String::utf8("场景文件已被删除: ") + current_scene);
+            }
         }
         ei->play_current_scene();
         Dictionary data;

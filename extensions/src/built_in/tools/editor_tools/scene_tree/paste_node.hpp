@@ -168,8 +168,17 @@ protected:
             }
         }
 
+        // Compute path manually — inst may not have a valid scene path yet
+        // (undo commit may add it asynchronously relative to scene root)
+        String new_node_path;
+        if (parent == ctx.root || !parent) {
+            new_node_path = inst->get_name();
+        } else {
+            String parent_rel = relative_path(ctx.root, parent);
+            new_node_path = parent_rel.is_empty() ? inst->get_name() : parent_rel + "/" + inst->get_name();
+        }
         Dictionary data;
-        data["new_node"] = relative_path(ctx.root, inst);
+        data["new_node"] = new_node_path;
         data["type"] = inst->get_class();
         data["mode"] = mode;
         return ToolResult::ok(data);

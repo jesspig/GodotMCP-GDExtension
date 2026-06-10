@@ -5,6 +5,7 @@
 #include "built_in/cmd_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
 
 namespace godot_mcp {
 
@@ -45,6 +46,10 @@ protected:
         }
         if (!path.begins_with("res://")) {
             return ToolResult::err("INVALID_PATH", String::utf8("scene_path 必须以 res:// 开头"));
+        }
+        if (!ResourceLoader::get_singleton()->exists(path)) {
+            return ToolResult::err("SCENE_FILE_MISSING",
+                String::utf8("场景文件不存在: ") + path);
         }
         ei->play_custom_scene(path);
         Dictionary data;
