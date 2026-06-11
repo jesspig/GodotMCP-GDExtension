@@ -19,7 +19,7 @@ endif()
 # Project version — maintained directly here (no more Cargo.toml parsing).
 # Bump when releasing.
 # ---------------------------------------------------------------------------
-set(PROJECT_VERSION "0.2.0-dev7")
+set(PROJECT_VERSION "0.2.0")
 message(STATUS "GodotMCP version: ${PROJECT_VERSION}")
 
 # ---------------------------------------------------------------------------

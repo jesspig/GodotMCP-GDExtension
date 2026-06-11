@@ -90,7 +90,7 @@ sequenceDiagram
     "godot_version": { "major": 4, "minor": 6, "patch": 0 }
   },
   "plugin": {
-    "version": "0.2.0-dev7",
+    "version": "0.2.0",
     "builtin_tool_count": 149,
     "custom_tool_count": 0
   },
