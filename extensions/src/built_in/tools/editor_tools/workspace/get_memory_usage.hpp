@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -13,7 +13,7 @@ class GetMemoryUsageTool : public ITool {
 public:
     String name() const override { return "get_memory_usage"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("获取内存使用情况"); }
+    String brief() const override { return String("Get memory usage"); }
     String description() const override { return brief(); }
 
     Dictionary input_schema() const override {

@@ -1,5 +1,4 @@
-// @tool register
-// reset_setting.hpp — 重置项目设置为默认值
+// reset_setting.hpp -- Reset a project setting to its default value
 
 #pragma once
 
@@ -18,8 +17,8 @@ public:
         return "Reset a project setting to its default value";
     }
     String description() const override {
-        return "将指定项目设置重置为默认值并从 project.godot 中移除。"
-               "等效于在编辑器 Project Settings 对话框中点击 Reset。";
+        return "Resets the specified project setting to its default value and removes it from project.godot. "
+               "Equivalent to clicking Reset in the Project Settings dialog.";
     }
     bool needs_scene() const override { return false; }
     bool needs_node() const override { return false; }

@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -15,31 +14,31 @@ public:
     String name() const override { return "reparent_to_new_node"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("用新建的父节点包裹指定节点");
+        return "Wrap a node in a new parent node";
     }
     String description() const override {
-        return String::utf8("在原父节点的 index 位置插入一个新节点（new_class 类型），"
-                            "然后将 source_node 移入其下。相当于编辑器 \"Reparent to New Node\" 操作。"
-                            "新父节点默认继承原父节点的所有者关系。所有变更可撤销。");
+        return "Inserts a new node (of new_class type) at the index position of the original parent, "
+               "then moves source_node under it. Equivalent to the editor's \"Reparent to New Node\" operation. "
+               "The new parent inherits the owner relationship from the original parent. All changes are undoable.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("要包裹的节点路径");
+            p["description"] = "Node path to wrap";
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("新父节点的类型（Godot 类名）");
+            p["description"] = "New parent node type (Godot class name)";
             props["new_class"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("新父节点的名称（留空 = 类型名）");
+            p["description"] = "New parent node name (empty = type name)";
             props["new_name"] = p;
         }
         Dictionary s;
@@ -58,40 +57,40 @@ protected:
         String new_name = args_string(ctx.args, "new_name", "");
 
         if (new_class.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("new_class 不能为空"));
+            return ToolResult::err("MISSING_ARG", "new_class cannot be empty");
         }
         if (!godot::ClassDB::class_exists(new_class)) {
             return ToolResult::err("UNKNOWN_CLASS",
-                String::utf8("未知的 Godot 类: ") + new_class);
+                "Unknown Godot class: " + new_class);
         }
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + node_path);
+                "Node not found: " + node_path);
         }
         Node *old_parent = node->get_parent();
         if (!old_parent) {
             return ToolResult::err("ORPHAN_NODE",
-                String::utf8("节点无父节点"));
+                "Node has no parent");
         }
         if (new_name.is_empty()) new_name = new_class;
 
         Node *wrapper = scene_tree_utils::create_node(new_class, new_name);
         if (!wrapper) {
             return ToolResult::err("CREATE_FAILED",
-                String::utf8("无法创建类型为 ") + new_class + String::utf8(" 的节点"));
+                "Failed to create node of type: " + new_class);
         }
         if (old_parent->has_node(String("./") + new_name)) {
             memdelete(wrapper);
             return ToolResult::err("NAME_CONFLICT",
-                String::utf8("同名节点已存在: ") + new_name);
+                "A node with the same name already exists: " + new_name);
         }
 
         int64_t old_index = node->get_index();
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
-            ur->create_action(String::utf8("MCP: Reparent to New Node"),
+            ur->create_action("MCP: Reparent to New Node",
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
 
             // do: add wrapper at source's position, move source under wrapper
@@ -132,3 +131,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

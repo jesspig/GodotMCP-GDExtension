@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -15,20 +15,21 @@ public:
     String name() const override { return "make_local"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("将场景实例转为本地（断开外部引用）");
+        return "Make a scene instance local (break external reference)";
     }
     String description() const override {
-        return String::utf8("清除节点的 scene_file_path，将该节点及其子树转换为本地节点（不再链接回原 .tscn）。"
-                            "所有 ownership 自动重写到当前场景根。"
-                            "等效于编辑器 Make Local 操作。仅适用于场景实例节点。"
-                            "所有变更可撤销（恢复 scene_file_path 是有限支持——必须先记录旧值）。");
+        return "Clears the node's scene_file_path, converting the node and its subtree to local "
+               "(no longer linked to the original .tscn). "
+               "All ownership is auto-rewritten to the current scene root. "
+               "Equivalent to the editor's Make Local operation. Only applies to scene instance nodes. "
+               "All changes are undoable (restoring scene_file_path has limited support 鈥?old value must be recorded first).";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("场景实例节点路径");
+            p["description"] = "Scene instance node path";
             props["node_path"] = p;
         }
         Dictionary s;
@@ -46,17 +47,17 @@ protected:
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + node_path);
+                "Node not found: " + node_path);
         }
         String old_sfp = node->get_scene_file_path();
         if (old_sfp.is_empty()) {
             return ToolResult::err("NOT_AN_INSTANCE",
-                String::utf8("该节点不是场景实例（无 scene_file_path）"));
+                "Node is not a scene instance (no scene_file_path)");
         }
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
-            ur->create_action(String::utf8("MCP: Make Local ") + node->get_name(),
+            ur->create_action("MCP: Make Local " + node->get_name(),
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "set_scene_file_path", String());
             ur->add_undo_method(node, "set_scene_file_path", old_sfp);

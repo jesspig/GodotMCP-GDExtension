@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -14,17 +14,17 @@ public:
     String name() const override { return "get_node_groups"; }
     String category() const override { return "node_tools/group"; }
     String brief() const override {
-        return String::utf8("列出节点所属的所有分组");
+        return String("List all groups a node belongs to");
     }
     String description() const override {
-        return String::utf8("返回指定节点所属的所有分组名称列表，以及每个分组的持久化状态。");
+        return String("Returns the list of all group names the specified node belongs to, along with the persistence status of each group.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径（空=当前编辑场景根节点）");
+            p["description"] = String("Node path (empty = root node of current edited scene)");
             props["node_path"] = p;
         }
         Dictionary s;
@@ -42,7 +42,7 @@ protected:
         Node *node = resolve_node(ctx.root, path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + path);
+                String("鑺傜偣鏈壘鍒? ") + path);
         }
 
         PackedStringArray groups = node->get_groups();
@@ -60,3 +60,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

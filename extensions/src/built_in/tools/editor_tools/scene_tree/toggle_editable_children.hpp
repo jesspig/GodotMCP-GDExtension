@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -14,26 +13,26 @@ public:
     String name() const override { return "toggle_editable_children"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("切换实例场景的\"可编辑子节点\"状态");
+        return "Toggle Editable Children on an instanced scene";
     }
     String description() const override {
-        return String::utf8("对场景实例节点（具有 scene_file_path 的节点）切换可编辑子节点（Editable Children）状态。"
-                            "enable=true 允许编辑子节点（修改不会同步回原场景）；"
-                            "false 锁定为只读实例视图。"
-                            "非场景实例节点会返回错误。所有变更可撤销。");
+        return "Toggles the Editable Children state on a scene instance node (a node with a scene_file_path). "
+               "enable=true allows editing children (changes do not sync back to the original scene); "
+               "false locks it to a read-only instance view. "
+               "Non-instance nodes return an error. All changes are undoable.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("场景实例节点路径");
+            p["description"] = "Scene instance node path";
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("true = 启用可编辑，false = 禁用");
+            p["description"] = "true = enable editable children, false = disable";
             props["enable"] = p;
         }
         Dictionary s;
@@ -52,11 +51,11 @@ protected:
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + node_path);
+                "Node not found: " + node_path);
         }
         if (node->get_scene_file_path().is_empty()) {
             return ToolResult::err("NOT_AN_INSTANCE",
-                String::utf8("该节点不是场景实例（无 scene_file_path）"));
+                "Node is not a scene instance (no scene_file_path)");
         }
         bool current = node->is_editable_instance(node);
         bool enable;
@@ -74,7 +73,7 @@ protected:
         }
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
-            ur->create_action(String::utf8("MCP: Toggle Editable Children"),
+            ur->create_action("MCP: Toggle Editable Children",
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "set_editable_instance", node, enable);
             ur->add_undo_method(node, "set_editable_instance", node, current);
@@ -91,3 +90,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

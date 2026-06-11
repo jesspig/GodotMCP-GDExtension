@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -12,11 +12,11 @@ class RunCurrentSceneTool : public ITool {
 public:
     String name() const override { return "run_current_scene"; }
     String category() const override { return "runtime_tools/lifecycle"; }
-    String brief() const override { return String::utf8("运行当前在编辑器中打开的场景"); }
+    String brief() const override { return String("Run the currently open scene in the editor"); }
     String description() const override {
-        return String::utf8("运行当前在编辑器中打开的场景。等同于在编辑器中按 F6（或点击「运行当前场景」按钮）。"
-                             "该场景必须包含一个继承自 Node 的根节点。"
-                             "场景运行后可通过 stop_project 停止。");
+        return String("Runs the currently open scene in the editor. Equivalent to pressing F6 (or clicking the Run Current Scene button) in the editor. "
+                             "The scene must have a root node inheriting from Node. "
+                             "Can be stopped via stop_project.");
     }
     Dictionary input_schema() const override {
         Dictionary s;
@@ -29,7 +29,7 @@ protected:
     Dictionary execute_impl(const ToolContext &) override {
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
-            return ToolResult::err("NO_EDITOR", String::utf8("EditorInterface 不可用"));
+            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
         String current_scene;
         Node *root = ei->get_edited_scene_root();
@@ -37,7 +37,7 @@ protected:
             current_scene = root->get_scene_file_path();
             if (!current_scene.is_empty() && !ResourceLoader::get_singleton()->exists(current_scene)) {
                 return ToolResult::err("SCENE_FILE_MISSING",
-                    String::utf8("场景文件已被删除: ") + current_scene);
+                    "Scene file has been deleted: " + current_scene);
             }
         }
         ei->play_current_scene();
@@ -50,3 +50,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

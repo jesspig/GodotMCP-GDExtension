@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -18,57 +17,56 @@ public:
     String name() const override { return "search_files"; }
     String category() const override { return "editor_tools/filesystem"; }
     String brief() const override {
-        return String::utf8("检索项目文件");
+        return "Search for project files";
     }
     String description() const override {
-        return String::utf8("在项目中检索文件，支持多种匹配模式。"
-                            "搜索范围限制在 res:// 内。"
-                            "匹配模式：exact（精确匹配）、substring（字串匹配）、"
-                            "glob（通配符匹配）、regex（正则匹配）、fuzzy（模糊匹配）。");
+        return "Searches for files in the project, supporting multiple match modes. "
+               "Search scope is limited to res://. "
+               "Match modes: exact, substring, glob, regex, fuzzy.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("搜索模式（空 = 列出所有文件）");
+            p["description"] = "Search pattern (empty = list all files)";
             props["pattern"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：搜索根目录（默认 res://）");
+            p["description"] = "Optional: search root directory (default res://)";
             props["root"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("匹配模式: exact | substring | glob | regex | fuzzy（默认 substring）");
+            p["description"] = "Match mode: exact | substring | glob | regex | fuzzy (default substring)";
             props["mode"] = p;
         }
         {
             Dictionary p;
             p["type"] = "array";
             p["items"] = Dictionary();
-            p["description"] = String::utf8("可选：筛选扩展名列表，如 ['gd','tscn']");
+            p["description"] = "Optional: filter extension list, e.g. ['gd','tscn']";
             props["extensions"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("可选：包含 addons 目录（默认 false）");
+            p["description"] = "Optional: include addons directory (default false)";
             props["include_addons"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("可选：区分大小写（默认 false）");
+            p["description"] = "Optional: case sensitive (default false)";
             props["case_sensitive"] = p;
         }
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("可选：最大结果数（默认 200）");
+            p["description"] = "Optional: maximum results (default 200)";
             props["max_results"] = p;
         }
         Dictionary s;
@@ -160,7 +158,7 @@ protected:
         }
         if (!mode_ok) {
             return ToolResult::err("INVALID_MODE",
-                String::utf8("无效的匹配模式，支持: exact/substring/glob/regex/fuzzy"));
+                "Invalid match mode, supported: exact/substring/glob/regex/fuzzy");
         }
 
         // Normalize pattern for case-insensitive
@@ -225,3 +223,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

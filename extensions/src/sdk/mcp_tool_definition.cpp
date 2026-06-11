@@ -30,6 +30,12 @@ void McpToolDefinition::set_input_schema(const Dictionary &v) { input_schema_ = 
 bool McpToolDefinition::get_is_meta() const { return is_meta_; }
 void McpToolDefinition::set_is_meta(bool v) { is_meta_ = v; }
 
+bool McpToolDefinition::get_supports_undo() const { return supports_undo_; }
+void McpToolDefinition::set_supports_undo(bool v) { supports_undo_ = v; }
+
+bool McpToolDefinition::get_is_destructive() const { return is_destructive_; }
+void McpToolDefinition::set_is_destructive(bool v) { is_destructive_ = v; }
+
 // ---------------------------------------------------------------------------
 // execute — virtual dispatch via script instance check
 // GDScript subclasses override func execute(args: Dictionary) -> Dictionary
@@ -100,6 +106,14 @@ void McpToolDefinition::_bind_methods() {
     ClassDB::bind_method(D_METHOD("get_is_meta"), &McpToolDefinition::get_is_meta);
     ClassDB::bind_method(D_METHOD("set_is_meta", "v"), &McpToolDefinition::set_is_meta);
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "is_meta"), "set_is_meta", "get_is_meta");
+
+    ClassDB::bind_method(D_METHOD("get_supports_undo"), &McpToolDefinition::get_supports_undo);
+    ClassDB::bind_method(D_METHOD("set_supports_undo", "v"), &McpToolDefinition::set_supports_undo);
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "supports_undo"), "set_supports_undo", "get_supports_undo");
+
+    ClassDB::bind_method(D_METHOD("get_is_destructive"), &McpToolDefinition::get_is_destructive);
+    ClassDB::bind_method(D_METHOD("set_is_destructive", "v"), &McpToolDefinition::set_is_destructive);
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "is_destructive"), "set_is_destructive", "get_is_destructive");
 
     // execute — exposed as a regular method (GDScript overrides via inheritance)
     ClassDB::bind_method(D_METHOD("execute", "args"), &McpToolDefinition::execute);

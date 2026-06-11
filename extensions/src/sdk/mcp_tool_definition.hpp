@@ -33,6 +33,12 @@ public:
     bool get_is_meta() const;
     void set_is_meta(bool v);
 
+    bool get_supports_undo() const;
+    void set_supports_undo(bool v);
+
+    bool get_is_destructive() const;
+    void set_is_destructive(bool v);
+
     // --- Core virtual (GDScript overrides this) ---
     // func execute(args: Dictionary) -> Dictionary
     virtual godot::Dictionary execute(const godot::Dictionary &args);
@@ -51,6 +57,8 @@ private:
     godot::String description_;
     godot::Dictionary input_schema_;
     bool is_meta_ = false;
+    bool supports_undo_ = false;
+    bool is_destructive_ = false;
 };
 
 } // namespace godot_mcp

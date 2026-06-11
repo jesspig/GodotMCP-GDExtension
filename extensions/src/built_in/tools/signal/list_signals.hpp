@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -16,18 +16,18 @@ public:
     String name() const override { return "list_signals"; }
     String category() const override { return "node_tools/signal"; }
     String brief() const override {
-        return String::utf8("列出指定节点的所有可用信号（含参数信息）");
+        return String("List all available signals for a node (with parameter info)");
     }
     String description() const override {
-        return String::utf8("列出指定 GDScript 脚本或内置节点上定义的所有信号，"
-                            "包含每个信号的参数名、参数类型和默认参数。");
+        return String("Lists all signals defined on a given GDScript or built-in node, "
+                            "including parameter names, types, and default values for each signal.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径（空=当前编辑场景根节点）");
+            p["description"] = String("Node path (empty = root node of current edited scene)");
             props["node_path"] = p;
         }
         Dictionary s;
@@ -45,7 +45,7 @@ protected:
         Node *node = resolve_node(ctx.root, path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + path);
+                String("鑺傜偣鏈壘鍒? ") + path);
         }
 
         Array signals = node->get_signal_list();
@@ -82,3 +82,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

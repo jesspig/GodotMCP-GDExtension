@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -14,35 +14,35 @@ public:
     String name() const override { return "disconnect_signal"; }
     String category() const override { return "node_tools/signal"; }
     String brief() const override {
-        return String::utf8("断开节点的信号连接");
+        return String("Disconnect a node signal");
     }
     String description() const override {
-        return String::utf8("断开 source_node 的 signal_name 信号与 target_node.target_method 的连接。");
+        return String("Disconnects source_node's signal_name from target_node.target_method.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("源节点路径");
+            p["description"] = String("Source node path");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("信号名称");
+            p["description"] = String("Signal name");
             props["signal_name"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标节点路径");
+            p["description"] = String("Target node path");
             props["target_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标节点上的方法名");
+            p["description"] = String("Method name on the target node");
             props["target_method"] = p;
         }
         Dictionary s;
@@ -63,16 +63,16 @@ protected:
 
         Node *source = resolve_node(ctx.root, path);
         if (!source)
-            return ToolResult::err("NODE_NOT_FOUND", String::utf8("源节点未找到: ") + path);
+            return ToolResult::err("NODE_NOT_FOUND", String("婧愯妭鐐规湭鎵惧埌: ") + path);
 
         Node *target = resolve_node(ctx.root, target_path);
         if (!target)
-            return ToolResult::err("NODE_NOT_FOUND", String::utf8("目标节点未找到: ") + target_path);
+            return ToolResult::err("NODE_NOT_FOUND", String("鐩爣鑺傜偣鏈壘鍒? ") + target_path);
 
         Callable callable(target, target_method);
         if (!source->is_connected(signal_name, callable)) {
             return ToolResult::err("NOT_CONNECTED",
-                String::utf8("信号未连接: ") + signal_name);
+                String("淇″彿鏈繛鎺? ") + signal_name);
         }
 
         source->disconnect(signal_name, callable);
@@ -87,3 +87,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -17,37 +17,42 @@ public:
     String name() const override { return "add_node"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("向场景中添加新节点");
+        return "Add a new node to the scene";
     }
     String description() const override {
-        return String::utf8("在指定父节点下创建新节点。class_name 是 Godot 类名（如 Node2D、Node3D、Button）。"
-                            "name 留空则使用类型默认名。index=-1 表示追加到末尾。"
-                            "所有变更通过 EditorUndoRedoManager 提交，可通过 Ctrl+Z 撤销。");
+        return "Creates a new node under the specified parent. "
+               "class_name is the Godot class name (e.g. Node2D, Node3D, Button). "
+               "name defaults to the type name if left empty. "
+               "index=-1 appends at the end. "
+               "All changes go through EditorUndoRedoManager and can be undone with Ctrl+Z.";
+    }
+    String category_description() const override {
+        return "Editor operation tools: scene tree CRUD, clipboard, script, workspace switching, console, debugger, performance monitors, etc.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("父节点路径（空 = 场景根）");
+            p["description"] = "Parent node path (empty = scene root)";
             props["parent_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("要创建的节点类型（Godot 类名）");
+            p["description"] = "Node type to create (Godot class name)";
             props["class_name"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点名称（留空 = 类型默认名）");
+            p["description"] = "Node name (empty = default type name)";
             props["node_name"] = p;
         }
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("插入位置（-1 = 追加到末尾）");
+            p["description"] = "Insert position (-1 = append at end)";
             p["default"] = (int64_t)-1;
             props["index"] = p;
         }
@@ -65,19 +70,22 @@ protected:
         String parent_path = args_string(ctx.args, "parent_path", "");
         String class_name = args_string(ctx.args, "class_name");
         String node_name = args_string(ctx.args, "node_name");
+        if (node_name.is_empty()) {
+            node_name = args_string(ctx.args, "name");
+        }
         int64_t index = args_int(ctx.args, "index", -1);
 
         if (class_name.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("class_name 不能为空"));
+            return ToolResult::err("MISSING_ARG", "class_name cannot be empty");
         }
         if (!godot::ClassDB::class_exists(class_name)) {
             return ToolResult::err("UNKNOWN_CLASS",
-                String::utf8("未知的 Godot 类: ") + class_name);
+                "Unknown Godot class: " + class_name);
         }
         Node *parent = resolve_node(ctx.root, parent_path);
         if (!parent) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("父节点未找到: ") + parent_path);
+                "Parent node not found: " + parent_path);
         }
         if (node_name.is_empty()) {
             node_name = class_name;
@@ -86,14 +94,14 @@ protected:
         Node *child = scene_tree_utils::create_node(class_name, node_name);
         if (!child) {
             return ToolResult::err("CREATE_FAILED",
-                String::utf8("无法创建类型为 ") + class_name + String::utf8(" 的节点"));
+                "Failed to create node of type: " + class_name);
         }
 
-        // 处理 name 冲突
+        // Handle name conflicts
         if (parent->has_node(String("./") + node_name)) {
             memdelete(child);
             return ToolResult::err("NAME_CONFLICT",
-                String::utf8("同名节点已存在: ") + node_name);
+                "A node with the same name already exists: " + node_name);
         }
 
         EditorUndoRedoManager *ur = get_undo_redo();
@@ -103,10 +111,10 @@ protected:
             mark_scene_dirty();
         } else {
             scene_tree_utils::do_add_child(ur, parent, child, ctx.root, index,
-                String::utf8("MCP: Add ") + class_name);
+                "MCP: Add " + class_name);
         }
 
-        // 选中新节点
+        // Select the new node
         EditorInterface *ei = EditorInterface::get_singleton();
         if (ei) {
             EditorSelection *sel = ei->get_selection();

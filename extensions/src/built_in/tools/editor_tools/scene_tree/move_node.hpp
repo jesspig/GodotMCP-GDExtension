@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -14,31 +14,31 @@ public:
     String name() const override { return "move_node"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("调整节点在父节点中的顺序");
+        return "Reorder a node within its parent";
     }
     String description() const override {
-        return String::utf8("将指定节点移动到 parent_path 下的指定 index 位置。"
-                            "position 可以是 \"up\"（向前移一位）、\"down\"（向后移一位）、\"first\"（首位）、\"last\"（末位）或整数索引。"
-                            "新位置超出范围时自动夹到边界。所有变更可撤销。");
+        return "Moves the specified node to a given index under parent_path. "
+               "position can be \"up\" (move one forward), \"down\" (move one back), \"first\" (first position), \"last\" (last position), or an integer index. "
+               "Out-of-range positions are automatically clamped. All changes are undoable.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("要移动的节点路径");
+            p["description"] = "Node path to move";
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标位置：up/down/first/last 或整数索引");
+            p["description"] = "Target position: up/down/first/last or integer index";
             props["position"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("新父节点路径（空 = 保持当前父节点）");
+            p["description"] = "New parent path (empty = keep current parent)";
             props["parent_path"] = p;
         }
         Dictionary s;
@@ -57,23 +57,23 @@ protected:
         String parent_path = args_string(ctx.args, "parent_path", "");
 
         if (position.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("position 不能为空"));
+            return ToolResult::err("MISSING_ARG", "position cannot be empty");
         }
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + node_path);
+                "Node not found: " + node_path);
         }
         Node *old_parent = node->get_parent();
         if (!old_parent) {
             return ToolResult::err("ORPHAN_NODE",
-                String::utf8("节点无父节点，无法移动"));
+                "Node has no parent, cannot move");
         }
         Node *new_parent = parent_path.is_empty() ? old_parent
                             : resolve_node(ctx.root, parent_path);
         if (!new_parent) {
             return ToolResult::err("PARENT_NOT_FOUND",
-                String::utf8("新父节点未找到: ") + parent_path);
+                "New parent node not found: " + parent_path);
         }
 
         int64_t cur = node->get_index();
@@ -93,7 +93,7 @@ protected:
             bool is_int = position.is_valid_int();
             if (!is_int) {
                 return ToolResult::err("BAD_POSITION",
-                    String::utf8("position 必须是 up/down/first/last 或整数: ") + position);
+                    "position must be up/down/first/last or an integer: " + position);
             }
             target = (int64_t)position.to_int();
         }
@@ -113,7 +113,7 @@ protected:
         int64_t old_index = cur;
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
-            ur->create_action(String::utf8("MCP: Move Node"),
+            ur->create_action("MCP: Move Node",
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             if (new_parent != old_parent) {
                 ur->add_do_method(old_parent, "remove_child", node);

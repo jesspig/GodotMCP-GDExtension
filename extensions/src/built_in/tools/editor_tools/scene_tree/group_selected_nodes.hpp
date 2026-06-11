@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -19,28 +18,28 @@ public:
     String name() const override { return "group_selected_nodes"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("将编辑器中选中的多个节点编组到新建父节点下");
+        return "Group multiple selected nodes under a new parent node";
     }
     String description() const override {
-        return String::utf8("等效于编辑器 \"Group Selected\" 操作。"
-                            "读取 EditorSelection 中的所有顶层节点，在它们的公共父节点下创建一个新节点（new_class 类型），"
-                            "然后把所有选中节点移入新节点。"
-                            "要求选中节点至少 2 个且共享同一父节点。"
-                            "所有变更可撤销。");
+        return "Equivalent to the editor \"Group Selected\" operation. "
+               "Reads all top-level nodes from EditorSelection, creates a new node (of new_class type) "
+               "under their common parent, then moves all selected nodes into it. "
+               "Requires at least 2 selected nodes sharing the same parent. "
+               "All changes are undoable.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("新父节点的类型（Godot 类名）");
+            p["description"] = "New parent node type (Godot class name)";
             p["default"] = "Node";
             props["new_class"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("新父节点名（留空 = 类型名）");
+            p["description"] = "New parent node name (empty = type name)";
             props["new_name"] = p;
         }
         Dictionary s;
@@ -57,22 +56,22 @@ protected:
         String new_name = args_string(ctx.args, "new_name", "");
         if (!godot::ClassDB::class_exists(new_class)) {
             return ToolResult::err("UNKNOWN_CLASS",
-                String::utf8("未知的 Godot 类: ") + new_class);
+                "Unknown Godot class: " + new_class);
         }
         if (new_name.is_empty()) new_name = new_class;
 
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
-            return ToolResult::err("NO_EDITOR", String::utf8("EditorInterface 不可用"));
+            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
         EditorSelection *sel = ei->get_selection();
         if (!sel) {
-            return ToolResult::err("NO_SELECTION", String::utf8("无法获取 EditorSelection"));
+            return ToolResult::err("NO_SELECTION", "Failed to get EditorSelection");
         }
         godot::TypedArray<godot::Node> top = sel->get_top_selected_nodes();
         if (top.size() < 2) {
             return ToolResult::err("INSUFFICIENT_SELECTION",
-                String::utf8("需要至少 2 个选中顶层节点（当前: ") +
+                "Need at least 2 top-level selected nodes (current: " +
                 String::num_int64((int64_t)top.size()) + String(")"));
         }
         // Validate all share the same parent
@@ -83,30 +82,30 @@ protected:
             if (!n) continue;
             Node *p = n->get_parent();
             if (!p) {
-                return ToolResult::err("ORPHAN_SELECTED",
-                    String::utf8("选中的节点 ") + n->get_name() +
-                    String::utf8(" 无父节点"));
+            return ToolResult::err("ORPHAN_SELECTED",
+                "Selected node " + n->get_name() +
+                " has no parent");
             }
             if (common_parent == nullptr) {
                 common_parent = p;
             } else if (p != common_parent) {
                 return ToolResult::err("DIFFERENT_PARENTS",
-                    String::utf8("选中的节点必须共享同一父节点"));
+                    "Selected nodes must share the same parent");
             }
         }
         if (!common_parent) {
             return ToolResult::err("NO_VALID_SELECTION",
-                String::utf8("选中的节点无效"));
+                "No valid selected nodes");
         }
         if (common_parent->has_node(String("./") + new_name)) {
             return ToolResult::err("NAME_CONFLICT",
-                String::utf8("同名节点已存在: ") + new_name);
+                "A node with the same name already exists: " + new_name);
         }
 
         Node *wrapper = scene_tree_utils::create_node(new_class, new_name);
         if (!wrapper) {
             return ToolResult::err("CREATE_FAILED",
-                String::utf8("无法创建类型为 ") + new_class + String::utf8(" 的节点"));
+                "Failed to create node of type: " + new_class);
         }
         scene_tree_utils::assign_owner_recursive(wrapper, ctx.root);
 
@@ -122,7 +121,7 @@ protected:
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
-            ur->create_action(String::utf8("MCP: Group Selected Nodes"),
+            ur->create_action("MCP: Group Selected Nodes",
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
 
             // do: add wrapper at the smallest index among selected
@@ -176,3 +175,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

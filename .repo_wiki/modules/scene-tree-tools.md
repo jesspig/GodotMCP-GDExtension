@@ -60,7 +60,7 @@
 
 ## 注册
 
-所有工具均带 `// @tool register` 注释，category 均为 `editor_tools/scene_tree`，由 codegen 自动注册。
+所有工具通过 X-macro 注册（`register/register_existing.hpp`），category 均为 `editor_tools/scene_tree`。
 
 「脚本」工具（`attach_script`、`detach_script`）也使用 `editor_tools/scene_tree` category，放在同一分类下以便 AI 发现。
 

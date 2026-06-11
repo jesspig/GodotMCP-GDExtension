@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -13,11 +13,11 @@ class SetGameNodePropertyTool : public ITool {
 public:
     String name() const override { return "set_game_node_property"; }
     String category() const override { return "runtime_tools/bridge"; }
-    String brief() const override { return String::utf8("修改运行中游戏的节点属性"); }
+    String brief() const override { return String("Modify a running game node property"); }
     String description() const override {
-        return String::utf8("修改运行中游戏的指定节点的属性值。"
-                             "参数 node_path 为节点路径，property 为属性名称，"
-                             "value 为要设置的新值。");
+        return String("Modifies a property value on a node in the running game. "
+                             "node_path is the node path, property is the property name, "
+                             "value is the new value to set.");
     }
     bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
@@ -27,19 +27,19 @@ public:
         {
             Dictionary d;
             d["type"] = "string";
-            d["description"] = String::utf8("节点路径，如 /root/Main/Player");
+            d["description"] = String("Node path, e.g. /root/Main/Player");
             p["node_path"] = d;
         }
         {
             Dictionary d;
             d["type"] = "string";
-            d["description"] = String::utf8("属性名称，如 position");
+            d["description"] = String("Property name, e.g. position");
             p["property"] = d;
         }
         {
             Dictionary d;
             d["type"] = "object";
-            d["description"] = String::utf8("要设置的新值");
+            d["description"] = String("New value to set");
             p["value"] = d;
         }
         Dictionary s;
@@ -53,7 +53,7 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         RuntimeBridge *bridge = registry_ ? registry_->get_runtime_bridge() : nullptr;
         if (!bridge || !bridge->is_connected()) {
-            return ToolResult::err("GAME_NOT_RUNNING", String::utf8("游戏未运行"));
+            return ToolResult::err("GAME_NOT_RUNNING", "Game not running");
         }
         Dictionary params;
         params["node_path"] = args_string(ctx.args, "node_path");
@@ -64,3 +64,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

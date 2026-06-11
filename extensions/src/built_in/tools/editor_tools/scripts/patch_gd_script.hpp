@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -15,35 +14,35 @@ public:
     String name() const override { return "patch_gd_script"; }
     String category() const override { return "editor_tools/scripts"; }
     String brief() const override {
-        return String::utf8("精确替换 GDScript (.gd) 文件中的文本");
+        return "Precision replace text in GDScript (.gd) files";
     }
     String description() const override {
-        return String::utf8("在 GDScript 文件中执行精确文本替换。将 old_text 替换为 new_text，适用于手术式修改而非重写整个文件。occurrence=0 时替换所有匹配项，>0 时只替换第 N 次出现的匹配项。");
+        return "Perform precision text replacement in GDScript files. Replaces old_text with new_text, suitable for surgical modifications rather than rewriting the entire file. occurrence=0 replaces all matches, >0 replaces only the Nth occurrence.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标文件路径（必须以 .gd 结尾）");
+            p["description"] = "Target file path (must end with .gd)";
             props["path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("要被替换的旧文本");
+            p["description"] = "Old text to be replaced";
             props["old_text"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("替换后的新文本");
+            p["description"] = "New text to replace with";
             props["new_text"] = p;
         }
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("可选：替换第几次出现的匹配（0=全部替换，默认 0）");
+            p["description"] = "Optional: replace Nth occurrence (0=all, default 0)";
             props["occurrence"] = p;
         }
         Dictionary s;
@@ -66,21 +65,21 @@ protected:
         }
         if (!path.ends_with(".gd")) {
             return ToolResult::err("BAD_EXTENSION",
-                String::utf8("路径必须以 .gd 结尾"));
+                "Path must end with .gd");
         }
         if (!FileAccess::file_exists(path)) {
             return ToolResult::err("NOT_FOUND",
-                String::utf8("文件不存在: ") + path);
+                "File does not exist: " + path);
         }
         if (old_text.is_empty()) {
             return ToolResult::err("MISSING_ARG",
-                String::utf8("old_text 不能为空"));
+                "old_text cannot be empty");
         }
 
         Ref<FileAccess> file = FileAccess::open(path, FileAccess::READ);
         if (file.is_null()) {
             return ToolResult::err("READ_FAILED",
-                String::utf8("无法打开文件读取: ") + path);
+                "Failed to open file for reading: " + path);
         }
         String content = file->get_as_text();
         file->close();
@@ -113,13 +112,13 @@ protected:
 
         if (replacements == 0) {
             return ToolResult::err("NO_MATCH",
-                String::utf8("未找到匹配的文本: ") + old_text);
+                "No matching text found: " + old_text);
         }
 
         Ref<FileAccess> wf = FileAccess::open(path, FileAccess::WRITE);
         if (wf.is_null()) {
             return ToolResult::err("WRITE_FAILED",
-                String::utf8("无法打开文件写入: ") + path);
+                "Failed to open file for writing: " + path);
         }
         wf->store_string(content);
         wf->close();
@@ -137,3 +136,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

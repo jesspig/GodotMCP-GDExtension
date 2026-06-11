@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -15,7 +15,7 @@ class DebuggerBreakTool : public ITool {
 public:
     String name() const override { return "debugger_break"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("中断调试器执行"); }
+    String brief() const override { return String("Break debugger execution"); }
     String description() const override { return brief(); }
 
     Dictionary input_schema() const override {
@@ -26,7 +26,7 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &) override {
         Object *dbg = _find_debugger();
-        if (!dbg) return ToolResult::err("NO_DEBUGGER", "未找到 EditorDebuggerNode");
+        if (!dbg) return ToolResult::err("NO_DEBUGGER", "EditorDebuggerNode not found");
         dbg->call("debug_break");
         Dictionary d;
         d["action"] = "break";

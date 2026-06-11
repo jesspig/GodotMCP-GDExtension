@@ -15,7 +15,7 @@
 
 ## 注册
 
-六个工具均带 `// @tool register` 注释，category 均为 `node_tools/general`，由 codegen 自动注册。
+六个工具通过 X-macro 注册（`register/register_existing.hpp`），category 均为 `node_tools/general`。
 
 ## 依赖关系
 

@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -14,25 +13,25 @@ public:
     String name() const override { return "create_gdshader"; }
     String category() const override { return "editor_tools/filesystem"; }
     String brief() const override {
-        return String::utf8("创建 Godot 着色器 (.gdshader) 文件");
+        return "Create a Godot shader (.gdshader) file";
     }
     String description() const override {
-        return String::utf8("在指定的 res:// 路径创建一个 Godot 着色器文件。"
-                            "使用 FileAccess 写入文本内容，然后通知 EditorFileSystem 刷新。"
-                            "不提供 content 时使用默认 canvas_item 着色器模板。");
+        return "Creates a Godot shader file at the specified res:// path. "
+               "Uses FileAccess to write text content, then notifies EditorFileSystem to refresh. "
+               "When content is not provided, uses the default canvas_item shader template.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标路径（必须以 .gdshader 结尾）");
+            p["description"] = "Target path (must end with .gdshader)";
             props["path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：着色器代码（留空使用默认 canvas_item 模板）");
+            p["description"] = "Optional: shader code (empty uses default canvas_item template)";
             props["content"] = p;
         }
         Dictionary s;
@@ -53,11 +52,11 @@ protected:
         }
         if (!path.ends_with(".gdshader")) {
             return ToolResult::err("BAD_EXTENSION",
-                String::utf8("路径必须以 .gdshader 结尾"));
+                "Path must end with .gdshader");
         }
         if (!fs_utils::ensure_parent_dir(path)) {
             return ToolResult::err("MKDIR_FAILED",
-                String::utf8("无法创建父目录"));
+                "Failed to create parent directory");
         }
         if (content.is_empty()) {
             content = String("shader_type canvas_item;\n")
@@ -70,7 +69,7 @@ protected:
         Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
         if (file.is_null()) {
             return ToolResult::err("CREATE_FAILED",
-                String::utf8("无法打开文件进行写入"));
+                "Failed to open file for writing");
         }
         file->store_string(content);
         file->close();
@@ -85,3 +84,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

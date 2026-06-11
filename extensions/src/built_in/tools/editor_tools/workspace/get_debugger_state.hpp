@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -15,13 +15,15 @@ class GetDebuggerStateTool : public ITool {
 public:
     String name() const override { return "get_debugger_state"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("获取调试器当前状态"); }
+    String brief() const override { return String("Get debugger current state"); }
     String description() const override {
-        return String::utf8("获取编辑器调试器面板的状态信息，包括：错误/警告计数、"
-                            "是否中断、是否可调试、会话是否活跃、当前栈帧位置。"
-                            "通过场景树查找 EditorDebuggerNode → 获取 ScriptEditorDebugger → "
-                            "call() 调用 get_error_count() 等方法，"
-                            "与 Godot 源码 editor/debugger/editor_debugger_node.cpp 的 _update_errors() 流程对齐。");
+        return String("Retrieves state information from the editor debugger panel, including: "
+                      "error/warning count, break state, debuggable state, session activity, "
+                      "and current stack frame position. "
+                      "Looks up EditorDebuggerNode via the scene tree, gets ScriptEditorDebugger, "
+                      "then calls get_error_count() and similar methods via call(). "
+                      "Aligned with the _update_errors() flow in Godot source "
+                      "editor/debugger/editor_debugger_node.cpp.");
     }
 
     Dictionary input_schema() const override {
@@ -39,7 +41,7 @@ protected:
 
         Object *debugger = _find_debugger_node();
         if (!debugger) {
-            return ToolResult::err("NO_DEBUGGER", "未找到 EditorDebuggerNode");
+            return ToolResult::err("NO_DEBUGGER", "EditorDebuggerNode not found");
         }
 
         Object *active_dbg = debugger->call("get_current_debugger");

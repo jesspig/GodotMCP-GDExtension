@@ -1,4 +1,4 @@
-#include "game_bridge.hpp"
+﻿#include "game_bridge.hpp"
 #include "logging.hpp"
 
 #include <godot_cpp/classes/engine.hpp>
@@ -20,7 +20,7 @@
 using namespace godot;
 
 namespace godot_mcp {
-// Forward declaration — defined in cmd_utils_json.cpp, no editor dependency
+// Forward declaration 鈥?defined in cmd_utils_json.cpp, no editor dependency
 Variant json_to_variant(const Variant &jv);
 
 // -----------------------------------------------------------------------
@@ -49,7 +49,7 @@ int GameBridgeNode::read_port() {
 
 void GameBridgeNode::_ready() {
     if (Engine::get_singleton()->is_editor_hint()) {
-        // Should never happen — only created in game process
+        // Should never happen 鈥?only created in game process
         return;
     }
     set_process(true);
@@ -73,7 +73,7 @@ void GameBridgeNode::_self_add() {
     SceneTree *st = Object::cast_to<SceneTree>(
             Engine::get_singleton()->get_main_loop());
     if (!st || !st->get_root()) {
-        // Root not ready yet — try again next frame
+        // Root not ready yet 鈥?try again next frame
         call_deferred("_self_add");
         return;
     }
@@ -156,7 +156,7 @@ void GameBridgeNode::read_clients() {
         // Sanity: drop connection if buffer overflows
         Dictionary err;
         err["ok"] = false;
-        err["error"] = String::utf8("消息体过大");
+        err["error"] = String("Message body too large");
         send_response(client_, err);
         client_->disconnect_from_host();
         client_.unref();
@@ -173,7 +173,7 @@ void GameBridgeNode::read_clients() {
     json.instantiate();
     Error parse_err = json->parse(text);
     if (parse_err != OK) {
-        // Incomplete — wait for more data
+        // Incomplete 鈥?wait for more data
         return;
     }
     Variant msg = json->get_data();
@@ -182,7 +182,7 @@ void GameBridgeNode::read_clients() {
     if (msg.get_type() != Variant::DICTIONARY) {
         Dictionary err;
         err["ok"] = false;
-        err["error"] = String::utf8("消息体必须为 JSON 对象");
+        err["error"] = String("娑堟伅浣撳繀椤讳负 JSON 瀵硅薄");
         send_response(client_, err);
         return;
     }
@@ -234,7 +234,7 @@ Dictionary GameBridgeNode::handle_get_scene_tree(const Dictionary &params) {
     if (!st || !st->get_root()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String::utf8("场景树不可用");
+        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
         return r;
     }
     int max_depth = params.get("max_depth", -1);
@@ -251,21 +251,21 @@ Dictionary GameBridgeNode::handle_get_property(const Dictionary &params) {
     if (node_path.is_empty() || property.is_empty()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String::utf8("参数 node_path 和 property 不能为空");
+        r["error"] = String("鍙傛暟 node_path 鍜?property 涓嶈兘涓虹┖");
         return r;
     }
     SceneTree *st = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
     if (!st || !st->get_root()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String::utf8("场景树不可用");
+        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
         return r;
     }
     Node *node = st->get_root()->get_node<godot::Node>(NodePath(node_path));
     if (!node) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("节点未找到: ") + node_path;
+        r["error"] = String("鑺傜偣鏈壘鍒? ") + node_path;
         return r;
     }
     Variant value = node->get(property);
@@ -281,21 +281,21 @@ Dictionary GameBridgeNode::handle_set_property(const Dictionary &params) {
     if (node_path.is_empty() || property.is_empty()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String::utf8("参数 node_path 和 property 不能为空");
+        r["error"] = String("鍙傛暟 node_path 鍜?property 涓嶈兘涓虹┖");
         return r;
     }
     SceneTree *st = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
     if (!st || !st->get_root()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String::utf8("场景树不可用");
+        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
         return r;
     }
     Node *node = st->get_root()->get_node<godot::Node>(NodePath(node_path));
     if (!node) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("节点未找到: ") + node_path;
+        r["error"] = String("鑺傜偣鏈壘鍒? ") + node_path;
         return r;
     }
     node->set(property, json_to_variant(params.get("value", Variant())));
@@ -311,21 +311,21 @@ Dictionary GameBridgeNode::handle_call_method(const Dictionary &params) {
     if (node_path.is_empty() || method.is_empty()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String::utf8("参数 node_path 和 method 不能为空");
+        r["error"] = String("鍙傛暟 node_path 鍜?method 涓嶈兘涓虹┖");
         return r;
     }
     SceneTree *st = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
     if (!st || !st->get_root()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String::utf8("场景树不可用");
+        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
         return r;
     }
     Node *node = st->get_root()->get_node<godot::Node>(NodePath(node_path));
     if (!node) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("节点未找到: ") + node_path;
+        r["error"] = String("鑺傜偣鏈壘鍒? ") + node_path;
         return r;
     }
     Array args = params.get("args", Array());
@@ -347,14 +347,14 @@ Dictionary GameBridgeNode::handle_screenshot(const Dictionary &params) {
     if (!vp) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String::utf8("视口不可用");
+        r["error"] = String("Viewport not available");
         return r;
     }
     Ref<Image> img = vp->get_texture()->get_image();
     if (img.is_null()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String::utf8("无法获取视口图像");
+        r["error"] = String("Unable to get viewport image");
         return r;
     }
     PackedByteArray buf;
@@ -439,7 +439,7 @@ Dictionary GameBridgeNode::handle_simulate_input(const Dictionary &params) {
     if (!input) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String::utf8("Input 单例不可用");
+        r["error"] = String("Input singleton not available");
         return r;
     }
 
@@ -513,7 +513,7 @@ Dictionary GameBridgeNode::handle_simulate_input(const Dictionary &params) {
     Dictionary r;
     r["ok"] = fail_count == 0;
     if (fail_count > 0) {
-        r["error"] = String::num_int64(fail_count) + String::utf8(" 个输入事件处理失败");
+        r["error"] = String::num_int64(fail_count) + " input event(s) failed";
     }
     r["data"] = data;
     return r;
@@ -524,7 +524,7 @@ Dictionary GameBridgeNode::handle_set_pause(const Dictionary &params) {
     if (!st) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String::utf8("场景树不可用");
+        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
         return r;
     }
     bool paused = params.get("paused", false);
@@ -569,3 +569,4 @@ Dictionary GameBridgeNode::node_to_dict(Node *node, int max_depth, int depth) {
 }
 
 } // namespace godot_mcp
+

@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -18,11 +18,12 @@ class GetConsoleOutputTool : public ITool {
 public:
     String name() const override { return "get_console_output"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("获取编辑器控制台输出"); }
+    String brief() const override { return String("Get editor console output"); }
     String description() const override {
-        return String::utf8("获取编辑器 Output 面板的日志内容，支持按关键词搜索、按消息类型过滤、"
-                            "排除 MCP 相关日志行。消息读取自 EditorLog 的 RichTextLabel，"
-                            "与 Godot 源码 editor/editor_log.cpp 的 _rebuild_log() 流程对齐。");
+        return String("Retrieves log content from the editor Output panel. Supports keyword search, "
+                      "message type filtering, and MCP line exclusion. Messages are read from "
+                      "EditorLog's RichTextLabel, aligned with the _rebuild_log() flow in "
+                      "Godot source editor/editor_log.cpp.");
     }
 
     Dictionary input_schema() const override {
@@ -30,26 +31,26 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("搜索关键词（仅返回包含此关键词的行）");
+            p["description"] = String("Search keyword (only returns lines containing this keyword)");
             props["search"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("消息类型过滤：std / error / warning / editor，留空不过滤");
+            p["description"] = String("Message type filter: std / error / warning / editor, leave empty for no filter");
             props["type"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("是否排除 MCP 相关日志行（默认 true）");
+            p["description"] = String("Whether to exclude MCP-related log lines (default true)");
             p["default"] = true;
             props["exclude_mcp"] = p;
         }
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("最大返回行数（-1 = 不限，默认 500）");
+            p["description"] = String("Maximum lines to return (-1 = unlimited, default 500)");
             p["default"] = (int64_t)500;
             props["max_lines"] = p;
         }
@@ -68,32 +69,32 @@ protected:
 
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
-            return ToolResult::err("NO_EDITOR", "EditorInterface 不可用");
+            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
 
         Control *base = ei->get_base_control();
         if (!base) {
-            return ToolResult::err("NO_BASE", "编辑器基础控件不可用");
+            return ToolResult::err("NO_BASE", "Editor base control not available");
         }
 
         Array log_nodes = base->find_children("*", "EditorLog", true, false);
         if (log_nodes.size() == 0) {
-            return ToolResult::err("NO_LOG", "未找到 EditorLog 节点");
+            return ToolResult::err("NO_LOG", "EditorLog node not found");
         }
 
         Node *editor_log = Object::cast_to<Node>(log_nodes[0]);
         if (!editor_log) {
-            return ToolResult::err("INVALID_LOG", "EditorLog 节点无效");
+            return ToolResult::err("INVALID_LOG", "EditorLog node is invalid");
         }
 
         Array rtl_nodes = editor_log->find_children("*", "RichTextLabel", true, false);
         if (rtl_nodes.size() == 0) {
-            return ToolResult::err("NO_RTL", "未找到 RichTextLabel 子节点");
+            return ToolResult::err("NO_RTL", "RichTextLabel child node not found");
         }
 
         RichTextLabel *rtl = Object::cast_to<RichTextLabel>(rtl_nodes[0]);
         if (!rtl) {
-            return ToolResult::err("INVALID_RTL", "RichTextLabel 节点无效");
+            return ToolResult::err("INVALID_RTL", "RichTextLabel node is invalid");
         }
 
         String full_text = rtl->get_text();

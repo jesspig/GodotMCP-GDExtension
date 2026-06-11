@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -16,7 +16,7 @@ class GetConsoleErrorsTool : public ITool {
 public:
     String name() const override { return "get_console_errors"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("获取编辑器控制台错误消息"); }
+    String brief() const override { return String("Get editor console error messages"); }
     String description() const override { return brief(); }
 
     Dictionary input_schema() const override {
@@ -27,7 +27,7 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &) override {
         RichTextLabel *rtl = _find_console_rtl();
-        if (!rtl) return ToolResult::err("NO_CONSOLE", "未找到控制台");
+        if (!rtl) return ToolResult::err("NO_CONSOLE", "Console not found");
 
         PackedStringArray lines = rtl->get_text().split("\n", false);
         Array errors;

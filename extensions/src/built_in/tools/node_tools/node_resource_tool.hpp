@@ -1,8 +1,8 @@
-// node_resource_tool.hpp — 通用资源属性 Get/Set 工具模板
+// node_resource_tool.hpp �?通用资源属�?Get/Set 工具模板
 //
-// 两个通用 ITool 子类，通过 codegen 从 YAML 属性数据库动态注册。
-// 用于读取/设置资源对象上的属性，而非节点上的属性。
-// 资源通过 node_path + property_name 定位。
+// 两个通用 ITool 子类，通过 codegen �?YAML 属性数据库动态注册�?
+// 用于读取/设置资源对象上的属性，而非节点上的属性�?
+// 资源通过 node_path + property_name 定位�?
 
 #pragma once
 
@@ -21,7 +21,7 @@
 namespace godot_mcp {
 
 // =====================================================================
-// NodeResourceGetTool — 读取节点上资源对象的属性
+// NodeResourceGetTool �?读取节点上资源对象的属�?
 // =====================================================================
 
 class NodeResourceGetTool : public ITool {
@@ -45,11 +45,11 @@ public:
         Dictionary p;
         Dictionary np;
         np["type"] = "string";
-        np["description"] = String::utf8("节点路径");
+        np["description"] = String("Node path");
         p["node_path"] = np;
         Dictionary pp;
         pp["type"] = "string";
-        pp["description"] = String::utf8("资源属性所在的节点属性名称");
+        pp["description"] = String("Node property name that holds the resource");
         p["property_name"] = pp;
         s["properties"] = p;
         Array r;
@@ -65,7 +65,7 @@ public:
     String description() const override {
         return String("Reads the ") + prop_name_
             + String(" property of a ") + res_type_
-            + String::utf8(" resource on a node.");
+            + String(" resource on a node.");
     }
     String category_description() const override { return cat_desc_; }
     bool needs_scene() const override { return true; }
@@ -78,14 +78,14 @@ protected:
         Node *node = resolve_node(ctx.root, args_string(ctx.args, "node_path", ""));
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到"));
+                String("Node not found"));
         }
 
         Variant val = node->get(prop_name);
         Ref<Resource> res = val;
         if (res.is_null()) {
             return ToolResult::err("NOT_A_RESOURCE",
-                String::utf8("该属性没有 Resource 值"));
+                String("The property does not have a Resource value"));
         }
 
         Variant prop_val = res->get(prop_name_);
@@ -99,7 +99,7 @@ protected:
 };
 
 // =====================================================================
-// NodeResourceSetTool — 设置节点上资源对象的属性（带撤销支持）
+// NodeResourceSetTool �?设置节点上资源对象的属性（带撤销支持�?
 // =====================================================================
 
 class NodeResourceSetTool : public ITool {
@@ -123,16 +123,16 @@ public:
         Dictionary p;
         Dictionary np;
         np["type"] = "string";
-        np["description"] = String::utf8("节点路径");
+        np["description"] = String("Node path");
         p["node_path"] = np;
         Dictionary pp;
         pp["type"] = "string";
-        pp["description"] = String::utf8("资源属性所在的节点属性名称");
+        pp["description"] = String("Node property name that holds the resource");
         p["property_name"] = pp;
         Dictionary vp;
         vp["type"] = "object";
         vp["description"] = String("New value for ") + res_type_ + String(".") + prop_name_
-            + String::utf8(" (complex types use object format, e.g. {x,y} for Vector2)");
+            + String(" (complex types use object format, e.g. {x,y} for Vector2)");
         p["value"] = vp;
         s["properties"] = p;
         Array r;
@@ -149,7 +149,7 @@ public:
     String description() const override {
         return String("Sets the ") + prop_name_
             + String(" property of a ") + res_type_
-            + String::utf8(" resource with undo support.");
+            + String(" resource with undo support.");
     }
     String category_description() const override { return cat_desc_; }
     bool needs_scene() const override { return true; }
@@ -162,7 +162,7 @@ protected:
         Node *node = resolve_node(ctx.root, args_string(ctx.args, "node_path", ""));
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到"));
+                String("Node not found"));
         }
 
         if (!ctx.args.has("value")) {
@@ -173,7 +173,7 @@ protected:
         Ref<Resource> res = val;
         if (res.is_null()) {
             return ToolResult::err("NOT_A_RESOURCE",
-                String::utf8("该属性没有 Resource 值"));
+                String("The property does not have a Resource value"));
         }
 
         Variant new_val = json_to_variant(ctx.args["value"]);

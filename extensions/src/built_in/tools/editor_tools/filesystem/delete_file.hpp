@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -14,25 +13,25 @@ public:
     String name() const override { return "delete_file"; }
     String category() const override { return "editor_tools/filesystem"; }
     String brief() const override {
-        return String::utf8("删除文件或目录");
+        return "Delete a file or directory";
     }
     String description() const override {
-        return String::utf8("删除指定的文件或目录。对非空目录需要 recursive=true。"
-                            "使用 DirAccess::remove_absolute()，然后通知 EditorFileSystem 刷新。"
-                            "禁止删除 res:// 本身。");
+        return "Deletes the specified file or directory. Non-empty directories require recursive=true. "
+               "Uses DirAccess::remove_absolute(), then notifies EditorFileSystem to refresh. "
+               "Deleting res:// itself is forbidden.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("要删除的 res:// 路径（文件或目录）");
+            p["description"] = "res:// path to delete (file or directory)";
             props["path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("可选：递归删除目录内容（默认 false）");
+            p["description"] = "Optional: recursively delete directory contents (default false)";
             props["recursive"] = p;
         }
         Dictionary s;
@@ -53,14 +52,14 @@ protected:
         }
         if (path == "res://") {
             return ToolResult::err("ROOT_DELETE",
-                String::utf8("不能删除项目根目录 res://"));
+                "Cannot delete the project root res://");
         }
         if (!fs_utils::path_exists(path)) {
             return ToolResult::err("NOT_FOUND",
-                String::utf8("路径不存在: ") + path);
+                "Path does not exist: " + path);
         }
 
-        // Capture before deletion — is_file() returns false after file is deleted
+        // Capture before deletion �?is_file() returns false after file is deleted
         bool was_dir = !fs_utils::is_file(path);
 
         Error err;
@@ -74,7 +73,7 @@ protected:
 
         if (err != Error::OK) {
             return ToolResult::err("DELETE_FAILED",
-                String::utf8("删除失败，错误码: ") + String::num_int64((int64_t)err));
+                "Delete failed, error code: " + String::num_int64((int64_t)err));
         }
 
         // Re-scan after file/dir deletion

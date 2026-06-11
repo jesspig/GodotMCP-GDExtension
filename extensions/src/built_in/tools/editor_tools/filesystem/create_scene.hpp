@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -17,32 +16,32 @@ public:
     String name() const override { return "create_scene"; }
     String category() const override { return "editor_tools/filesystem"; }
     String brief() const override {
-        return String::utf8("创建 Godot 场景 (.tscn) 文件");
+        return "Create a Godot scene (.tscn) file";
     }
     String description() const override {
-        return String::utf8("在指定的 res:// 路径创建一个空的 .tscn 场景文件。"
-                            "使用 PackedScene::pack() + ResourceSaver::save() 流程，"
-                            "与 Godot 的 SceneTreeDock 创建场景的官方路径一致。"
-                            "场景默认包含一个根 Node 节点。");
+        return "Creates an empty .tscn scene file at the specified res:// path. "
+               "Uses the PackedScene::pack() + ResourceSaver::save() workflow, "
+               "consistent with Godot's SceneTreeDock official scene creation path. "
+               "The scene includes a root Node by default.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标路径（必须以 .tscn 结尾）");
+            p["description"] = "Target path (must end with .tscn)";
             props["path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：根节点类型（如 Node2D、Node3D，默认 Node）");
+            p["description"] = "Optional: root node type (e.g. Node2D, Node3D, default Node)";
             props["root_type"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：根节点名称（默认 Node）");
+            p["description"] = "Optional: root node name (default Node)";
             props["root_name"] = p;
         }
         Dictionary s;
@@ -64,25 +63,25 @@ protected:
         }
         if (!path.ends_with(".tscn")) {
             return ToolResult::err("BAD_EXTENSION",
-                String::utf8("场景路径必须以 .tscn 结尾"));
+                "Scene path must end with .tscn");
         }
         if (FileAccess::file_exists(path)) {
             return ToolResult::err("FILE_EXISTS",
-                String::utf8("文件已存在: ") + path);
+                "File already exists: " + path);
         }
         if (!ClassDB::class_exists(root_type)) {
             return ToolResult::err("UNKNOWN_CLASS",
-                String::utf8("未知的节点类型: ") + root_type);
+                "Unknown node type: " + root_type);
         }
         if (!fs_utils::ensure_parent_dir(path)) {
             return ToolResult::err("MKDIR_FAILED",
-                String::utf8("无法创建父目录"));
+                "Failed to create parent directory");
         }
 
         Node *temp_root = Object::cast_to<Node>(ClassDB::instantiate(root_type));
         if (!temp_root) {
             return ToolResult::err("CREATE_FAILED",
-                String::utf8("无法创建类型为 ") + root_type + String::utf8(" 的节点"));
+                "Failed to create node of type: " + root_type);
         }
         temp_root->set_name(root_name);
 
@@ -93,13 +92,13 @@ protected:
 
         if (err != Error::OK) {
             return ToolResult::err("PACK_FAILED",
-                String::utf8("打包场景失败，错误码: ") + String::num_int64((int64_t)err));
+                "Failed to pack scene, error code: " + String::num_int64((int64_t)err));
         }
 
         err = ResourceSaver::get_singleton()->save(scene, path, ResourceSaver::FLAG_CHANGE_PATH);
         if (err != Error::OK) {
             return ToolResult::err("SAVE_FAILED",
-                String::utf8("保存场景失败，错误码: ") + String::num_int64((int64_t)err));
+                "Failed to save scene, error code: " + String::num_int64((int64_t)err));
         }
 
         fs_utils::notify_file_changed(path);
@@ -114,3 +113,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

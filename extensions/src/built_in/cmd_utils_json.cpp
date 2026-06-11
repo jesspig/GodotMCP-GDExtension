@@ -210,6 +210,12 @@ Variant dict_to_specific_type(const Dictionary &d) {
             return ResourceLoader::get_singleton()->load(path);
         }
     }
+    if (d.has("path") && !d.has("x") && !d.has("r") && !d.has("position")) {
+        const String path = d["path"];
+        if (!path.is_empty()) {
+            return ResourceLoader::get_singleton()->load(path);
+        }
+    }
     return Variant();  // NIL -> caller keeps the original Dictionary.
 }
 

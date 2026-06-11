@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -15,12 +15,12 @@ class GetPerformanceMonitorsTool : public ITool {
 public:
     String name() const override { return "get_performance_monitors"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("获取性能监视器数据"); }
+    String brief() const override { return String("Get performance monitor data"); }
     String description() const override {
-        return String::utf8("读取 Godot Performance 单例的监视器数据，包括 FPS、"
-                            "内存使用、对象计数、渲染统计、物理统计等。"
-                            "与 Godot 源码 main/performance.h 的 get_monitor() API 对齐，"
-                            "Enum 定义共 59 个监视器。支持按名称筛选特定监视器。");
+        return String("Reads monitor data from the Godot Performance singleton, including FPS, "
+                      "memory usage, object count, render statistics, physics statistics, etc. "
+                      "Aligned with the get_monitor() API in Godot source main/performance.h, "
+                      "with a total of 59 monitor enums. Supports filtering specific monitors by name.");
     }
 
     Dictionary input_schema() const override {
@@ -28,8 +28,8 @@ public:
         {
             Dictionary p;
             p["type"] = "array";
-            p["description"] = String::utf8("要查询的监视器名称列表，留空返回全部");
-            p["items"] = Dictionary();  // 接受字符串
+            p["description"] = String("List of monitor names to query, leave empty for all");
+            p["items"] = Dictionary();  // accepts strings
             props["monitors"] = p;
         }
         Dictionary s;
@@ -46,7 +46,7 @@ protected:
 
         Performance *perf = Performance::get_singleton();
         if (!perf) {
-            return ToolResult::err("NO_PERF", "Performance 单例不可用");
+            return ToolResult::err("NO_PERF", "Performance singleton not available");
         }
 
         Dictionary data;

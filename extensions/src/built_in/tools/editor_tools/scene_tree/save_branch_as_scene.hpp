@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -18,25 +17,25 @@ public:
     String name() const override { return "save_branch_as_scene"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("将节点分支保存为独立的 .tscn 场景");
+        return "Save a node branch as a standalone .tscn scene";
     }
     String description() const override {
-        return String::utf8("将指定的节点及其子树打包为 PackedScene 并写入 res:// 路径。"
-                            "保存后用 instance_child_scene 工具可重新实例化该分支。"
-                            "本工具是结构变换——undo 不会恢复文件（仅在节点结构层面）。");
+        return "Packs the specified node and its subtree into a PackedScene and writes it to a res:// path. "
+               "After saving, the branch can be re-instantiated using the instance_child_scene tool. "
+               "This tool performs a structural transformation �?undo does not restore the file (only affects the node structure).";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径（空 = 根节点）");
+            p["description"] = "Node path (empty = root node)";
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标 res:// 路径（必须以 .tscn 结尾）");
+            p["description"] = "Target res:// path (must end with .tscn)";
             props["path"] = p;
         }
         Dictionary s;
@@ -53,29 +52,29 @@ protected:
         String node_path = args_string(ctx.args, "node_path", "");
         String path = args_string(ctx.args, "path");
         if (path.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("path 不能为空"));
+            return ToolResult::err("MISSING_ARG", "path cannot be empty");
         }
         if (!path.ends_with(".tscn")) {
             return ToolResult::err("BAD_EXTENSION",
-                String::utf8("路径必须以 .tscn 结尾"));
+                "Path must end with .tscn");
         }
 
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + node_path);
+                "Node not found: " + node_path);
         }
         if (node == ctx.root) {
             return ToolResult::err("ROOT_NOT_ALLOWED",
-                String::utf8("不能将场景根节点保存为子场景，请先选中其他节点"));
+                "Cannot save the scene root as a sub-scene, please select another node");
         }
 
         if (!ensure_parent_dir(path)) {
             return ToolResult::err("MKDIR_FAILED",
-                String::utf8("无法创建父目录: ") + path);
+                "Failed to create parent directory: " + path);
         }
 
-        // 临时清空节点的 scene_file_path 以避免 .tscn 嵌套指向自身
+        // Temporarily clear the node's scene_file_path to prevent .tscn nesting pointing to itself
         String old_sfp = node->get_scene_file_path();
         node->set_scene_file_path("");
 
@@ -83,14 +82,14 @@ protected:
         if (packed.is_null()) {
             node->set_scene_file_path(old_sfp);
             return ToolResult::err("PACK_FAILED",
-                String::utf8("打包节点失败"));
+                "Failed to pack node");
         }
 
         godot::Error err = godot::ResourceSaver::get_singleton()->save(packed, path);
         node->set_scene_file_path(old_sfp);
         if (err != godot::OK) {
             return ToolResult::err("SAVE_FAILED",
-                String::utf8("保存失败，错误码: ") + String::num_int64((int64_t)err));
+                "Save failed, error code: " + String::num_int64((int64_t)err));
         }
         notify_file_changed(path);
 
@@ -103,3 +102,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

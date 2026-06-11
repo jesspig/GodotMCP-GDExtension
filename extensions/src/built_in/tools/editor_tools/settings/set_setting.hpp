@@ -1,6 +1,5 @@
-// @tool register
-// set_setting.hpp — 通用项目设置写入工具（兜底）
-// 当 AI 不确定具体设置路径时使用，接受任意 setting_path + value 参数。
+// set_setting.hpp -- Generic project setting writer (catch-all)
+// Used when the AI is unsure of the specific setting path; accepts any setting_path + value parameters.
 
 #pragma once
 
@@ -19,8 +18,8 @@ public:
         return "Set any project setting by path";
     }
     String description() const override {
-        return "通用项目设置写入工具。接受任意 setting_path + value，"
-               "修改设置并立即持久化到 project.godot。支持特性标签后缀（如 .debug、.web）。";
+        return "Generic project setting setter. Accepts any setting_path + value, "
+               "modifies the setting and persists to project.godot immediately. Supports feature tag suffixes (e.g. .debug, .web).";
     }
     bool needs_scene() const override { return false; }
     bool needs_node() const override { return false; }

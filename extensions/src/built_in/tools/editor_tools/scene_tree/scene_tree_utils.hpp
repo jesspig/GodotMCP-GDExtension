@@ -45,7 +45,7 @@ using godot::String;
 using godot::TypedArray;
 using godot::Variant;
 
-// ── Clipboard (PackedScene-backed) ─────────────────────────────────
+// -- Clipboard (PackedScene-backed) ---------------------------------
 // Godot's internal SceneTreeDock::node_clipboard is private; we expose
 // a PackedScene-backed clipboard that survives across MCP tool calls
 // (Godot process lifetime) and serializes the subtree as a .tscn blob.
@@ -55,14 +55,14 @@ void set_clipboard(const Ref<PackedScene> &scene);
 void clear_clipboard();
 bool clipboard_has_content();
 
-// ── Ownership helpers ──────────────────────────────────────────────
+// -- Ownership helpers -----------------------------------------------
 // Godot saves a node to the .tscn iff its `owner` is set to the edited
 // scene root. New nodes must be assigned an owner to become persistent.
 
 void assign_owner_recursive(Node *root, Node *owner);
 void clear_owner_recursive(Node *root, Node *stop_at);
 
-// ── Undo/Redo helpers ───────────────────────────────────────────────
+// -- Undo/Redo helpers ------------------------------------------------
 // Wrap a typical "add child + assign owner + update selection" sequence.
 
 void do_add_child(EditorUndoRedoManager *ur,
@@ -72,7 +72,7 @@ void do_add_child(EditorUndoRedoManager *ur,
                   int64_t index = -1,
                   const String &action_name = "MCP: add child");
 
-// ── Scene serialization helpers ────────────────────────────────────
+// -- Scene serialization helpers -------------------------------------
 
 // Pack a node subtree into a PackedScene. Caller owns the result.
 Ref<PackedScene> pack_subtree(Node *node);
@@ -81,13 +81,13 @@ Ref<PackedScene> pack_subtree(Node *node);
 // auto-add — caller is responsible for add_child + owner wiring).
 Node *instantiate_subtree(const Ref<PackedScene> &scene);
 
-// ── Node creation helper ───────────────────────────────────────────
+// -- Node creation helper --------------------------------------------
 
 // Create a new node of the given class, set its name, and return it.
 // Returns nullptr if the class is unknown.
 Node *create_node(const String &class_name, const String &name);
 
-// ── Recursive node collection ──────────────────────────────────────
+// -- Recursive node collection ---------------------------------------
 
 struct NodeInfo {
     String name;
@@ -100,7 +100,7 @@ struct NodeInfo {
 
 void collect_node_info(Node *node, Node *root, int64_t max_depth, bool include_scripts, Dictionary &out);
 
-// ── Misc utilities ─────────────────────────────────────────────────
+// -- Misc utilities --------------------------------------------------
 
 // Move `child` to `new_index` within its parent. No undo wrapping.
 void reorder_in_parent(Node *child, int64_t new_index);

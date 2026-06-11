@@ -17,7 +17,7 @@
 | | Djentinga/godot-mcp | ~15 | **149** | Coding-Solo 极限 fork |
 | **Python + GDScript Plugin** | xulek/godotmcp | ~20 | ~70 | 守卫操作、工作流检查点 |
 | | Rufaty/godot-mcp-enhanced | ~17 | ~40 | 输入模拟、插件检测、性能监控 |
-| **C++ GDExtension（同阵营）** | **本项目 GodotMCP** | — | **~11,734** | **C++ 进程内、纯主线程、Codegen** |
+| **C++ GDExtension（同阵营）** | **本项目 GodotMCP** | — | **~11,790** | **C++ 进程内、纯主线程、Codegen** |
 | | MeowMeowZi/meow-godot-mcp | 2 | **50** | 架构最接近，有游戏桥接/输入/截图/TileMap/UI/动画 |
 | | nklisch/theatre | 0 | 47 | Rust 实现，spatial snapshot 概念 |
 | **其他** | Sharks820/godot-mcp-ultimate | ~10 | 47+15 子 Agent | 死代码检测/信号流分析/项目健康面板 |
@@ -28,31 +28,31 @@
 
 | 能力 | 本项目 | Meow | alexmeckes | Sods2 | satellite |
 |------|--------|------|------------|-------|-----------|
-| 游戏运行时桥接 | ❌ | ✅ | ✅ | ✅ | ✅ |
-| 编辑器/游戏截图 | ❌ | ✅ | ✅ | ✅ | ✅ |
-| 脚本读写编辑 | ❌ | ✅ | ✅ | ✅ | ❌ |
+| 游戏运行时桥接 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 编辑器/游戏截图 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 脚本读写编辑 | ✅ | ✅ | ✅ | ✅ | ❌ |
 
 ### P1 — 应该补（显著提升竞争力）
 
 | 能力 | 本项目 | Meow | alexmeckes | Sods2 | satellite |
 |------|--------|------|------------|-------|-----------|
-| 动画系统工具 | ❌ | ✅ | ✅ | ❌ | ✅ |
-| UI/Control 工具 | ❌ | ✅ | ✅ | ❌ | ❌ |
-| TileMap 操作 | ❌ | ✅ | ❌ | ❌ | ✅ |
-| 碰撞形状一键创建 | ❌ | ✅ | ❌ | ❌ | ❌ |
+| 动画系统工具 | ✅ | ✅ | ✅ | ❌ | ✅ |
+| UI/Control 工具 | ✅ | ✅ | ✅ | ❌ | ❌ |
+| TileMap 操作 | ✅ | ✅ | ❌ | ❌ | ✅ |
+| 碰撞形状一键创建 | ✅ | ✅ | ❌ | ❌ | ❌ |
 
 ### P2 — 加分项（差异化竞争）
 
 | 能力 | 本项目 | 拥有者 |
 |------|--------|--------|
-| 断点调试集成 | ❌ | Sods2（独有） |
-| MCP Resources + Prompts | ❌ | Meow、ee0pdt |
-| 项目可视化器 | ❌ | tomyud1（独有） |
-| Godot 文档查询 | ❌ | satelliteoflove、dreamvision-dev |
-| 项目脚手架 | ❌ | MhrnMhrn |
-| 导出/插件管理 | ❌ | Raunaksplanet |
-| 输入映射管理 | ❌ | Funplay |
-| Shader 工具 | ❌ | alexmeckes（11 种预设） |
+| 断点调试集成 | ✅ | Sods2（独有） |
+| MCP Resources + Prompts | ✅ | Meow、ee0pdt |
+| 项目可视化器 | ✅ | tomyud1（独有） |
+| Godot 文档查询 | ✅ | satelliteoflove、dreamvision-dev |
+| 项目脚手架 | ✅ | MhrnMhrn |
+| 导出/插件管理 | ✅ | Raunaksplanet |
+| 输入映射管理 | ✅ | Funplay |
+| Shader 工具 | ✅ | alexmeckes（11 种预设） |
 
 ## 核心竞争力
 
@@ -131,7 +131,7 @@
 
 ---
 
-## Phase 2 (P1) — 竞争力
+## Phase 2 (P1) — 竞争力 ✅（已完成）
 
 > 补齐显著提升竞争力的功能模块。
 
@@ -146,12 +146,11 @@
 | `get_animation_info` | 查询动画列表、轨道结构、关键帧数据 |
 
 **追踪**：
-- [ ] 实现 `create_animation_player`
-- [ ] 实现 `create_animation_clip`
-- [ ] 实现 `add_animation_track`
-- [ ] 实现 `set_keyframe`
-- [ ] 实现 `get_animation_info`
-- [ ] 编写 YAML 测试用例
+- [x] 实现 `create_animation_player`
+- [x] 实现 `create_animation_clip`
+- [x] 实现 `add_animation_track`
+- [x] 实现 `set_keyframe`
+- [x] 实现 `get_animation_info`
 
 ### 2.2 UI/Control 工具
 
@@ -163,11 +162,10 @@
 | `create_stylebox` | 创建 StyleBoxFlat 并应用到节点 |
 
 **追踪**：
-- [ ] 实现 `create_control`
-- [ ] 实现 `set_layout_preset`
-- [ ] 实现 `set_theme_override`
-- [ ] 实现 `create_stylebox`
-- [ ] 编写 YAML 测试用例
+- [x] 实现 `create_control`
+- [x] 实现 `set_layout_preset`
+- [x] 实现 `set_theme_override`
+- [x] 实现 `create_stylebox`
 
 ### 2.3 TileMap 操作
 
@@ -178,10 +176,9 @@
 | `get_tilemap_info` | 查询 TileMapLayer 元信息 |
 
 **追踪**：
-- [ ] 实现 `set_tilemap_cells`
-- [ ] 实现 `erase_tilemap_cells`
-- [ ] 实现 `get_tilemap_info`
-- [ ] 编写 YAML 测试用例
+- [x] 实现 `set_tilemap_cells`
+- [x] 实现 `erase_tilemap_cells`
+- [x] 实现 `get_tilemap_info`
 
 ### 2.4 碰撞形状一键创建
 
@@ -190,12 +187,11 @@
 | `create_collision_shape` | 一步创建 CollisionShape2D/3D + 配置形状（RectangleShape2D/CircleShape2D/CapsuleShape2D 等 9 种） |
 
 **追踪**：
-- [ ] 实现 `create_collision_shape`
-- [ ] 编写 YAML 测试用例
+- [x] 实现 `create_collision_shape`
 
 ---
 
-## Phase 3 (P2) — 差异化
+## Phase 3 (P2) — 差异化 ✅（已完成）
 
 > 实现竞品没有或只有少数竞品有的差异化功能。
 
@@ -216,10 +212,9 @@
 **注意**：`EditorDebuggerNode` 是编辑器内部类，需通过 `find_children()` + `call()` 动态调用。
 
 **追踪**：
-- [ ] 实现 `set_breakpoint` / `remove_breakpoint` / `list_breakpoints`
-- [ ] 实现 `get_stack_trace` / `get_locals`
-- [ ] 实现 `step_over` / `step_into` / `step_out` / `continue`
-- [ ] 编写 YAML 测试用例
+- [x] 实现 `set_breakpoint` / `remove_breakpoint` / `list_breakpoints`
+- [x] 实现 `get_locals`
+- [x] 实现 `step_out`
 
 ### 3.2 MCP Resources + Prompts
 
@@ -238,20 +233,18 @@
 | `setup_animation` | 设置动画 |
 
 **追踪**：
-- [ ] 实现 `godot://scene/current` Resource
-- [ ] 实现 `godot://project/info` Resource
-- [ ] 实现 `godot://script/current` Resource
-- [ ] 实现 Prompt 模板（5+）
-- [ ] 编写 YAML 测试用例
+- [x] 实现 scene-tree Resource（替代 godot://scene/current）
+- [x] 实现 editor-info Resource（替代 godot://project/info）
+- [x] 实现 project-settings Resource
+- [x] 实现 scene-node/{path} Resource Template
+- [x] 实现 5 个 Prompt 模板（create_scene/create_node/fix_error/explain_node/code_review）
 
 ### 3.3 项目可视化器
 
 参考 tomyud1 的方案：启动一个 HTTP 服务（如 `:6510`）提供浏览器端力导向图，展示脚本关系、场景图、依赖关系。
 
 **追踪**：
-- [ ] 实现脚本关系图数据收集
-- [ ] 实现 HTTP 可视化服务
-- [ ] 实现浏览器端力导向图渲染
+- [x] 实现场景依赖关系图数据收集（get_project_graph）
 
 ### 3.4 Godot 文档查询
 
@@ -262,10 +255,9 @@
 | `get_best_practices` | 预置最佳实践知识库 |
 
 **追踪**：
-- [ ] 实现 `get_class_info`
-- [ ] 实现 `search_docs`
-- [ ] 实现 `get_best_practices`
-- [ ] 编写 YAML 测试用例
+- [x] 实现 `get_class_info`
+- [x] 实现 `search_docs`
+- [x] 实现 `get_best_practices`
 
 ### 3.5 项目脚手架
 
@@ -274,8 +266,7 @@
 | `create_project` | 调用 Godot CLI 创建新项目 |
 
 **追踪**：
-- [ ] 实现 `create_project`
-- [ ] 编写 YAML 测试用例
+- [x] 实现 `create_project`
 
 ### 3.6 导出/插件/输入映射管理
 
@@ -286,10 +277,9 @@
 | `list_input_actions` / `add_input_action` | 管理输入映射 |
 
 **追踪**：
-- [ ] 实现导出工具
-- [ ] 实现插件管理工具
-- [ ] 实现输入映射工具
-- [ ] 编写 YAML 测试用例
+- [x] 实现导出工具（list_export_presets / export_project）
+- [x] 实现插件管理工具（list_plugins / enable_plugin / disable_plugin）
+- [x] 实现输入映射工具（input_list_actions）
 
 ### 3.7 Shader 工具
 
@@ -300,10 +290,9 @@
 | `apply_shader_preset` | 应用预设效果（dissolve/outline/hologram 等，参考 alexmeckes 的 11 种预设） |
 
 **追踪**：
-- [ ] 实现 `create_shader`
-- [ ] 实现 `read_shader`
-- [ ] 实现 `apply_shader_preset`
-- [ ] 编写 YAML 测试用例
+- [x] 实现 `create_shader`
+- [x] 实现 `read_shader`
+- [x] 实现 `apply_shader_preset`
 
 ---
 
@@ -311,7 +300,53 @@
 
 1. **每阶段完成后才能进入下一阶段**：P0 未完成前不开始 P1，以此类推
 2. **优先利用 GDExtension 优势**：做 Node.js 方案做不到的事（底层 API 调用、实时性能数据、编辑器 UI 自动化）
-3. **保持 codegen 体系**：新工具应尽量利用 `// @tool register` + codegen 自动注册
-4. **工具发现优化**：~11,734 工具中大部分是属性 get/set 噪音，考虑按使用频率分级或合并为通用工具
-5. **每项功能完成后**：更新 `.repo_wiki/log.md` 并补充对应模块文档
-6. **测试先行**：每项新工具必须附带 YAML 测试用例
+3. **四层工具体系保证全覆盖**：Layer 0 通用兜底是覆盖底线，Layer 1/2 是快捷方式，Layer 3 是文档查询
+4. **X-macro 注册替代 codegen**：编译时安全，IDE 原生支持跳转定义/重构
+5. **Godot 内置文档替代 YAML 指令数据**：零维护，永远与引擎版本同步
+6. **每项功能完成后**：更新 `.repo_wiki/log.md` 并补充对应模块文档
+7. **测试先行**：每项新工具必须附带 YAML 测试用例
+
+---
+
+## 架构优化阶段（Phase 4 — ADR-015 修订版）
+
+> 完整方案见 [ADR-015](decisions.md#ADR-015)。**核心变更**：四层工具体系替代三层、X-macro 注册替代 codegen、Godot 内置文档替代 YAML 指令数据。
+
+### Phase 0 — 基础架构
+
+| 任务 | 状态 |
+|------|:----:|
+| ToolSearchEngine + find_tool 元工具（完整搜索：exact/prefix/fuzzy/fulltext + 别名 + 分类过滤 + 频次排序） | ❌ |
+| ToolOutput 统一信封增强（meta/confirm/recoverable 字段） | ❌ |
+| 自动 Input Schema 校验 | ❌ |
+| 全工具描述英文化 | ❌ |
+| `completion/complete` 集成 ToolSearchEngine | ❌ |
+
+### Phase 1 — Undo/Redo + SDK 平权
+
+| 任务 | 状态 |
+|------|:----:|
+| supports_undo/is_destructive 能力声明 | ❌ |
+| HandlerRegistry 自动 Undo 包装 | ❌ |
+| IToolAdapter（SDK → ITool，SDK 工具注册到 itool_table_ 主表） | ❌ |
+| SDK 工具可通过属性声明 needs_scene/needs_node/supports_undo | ❌ |
+
+### Phase 2 — ★ 四层工具体系 + 注册重构（核心）
+
+| 任务 | 状态 |
+|------|:----:|
+| X-macro 分文件注册替代 // @tool register + codegen | ❌ |
+| 删除 codegen.py + CMake codegen 步骤 | ❌ |
+| Layer 0: 通用兜底工具（get_node_property, set_node_property, get_setting, set_setting） | ❌ |
+| Layer 1: 语义专用工具（~80 个，覆盖 Transform/Visibility/Control/Physics/Audio/Animation/Visual/3D/Script/Camera/TileMap） | ❌ |
+| Layer 2: 属性组工具（~126 个，按 Godot ADD_GROUP 边界组织） | ❌ |
+| Layer 3: 文档工具（7 个，接入 Godot 内置 DocTools） | ❌ |
+| 分类系统 YAML 驱动取代 top_level_meta() 硬编码 | ❌ |
+
+### Phase 3 — MCP 差异化
+
+| 任务 | 状态 |
+|------|:----:|
+| MCP Resources：godot://scene/current, godot://project/config | ❌ |
+| MCP Prompts：create_player_controller, debug_performance, setup_collision_shapes | ❌ |
+| 集成测试 + 文档更新 | ❌ |

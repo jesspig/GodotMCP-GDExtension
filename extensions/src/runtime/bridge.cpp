@@ -1,4 +1,4 @@
-#include "bridge.hpp"
+﻿#include "bridge.hpp"
 #include "logging.hpp"
 
 #include <godot_cpp/classes/json.hpp>
@@ -67,7 +67,7 @@ Dictionary RuntimeBridge::send_command(const String &cmd, const Dictionary &para
     if (status_ != CONNECTED) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String::utf8("游戏未运行");
+        r["error"] = "Game not running";
         return r;
     }
 
@@ -86,7 +86,7 @@ Dictionary RuntimeBridge::send_command(const String &cmd, const Dictionary &para
         disconnect();
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String::utf8("桥接连接断开");
+        r["error"] = String("妗ユ帴杩炴帴鏂紑");
         return r;
     }
 
@@ -135,7 +135,7 @@ Dictionary RuntimeBridge::make_response(const Dictionary &raw) {
     if (!raw.has("ok") || !raw["ok"]) {
         Dictionary error;
         error["code"] = "BRIDGE_ERROR";
-        error["message"] = raw.get("error", String::utf8("命令执行失败"));
+        error["message"] = raw.get("error", String("鍛戒护鎵ц澶辫触"));
         Dictionary r;
         r["success"] = false;
         r["error"] = error;
@@ -148,3 +148,4 @@ Dictionary RuntimeBridge::make_response(const Dictionary &raw) {
 }
 
 } // namespace godot_mcp
+

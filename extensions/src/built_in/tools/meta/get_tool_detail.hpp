@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -12,10 +12,11 @@ public:
 
     String name() const override { return "get_tool_detail"; }
     String category() const override { return "meta_tools"; }
-    String brief() const override { return String::utf8("获取指定工具的完整信息"); }
+    String brief() const override { return String("Get full details of a specific tool"); }
     String description() const override {
-        return String::utf8("返回指定工具的完整元数据，包括名称、id、描述、入参、"
-                            "入参类型、返回值、返回类型、必填参数、分类路径、使用示例等。");
+        return String("Returns complete metadata for the specified tool, including name, id, "
+                      "description, parameters, parameter types, return value, return type, "
+                      "required parameters, category path, and usage example.");
     }
     Dictionary input_schema() const override {
         Dictionary schema;
@@ -23,7 +24,7 @@ public:
         Dictionary props;
         Dictionary tn;
         tn["type"] = "string";
-        tn["description"] = String::utf8("工具名称，如 get_info、get_canvasitem_position");
+        tn["description"] = String("Tool name, e.g. get_info, get_canvasitem_position");
         props["name"] = tn;
         schema["properties"] = props;
         Array req;
@@ -77,13 +78,13 @@ protected:
 
         Dictionary ret;
         ret["type"] = "object";
-        ret["description"] = String::utf8("工具执行结果，包含 success 标志和 data 或 error 字段");
+        ret["description"] = String("Tool execution result containing a success flag and either data or error fields");
         data["return_value"] = ret;
 
         data["category_id"] = cat_id;
         data["category_path"] = cat_path;
 
-        // 生成使用示例（MCP 工具调用格式，直接传参）
+        // 鐢熸垚浣跨敤绀轰緥锛圡CP 宸ュ叿璋冪敤鏍煎紡锛岀洿鎺ヤ紶鍙傦級
         String example = String("{\n");
         for (int i = 0; i < param_names.size(); ++i) {
             String pn = param_names[i];

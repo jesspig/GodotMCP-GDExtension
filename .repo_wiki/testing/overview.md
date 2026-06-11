@@ -14,11 +14,11 @@
            ┌───────────────┼───────────────┐
            ▼               ▼               ▼
    ┌──────────────┐ ┌──────────┐ ┌────────────────┐
-   │ C++ Test     │ │ 外部     │ │ 编辑器面板      │
-   │ Engine       │ │ Python   │ │ TestRunnerDock  │
-   │ (进程内)     │ │ 编排器   │ │ (C++ UI)        │
-   └──────┬───────┘ └────┬─────┘ └───────┬────────┘
-          └───────┬──────┘───────────────┘
+    │ C++ Test     │ │ 外部     │
+    │ Engine       │ │ Python   │
+    │ (进程内)     │ │ 编排器   │
+    └──────┬───────┘ └────┬─────┘
+           └───────┬──────┘
                   ▼
          ┌──────────────────┐
          │  TestEngine::run │
@@ -27,7 +27,7 @@
 ```
 
 - **进程内**：`TestEngine` 直接调用 `HandlerRegistry::execute()`，不经过 MCP 协议
-- **双源入口**：C++ Dock 面板 + HTTP `POST /run-tests`
+- **双源入口**：HTTP `POST /run-tests` + Python 编排器
 - **配置驱动**：YAML 文件定义测试，零脚本代码
 - **统一框架**：内置工具和自定义工具走同一路径
 - **磁盘校验**：支持 `.tscn`/`.tres`/`project.godot` 属性路径解析 + 类型转换 + 容差比较
@@ -44,7 +44,6 @@
 | 入口 | 方式 | 适用 |
 |------|------|------|
 | `POST /run-tests` (HTTP) | YAML 内容 → JSON 结果 | Python 编排器 / CI / curl |
-| TestRunnerDock (C++ 面板) | 选择 YAML 文件 → 运行 | 编辑器内交互测试 |
 | `uv run python tests/test_orchestrator.py` | Python 编排器 | CI / 开发调试 |
 
 ## 测试引擎详情

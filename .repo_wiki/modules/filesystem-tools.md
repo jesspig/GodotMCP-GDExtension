@@ -78,4 +78,4 @@ flowchart TB
 
 ## 注册
 
-所有工具均带 `// @tool register` 注释，category 为 `editor_tools/filesystem`，由 codegen 自动注册。
+所有工具通过 X-macro 注册（`register/register_existing.hpp`），category 为 `editor_tools/filesystem`。

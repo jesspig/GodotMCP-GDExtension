@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -14,25 +14,25 @@ public:
     String name() const override { return "set_unique_name"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("切换节点的 % 唯一名称");
+        return "Toggle a node's %% unique name";
     }
     String description() const override {
-        return String::utf8("enable=true 启用节点的 unique_name_in_owner（节点名前加 % 前缀），"
-                            "false 取消唯一名称。唯一名称可在脚本中通过 %Name 路径直接访问。"
-                            "所有变更可撤销。");
+        return "enable=true enables unique_name_in_owner on the node (prepends %% to the node name), "
+               "false disables it. Unique names can be accessed directly via %%Name paths in scripts. "
+               "All changes are undoable.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径");
+            p["description"] = "Node path";
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("true = 启用唯一名称，false = 取消");
+            p["description"] = "true = enable unique name, false = disable";
             p["default"] = true;
             props["enable"] = p;
         }
@@ -52,7 +52,7 @@ protected:
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + node_path);
+                "Node not found: " + node_path);
         }
         bool old = node->is_unique_name_in_owner();
         if (old == enable) {
@@ -64,7 +64,7 @@ protected:
         }
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
-            ur->create_action(String::utf8("MCP: Toggle Unique Name"),
+            ur->create_action("MCP: Toggle Unique Name",
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "set_unique_name_in_owner", enable);
             ur->add_undo_method(node, "set_unique_name_in_owner", old);

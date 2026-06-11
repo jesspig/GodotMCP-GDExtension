@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -13,11 +13,11 @@ class RunProjectTool : public ITool {
 public:
     String name() const override { return "run_project"; }
     String category() const override { return "runtime_tools/lifecycle"; }
-    String brief() const override { return String::utf8("运行项目的默认主场景"); }
+    String brief() const override { return String("Run the project default main scene"); }
     String description() const override {
-        return String::utf8("运行项目的默认主场景（在 ProjectSettings 中配置的 application/run/main_scene）。"
-                             "等同于在编辑器中按 F5（或点击「运行项目」按钮）。"
-                             "场景运行后可通过 stop_project 停止。");
+        return String("Runs the project's default main scene (configured in ProjectSettings under application/run/main_scene). "
+                             "Equivalent to pressing F5 (or clicking the Run Project button) in the editor. "
+                             "Can be stopped via stop_project.");
     }
     Dictionary input_schema() const override {
         Dictionary s;
@@ -30,13 +30,13 @@ protected:
     Dictionary execute_impl(const ToolContext &) override {
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
-            return ToolResult::err("NO_EDITOR", String::utf8("EditorInterface 不可用"));
+            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
         // Check main scene exists before running
         String main_scene = ProjectSettings::get_singleton()->get_setting("application/run/main_scene", "");
         if (!main_scene.is_empty() && !ResourceLoader::get_singleton()->exists(main_scene)) {
             return ToolResult::err("SCENE_FILE_MISSING",
-                String::utf8("主场景文件已被删除: ") + main_scene);
+                "Main scene file has been deleted: " + main_scene);
         }
         ei->play_main_scene();
         Dictionary data;
@@ -47,3 +47,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -17,17 +16,17 @@ public:
     String name() const override { return "validate_gd_script"; }
     String category() const override { return "editor_tools/scripts"; }
     String brief() const override {
-        return String::utf8("验证 GDScript (.gd) 文件语法");
+        return "Validate GDScript (.gd) file syntax";
     }
     String description() const override {
-        return String::utf8("使用 Godot 的 --check-only 模式验证 GDScript 文件语法。返回验证结果和退出码。");
+        return "Validate GDScript file syntax using Godot's --check-only mode. Returns the validation result and exit code.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标文件路径（必须以 .gd 结尾）");
+            p["description"] = "Target file path (must end with .gd)";
             props["path"] = p;
         }
         Dictionary s;
@@ -47,17 +46,17 @@ protected:
         }
         if (!path.ends_with(".gd")) {
             return ToolResult::err("BAD_EXTENSION",
-                String::utf8("路径必须以 .gd 结尾"));
+                "Path must end with .gd");
         }
         if (!FileAccess::file_exists(path)) {
             return ToolResult::err("NOT_FOUND",
-                String::utf8("文件不存在: ") + path);
+                "File does not exist: " + path);
         }
 
         OS *os = OS::get_singleton();
         if (!os) {
             return ToolResult::err("NO_OS",
-                String::utf8("OS 单例不可用"));
+                "OS singleton not available");
         }
 
         String godot_path = String("godot");
@@ -86,3 +85,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

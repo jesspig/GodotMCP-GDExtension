@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -13,18 +13,18 @@ class RunSpecificSceneTool : public ITool {
 public:
     String name() const override { return "run_specific_scene"; }
     String category() const override { return "runtime_tools/lifecycle"; }
-    String brief() const override { return String::utf8("运行指定的场景文件"); }
+    String brief() const override { return String("Run a specific scene file"); }
     String description() const override {
-        return String::utf8("运行指定的场景文件路径。路径应以 res:// 开头，指向一个 .tscn 或 .scn 文件。"
-                             "等同于使用「运行特定场景」对话框。"
-                             "场景运行后可通过 stop_project 停止。");
+        return String("Runs a specific scene file path. The path must start with res:// and point to a .tscn or .scn file. "
+                             "Equivalent to using the Run Specific Scene dialog. "
+                             "Can be stopped via stop_project.");
     }
     Dictionary input_schema() const override {
         Dictionary p;
         {
             Dictionary d;
             d["type"] = "string";
-            d["description"] = String::utf8("场景文件路径，如 res://scenes/level1.tscn");
+            d["description"] = String("Scene file path, e.g. res://scenes/level1.tscn");
             p["scene_path"] = d;
         }
         Dictionary s;
@@ -38,18 +38,18 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
-            return ToolResult::err("NO_EDITOR", String::utf8("EditorInterface 不可用"));
+            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
         String path = args_string(ctx.args, "scene_path");
         if (path.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("scene_path 不能为空"));
+            return ToolResult::err("MISSING_ARG", "scene_path cannot be empty");
         }
         if (!path.begins_with("res://")) {
-            return ToolResult::err("INVALID_PATH", String::utf8("scene_path 必须以 res:// 开头"));
+            return ToolResult::err("INVALID_PATH", "scene_path must start with res://");
         }
         if (!ResourceLoader::get_singleton()->exists(path)) {
             return ToolResult::err("SCENE_FILE_MISSING",
-                String::utf8("场景文件不存在: ") + path);
+                "Scene file does not exist: " + path);
         }
         ei->play_custom_scene(path);
         Dictionary data;
@@ -61,3 +61,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

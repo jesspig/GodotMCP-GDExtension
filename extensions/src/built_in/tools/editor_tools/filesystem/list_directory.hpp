@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -17,43 +17,44 @@ public:
     String name() const override { return "list_directory"; }
     String category() const override { return "editor_tools/filesystem"; }
     String brief() const override {
-        return String::utf8("列出目录内容");
+        return "List directory contents";
     }
     String description() const override {
-        return String::utf8("列出指定目录中的文件和子目录。优先使用 EditorFileSystemDirectory 获取结构化信息，"
-                            "fallback 到 DirAccess 直接遍历。支持按扩展名筛选。");
+        return "Lists files and subdirectories in the specified directory. "
+               "Prefers EditorFileSystemDirectory for structured information, "
+               "falling back to DirAccess for direct traversal. Supports filtering by extension.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：目录路径（默认 res://）");
+            p["description"] = "Optional: directory path (default res://)";
             props["path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("可选：包含文件（默认 true）");
+            p["description"] = "Optional: include files (default true)";
             props["include_files"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("可选：包含子目录（默认 true）");
+            p["description"] = "Optional: include subdirectories (default true)";
             props["include_dirs"] = p;
         }
         {
             Dictionary p;
             p["type"] = "array";
             p["items"] = Dictionary();
-            p["description"] = String::utf8("可选：筛选扩展名列表，如 ['gd', 'tscn']");
+            p["description"] = "Optional: filter extension list, e.g. ['gd', 'tscn']";
             props["extensions"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("可选：递归列出（默认 false）");
+            p["description"] = "Optional: list recursively (default false)";
             props["recursive"] = p;
         }
         Dictionary s;
@@ -177,7 +178,7 @@ protected:
         }
         if (!fs_utils::is_directory(path)) {
             return ToolResult::err("NOT_A_DIRECTORY",
-                String::utf8("路径不是目录: ") + path);
+                "Path is not a directory: " + path);
         }
 
         Array file_list;

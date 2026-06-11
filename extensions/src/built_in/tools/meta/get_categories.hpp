@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -12,10 +12,10 @@ public:
 
     String name() const override { return "get_categories"; }
     String category() const override { return "meta_tools"; }
-    String brief() const override { return String::utf8("以树型结构列出工具分类，支持路径钻取和深度控制"); }
+    String brief() const override { return String("List tool categories as a tree, supporting path drilling and depth control"); }
     String description() const override {
-        return String::utf8("返回工具分类树。可指定 path 钻取到特定分类，"
-                            "max_depth 控制展开深度（默认 3，-1 为无限制）。");
+        return String("Returns the tool category tree. Specify path to drill into a specific "
+                      "category, and max_depth to control expansion depth (default 3, -1 for unlimited).");
     }
     Dictionary input_schema() const override {
         Dictionary schema;
@@ -24,12 +24,12 @@ public:
 
         Dictionary p;
         p["type"] = "string";
-        p["description"] = String::utf8("分类路径，空则从根开始。如 node_tools/property/Node/CanvasItem");
+        p["description"] = String("Category path, empty starts from root. E.g. node_tools/property/Node/CanvasItem");
         props["path"] = p;
 
         Dictionary d;
         d["type"] = "integer";
-        d["description"] = String::utf8("最大深度（默认 3，-1 为无限制）");
+        d["description"] = String("Maximum depth (default 3, -1 for unlimited)");
         props["max_depth"] = d;
 
         schema["properties"] = props;
@@ -38,8 +38,8 @@ public:
     bool is_meta() const override { return true; }
 
 protected:
-    // 在 categories 数组中按 id 查找指定 segment
-    // 返回该节点的副本，未找到则返回空 Dictionary
+    // 鍦?categories 鏁扮粍涓寜 id 鏌ユ壘鎸囧畾 segment
+    // 杩斿洖璇ヨ妭鐐圭殑鍓湰锛屾湭鎵惧埌鍒欒繑鍥炵┖ Dictionary
     static Dictionary find_by_id(const Array &categories, const String &id) {
         for (int i = 0; i < categories.size(); ++i) {
             Dictionary cat = categories[i];
@@ -50,7 +50,7 @@ protected:
         return Dictionary();
     }
 
-    // 递归裁剪：depth 从 1 开始计数，超过 max_depth 时移除 subcategories
+    // 閫掑綊瑁佸壀锛歞epth 浠?1 寮€濮嬭鏁帮紝瓒呰繃 max_depth 鏃剁Щ闄?subcategories
     static Dictionary trim_depth(const Dictionary &node, int max_depth, int depth) {
         Dictionary out = node;
         if (max_depth >= 0 && depth >= max_depth) {
@@ -68,7 +68,7 @@ protected:
         return out;
     }
 
-    // 递归查找路径节点：返回找到的节点副本（已裁剪），空 Dictionary 表示未找到
+    // 閫掑綊鏌ユ壘璺緞鑺傜偣锛氳繑鍥炴壘鍒扮殑鑺傜偣鍓湰锛堝凡瑁佸壀锛夛紝绌?Dictionary 琛ㄧず鏈壘鍒?
     static Dictionary find_path_node(const Array &categories,
                                      const PackedStringArray &segments,
                                      int seg_idx,
@@ -108,7 +108,7 @@ protected:
             Dictionary found = find_path_node(all, segments, 0, max_depth, 1);
             if (found.is_empty()) {
                 return ToolResult::err("CATEGORY_NOT_FOUND",
-                    String::utf8("未找到分类路径: ") + path);
+                    String("Category path not found: ") + path);
             }
             result.push_back(found);
         }

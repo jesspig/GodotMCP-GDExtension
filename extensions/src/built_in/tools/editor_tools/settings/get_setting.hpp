@@ -1,6 +1,6 @@
-// @tool register
-// get_setting.hpp — 通用项目设置读取工具（兜底）
-// 当 AI 不确定具体设置路径时使用，接受任意 setting_path 参数。
+﻿
+// get_setting.hpp -- Generic project setting reader (catch-all)
+// Used when the AI is unsure of the specific setting path; accepts any setting_path parameter.
 
 #pragma once
 
@@ -19,8 +19,8 @@ public:
         return "Read any project setting by path";
     }
     String description() const override {
-        return "通用项目设置读取工具。接受任意 setting_path 参数（如 \"application/config/name\"），"
-               "返回当前值。支持所有内置设置和自定义设置。";
+        return "Generic project setting reader. Accepts any setting_path parameter (e.g. \"application/config/name\"), "
+               "returns the current value. Supports all built-in and custom settings.";
     }
     bool needs_scene() const override { return false; }
     bool needs_node() const override { return false; }

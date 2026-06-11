@@ -1,4 +1,5 @@
 #include "mcp_tool_registry.hpp"
+#include "built_in/tool_adapter.hpp"
 #include "logging.hpp"
 
 #include <godot_cpp/variant/variant.hpp>
@@ -71,14 +72,7 @@ void McpToolRegistry::register_definition(McpToolDefinition *tool_def) {
                          String("' already registered — overwriting"));
     }
 
-    // Build CommandFn wrapper around GDScript Callable
-    // We capture a Ref to prevent the definition from being garbage collected
-    Ref<McpToolDefinition> def_ref = Ref<McpToolDefinition>(tool_def);
-    CommandFn wrapper = [def_ref](const Dictionary &args) -> Dictionary {
-        return def_ref->execute(args);
-    };
-
-    // Store in our map
+    // Store custom tool metadata
     CustomTool ct;
     ct.original_name = original;
     ct.registered_name = resolved;
@@ -87,13 +81,31 @@ void McpToolRegistry::register_definition(McpToolDefinition *tool_def) {
     ct.description = tool_def->get_description();
     ct.input_schema = tool_def->get_input_schema();
     ct.is_meta = tool_def->get_is_meta();
+    ct.supports_undo = tool_def->get_supports_undo();
+    ct.is_destructive = tool_def->get_is_destructive();
     tools_[resolved] = ct;
 
-    // Register in HandlerRegistry
+    // Register via IToolAdapter — goes into itool_table_
     if (handler_registry_) {
-        handler_registry_->register_custom_tool(
-            resolved, ct.category, ct.brief, ct.description, ct.input_schema,
-            std::move(wrapper), ct.is_meta);
+        Ref<McpToolDefinition> def_ref = Ref<McpToolDefinition>(tool_def);
+        CommandFn wrapper = [def_ref](const Dictionary &args) -> Dictionary {
+            return def_ref->execute(args);
+        };
+
+        auto adapter = std::make_unique<IToolAdapter>(
+            resolved,
+            ct.category,
+            ct.brief,
+            ct.description,
+            ct.input_schema,
+            std::move(wrapper),
+            ct.is_meta,
+            false, // needs_scene
+            false, // needs_node
+            ct.supports_undo,
+            ct.is_destructive);
+
+        handler_registry_->register_tool(std::move(adapter), true);
     }
 
     log_info("sdk", String("Registered custom tool: ") + resolved);
@@ -132,19 +144,7 @@ void McpToolRegistry::register_tool(
                          String("' already registered — overwriting"));
     }
 
-    // Build CommandFn wrapper around Callable
-    Callable captured_handler = handler;
-    CommandFn wrapper = [captured_handler](const Dictionary &args) -> Dictionary {
-        Variant ret = captured_handler.call(args);
-        if (ret.get_type() == Variant::DICTIONARY) {
-            return Dictionary(ret);
-        }
-        Dictionary d;
-        d["result"] = ret;
-        return d;
-    };
-
-    // Store in our map
+    // Store metadata
     CustomTool ct;
     ct.original_name = name;
     ct.registered_name = resolved;
@@ -153,13 +153,17 @@ void McpToolRegistry::register_tool(
     ct.description = description;
     ct.input_schema = input_schema;
     ct.is_meta = is_meta;
+    ct.supports_undo = false;
+    ct.is_destructive = false;
     tools_[resolved] = ct;
 
-    // Register in HandlerRegistry
+    // Register via IToolAdapter
     if (handler_registry_) {
-        handler_registry_->register_custom_tool(
+        Callable captured_handler = handler;
+        auto adapter = std::make_unique<IToolAdapter>(
             resolved, category, brief, description, input_schema,
-            std::move(wrapper), is_meta);
+            captured_handler, is_meta);
+        handler_registry_->register_tool(std::move(adapter), true);
     }
 
     log_info("sdk", String("Registered custom tool: ") + resolved);

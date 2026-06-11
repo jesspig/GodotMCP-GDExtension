@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -15,12 +14,11 @@ class DebuggerControlTool : public ITool {
 public:
     String name() const override { return "debugger_control"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("控制调试器：中断/继续/单步"); }
+    String brief() const override { return String("Control debugger: break/continue/step"); }
     String description() const override {
-        return String::utf8("控制调试器的执行流程：break（中断）、"
-                            "continue（继续）、step_over（单步跳过）、step_into（单步进入）。"
-                            "与 Godot 源码 editor/debugger/editor_debugger_node.cpp 的 "
-                            "debug_break() / debug_continue() / debug_next() / debug_step() 流程对齐。");
+        return String("Controls the debugger execution flow: break, continue, step_over, step_into. "
+                      "Aligned with the debug_break() / debug_continue() / debug_next() / debug_step() "
+                      "flow in Godot source editor/debugger/editor_debugger_node.cpp.");
     }
 
     Dictionary input_schema() const override {
@@ -28,7 +26,7 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("调试操作：break / continue / step_over / step_into");
+            p["description"] = String("Debug action: break / continue / step_over / step_into");
             p["default"] = "continue";
             props["action"] = p;
         }
@@ -45,7 +43,7 @@ protected:
 
         Object *debugger = _find_debugger_node();
         if (!debugger) {
-            return ToolResult::err("NO_DEBUGGER", "未找到 EditorDebuggerNode");
+            return ToolResult::err("NO_DEBUGGER", "EditorDebuggerNode not found");
         }
 
         if (action == "break") {
@@ -58,7 +56,7 @@ protected:
             debugger->call("debug_step");
         } else {
             return ToolResult::err("INVALID_ARG",
-                String("无效的操作 '") + action + String("'，可选值：break / continue / step_over / step_into"));
+                String("Invalid action '") + action + String("', valid values: break / continue / step_over / step_into"));
         }
 
         Object *active_dbg = debugger->call("get_current_debugger");
