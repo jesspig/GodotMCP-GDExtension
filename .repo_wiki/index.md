@@ -1,31 +1,25 @@
 # Godot MCP — 项目知识库
 
-> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 `godot-cpp 10.0.0-rc1`，`// @tool register` + codegen 自动注册工具，rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。
+> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 `godot-cpp 10.0.0-rc1`，X-macro 分文件注册，四层工具体系（语义专用 + 属性组 + 通用兜底 + 文档查询），Godot 内置文档驱动指令数据，rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。
 
 ## 项目快照
 
-| 维度 | 状态 |
-|------|------|
-| C++ 源码根 | `extensions/src/` |
-| @tool register 工具 | `extensions/src/built_in/tools/**/*.hpp`（~84 个 `.hpp` 标 `// @tool register`） |
-| 节点属性工具 | `node_props/db/*.yaml`（283 节点类型 ×2 = 566 get/set） |
-| 资源属性工具 | `node_resource/db/*.yaml`（419 资源类型 ×2 = 838 get/set） |
-| 项目设置工具 | `editor_tools/settings/db/*.yaml`（24 分类，844 设置项 ×2 = 1688 get/set） |
-| 场景树工具 | `editor_tools/scene_tree/`（25+ 工具） |
-| 工作区工具 | `editor_tools/workspace/`（24 工具） |
-| 文件系统工具 | `editor_tools/filesystem/`（14 工具） |
-| 脚本工具 | `editor_tools/scripts/`（12 工具：GDScript + C#） |
-| 运行时桥接工具 | `runtime_tools/bridge/`（6 工具）|
-| 游戏生命周期工具 | `runtime_tools/lifecycle/`（5 工具）|
-| 总注册工具数 | **~11758**（含所有 YAML 生成的 get/set） |
-| SDK 层 | `extensions/src/sdk/`（`McpToolDefinition` + `McpToolRegistry`） |
-| 测试框架 | C++ `TestEngine`（`/run-tests`）+ Python 编排器（`test_orchestrator.py`） |
-| HTTP 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） |
-| 桥接端口 | `:9601`（env `GODOT_MCP_BRIDGE_PORT` 覆盖） |
-| Pinned deps | `godot-cpp 10.0.0-rc1`、`ryml v0.7.0` |
-| 版本号 | 仅 `CMakeLists.txt:22` `PROJECT_VERSION`（CMake 自动生成 `plugin.cfg` + `.gdextension`） |
-| 构建产物 | `example/addons/godot_mcp/bin/godot_mcp_gdext.{dll,so,dylib}` |
-| 编译器优化 | sccache/ccache、Unity(jumbo) build、lld-link（PCH 已移除，Unity 已覆盖） |
+| 维度 | 当前状态 | 目标（ADR-015） |
+|------|---------|----------------|
+| C++ 源码根 | `extensions/src/` | 不变 |
+| 注册方式 | `// @tool register` + codegen | **X-macro 分文件注册** |
+| 工具总数 | ~11,791 | **~359**（↓97%） |
+| 工具体系 | YAML 生成 get/set 工具 | **四层体系**：语义专用(~80) + 属性组(~126) + 通用兜底(4) + 文档(7) |
+| 指令数据源 | YAML 数据库（需手动同步） | **Godot 内置 DocTools**（零维护） |
+| 覆盖 | 100%（通过工具爆炸） | **100%**（通过 Layer 0 兜底） |
+| 场景树工具 | `editor_tools/scene_tree/`（25+ 工具） | 保留 |
+| 运行时桥接工具 | `runtime_tools/bridge/`（6 工具） | 保留 |
+| SDK 层 | `extensions/src/sdk/`（`McpToolDefinition` + `McpToolRegistry`） | 保留，SDK 平权 |
+| 测试框架 | C++ `TestEngine`（`/run-tests`）+ Python 编排器 | 保留 |
+| HTTP 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） | 不变 |
+| 桥接端口 | `:9601`（env `GODOT_MCP_BRIDGE_PORT` 覆盖） | 不变 |
+| Pinned deps | `godot-cpp 10.0.0-rc1`、`ryml v0.7.0` | 不变 |
+| 版本号 | 仅 `CMakeLists.txt:22` `PROJECT_VERSION` | 不变 |
 
 ## 快速导航
 
@@ -81,9 +75,12 @@
 
 1. **从 `overview/architecture.md` 开始** — 理解单进程架构、数据流、目录布局
 2. **阅读 `modules/command-routing.md`** — 理解 ITool 接口 + HandlerRegistry 调度
-3. **阅读 `modules/codegen.md`** — 理解代码生成如何工作，添加新工具流程
+3. **阅读 `design/decisions.md#ADR-015`** — 理解四层工具体系、X-macro 注册、Godot 内置文档驱动
 4. **阅读 `modules/runtime-bridge.md`** — 理解运行时桥接设计（GameBridgeNode + RuntimeBridge）
-5. **添加新工具时**：见 `AGENTS.md`「添加内置工具」章节 + `extensions/src/built_in/tools/<dir>/<tool>.hpp` 现有样例
+5. **添加新工具时**：
+   - 创建 `.hpp` 文件实现 `ITool` 接口
+   - 在 `extensions/src/built_in/tools/register/` 下对应分类的 X-macro 文件加一行
+   - 不需要 `// @tool register` 注释，不需要运行 codegen
 6. **运行测试前**：见 `AGENTS.md`「测试」章节 + `tests/.env` 配置
 7. **遇到具体模块问题**：上表点击对应模块文档
 

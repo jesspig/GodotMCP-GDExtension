@@ -2,7 +2,17 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
-## 2026-06-10 — ADR-014 P1/P2 全部完成 + 提交
+## 2026-06-11 — ADR-015 修订：四层工具体系 + X-macro 注册 + Godot 内置文档驱动
+
+- **修订** `design/decisions.md` ADR-015：重大架构变更
+  - 决策 7：三层工具体系 → **四层工具体系**（Layer 0 通用兜底 + Layer 1 语义专用 + Layer 2 属性组 + Layer 3 文档工具），工具数 ~11,791 → ~359（↓97%），**100% 全覆盖**
+  - 新增决策 11：**X-macro 分文件注册**替代 `// @tool register` + codegen，编译时安全，IDE 原生支持
+  - 新增决策 12：**指令数据源迁移**（YAML → Godot 内置 DocTools），零维护，永远与引擎版本同步
+  - 更新实施路线图：Phase 2 为核心重构阶段（四层工具 + 注册重构）
+  - 更新后果/保留列表
+- **更新** `design/roadmap.md`：Phase 4 追踪表同步修订版
+- **更新** `index.md`：项目快照表改为"当前状态 vs 目标"对比格式；Agent 上手指南更新为 X-macro 注册流程
+- **更新** `AGENTS.md`：添加内置工具章节改为 X-macro 注册说明；YAML 数据库章节标记为仅文档用途
 
 - **新增** 33 个 P1/P2 工具和 save_resource_as（总工具数 11,790）：Animation(5)、Control(4)、TileMap(3)、Collision(1)、Debugger(5)、Export(2)、Plugin(3)、InputMap(1)、Shader(3)、Docs(3)、Scaffold(1)、Visualizer(1)、save_resource_as(1)
 - **新增** mcp_handler 集成：3 个 Resources（scene-tree/project-settings/editor-info）+ 1 个 Resource Template（scene-node/{path}）+ 5 个 Prompts

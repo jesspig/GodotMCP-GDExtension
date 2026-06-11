@@ -351,24 +351,25 @@
 
 **详细追踪清单见 [roadmap.md](roadmap.md)**。
 
-## ADR-015: 下一代工具架构（搜索引擎 + 自动 Undo + SDK 平权 + 三层工具体系）
+## ADR-015: 下一代工具架构（搜索引擎 + 自动 Undo + SDK 平权 + 四层工具体系 + 注册体系重构）
 
-**状态**：待实施（依赖 ADR-014 全部完成后启动）
-**日期**：2026-06-10
-**ADR-014 完成条件**：P1（动画/UI/TileMap/碰撞）+ P2（调试器/导出/插件/文档/着色器/脚手架/MCP）全部实施完毕
+**状态**：待实施
+**日期**：2026-06-11（修订）
 **前置 ADR**：ADR-010（统一 ITool 接口）、ADR-012（Undo/Redo 策略）、ADR-014（P0/P1/P2 路线图）
 
-**背景**：ADR-014 功能优化路线图的 P0 阶段完成后，项目在核心功能覆盖上已追平竞品。但在架构层面仍有以下待解决问题：
+**背景**：ADR-014 功能优化路线图完成后，项目在核心功能覆盖上已追平竞品。但在架构层面仍有以下待解决问题：
 
-1. **工具发现困难**：~11,758 工具中无搜索能力，AI 只能通过分类逐层浏览或精准名称调用
+1. **工具发现困难**：~11,791 工具中无搜索能力，AI 只能通过分类逐层浏览或精准名称调用
 2. **Undo/Redo 覆盖不全**：节点属性 set 和场景树工具有 undo，但资源属性/setting 工具无 undo
 3. **SDK 工具降级**：GDScript/C# 自定义工具走 CommandFn 后备表，无法享受 ITool 的前置检查（`needs_scene`/`needs_node`）和自动 Undo
 4. **工具描述未国际化**：中英混用，AI 客户端对非英文工具理解准确度下降
 5. **输入输出结构半统一**：新旧两种返回格式兼容代码存在（`McpHandler::456`），Schema 靠手工校验
 6. **无通用兜底工具**：引擎升级新增属性时，YAML 数据库未更新前无法操作
 7. **MCP Resources/Prompts 空实现**：协议已声明支持但返回空数据
+8. **注册方式脆弱**：`// @tool register` 注释扫描依赖 Python 文本解析，UTF-8 BOM 会导致漏扫，无编译期检查
+9. **指令数据源重复**：YAML 数据库（5,575 项）与 Godot 内置 `DocTools` 文档系统功能重叠，需手动同步
 
-**决策**：实施下一代工具架构重构，分为四层共 11 项子决策。
+**决策**：实施下一代工具架构重构，分为 12 项子决策。
 
 ---
 
@@ -475,37 +476,89 @@ class IToolAdapter : public ITool {
 
 ---
 
-### 决策 7：三层工具体系
+### 决策 7：四层工具体系（修订）
 
-工具分类为三层，互补共存：
+工具分类为四层，互补共存，**100% 全覆盖**：
 
-| 层 | 定位 | 示例 | 生成方式 |
-|----|------|------|---------|
-| **原子工具** | 精准操作，覆盖已知属性 | `get_Node2D_position`, `set_Node2D_rotation` | YAML codegen |
-| **通用兜底工具** | 引擎升级/未知属性时的后备 | `set_node_property`, `get_resource_property`, `run_editor_script` | 手动编码（~5 个） |
-| **复合工具** | 合并常用操作组合 | `edit_transform`, `edit_node`, `batch_set_property` | 手动编码（~6 个） |
+| 层 | 定位 | 示例 | 数量 |
+|----|------|------|:----:|
+| **Layer 0: 通用兜底** | 按属性名读写任意属性，保证全覆盖 | `get_node_property`, `set_node_property` | 4 |
+| **Layer 1: 语义专用** | 最常用操作的快捷方式，类型安全 schema | `set_node_position_2d`, `set_control_text` | ~80 |
+| **Layer 2: 属性组** | 按 Godot `ADD_GROUP` 边界批量操作 | `configure_visibility`, `configure_layout` | ~126 |
+| **Layer 3: 文档** | 查询 Godot 内置文档，替代 YAML 指令数据 | `get_class_doc`, `get_property_doc` | 7 |
 
-**通用兜底工具列表**（`scene/general` 分类）：
+**Layer 0 — 通用兜底工具**（`node_tools/fallback` + `editor_tools/settings/fallback`）：
 
-| 工具 | 功能 | 说明 |
-|------|------|------|
-| `get_node_property` | 按属性路径字符串读任意属性 | 引擎升级后新属性也可用 |
-| `set_node_property` | 按属性路径字符串写任意属性（带 undo） | 同上 |
-| `get_resource_property` | 按属性路径读资源属性 | 资源文件属性兜底 |
-| `set_resource_property` | 按属性路径写资源属性 | 同上 |
-| `call_node_method` | 调用节点任意方法 | 无对应工具时兜底 |
-| `run_editor_script` | 编辑器进程内执行 GDScript | 终极兜底 |
+| 工具 | 参数 | 功能 | Undo |
+|------|------|------|:----:|
+| `get_node_property` | `node_path`, `property` | 按名称读任意节点属性 | ❌ |
+| `set_node_property` | `node_path`, `property`, `value` | 按名称写任意节点属性（带类型验证） | ✅ |
+| `get_setting` | `path` | 读任意项目设置 | ❌ |
+| `set_setting` | `path`, `value` | 写任意项目设置 | ✅ |
 
-**复合工具列表**（`scene/general` 分类）：
+**Layer 1 — 语义专用工具**（按操作语义组织，跨类型兼容）：
 
-| 工具 | 合并的操作 | 一次 MCP 调用代替 |
-|------|-----------|------------------|
-| `edit_transform` | position + rotation + scale | 3 次 |
-| `edit_node` | 任意多个属性一次性设值 | N 次 |
-| `edit_resource` | 任意多个资源属性设值 | N 次 |
-| `batch_set_property` | 多节点同一属性 | N 次 |
-| `duplicate_nodes` | 多节点复制 + 布局排列 | N 次 |
-| `create_scene_skeleton` | 批量创建 + 命名 + 层级 | N 次 |
+| 领域 | 工具示例 | 数量 |
+|------|---------|:----:|
+| Transform | `get/set_node_position_2d/3d`, `get/set_node_rotation_2d/3d`, `get/set_node_scale_2d/3d` | 12 |
+| Visibility | `get/set_node_visible`, `get/set_node_modulate`, `get/set_node_self_modulate` | 6 |
+| Control | `get/set_control_text`, `get/set_control_anchor_preset`, `get/set_control_size` | 10 |
+| Physics | `get/set_collision_layer`, `get/set_collision_mask`, `get/set_rigidbody_mass` | 6 |
+| Audio | `get/set_audio_stream`, `get/set_audio_volume`, `get/set_audio_playing` | 6 |
+| Animation | `get/set_animation_current`, `get/set_animation_speed`, `get/set_animation_autoplay` | 6 |
+| Visual | `get/set_sprite_texture`, `get/set_material_override`, `get/set_shader_parameter` | 6 |
+| 3D | `get/set_3d_mesh`, `get/set_3d_light_color`, `get/set_3d_light_energy` | 6 |
+| Script | `attach_script`, `detach_script`, `get/set_script_variable` | 4 |
+| Camera | `get/set_camera_current`, `get/set_camera_zoom` | 4 |
+| TileMap | `get/set_tilemap_cell`, `get/set_tilemap_layer_enabled` | 4 |
+| Other | `get/set_node_z_index`, `get/set_node_process_mode`, `get/set_environment_background` | 10 |
+| **小计** | | **~80** |
+
+**Layer 2 — 属性组工具**（按 Godot 源码 `ADD_GROUP` 边界组织）：
+
+| 基类 | 组工具 | 覆盖子类数 |
+|------|--------|:---------:|
+| Node | `configure_process`, `configure_physics_interpolation`, `configure_auto_translate` | ~200+ |
+| CanvasItem | `configure_visibility`, `configure_ordering`, `configure_texture`, `configure_material` | ~150+ |
+| Node2D | `configure_transform_2d` | ~80+ |
+| Node3D | `configure_transform_3d`, `configure_visibility_3d` | ~50+ |
+| Control | `configure_layout`, `configure_control_transform`, `configure_container_sizing`, `configure_mouse`, `configure_focus`, `configure_theme`, `configure_input`, `configure_accessibility`, `configure_tooltip` | ~60+ |
+| Sprite2D | `configure_sprite_offset`, `configure_sprite_animation`, `configure_sprite_region` | 1 |
+| Camera2D | `configure_camera_limits`, `configure_camera_smoothing`, `configure_camera_drag` | 1 |
+| GPUParticles2D | `configure_particles_time`, `configure_particles_collision`, `configure_particles_drawing`, `configure_particles_trails` | 1 |
+| CPUParticles2D | `configure_cpu_particles_time`, `configure_cpu_particles_drawing`, `configure_cpu_particles_emission`, `configure_cpu_particles_direction`, `configure_cpu_particles_gravity`, `configure_cpu_particles_velocity`, `configure_cpu_particles_damping`, `configure_cpu_particles_angle`, `configure_cpu_particles_scale`, `configure_cpu_particles_color` | 1 |
+| Light2D | `configure_light_range`, `configure_light_shadow` | 2 |
+| Polygon2D | `configure_polygon_texture`, `configure_polygon_skeleton`, `configure_polygon_invert`, `configure_polygon_data` | 1 |
+| Line2D | `configure_line_fill`, `configure_line_capping`, `configure_line_border` | 1 |
+| Parallax2D | `configure_parallax_repeat`, `configure_parallax_limit`, `configure_parallax_override` | 1 |
+| TileMapLayer | `configure_tilemap_rendering`, `configure_tilemap_physics`, `configure_tilemap_navigation` | 1 |
+| CollisionObject | `configure_collision`, `configure_collision_input` | ~10 |
+| Area | `configure_area_gravity`, `configure_area_damping`, `configure_area_audio` | 2 |
+| RigidBody | `configure_rigidbody_mass`, `configure_rigidbody_deactivation`, `configure_rigidbody_solver`, `configure_rigidbody_linear`, `configure_rigidbody_angular`, `configure_rigidbody_forces` | 2 |
+| CharacterBody | `configure_characterbody_floor`, `configure_characterbody_platform`, `configure_characterbody_collision` | 2 |
+| RayCast | `configure_raycast_collide_with`, `configure_raycast_debug` | 2 |
+| Joint | `configure_joint_angular_limit`, `configure_joint_motor` | ~8 |
+| Light3D | `configure_light3d_light`, `configure_light3d_shadow`, `configure_light3d_distance_fade`, `configure_light3d_directional_shadow`, `configure_light3d_omni`, `configure_light3d_spot` | 3 |
+| VisualInstance3D | `configure_visual_sorting`, `configure_visual_geometry`, `configure_visual_gi`, `configure_visual_visibility_range` | ~15 |
+| Camera3D | `configure_camera3d_projection`, `configure_camera3d_attributes` | 1 |
+| AudioStreamPlayer3D | `configure_audio3d_emission`, `configure_audio3d_attenuation`, `configure_audio3d_doppler` | 1 |
+| Decal | `configure_decal_textures`, `configure_decal_parameters`, `configure_decal_fade`, `configure_decal_cull_mask` | 1 |
+| GPUParticles3D | `configure_particles3d_time`, `configure_particles3d_collision`, `configure_particles3d_drawing`, `configure_particles3d_trails`, `configure_particles3d_process_material`, `configure_particles3d_draw_passes` | 1 |
+| CPUParticles3D | `configure_cpu_particles3d_*`（同 2D 版 10 个组） | 1 |
+| 资源 | `configure_material`, `configure_texture`, `configure_stylebox`, `configure_animation`, `configure_curve`, `configure_gradient`, `configure_environment`, `configure_navigation_mesh`, `configure_particle_material`, `configure_tileset`, `configure_theme`, `configure_shader` | ~15 |
+| **小计** | | **~126** |
+
+**Layer 3 — 文档工具**（数据源：Godot 内置 `DocTools`）：
+
+| 工具 | 参数 | 返回 | 数据来源 |
+|------|------|------|---------|
+| `get_class_doc` | `class_name` | 类的完整文档（描述、继承链、属性、方法、信号、常量、枚举、教程） | `EditorHelp::get_doc_data().class_list[]` |
+| `get_property_doc` | `class_name`, `property` | 属性元数据（类型、描述、默认值、枚举值、范围、setter/getter） | `ClassDoc.properties[]` |
+| `get_method_doc` | `class_name`, `method` | 方法文档（签名、参数描述、返回值、错误码） | `ClassDoc.methods[]` |
+| `get_enum_doc` | `class_name`, `enum_name` | 枚举所有值及描述 | `ClassDoc.enums[]` + `constants[]` |
+| `search_docs` | `query`, `categories` | 增强搜索（类/方法/属性/信号，含描述文本） | `ei->call("search_help")` + `ClassDoc` |
+| `get_class_list` | `filter` | 按继承链或分类列出类 | `ClassDB.get_class_list()` |
+| `get_inheritance_chain` | `class_name` | 类的完整继承链 | `ClassDB.get_parent_class()` |
 
 ---
 
@@ -553,53 +606,193 @@ class ITool {
 
 ---
 
+### 决策 11：X-macro 分文件注册（取代 `// @tool register` + codegen）
+
+**背景**：当前注册方式依赖 Python `codegen.py` 扫描 `.hpp` 文件中的 `// @tool register` 注释字符串，存在 UTF-8 BOM 漏扫、无编译期检查、无 IDE 支持（跳转定义/重构）等问题。
+
+**决策**：改用 X-macro 分文件注册模式：
+
+```cpp
+// extensions/src/built_in/tools/register/register_transform.hpp
+GODOT_MCP_TOOL(SetNodePosition2D,   "set_node_position_2d",   "node_tools/transform", true,  true)
+GODOT_MCP_TOOL(GetNodePosition2D,   "get_node_position_2d",   "node_tools/transform", true,  false)
+```
+
+```cpp
+// extensions/src/built_in/register_itools.cpp
+#define GODOT_MCP_TOOL(cls, name, cat, need_scene, need_node) \
+    { auto tool = std::make_unique<cls>(); reg.register_tool(std::move(tool)); }
+
+void register_itools(HandlerRegistry &reg) {
+    #include "built_in/tools/register/register_meta.hpp"
+    #include "built_in/tools/register/register_transform.hpp"
+    // ... 每个分类一个注册文件
+}
+```
+
+**文件结构**：
+
+```
+extensions/src/built_in/
+├── register_itools.cpp              ← 新增：#include 所有 X-macro 注册文件
+├── tools/
+│   ├── register/                    ← 新增：X-macro 注册文件目录
+│   │   ├── register_meta.hpp
+│   │   ├── register_transform.hpp
+│   │   ├── register_visibility.hpp
+│   │   ├── register_control.hpp
+│   │   ├── register_physics.hpp
+│   │   ├── register_audio.hpp
+│   │   ├── register_animation.hpp
+│   │   ├── register_3d.hpp
+│   │   ├── register_script.hpp
+│   │   ├── register_camera.hpp
+│   │   ├── register_tilemap.hpp
+│   │   ├── register_groups.hpp       ← Layer 2 属性组工具
+│   │   ├── register_fallback.hpp     ← Layer 0 通用兜底
+│   │   ├── register_docs.hpp         ← Layer 3 文档工具
+│   │   └── register_existing.hpp     ← 保留的 141 个现有工具
+│   ├── node_properties/             ← 新增：Layer 1 语义工具
+│   │   ├── transform_tools.hpp
+│   │   ├── visibility_tools.hpp
+│   │   ├── control_tools.hpp
+│   │   ├── physics_tools.hpp
+│   │   ├── audio_tools.hpp
+│   │   ├── animation_tools.hpp
+│   │   ├── script_tools.hpp
+│   │   ├── camera_tools.hpp
+│   │   ├── tilemap_tools.hpp
+│   │   ├── threed_tools.hpp
+│   │   ├── fallback_tools.hpp
+│   │   └── doc_tools.hpp
+│   ├── group_tools/                 ← 新增：Layer 2 属性组工具
+│   │   ├── configure_visibility.hpp
+│   │   ├── configure_transform.hpp
+│   │   ├── configure_layout.hpp
+│   │   └── ...
+│   ├── node_props/db/               ← 保留，仅文档用途
+│   ├── node_resource/db/            ← 保留，仅文档用途
+│   ├── meta/                        ← 保留现有
+│   ├── editor_tools/                ← 保留现有
+│   └── runtime_tools/               ← 保留现有
+```
+
+**变更清单**：
+- 删除 `tools/codegen.py`（445 行）
+- 删除 `extensions/CMakeLists.txt` 中 codegen 的 `add_custom_command`
+- 删除 `build/generated/generated_registration.cpp`（不再生成）
+- 删除所有 `.hpp` 文件中的 `// @tool register` 注释
+- 新增 `register_itools.cpp` + ~15 个 X-macro 注册文件
+- 现有 141 个工具类保留，只需在 `register_existing.hpp` 加 X-macro 行
+
+---
+
+### 决策 12：指令数据源迁移（YAML → Godot 内置文档）
+
+**背景**：当前 YAML 数据库（`node_props/db/*.yaml` + `node_resource/db/*.yaml` + `settings/db/*.yaml`）存储了 5,575 个属性/设置的元数据，通过 codegen 生成 11,650 个 get/set 工具。Godot 引擎内置了完整的文档系统（`EditorHelp::get_doc_data()` → `DocTools` → `class_list: HashMap<String, ClassDoc>`），包含更丰富的信息（描述文本、枚举值、教程链接、废弃标记等），且永远与引擎版本同步。
+
+**决策**：
+
+| 用途 | 旧方案 | 新方案 |
+|------|--------|--------|
+| 属性元数据 | YAML 数据库 | `EditorHelp::get_doc_data()` |
+| 类型信息 | YAML `type_name` | `PropertyDoc.type` + `hint` + `hint_string` |
+| 枚举值 | 无 | `PropertyDoc.enumeration` + `EnumDoc` |
+| 描述文本 | 无 | `PropertyDoc.description` |
+| 教程链接 | 无 | `ClassDoc.tutorials[]` |
+| 工具注册 | YAML → codegen → 11,650 个工具 | Layer 0 通用兜底 + Layer 3 文档查询 |
+
+**YAML 数据库的去留**：
+- 保留 `db/` 目录作为文档参考（不参与构建）
+- **不再**从 YAML 生成工具注册代码
+- **不再**参与 CMake 构建流程
+
+**`set_node_property` 的类型验证**：利用文档系统在运行时验证/转换值：
+
+```cpp
+Dictionary set_node_property_impl(const ToolContext &ctx) {
+    String prop = args_string(ctx.args, "property");
+    Variant value = ctx.args["value"];
+
+    // 查询文档系统获取属性元数据
+    DocData::PropertyDoc prop_doc = get_property_doc(ctx.node->get_class(), prop);
+
+    // 根据元数据验证/转换值
+    if (prop_doc.enumeration != "") {
+        value = resolve_enum(prop_doc.enumeration, value); // "Disabled" → 0
+    }
+    if (prop_doc.type == "float" && value.get_type() == Variant::INT) {
+        value = (float)(int)value;
+    }
+
+    // 通过 EditorUndoRedoManager 应用
+    undo_redo->create_action("MCP: Set " + prop, UndoRedo::MERGE_ENDS, ctx.root);
+    undo_redo->add_do_property(ctx.node, prop, value);
+    undo_redo->add_undo_property(ctx.node, prop, ctx.node->get(prop));
+    undo_redo->commit_action();
+
+    return {{"property", prop}, {"value", variant_to_json(value)}};
+}
+```
+
+---
+
 ### 实施路线图
 
 ```
-Phase 0 — 基础架构（完成后发布 v0.3.0）
+Phase 0 — 基础架构
   [ ] ToolSearchEngine + find_tool 元工具
   [ ] ToolOutput 统一信封 + Schema 校验
   [ ] 全工具描述英文化
+  [ ] completion/complete 集成 ToolSearchEngine
 
-Phase 1 — Undo/Redo + SDK 平权（v0.4.0）
+Phase 1 — Undo/Redo + SDK 平权
   [ ] supports_undo/is_destructive 能力声明
   [ ] HandlerRegistry 自动 Undo 包装
   [ ] IToolAdapter + SDK 注册路径改造
 
-Phase 2 — 工具体系（v0.5.0）
-  [ ] 通用兜底工具（6 个）
-  [ ] 复合工具（6 个）
-  [ ] completion/complete 增强
+Phase 2 — ★ 四层工具体系 + 注册重构（核心）
+  [ ] X-macro 分文件注册替代 // @tool register + codegen
+  [ ] 删除 codegen.py + CMake codegen 步骤
+  [ ] Layer 0: 通用兜底工具 (4 个)
+  [ ] Layer 1: 语义专用工具 (~80 个)
+  [ ] Layer 2: 属性组工具 (~126 个)
+  [ ] Layer 3: 文档工具 (7 个) — 接入 Godot 内置 DocTools
+  [ ] 分类系统 YAML 驱动取代 top_level_meta() 硬编码
 
-Phase 3 — 差异化（v0.6.0）
-  [ ] MCP Resources + Prompts
-  [ ] 分类系统 YAML 驱动
+Phase 3 — MCP 差异化
+  [ ] MCP Resources: godot://scene/current, godot://project/config
+  [ ] MCP Prompts: create_player_controller, debug_performance, setup_collision_shapes
   [ ] 集成测试 + 文档更新
 ```
 
 ### 后果
 
 **正面**：
-- 搜索能力覆盖全部 ~11,758 工具，AI 从"知道确切名字才能用"变为"描述意图即可发现"
+- 搜索能力覆盖全部工具，AI 从"知道确切名字才能用"变为"描述意图即可发现"
 - Undo/Redo 覆盖全部可逆操作，用户 Ctrl+Z 行为与 Godot 原生一致
 - SDK 工具与内置工具完全平权，降低用户自定义工具的门槛
-- 三层工具体系覆盖所有场景：精确 → 兜底 → 高效
+- **四层工具体系覆盖所有场景**：语义快捷 → 属性组批量 → 通用兜底 → 文档查询
+- **100% 全覆盖**：Layer 0 保证任何属性/设置都可访问
+- **零维护指令数据**：Godot 内置文档永远与引擎版本同步
 - 全英文减少 AI 非英语语言模型的歧义
 - Resources/Prompts 充分使用 MCP 协议能力
-- 引擎升级无需等待 YAML 数据库更新即可操作新属性
+- **编译时安全注册**：X-macro 由编译器处理，无 BOM 漏扫风险
+- **工具数减少 97%**：~11,791 → ~359，降低客户端 token 消耗
 
 **负面**：
 - ToolSearchEngine 增加 ~500 行 C++ 代码
 - 自动 Undo 包装对非常规操作（调用方法而非设值）需手动处理
 - SDK 工具必须显式声明 `needs_scene`/`needs_node` 等能力，否则默认为 false
 - 全英文化对中文用户的学习曲线略有增加（但 AI 客户端无此问题）
-- 复合工具的参数 Schema 比原子工具更复杂
+- 属性组工具的参数 Schema 比单属性工具更复杂
+- 现有 141 个工具需迁移注册方式（删除注释 + 加 X-macro 行）
 
 **保留**：
-- 原子工具的数量优势（~11,758）不变，codegen 体系不变
 - 单进程 GDExtension 架构不变（ADR-001）
-- `// @tool register` + codegen 自动注册机制不变（ADR-010）
+- ITool 接口 + HandlerRegistry 调度不变（ADR-010）
 - 纯主线程无锁模型不变
+- 现有 141 个手写工具类不变（仅改注册方式）
 
 ## 已废弃的决策
 

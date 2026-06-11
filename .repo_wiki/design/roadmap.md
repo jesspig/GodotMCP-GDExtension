@@ -300,16 +300,17 @@
 
 1. **每阶段完成后才能进入下一阶段**：P0 未完成前不开始 P1，以此类推
 2. **优先利用 GDExtension 优势**：做 Node.js 方案做不到的事（底层 API 调用、实时性能数据、编辑器 UI 自动化）
-3. **保持 codegen 体系**：新工具应尽量利用 `// @tool register` + codegen 自动注册
-4. **工具发现优化**：~11,790 工具中大部分是属性 get/set 噪音，考虑按使用频率分级或合并为通用工具
-5. **每项功能完成后**：更新 `.repo_wiki/log.md` 并补充对应模块文档
-6. **测试先行**：每项新工具必须附带 YAML 测试用例
+3. **四层工具体系保证全覆盖**：Layer 0 通用兜底是覆盖底线，Layer 1/2 是快捷方式，Layer 3 是文档查询
+4. **X-macro 注册替代 codegen**：编译时安全，IDE 原生支持跳转定义/重构
+5. **Godot 内置文档替代 YAML 指令数据**：零维护，永远与引擎版本同步
+6. **每项功能完成后**：更新 `.repo_wiki/log.md` 并补充对应模块文档
+7. **测试先行**：每项新工具必须附带 YAML 测试用例
 
 ---
 
-## 架构优化阶段（Phase 4 — ADR-015）
+## 架构优化阶段（Phase 4 — ADR-015 修订版）
 
-> P1/P2 已全部完成，可启动。完整方案见 [ADR-015](decisions.md#ADR-015)。
+> 完整方案见 [ADR-015](decisions.md#ADR-015)。**核心变更**：四层工具体系替代三层、X-macro 注册替代 codegen、Godot 内置文档替代 YAML 指令数据。
 
 ### Phase 0 — 基础架构
 
@@ -330,12 +331,16 @@
 | IToolAdapter（SDK → ITool，SDK 工具注册到 itool_table_ 主表） | ❌ |
 | SDK 工具可通过属性声明 needs_scene/needs_node/supports_undo | ❌ |
 
-### Phase 2 — 三层工具体系
+### Phase 2 — ★ 四层工具体系 + 注册重构（核心）
 
 | 任务 | 状态 |
 |------|:----:|
-| 通用兜底工具：get/set_node_property, get/set_resource_property, call_node_method, run_editor_script | ❌ |
-| 复合工具：edit_transform, edit_node, edit_resource, batch_set_property, duplicate_nodes, create_scene_skeleton | ❌ |
+| X-macro 分文件注册替代 // @tool register + codegen | ❌ |
+| 删除 codegen.py + CMake codegen 步骤 | ❌ |
+| Layer 0: 通用兜底工具（get_node_property, set_node_property, get_setting, set_setting） | ❌ |
+| Layer 1: 语义专用工具（~80 个，覆盖 Transform/Visibility/Control/Physics/Audio/Animation/Visual/3D/Script/Camera/TileMap） | ❌ |
+| Layer 2: 属性组工具（~126 个，按 Godot ADD_GROUP 边界组织） | ❌ |
+| Layer 3: 文档工具（7 个，接入 Godot 内置 DocTools） | ❌ |
 | 分类系统 YAML 驱动取代 top_level_meta() 硬编码 | ❌ |
 
 ### Phase 3 — MCP 差异化
@@ -344,3 +349,4 @@
 |------|:----:|
 | MCP Resources：godot://scene/current, godot://project/config | ❌ |
 | MCP Prompts：create_player_controller, debug_performance, setup_collision_shapes | ❌ |
+| 集成测试 + 文档更新 | ❌ |

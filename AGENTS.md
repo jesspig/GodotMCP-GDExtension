@@ -51,11 +51,10 @@ graph LR
 ## 添加内置工具
 
 **自动编译**：`extensions/src/built_in/tools/**/*.cpp` 通过 `file(GLOB_RECURSE)` 收集。
-**自动注册**：codegen 扫描 `// @tool register` 注释 + YAML 数据库。
+**注册方式**：X-macro 分文件注册（`extensions/src/built_in/tools/register/*.hpp`）。
 
 ```cpp
 // extensions/src/built_in/tools/<category>/my_tool.hpp
-// @tool register
 class MyTool : public ITool {
     String name() const override { return "my_tool"; }
     String category() const override { return "node_tools"; }
@@ -69,20 +68,26 @@ class MyTool : public ITool {
 };
 ```
 
-- **`// @tool register`** 是 codegen 唯一标记，缺少则工具不注册。**UTF-8 BOM 会导致 codegen 无法识别。**
-- **顶级分类**硬编码于 `handler_registry.cpp::top_level_meta()`：`meta_tools`、`node_tools`、`editor_tools`、`runtime_tools`。新增须同步加 meta。
+- **注册步骤**：创建 `.hpp` 文件后，在 `extensions/src/built_in/tools/register/` 下对应分类的 X-macro 注册文件中加一行：
+  ```cpp
+  GODOT_MCP_TOOL(MyTool, "my_tool", "node_tools", false, false)
+  ```
+- **不需要** `// @tool register` 注释，不需要运行 codegen。编译器原生处理注册。
+- **顶级分类**硬编码于 `handler_registry.cpp::top_level_meta()`：`meta_tools`、`node_tools`、`editor_tools`、`runtime_tools`。新增须同步加 meta（ADR-015 决策 8 计划改为自动发现）。
 - **场景树修改**：必须用 `EditorUndoRedoManager`（`ei->get_editor_undo_redo()`），不用裸 `UndoRedo`。
 - **写入文件**：不能直接写 `.tscn`，须经 EditorInterface API 或写后 `notify_file_changed()`。
 
-## YAML 数据库自动生成工具
+## YAML 数据库（仅文档用途）
 
-| 类型 | YAML 目录 | 文件数 |
-|------|----------|--------|
-| 节点属性 | `node_props/db/*.yaml` | 283 |
-| 资源属性 | `node_resource/db/*.yaml` | 419 |
-| 项目设置 | `editor_tools/settings/db/*.yaml` | 24 |
+| 类型 | YAML 目录 | 文件数 | 用途 |
+|------|----------|--------|------|
+| 节点属性 | `node_props/db/*.yaml` | 283 | 文档参考，不参与构建 |
+| 资源属性 | `node_resource/db/*.yaml` | 419 | 文档参考，不参与构建 |
+| 项目设置 | `editor_tools/settings/db/*.yaml` | 24 | 文档参考，不参与构建 |
 
-重新生成：`uv run python tools/collect_node_props.py --godot /path/to/godot`
+YAML 数据库不再生成工具注册代码。指令数据由 Godot 内置文档系统（`EditorHelp::get_doc_data()`）提供，通过 Layer 3 文档工具（`get_class_doc`、`get_property_doc` 等）查询。
+
+如需重新生成：`uv run python tools/collect_node_props.py --godot /path/to/godot`
 
 ## C++ 注意事项
 
