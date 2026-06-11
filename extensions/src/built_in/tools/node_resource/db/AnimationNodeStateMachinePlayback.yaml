@@ -1,0 +1,5 @@
+class: AnimationNodeStateMachinePlayback
+inherits: Resource
+properties: []
+description: ''
+aliases: []

@@ -1,0 +1,8 @@
+class: PlaceholderTexture3D
+inherits: Texture3D
+properties:
+- name: size
+  type: 10
+  type_name: Vector3i
+description: ''
+aliases: []

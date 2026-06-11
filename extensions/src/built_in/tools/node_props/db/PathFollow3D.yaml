@@ -1,0 +1,32 @@
+class: PathFollow3D
+inherits: Node3D
+properties:
+- name: progress
+  type: 3
+  type_name: float
+- name: progress_ratio
+  type: 3
+  type_name: float
+- name: h_offset
+  type: 3
+  type_name: float
+- name: v_offset
+  type: 3
+  type_name: float
+- name: rotation_mode
+  type: 2
+  type_name: int
+- name: use_model_front
+  type: 1
+  type_name: bool
+- name: cubic_interp
+  type: 1
+  type_name: bool
+- name: loop
+  type: 1
+  type_name: bool
+- name: tilt_enabled
+  type: 1
+  type_name: bool
+description: A node that follows a Path3D's curve.
+aliases: []

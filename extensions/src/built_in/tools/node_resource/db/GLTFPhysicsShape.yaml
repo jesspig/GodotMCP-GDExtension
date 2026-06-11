@@ -1,0 +1,27 @@
+class: GLTFPhysicsShape
+inherits: Resource
+properties:
+- name: shape_type
+  type: 4
+  type_name: String
+- name: size
+  type: 9
+  type_name: Vector3
+- name: radius
+  type: 3
+  type_name: float
+- name: height
+  type: 3
+  type_name: float
+- name: is_trigger
+  type: 1
+  type_name: bool
+- name: mesh_index
+  type: 2
+  type_name: int
+- name: importer_mesh
+  type: 24
+  type_name: Object
+  class_name: ImporterMesh
+description: ''
+aliases: []

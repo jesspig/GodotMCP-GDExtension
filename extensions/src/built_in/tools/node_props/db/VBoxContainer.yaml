@@ -1,0 +1,5 @@
+class: VBoxContainer
+inherits: BoxContainer
+properties: []
+description: Vertical layout container.
+aliases: []

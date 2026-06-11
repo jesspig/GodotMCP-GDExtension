@@ -9,20 +9,23 @@ py -3 build.py                        # debug 构建 + addons.zip
 py -3 build.py --release              # release 构建 + addons.zip
 py -3 build.py --clean                # 清空 CMake 缓存（保留 _deps/godot-cpp）
 py -3 build.py --no-zip               # 跳过 addons.zip（快速迭代）
+py -3 build.py --clean-all            # 删整个 build/（含 _deps/）
+py -3 build.py --purge-cache          # 仅清 _deps/（强制重下载）
 ```
 
 CMake 自动处理：
-- `FetchContent` 拉取 `godot-cpp 10.0.0-rc1`
+- `FetchContent` 拉取 `godot-cpp 10.0.0-rc1` + `ryml v0.7.0`（header-only）
 - 生成 `plugin.cfg` 和 `godot_mcp.gdextension`
 - 复制 dll/dylib/so 到 `example/addons/godot_mcp/bin/`
 - CPack 打包 → `addons.zip`
+- 自动检测 sccache/ccache、Unity build、lld-link 加速编译
 
 ## C++ GDExtension 构建流程
 
-CMake 通过 `add_subdirectory(extensions/gdext)` 构建 godot-cpp + gdext 源文件：
+CMake 通过 `add_subdirectory(extensions)` 构建 godot-cpp + 扩展源文件：
 
 1. FetchContent 拉取 `godot-cpp 10.0.0-rc1`
-2. 添加 `/extensions/gdext/src/` 下的所有源文件
+2. 添加 `/extensions/src/` 下的所有源文件
 3. 链接 godot-cpp 静态库 → `godot_mcp_gdext.dll`
 4. 后处理：复制到 `example/addons/godot_mcp/bin/`
 
@@ -40,11 +43,13 @@ cmake --build build --config Debug --target package  # 打包
 
 ## 版本管理
 
-- 单版本源在 `CMakeLists.txt`：`set(PROJECT_VERSION "0.1.5-dev3")`
+- 单版本源在 `CMakeLists.txt`：`set(PROJECT_VERSION "0.2.0")`
 - CMake 生成 `plugin.cfg` 时自动填充此版本号
 - 升级 CMake 版本即可；不需要手动编辑 `plugin.cfg`
 
 ## 依赖锁定
 
 - `godot-cpp 10.0.0-rc1`：通过 FetchContent 固定标签
+- `ryml v0.7.0`：header-only YAML 库
 - Python 依赖：`uv.lock` 锁定
+- **始终用 `uv run python`** 运行 build.py（uv 自动激活 `.venv`）

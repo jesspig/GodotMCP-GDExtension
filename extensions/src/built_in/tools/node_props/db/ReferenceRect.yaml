@@ -1,0 +1,14 @@
+class: ReferenceRect
+inherits: Control
+properties:
+- name: border_color
+  type: 20
+  type_name: Color
+- name: border_width
+  type: 3
+  type_name: float
+- name: editor_only
+  type: 1
+  type_name: bool
+description: A control that displays a rectangle for reference.
+aliases: []

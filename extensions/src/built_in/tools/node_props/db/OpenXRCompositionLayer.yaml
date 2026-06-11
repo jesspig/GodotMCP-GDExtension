@@ -1,0 +1,59 @@
+class: OpenXRCompositionLayer
+inherits: Node3D
+properties:
+- name: layer_viewport
+  type: 24
+  type_name: Object
+- name: use_android_surface
+  type: 1
+  type_name: bool
+- name: protected_content
+  type: 1
+  type_name: bool
+- name: android_surface_size
+  type: 6
+  type_name: Vector2i
+- name: sort_order
+  type: 2
+  type_name: int
+- name: alpha_blend
+  type: 1
+  type_name: bool
+- name: enable_hole_punch
+  type: 1
+  type_name: bool
+- name: swapchain_state_min_filter
+  type: 2
+  type_name: int
+- name: swapchain_state_mag_filter
+  type: 2
+  type_name: int
+- name: swapchain_state_mipmap_mode
+  type: 2
+  type_name: int
+- name: swapchain_state_horizontal_wrap
+  type: 2
+  type_name: int
+- name: swapchain_state_vertical_wrap
+  type: 2
+  type_name: int
+- name: swapchain_state_red_swizzle
+  type: 2
+  type_name: int
+- name: swapchain_state_green_swizzle
+  type: 2
+  type_name: int
+- name: swapchain_state_blue_swizzle
+  type: 2
+  type_name: int
+- name: swapchain_state_alpha_swizzle
+  type: 2
+  type_name: int
+- name: swapchain_state_max_anisotropy
+  type: 3
+  type_name: float
+- name: swapchain_state_border_color
+  type: 20
+  type_name: Color
+description: ''
+aliases: []

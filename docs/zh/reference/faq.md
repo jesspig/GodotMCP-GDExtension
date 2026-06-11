@@ -11,11 +11,7 @@
 
 ### 连接成功后部分工具不可用
 
-工具 schemas 从 `res://addons/godot_mcp/tool_schemas.json` 加载。如果文件不存在或格式错误，工具仍可调用但客户端无参数提示。重新构建插件可修复：
-
-```bash
-py -3 build.py --no-zip
-```
+工具通过 X-macro 注册机制自动收集，所有 `extensions/src/built_in/tools/**/*.hpp` 文件由 `register_itools.cpp` 的 `#include` 收集，无需 `.cpp` 文件或 codegen。如果工具不可用，请确保工具头文件已正确放置在 tools 目录下，并且已在对应的 X-macro 注册文件中注册。
 
 ## 构建问题
 

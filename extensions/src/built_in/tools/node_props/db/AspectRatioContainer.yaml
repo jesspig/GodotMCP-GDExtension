@@ -1,0 +1,17 @@
+class: AspectRatioContainer
+inherits: Container
+properties:
+- name: ratio
+  type: 3
+  type_name: float
+- name: stretch_mode
+  type: 2
+  type_name: int
+- name: alignment_horizontal
+  type: 2
+  type_name: int
+- name: alignment_vertical
+  type: 2
+  type_name: int
+description: ''
+aliases: []

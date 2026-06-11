@@ -1,0 +1,26 @@
+class: InputEventMouseMotion
+inherits: InputEventMouse
+properties:
+- name: tilt
+  type: 5
+  type_name: Vector2
+- name: pressure
+  type: 3
+  type_name: float
+- name: pen_inverted
+  type: 1
+  type_name: bool
+- name: relative
+  type: 5
+  type_name: Vector2
+- name: screen_relative
+  type: 5
+  type_name: Vector2
+- name: velocity
+  type: 5
+  type_name: Vector2
+- name: screen_velocity
+  type: 5
+  type_name: Vector2
+description: ''
+aliases: []

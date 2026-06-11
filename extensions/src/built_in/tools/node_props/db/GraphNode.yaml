@@ -1,0 +1,14 @@
+class: GraphNode
+inherits: GraphElement
+properties:
+- name: title
+  type: 4
+  type_name: String
+- name: ignore_invalid_connection_type
+  type: 1
+  type_name: bool
+- name: slots_focus_mode
+  type: 2
+  type_name: int
+description: A container with connection ports, representing a node in a GraphEdit.
+aliases: []

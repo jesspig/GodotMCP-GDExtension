@@ -1,0 +1,11 @@
+class: SpringBoneCollisionSphere3D
+inherits: SpringBoneCollision3D
+properties:
+- name: radius
+  type: 3
+  type_name: float
+- name: inside
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

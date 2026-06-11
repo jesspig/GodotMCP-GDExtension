@@ -1,0 +1,8 @@
+class: SkeletonModification2DPhysicalBones
+inherits: SkeletonModification2D
+properties:
+- name: physical_bone_chain_length
+  type: 2
+  type_name: int
+description: ''
+aliases: []

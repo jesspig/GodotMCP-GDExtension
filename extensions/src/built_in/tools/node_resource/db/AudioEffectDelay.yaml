@@ -1,0 +1,44 @@
+class: AudioEffectDelay
+inherits: AudioEffect
+properties:
+- name: dry
+  type: 3
+  type_name: float
+- name: tap1_active
+  type: 1
+  type_name: bool
+- name: tap1_delay_ms
+  type: 3
+  type_name: float
+- name: tap1_level_db
+  type: 3
+  type_name: float
+- name: tap1_pan
+  type: 3
+  type_name: float
+- name: tap2_active
+  type: 1
+  type_name: bool
+- name: tap2_delay_ms
+  type: 3
+  type_name: float
+- name: tap2_level_db
+  type: 3
+  type_name: float
+- name: tap2_pan
+  type: 3
+  type_name: float
+- name: feedback_active
+  type: 1
+  type_name: bool
+- name: feedback_delay_ms
+  type: 3
+  type_name: float
+- name: feedback_level_db
+  type: 3
+  type_name: float
+- name: feedback_lowpass
+  type: 3
+  type_name: float
+description: ''
+aliases: []

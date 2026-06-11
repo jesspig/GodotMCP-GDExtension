@@ -1,0 +1,19 @@
+class: SpringArm3D
+inherits: Node3D
+properties:
+- name: collision_mask
+  type: 2
+  type_name: int
+- name: shape
+  type: 24
+  type_name: Object
+  class_name: Shape3D
+- name: spring_length
+  type: 3
+  type_name: float
+- name: margin
+  type: 3
+  type_name: float
+description: A node that extends a collision-aware ray to keep a camera or other node
+  from clipping through geometry.
+aliases: []

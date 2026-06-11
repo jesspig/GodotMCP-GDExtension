@@ -1,0 +1,17 @@
+class: SpotLight3D
+inherits: Light3D
+properties:
+- name: spot_range
+  type: 3
+  type_name: float
+- name: spot_attenuation
+  type: 3
+  type_name: float
+- name: spot_angle
+  type: 3
+  type_name: float
+- name: spot_angle_attenuation
+  type: 3
+  type_name: float
+description: Directional cone 3D light.
+aliases: []

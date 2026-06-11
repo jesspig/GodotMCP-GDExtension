@@ -1,0 +1,5 @@
+class: EditorInspector
+inherits: ScrollContainer
+properties: []
+description: ''
+aliases: []

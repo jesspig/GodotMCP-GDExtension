@@ -1,0 +1,23 @@
+category: animation
+settings:
+- name: animation/compatibility/default_parent_skeleton_in_mesh_instance_3d
+  type: 1
+  type_name: bool
+  hint: 0
+  hint_string: ''
+  basic: false
+  restart: true
+- name: animation/warnings/check_angle_interpolation_type_conflicting
+  type: 1
+  type_name: bool
+  hint: 0
+  hint_string: ''
+  basic: false
+  restart: false
+- name: animation/warnings/check_invalid_track_paths
+  type: 1
+  type_name: bool
+  hint: 0
+  hint_string: ''
+  basic: false
+  restart: false

@@ -1,0 +1,5 @@
+class: OpenXRActionBindingModifier
+inherits: OpenXRBindingModifier
+properties: []
+description: ''
+aliases: []

@@ -1,0 +1,5 @@
+class: VisualShaderNodeDistanceFade
+inherits: VisualShaderNode
+properties: []
+description: ''
+aliases: []

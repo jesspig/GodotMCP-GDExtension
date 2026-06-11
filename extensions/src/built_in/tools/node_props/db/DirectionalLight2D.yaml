@@ -1,0 +1,11 @@
+class: DirectionalLight2D
+inherits: Light2D
+properties:
+- name: height
+  type: 3
+  type_name: float
+- name: max_distance
+  type: 3
+  type_name: float
+description: A directional 2D light node.
+aliases: []

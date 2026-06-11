@@ -1,0 +1,8 @@
+class: AnimatableBody2D
+inherits: StaticBody2D
+properties:
+- name: sync_to_physics
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

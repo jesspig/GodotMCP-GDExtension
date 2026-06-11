@@ -1,0 +1,56 @@
+class: TextureProgressBar
+inherits: Range
+properties:
+- name: fill_mode
+  type: 2
+  type_name: int
+- name: radial_initial_angle
+  type: 3
+  type_name: float
+- name: radial_fill_degrees
+  type: 3
+  type_name: float
+- name: radial_center_offset
+  type: 5
+  type_name: Vector2
+- name: nine_patch_stretch
+  type: 1
+  type_name: bool
+- name: stretch_margin_left
+  type: 2
+  type_name: int
+- name: stretch_margin_top
+  type: 2
+  type_name: int
+- name: stretch_margin_right
+  type: 2
+  type_name: int
+- name: stretch_margin_bottom
+  type: 2
+  type_name: int
+- name: texture_under
+  type: 24
+  type_name: Object
+  class_name: Texture2D
+- name: texture_over
+  type: 24
+  type_name: Object
+  class_name: Texture2D
+- name: texture_progress
+  type: 24
+  type_name: Object
+  class_name: Texture2D
+- name: texture_progress_offset
+  type: 5
+  type_name: Vector2
+- name: tint_under
+  type: 20
+  type_name: Color
+- name: tint_over
+  type: 20
+  type_name: Color
+- name: tint_progress
+  type: 20
+  type_name: Color
+description: A progress bar that displays a texture.
+aliases: []

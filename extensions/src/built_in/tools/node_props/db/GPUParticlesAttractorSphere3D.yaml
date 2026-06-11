@@ -1,0 +1,8 @@
+class: GPUParticlesAttractorSphere3D
+inherits: GPUParticlesAttractor3D
+properties:
+- name: radius
+  type: 3
+  type_name: float
+description: ''
+aliases: []

@@ -1,0 +1,29 @@
+class: SpinBox
+inherits: Range
+properties:
+- name: alignment
+  type: 2
+  type_name: int
+- name: editable
+  type: 1
+  type_name: bool
+- name: update_on_text_changed
+  type: 1
+  type_name: bool
+- name: prefix
+  type: 4
+  type_name: String
+- name: suffix
+  type: 4
+  type_name: String
+- name: custom_arrow_step
+  type: 3
+  type_name: float
+- name: custom_arrow_round
+  type: 1
+  type_name: bool
+- name: select_all_on_focus
+  type: 1
+  type_name: bool
+description: Numeric input with arrows.
+aliases: []

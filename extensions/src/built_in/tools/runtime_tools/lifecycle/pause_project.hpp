@@ -1,0 +1,54 @@
+﻿
+#pragma once
+
+#include "built_in/tool_base.hpp"
+#include "built_in/cmd_utils.hpp"
+#include "server/registry/handler_registry.hpp"
+#include "runtime/bridge.hpp"
+
+namespace godot_mcp {
+
+class PauseProjectTool : public ITool {
+    HandlerRegistry *registry_ = nullptr;
+public:
+    String name() const override { return "pause_project"; }
+    String category() const override { return "runtime_tools/lifecycle"; }
+    String brief() const override { return String("Pause or resume the running project"); }
+    String description() const override {
+        return String("Pauses or resumes the running project. When paused, the game scene's _process and _physics_process stop processing, "
+                             "but the engine continues running. Equivalent to calling SceneTree.set_pause(). "
+                             "This feature requires the game to be connected via the runtime bridge (:9601). "
+                             "Returns an error if the game is not running or the bridge is not connected.");
+    }
+    void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
+
+    Dictionary input_schema() const override {
+        Dictionary p;
+        {
+            Dictionary d;
+            d["type"] = "boolean";
+            d["description"] = String("true to pause, false to resume");
+            p["paused"] = d;
+        }
+        Dictionary s;
+        s["type"] = "object";
+        s["properties"] = p;
+        s["required"] = Array::make("paused");
+        return s;
+    }
+
+protected:
+    Dictionary execute_impl(const ToolContext &ctx) override {
+        RuntimeBridge *bridge = registry_ ? registry_->get_runtime_bridge() : nullptr;
+        if (!bridge || !bridge->is_connected()) {
+            return ToolResult::err("GAME_NOT_RUNNING", "Game not running or bridge not connected");
+        }
+        bool paused = args_bool(ctx.args, "paused");
+        Dictionary params;
+        params["paused"] = paused;
+        return bridge->send_command("set_pause", params);
+    }
+};
+
+} // namespace godot_mcp
+

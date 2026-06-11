@@ -8,6 +8,7 @@ GodotMCP 是一个 **MCP (Model Context Protocol) 服务器**，以 C++ GDExtens
 graph LR
     AI[AI 客户端] -- Streamable HTTP :9600 --> GDExt[godot_mcp_gdext.dll/.so/.dylib]
     GDExt -- EditorPlugin API --> Godot[Godot 编辑器]
+    GDExt -- TCP :9601 --> Game[游戏进程]
     GDExt -- LSP :6005 --> LSPClient[LSP 验证]
 ```
 
@@ -32,15 +33,15 @@ git clone https://github.com/jesspig/GodotMCP-GDExtension.git
 cd GodotMCP-GDExtension
 
 # Debug 构建
-py -3 build.py
+uv run python build.py
 
 # Release 构建
-py -3 build.py --release
+uv run python build.py --release
 
 # 构建输出在 example/addons/godot_mcp/
 ```
 
-> **Windows 注意**：必须使用 `py -3` 而非 `python`——Microsoft Store 的 python 路由可能会导致卡死。
+> **Windows 注意**：推荐使用 `uv run python`（自动激活 `.venv`）。也可使用 `py -3`——Microsoft Store 的 python 路由可能会导致卡死。
 
 ## 配置 AI 客户端
 

@@ -2,6 +2,7 @@
 
 | Version | Date | Summary |
 |---------|------|---------|
+| [v0.2.0](./v0-2-0) | 2026-06-12 | ITool architecture rewrite, runtime bridge, 149+ tools |
 | [v0.1.5](./v0-1-5) | 2026-05-30 | Pure C++ GDExtension rewrite, removed Rust and Python components |
 | [v0.1.4](./v0-1-4) | 2026-05-26 | Python MCP server phase, dual-process IPC architecture |
 | [v0.1.3](./v0-1-3) | 2026-05-25 | Robustness enhancements and E2E testing |

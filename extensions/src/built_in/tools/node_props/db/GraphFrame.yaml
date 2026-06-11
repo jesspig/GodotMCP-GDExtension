@@ -1,0 +1,23 @@
+class: GraphFrame
+inherits: GraphElement
+properties:
+- name: title
+  type: 4
+  type_name: String
+- name: autoshrink_enabled
+  type: 1
+  type_name: bool
+- name: autoshrink_margin
+  type: 2
+  type_name: int
+- name: drag_margin
+  type: 2
+  type_name: int
+- name: tint_color_enabled
+  type: 1
+  type_name: bool
+- name: tint_color
+  type: 20
+  type_name: Color
+description: A frame that contains and organizes GraphElements in a GraphEdit.
+aliases: []

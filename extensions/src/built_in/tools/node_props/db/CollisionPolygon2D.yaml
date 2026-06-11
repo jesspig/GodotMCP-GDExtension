@@ -1,0 +1,20 @@
+class: CollisionPolygon2D
+inherits: Node2D
+properties:
+- name: build_mode
+  type: 2
+  type_name: int
+- name: polygon
+  type: 35
+  type_name: PackedVector2Array
+- name: disabled
+  type: 1
+  type_name: bool
+- name: one_way_collision
+  type: 1
+  type_name: bool
+- name: one_way_collision_margin
+  type: 3
+  type_name: float
+description: A node that provides a polygon shape to a CollisionObject2D parent.
+aliases: []

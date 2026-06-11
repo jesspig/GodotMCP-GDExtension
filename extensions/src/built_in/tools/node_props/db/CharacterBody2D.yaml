@@ -1,0 +1,50 @@
+class: CharacterBody2D
+inherits: PhysicsBody2D
+properties:
+- name: motion_mode
+  type: 2
+  type_name: int
+- name: up_direction
+  type: 5
+  type_name: Vector2
+- name: velocity
+  type: 5
+  type_name: Vector2
+- name: slide_on_ceiling
+  type: 1
+  type_name: bool
+- name: max_slides
+  type: 2
+  type_name: int
+- name: wall_min_slide_angle
+  type: 3
+  type_name: float
+- name: floor_stop_on_slope
+  type: 1
+  type_name: bool
+- name: floor_constant_speed
+  type: 1
+  type_name: bool
+- name: floor_block_on_wall
+  type: 1
+  type_name: bool
+- name: floor_max_angle
+  type: 3
+  type_name: float
+- name: floor_snap_length
+  type: 3
+  type_name: float
+- name: platform_on_leave
+  type: 2
+  type_name: int
+- name: platform_floor_layers
+  type: 2
+  type_name: int
+- name: platform_wall_layers
+  type: 2
+  type_name: int
+- name: safe_margin
+  type: 3
+  type_name: float
+description: 2D character body for movement.
+aliases: []

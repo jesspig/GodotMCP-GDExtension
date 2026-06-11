@@ -1,0 +1,8 @@
+class: VisualShaderNodeColorConstant
+inherits: VisualShaderNodeConstant
+properties:
+- name: constant
+  type: 20
+  type_name: Color
+description: ''
+aliases: []

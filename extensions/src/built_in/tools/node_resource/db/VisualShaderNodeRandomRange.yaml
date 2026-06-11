@@ -1,0 +1,5 @@
+class: VisualShaderNodeRandomRange
+inherits: VisualShaderNode
+properties: []
+description: ''
+aliases: []

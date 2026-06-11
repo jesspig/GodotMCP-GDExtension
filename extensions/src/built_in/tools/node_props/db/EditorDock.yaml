@@ -1,0 +1,43 @@
+class: EditorDock
+inherits: MarginContainer
+properties:
+- name: title
+  type: 4
+  type_name: String
+- name: layout_key
+  type: 4
+  type_name: String
+- name: global
+  type: 1
+  type_name: bool
+- name: transient
+  type: 1
+  type_name: bool
+- name: closable
+  type: 1
+  type_name: bool
+- name: icon_name
+  type: 21
+  type_name: StringName
+- name: dock_icon
+  type: 24
+  type_name: Object
+  class_name: Texture2D
+- name: force_show_icon
+  type: 1
+  type_name: bool
+- name: title_color
+  type: 20
+  type_name: Color
+- name: dock_shortcut
+  type: 24
+  type_name: Object
+  class_name: Shortcut
+- name: default_slot
+  type: 2
+  type_name: int
+- name: available_layouts
+  type: 2
+  type_name: int
+description: ''
+aliases: []

@@ -1,0 +1,5 @@
+class: AudioEffectBandLimitFilter
+inherits: AudioEffectFilter
+properties: []
+description: ''
+aliases: []

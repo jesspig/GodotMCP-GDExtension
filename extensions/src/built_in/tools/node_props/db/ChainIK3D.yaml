@@ -1,0 +1,5 @@
+class: ChainIK3D
+inherits: IKModifier3D
+properties: []
+description: ''
+aliases: []

@@ -1,0 +1,27 @@
+class: NavigationObstacle2D
+inherits: Node2D
+properties:
+- name: radius
+  type: 3
+  type_name: float
+- name: vertices
+  type: 35
+  type_name: PackedVector2Array
+- name: affect_navigation_mesh
+  type: 1
+  type_name: bool
+- name: carve_navigation_mesh
+  type: 1
+  type_name: bool
+- name: avoidance_enabled
+  type: 1
+  type_name: bool
+- name: velocity
+  type: 5
+  type_name: Vector2
+- name: avoidance_layers
+  type: 2
+  type_name: int
+description: 2D obstacle used to affect navigation mesh baking or constrain velocities
+  of avoidance controlled agents.
+aliases: []

@@ -1,0 +1,7 @@
+// Meta tools (always visible, no scene/node required)
+GODOT_MCP_TOOL(GetInfoTool,             "get_info",             "meta_tools", true, false, false)
+GODOT_MCP_TOOL(GetToolsTool,            "get_tools",            "meta_tools", true, false, false)
+GODOT_MCP_TOOL(GetCategoriesTool,       "get_categories",       "meta_tools", true, false, false)
+GODOT_MCP_TOOL(GetToolDetailTool,       "get_tool_detail",      "meta_tools", true, false, false)
+GODOT_MCP_TOOL(FindToolTool,            "find_tool",            "meta_tools", true, false, false)
+GODOT_MCP_TOOL(CallToolTool,            "call_tool",            "meta_tools", true, false, false)

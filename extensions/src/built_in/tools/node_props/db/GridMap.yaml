@@ -1,0 +1,43 @@
+class: GridMap
+inherits: Node3D
+properties:
+- name: mesh_library
+  type: 24
+  type_name: Object
+  class_name: MeshLibrary
+- name: physics_material
+  type: 24
+  type_name: Object
+  class_name: PhysicsMaterial
+- name: cell_size
+  type: 9
+  type_name: Vector3
+- name: cell_octant_size
+  type: 2
+  type_name: int
+- name: cell_center_x
+  type: 1
+  type_name: bool
+- name: cell_center_y
+  type: 1
+  type_name: bool
+- name: cell_center_z
+  type: 1
+  type_name: bool
+- name: cell_scale
+  type: 3
+  type_name: float
+- name: collision_layer
+  type: 2
+  type_name: int
+- name: collision_mask
+  type: 2
+  type_name: int
+- name: collision_priority
+  type: 3
+  type_name: float
+- name: bake_navigation
+  type: 1
+  type_name: bool
+description: A node used for placing meshes on a 3D grid.
+aliases: []

@@ -1,0 +1,8 @@
+class: VisualShaderNodeReroute
+inherits: VisualShaderNode
+properties:
+- name: port_type
+  type: 2
+  type_name: int
+description: ''
+aliases: []

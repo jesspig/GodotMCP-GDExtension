@@ -1,6 +1,6 @@
 # Godot MCP
 
-[![Version](https://img.shields.io/badge/version-0.1.5-blue?logo=github)](https://github.com/jessp/godot-mcp)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue?logo=github)](https://github.com/jessp/godot-mcp)
 [![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=c%2B%2B)](https://isocpp.org)
 [![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?logo=godot%20engine)](https://godotengine.org)
 [![MCP](https://badge.mcpx.dev/?type=plugin&plugin_id=github.com/jessp/godot-mcp&logo=true)](https://modelcontextprotocol.io)
@@ -162,20 +162,20 @@ py -3 build.py
 ### 项目结构
 
 ```
-extensions/gdext/           C++ GDExtension 插件（godot-cpp 10.0.0-rc1）
+extensions/                   C++ GDExtension 插件（godot-cpp 10.0.0-rc1）
 ├── CMakeLists.txt
 └── src/
-    ├── register_types.cpp  GDExtension 入口（符号：gdext_rust_init）
-    ├── editor_plugin.cpp   EditorPlugin — HTTP 轮询 via _on_process_frame()
-    ├── ipc/
-    │   └── http_server.cpp MCP Streamable HTTP 服务器 :9600
-    ├── mcp/
-    │   └── mcp_handler.cpp MCP JSON-RPC 2.0 会话管理
-    ├── lsp/client.cpp      Godot LSP 客户端（GDScript 验证）
-    └── commands/           17 个处理器文件（16 组活跃注册）
-        ├── handler_registry.cpp/hpp
-        ├── cmd_utils.cpp/hpp
-        └── cmd_<group>.cpp
+    ├── register_types.cpp  GDExtension 入口（符号：gdext_mcp_init）
+    ├── editor_plugin.cpp   EditorPlugin — 组装者，注入依赖
+    ├── sdk/
+    │   ├── mcp_tool_definition.cpp/hpp  SDK 基类（GDScript 可继承）
+    │   └── mcp_tool_registry.cpp/hpp    工具注册中心（单例）
+    ├── server/
+    │   ├── ipc/http_server.cpp    MCP Streamable HTTP 服务器 :9600
+    │   ├── mcp/mcp_handler.cpp    MCP JSON-RPC 2.0 会话管理
+    │   └── registry/handler_registry.cpp/hpp  工具注册表
+    ├── built_in/          内置工具（cmd_*.cpp）
+    └── lsp/client.cpp     Godot LSP 客户端（GDScript 验证）
 ```
 
 ### CI 检查
@@ -202,9 +202,9 @@ cmake --build build --target deep-clean       # 同时删除 _deps/（FetchConte
 ### 关键约束
 
 - **依赖锁定**：`godot-cpp` 固定为 `10.0.0-rc1`（FetchContent）。未经测试不要升级。
-- **`godot_mcp.gdextension`**：入口符号 `gdext_rust_init`，`compatibility_minimum = "4.6"`，`reloadable = true`。
+- **`godot_mcp.gdextension`**：入口符号 `gdext_mcp_init`，`compatibility_minimum = "4.6"`，`reloadable = true`。
 - **版本**在 `CMakeLists.txt` 中维护（`set(PROJECT_VERSION "...")`）。仅在此处修改——`plugin.cfg` 由 CMake 生成。
-- **新增工具**：在 `extensions/gdext/src/commands/` 中创建 `cmd_<group>.cpp` → 实现 `register_<group>(HandlerRegistry &)` 自由函数 → 在 `handler_registry.cpp` 中添加声明并在 `register_all_tools()` 中调用。
+- **新增内置工具**：在 `extensions/src/built_in/tools/` 下创建头文件，添加 `// @tool register` 注释并继承 `ITool`，重新构建即可自动注册。
 
 ## 文档
 

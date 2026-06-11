@@ -1,0 +1,20 @@
+class: GLTFSpecGloss
+inherits: Resource
+properties:
+- name: diffuse_img
+  type: 24
+  type_name: Object
+- name: diffuse_factor
+  type: 20
+  type_name: Color
+- name: gloss_factor
+  type: 3
+  type_name: float
+- name: specular_factor
+  type: 20
+  type_name: Color
+- name: spec_gloss_img
+  type: 24
+  type_name: Object
+description: ''
+aliases: []

@@ -1,0 +1,14 @@
+class: Translation
+inherits: Resource
+properties:
+- name: messages
+  type: 27
+  type_name: Dictionary
+- name: locale
+  type: 4
+  type_name: String
+- name: plural_rules_override
+  type: 4
+  type_name: String
+description: ''
+aliases: []

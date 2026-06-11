@@ -1,0 +1,15 @@
+class: OccluderInstance3D
+inherits: VisualInstance3D
+properties:
+- name: occluder
+  type: 24
+  type_name: Object
+  class_name: Occluder3D
+- name: bake_mask
+  type: 2
+  type_name: int
+- name: bake_simplification_distance
+  type: 3
+  type_name: float
+description: A node that provides an occluder shape for occlusion culling in 3D.
+aliases: []

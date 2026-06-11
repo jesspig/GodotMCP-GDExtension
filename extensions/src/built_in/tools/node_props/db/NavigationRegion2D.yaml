@@ -1,0 +1,24 @@
+class: NavigationRegion2D
+inherits: Node2D
+properties:
+- name: navigation_polygon
+  type: 24
+  type_name: Object
+  class_name: NavigationPolygon
+- name: enabled
+  type: 1
+  type_name: bool
+- name: use_edge_connections
+  type: 1
+  type_name: bool
+- name: navigation_layers
+  type: 2
+  type_name: int
+- name: enter_cost
+  type: 3
+  type_name: float
+- name: travel_cost
+  type: 3
+  type_name: float
+description: A node that defines a navigation region in 2D.
+aliases: []

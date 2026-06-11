@@ -1,0 +1,11 @@
+class: RDShaderFile
+inherits: Resource
+properties:
+- name: _versions
+  type: 27
+  type_name: Dictionary
+- name: base_error
+  type: 4
+  type_name: String
+description: ''
+aliases: []

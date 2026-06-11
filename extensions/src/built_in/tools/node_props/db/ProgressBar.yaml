@@ -1,0 +1,17 @@
+class: ProgressBar
+inherits: Range
+properties:
+- name: fill_mode
+  type: 2
+  type_name: int
+- name: show_percentage
+  type: 1
+  type_name: bool
+- name: indeterminate
+  type: 1
+  type_name: bool
+- name: editor_preview_indeterminate
+  type: 1
+  type_name: bool
+description: Progress indicator bar.
+aliases: []

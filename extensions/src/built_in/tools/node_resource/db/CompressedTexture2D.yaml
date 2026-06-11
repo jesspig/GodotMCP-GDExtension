@@ -1,0 +1,8 @@
+class: CompressedTexture2D
+inherits: Texture2D
+properties:
+- name: load_path
+  type: 4
+  type_name: String
+description: ''
+aliases: []

@@ -1,0 +1,14 @@
+class: Resource
+inherits: RefCounted
+properties:
+- name: resource_local_to_scene
+  type: 1
+  type_name: bool
+- name: resource_path
+  type: 4
+  type_name: String
+- name: resource_name
+  type: 4
+  type_name: String
+description: ''
+aliases: []

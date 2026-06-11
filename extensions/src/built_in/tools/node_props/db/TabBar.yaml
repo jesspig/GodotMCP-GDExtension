@@ -1,0 +1,47 @@
+class: TabBar
+inherits: Control
+properties:
+- name: current_tab
+  type: 2
+  type_name: int
+- name: tab_alignment
+  type: 2
+  type_name: int
+- name: clip_tabs
+  type: 1
+  type_name: bool
+- name: close_with_middle_mouse
+  type: 1
+  type_name: bool
+- name: tab_close_display_policy
+  type: 2
+  type_name: int
+- name: max_tab_width
+  type: 2
+  type_name: int
+- name: scrolling_enabled
+  type: 1
+  type_name: bool
+- name: drag_to_rearrange_enabled
+  type: 1
+  type_name: bool
+- name: switch_on_drag_hover
+  type: 1
+  type_name: bool
+- name: tabs_rearrange_group
+  type: 2
+  type_name: int
+- name: scroll_to_selected
+  type: 1
+  type_name: bool
+- name: select_with_rmb
+  type: 1
+  type_name: bool
+- name: deselect_enabled
+  type: 1
+  type_name: bool
+- name: tab_count
+  type: 2
+  type_name: int
+description: A control that displays a bar of tabs.
+aliases: []

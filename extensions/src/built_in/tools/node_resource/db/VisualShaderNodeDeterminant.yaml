@@ -1,0 +1,5 @@
+class: VisualShaderNodeDeterminant
+inherits: VisualShaderNode
+properties: []
+description: ''
+aliases: []

@@ -1,0 +1,5 @@
+class: Texture2DArray
+inherits: ImageTextureLayered
+properties: []
+description: ''
+aliases: []

@@ -1,0 +1,15 @@
+class: CurveTexture
+inherits: Texture2D
+properties:
+- name: width
+  type: 2
+  type_name: int
+- name: texture_mode
+  type: 2
+  type_name: int
+- name: curve
+  type: 24
+  type_name: Object
+  class_name: Curve
+description: ''
+aliases: []

@@ -1,0 +1,9 @@
+category: collada
+settings:
+- name: collada/use_ambient
+  type: 1
+  type_name: bool
+  hint: 0
+  hint_string: ''
+  basic: false
+  restart: false

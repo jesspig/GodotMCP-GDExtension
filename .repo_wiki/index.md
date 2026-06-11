@@ -1,57 +1,98 @@
 # Godot MCP — 项目知识库
 
-> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 godot-cpp 10.0.0-rc1，16 组处理器注册 115 个工具。
+> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 `godot-cpp 10.0.0-rc1`，X-macro 分文件注册，四层工具体系（语义专用 + 属性组 + 通用兜底 + 文档查询），Godot ClassDB 运行时驱动文档数据，rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。
+
+## 项目快照
+
+| 维度 | 当前状态 |
+|------|---------|
+| C++ 源码根 | `extensions/src/` |
+| 注册方式 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
+| 工具总数 | **~149**（全部 X-macro 注册，无 codegen） |
+| 工具体系 | **四层体系**：语义专用(~135) + 属性组(~2) + 通用兜底(2) + 文档(8) + 元工具(6) |
+| 指令数据源 | **Godot ClassDB 运行时查询**（零维护） |
+| 顶级分类 | 自动发现：`meta_tools`、`editor_tools`、`node_tools`、`runtime_tools` |
+| 场景树工具 | `editor_tools/scene_tree/`（25 工具） |
+| 运行时桥接工具 | `runtime_tools/bridge/`（6 工具）+ `lifecycle/`（6 工具） |
+| SDK 层 | `extensions/src/sdk/`（`McpToolDefinition` + `McpToolRegistry`） |
+| 测试框架 | C++ `TestEngine`（`/run-tests`）+ Python 编排器 |
+| HTTP 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） |
+| 桥接端口 | `:9601`（env `GODOT_MCP_BRIDGE_PORT` 覆盖） |
+| Pinned deps | `godot-cpp 10.0.0-rc1`、`ryml v0.7.0` |
+| 版本号 | 仅 `CMakeLists.txt:22` `PROJECT_VERSION` |
+| Python | `>=3.14`（`.python-version` 锁定） |
 
 ## 快速导航
 
-| 章节 | 说明 |
+| 类别 | 文档 |
 |------|------|
-| [架构总览](overview/architecture.md) | 单进程架构、完整数据流、目录布局 |
-| [线程模型](overview/threading-model.md) | 纯主线程模型，HTTP 服务器 poll |
+| 架构总览 | [overview/architecture.md](overview/architecture.md) |
+| 线程模型 | [overview/threading-model.md](overview/threading-model.md) |
+| **X-macro 注册体系** | [modules/x-macro-registration.md](modules/x-macro-registration.md) |
+| 命令路由与调度 | [modules/command-routing.md](modules/command-routing.md) |
+| 分类自动发现 | [modules/category-discovery.md](modules/category-discovery.md) |
+| MCP 传输 | [modules/ipc-bridge.md](modules/ipc-bridge.md) |
+| 运行时桥接 | [modules/runtime-bridge.md](modules/runtime-bridge.md) |
+| 插件生命周期 | [modules/editor-plugin.md](modules/editor-plugin.md) |
+| 元工具 | [modules/meta-tools.md](modules/meta-tools.md) |
+| **通用兜底工具** | [modules/fallback-tools.md](modules/fallback-tools.md) |
+| **文档查询工具** | [modules/doc-tools.md](modules/doc-tools.md) |
+| 场景树工具 | [modules/scene-tree-tools.md](modules/scene-tree-tools.md) |
+| 工作区工具 | [modules/workspace-tools.md](modules/workspace-tools.md) |
+| 文件系统工具 | [modules/filesystem-tools.md](modules/filesystem-tools.md) |
+| 项目设置工具 | `editor_tools/settings/`（4 个兜底工具，详见 [fallback-tools.md](modules/fallback-tools.md)） |
+| 分组工具 | [modules/group-tools.md](modules/group-tools.md) |
+| 信号工具 | [modules/signal-tools.md](modules/signal-tools.md) |
+| 资源管理工具 | [modules/resource-tools.md](modules/resource-tools.md) |
+| SDK 层 | `extensions/src/sdk/`（详见源代码） |
+| LSP 客户端 | [modules/lsp-client.md](modules/lsp-client.md) |
+| 输入映射 | [modules/input-map.md](modules/input-map.md) |
+| 构建与打包 | [reference/build-and-package.md](reference/build-and-package.md) |
+| 设计决策（ADR） | [design/decisions.md](design/decisions.md) |
+| **竞品深度分析** | [design/competitive-analysis.md](design/competitive-analysis.md) |
+| **V2 优化方案** | [design/v2-optimization-plan.md](design/v2-optimization-plan.md) |
+| Phase 0 实施指南 | [design/phases/phase0-blocking-fixes.md](design/phases/phase0-blocking-fixes.md) |
+| Phase 1 实施指南 | [design/phases/phase1-competitiveness.md](design/phases/phase1-competitiveness.md) |
+| Phase 2 实施指南 | [design/phases/phase2-differentiation.md](design/phases/phase2-differentiation.md) |
+| 测试框架 | [testing/overview.md](testing/overview.md) |
+| 变更日志 | [log.md](log.md) |
 
-## 核心组件
+## 已清理文档（已从磁盘删除）
 
-| 文件 | 说明 |
+| 文档 | 原因 |
 |------|------|
-| [GDExtension C++](extensions/gdext.md) | **唯一实现**：`extensions/gdext/` C++ GDExtension，使用 godot-cpp 10.0.0-rc1，17 个处理器文件（16 组活跃注册 115 个工具），MCP Streamable HTTP 传输 |
+| `modules/codegen.md` | codegen.py 已删除，X-macro 注册替代 |
+| `modules/project-settings-ext.md` | 设置扩展已合并为 4 个兜底工具 |
+| `modules/csharp-solution.md` | C# 解决方案工具已移除 |
+| `modules/dock-ui.md` | `plugin/` 目录已删除 |
+| `modules/editor-control-gdext.md` | 编辑器控制已合并到 meta_tools |
+| `modules/settings-tools.md` | codegen 1688 工具体系已移除 |
+| `modules/resource-property-tools.md` | codegen 资源属性工具体系已移除 |
+| `reference/tools-catalog.md` | 旧工具快照，已被 X-macro 架构替代 |
+| `testing/phase-system.md` | Python 阶段文件已清理 |
+| `testing/file-verifier.md` | 已被 C++ godot_file_verifier 替代 |
+| `testing/mcp-client.md` | 已删除 |
 
-## 模块文档
+## Agent 上手指南
 
-| 模块 | 说明 |
-|------|------|
-| [命令路由](modules/command-routing.md) | 从 MCP `call_tool` 到 `cmd_*` 调用的完整链路；C++ `HandlerRegistry`；17 组处理器状态 |
-| [Scene / Node / Property 命令模式](modules/scene-commands.md) | 节点/属性/场景工具模式；C++ 的 `Dictionary`/`JSON` 原生操作 |
-| [MCP Streamable HTTP](modules/ipc-bridge.md) | `HttpServer`（:9600）+ `McpHandler`（JSON-RPC 2.0 会话管理 + SSE） |
-| [编辑器插件](modules/editor-plugin.md) | C++ `McpEditorPlugin` 生命周期（`_enter_tree` → `process_frame` → `_exit_tree`） |
-| [日志](modules/logging.md) | 直接 `UtilityFunctions::print/push_warning/push_error`，28 行实现 |
-| [Editor Control（gdext）](modules/editor-control-gdext.md) | gdext 侧的编辑器控制：play/stop/refresh/get_editor_info |
-| [ProjectSettings 扩展](modules/project-settings-ext.md) | 聚合设置工具：显示、物理、渲染、项目信息、层名称 |
-| [输入映射](modules/input-map.md) | InputMap 命令：列出/添加/设置/移除输入动作 |
-| [插件管理](modules/plugin-management.md) | 列出/启用/禁用编辑器插件 |
-| [LSP 验证客户端](modules/lsp-client.md) | 通过 Godot LSP 服务器实现 GDScript 语法验证（`StreamPeerTCP`） |
-| [C# 解决方案生成](modules/csharp-solution.md) | 直接在 gdext 中生成 `.sln` + `.csproj`，无需启动第二个 Godot 进程 |
-| [Dock UI](modules/dock-ui.md) | 右侧 Dock 面板状态（当前未实现，计划中） |
+1. **从 `overview/architecture.md` 开始** — 理解单进程架构、数据流、目录布局
+2. **阅读 `overview/threading-model.md`** — 理解纯主线程 `_process()` 驱动模型
+3. **阅读 `modules/x-macro-registration.md`** — 理解 X-macro 注册体系
+4. **阅读 `modules/command-routing.md`** — 理解 ITool 接口 + HandlerRegistry 调度
+5. **阅读 `modules/runtime-bridge.md`** — 理解运行时桥接设计
+6. **添加新工具时**：
+   - 创建 `.hpp` 文件实现 `ITool` 接口
+   - 在 `extensions/src/built_in/tools/register/` 下对应分类的 X-macro 文件加一行
+   - 在 `extensions/src/built_in/register_itools.cpp` 加 `#include`
+   - 不需要 codegen，不需要 `// @tool register`
+7. **运行测试前**：见 `AGENTS.md`「测试」章节
 
-## 参考文档
+## 给 Agent 的提醒
 
-| 文档 | 说明 |
-|------|------|
-| [工具目录](reference/tools-catalog.md) | 全部工具的 JSON Schema、参数、返回值 |
-| [客户端配置](reference/client-config.md) | Streamable HTTP 配置模板（opencode / Claude Code / Cursor / JetBrains） |
-| [客户端 quirks](reference/client-quirks.md) | 各客户端配置怪癖速查表 |
-| [CI/CD 流水线](reference/ci-cd.md) | GitHub Actions 工作流：CI 门禁 + 跨平台 Release 发布 |
-| [构建与打包](reference/build-and-package.md) | `build.py` 标志、CMake 流程、文件锁限制 |
-
-## 规范文档
-
-| 文档 | 说明 |
-|------|------|
-| [IPC 协议](specification/ipc-protocol.md) | MCP Streamable HTTP 协议（JSON-RPC 2.0 + SSE） |
-| [项目结构](specification/project-structure.md) | 完整目录布局、构建与测试命令 |
-
-## 设计文档
-
-| 文档 | 说明 |
-|------|------|
-| [设计决策](design/decisions.md) | ADR 风格的架构选择记录（含 C++ 重写、HTTP 传输、单进程架构等） |
-| [变更日志](log.md) | 仅追加的项目变更记录
+- **入口符号** `gdext_mcp_init`（`register_types.cpp:56`）
+- **不要修改** `extensions/CMakeLists.txt:15` 的 `GODOTCPP_API_VERSION "4.6"` 与根 `CMakeLists.txt` 的 `compatibility_minimum = "4.6"` 之间的绑定
+- **升级 godot-cpp / ryml 前必测** — 二者均为 FetchContent 拉取
+- **不要用 `String::utf8("中文")`** — 全英文化后直接 `String("English")` 即可
+- **DLL 文件锁** — Godot 编辑器持有 DLL，重建失败时先关闭编辑器
+- **构建优化** — sccache/ccache、Unity jumbo build、lld-link 均已配置
+- **构建命令** — 始终用 `uv run python build.py`（Python >=3.14）

@@ -1,0 +1,8 @@
+class: Shortcut
+inherits: Resource
+properties:
+- name: events
+  type: 28
+  type_name: Array
+description: ''
+aliases: []

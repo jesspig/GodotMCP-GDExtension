@@ -1,0 +1,20 @@
+class: GLTFCamera
+inherits: Resource
+properties:
+- name: perspective
+  type: 1
+  type_name: bool
+- name: fov
+  type: 3
+  type_name: float
+- name: size_mag
+  type: 3
+  type_name: float
+- name: depth_far
+  type: 3
+  type_name: float
+- name: depth_near
+  type: 3
+  type_name: float
+description: ''
+aliases: []

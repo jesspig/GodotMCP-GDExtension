@@ -1,0 +1,8 @@
+class: AnimationNodeSync
+inherits: AnimationNode
+properties:
+- name: sync
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

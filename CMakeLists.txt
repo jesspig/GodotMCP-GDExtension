@@ -19,13 +19,31 @@ endif()
 # Project version — maintained directly here (no more Cargo.toml parsing).
 # Bump when releasing.
 # ---------------------------------------------------------------------------
-set(PROJECT_VERSION "0.1.5")
+set(PROJECT_VERSION "0.2.0")
 message(STATUS "GodotMCP version: ${PROJECT_VERSION}")
+
+# ---------------------------------------------------------------------------
+# Compiler launcher (sccache/ccache) — speeds up incremental builds 2-5x.
+# Installed via: winget install sccache  |  choco install sccache
+# ---------------------------------------------------------------------------
+find_program(GODOTMCP_CXX_LAUNCHER NAMES sccache ccache)
+if(GODOTMCP_CXX_LAUNCHER)
+    message(STATUS "Using compiler launcher: ${GODOTMCP_CXX_LAUNCHER}")
+    # Propagate to all targets (including godot-cpp via FetchContent)
+    set(CMAKE_C_COMPILER_LAUNCHER "${GODOTMCP_CXX_LAUNCHER}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${GODOTMCP_CXX_LAUNCHER}")
+endif()
 
 # ---------------------------------------------------------------------------
 # C++ GDExtension (godot-cpp 10.0.0-rc1 via FetchContent)
 # ---------------------------------------------------------------------------
-add_subdirectory(extensions/gdext)
+
+# MSVC: treat source files & execution charset as UTF-8 (fixes CJK in string literals)
+if(MSVC)
+    add_compile_options(/utf-8 /bigobj)
+endif()
+
+add_subdirectory(extensions)
 
 # ---------------------------------------------------------------------------
 # Generate addon config files (plugin.cfg, .gdextension)
@@ -42,7 +60,7 @@ file(WRITE "${_addon_dir}/plugin.cfg"
     "[plugin]\n"
     "name=\"Godot MCP\"\n"
     "description=\"Model Context Protocol bridge for Godot Engine.\"\n"
-    "author=\"\"\n"
+    "author=\"JessPig\"\n"
     "version=\"${PROJECT_VERSION}\"\n"
     "script=\"\"\n"
 )
@@ -50,7 +68,7 @@ file(WRITE "${_addon_dir}/plugin.cfg"
 file(WRITE "${_addon_dir}/godot_mcp.gdextension"
     "[configuration]\n"
     "\n"
-    "entry_symbol = \"gdext_rust_init\"\n"
+    "entry_symbol = \"gdext_mcp_init\"\n"
     "compatibility_minimum = \"4.6\"\n"
     "reloadable = true\n"
     "\n"
@@ -79,10 +97,7 @@ add_custom_target(copy-gdext ALL
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_FILE:godot_mcp_gdext>"
         "${_gdext_bin_dir}/${_gdext_lib_name}"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/tools/tool_schemas.json"
-        "${_addon_dir}/tool_schemas.json"
-    COMMENT "Copying GDExtension to addons/bin/ and tool schemas"
+    COMMENT "Copying GDExtension to addons/bin/"
 )
 add_dependencies(copy-gdext godot_mcp_gdext)
 

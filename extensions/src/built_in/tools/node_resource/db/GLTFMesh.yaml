@@ -1,0 +1,17 @@
+class: GLTFMesh
+inherits: Resource
+properties:
+- name: original_name
+  type: 4
+  type_name: String
+- name: mesh
+  type: 24
+  type_name: Object
+- name: blend_weights
+  type: 32
+  type_name: PackedFloat32Array
+- name: instance_materials
+  type: 28
+  type_name: Array
+description: ''
+aliases: []

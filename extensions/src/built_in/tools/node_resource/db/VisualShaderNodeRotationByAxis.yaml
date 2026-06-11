@@ -1,0 +1,5 @@
+class: VisualShaderNodeRotationByAxis
+inherits: VisualShaderNode
+properties: []
+description: ''
+aliases: []

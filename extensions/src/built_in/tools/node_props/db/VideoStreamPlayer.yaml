@@ -1,0 +1,36 @@
+class: VideoStreamPlayer
+inherits: Control
+properties:
+- name: audio_track
+  type: 2
+  type_name: int
+- name: stream
+  type: 24
+  type_name: Object
+  class_name: VideoStream
+- name: volume_db
+  type: 3
+  type_name: float
+- name: speed_scale
+  type: 3
+  type_name: float
+- name: autoplay
+  type: 1
+  type_name: bool
+- name: paused
+  type: 1
+  type_name: bool
+- name: expand
+  type: 1
+  type_name: bool
+- name: loop
+  type: 1
+  type_name: bool
+- name: buffering_msec
+  type: 2
+  type_name: int
+- name: bus
+  type: 21
+  type_name: StringName
+description: A control that plays video streams.
+aliases: []

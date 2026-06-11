@@ -1,0 +1,9 @@
+class: ConfirmationDialog
+inherits: AcceptDialog
+properties:
+- name: cancel_button_text
+  type: 4
+  type_name: String
+description: A dialog used for confirmation of actions.
+aliases:
+- FileDialog

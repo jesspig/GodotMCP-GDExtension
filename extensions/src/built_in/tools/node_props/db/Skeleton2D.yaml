@@ -1,0 +1,5 @@
+class: Skeleton2D
+inherits: Node2D
+properties: []
+description: A node that holds a hierarchy of Bone2D nodes.
+aliases: []

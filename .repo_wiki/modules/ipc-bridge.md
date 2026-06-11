@@ -26,7 +26,7 @@ sequenceDiagram
     
     Client->>HTTP: POST /mcp (tools/call)
     HTTP->>MCP: handle_tools_call()
-    MCP->>REG: find(tool) → CommandFn(args)
+    MCP->>REG: execute(name, args) → ITool::execute_impl(ctx)
     REG-->>MCP: Dictionary result
     MCP-->>HTTP: MCP content array
     HTTP-->>Client: 200 application/json

@@ -1,0 +1,8 @@
+class: VisibleOnScreenNotifier3D
+inherits: VisualInstance3D
+properties:
+- name: aabb
+  type: 16
+  type_name: AABB
+description: A node that detects when it is visible on screen in 3D.
+aliases: []

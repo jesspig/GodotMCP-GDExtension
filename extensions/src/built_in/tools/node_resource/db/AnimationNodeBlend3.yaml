@@ -1,0 +1,5 @@
+class: AnimationNodeBlend3
+inherits: AnimationNodeSync
+properties: []
+description: ''
+aliases: []

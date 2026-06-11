@@ -1,0 +1,5 @@
+class: EditorSettings
+inherits: Resource
+properties: []
+description: ''
+aliases: []

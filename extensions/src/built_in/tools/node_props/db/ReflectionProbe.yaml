@@ -1,0 +1,50 @@
+class: ReflectionProbe
+inherits: VisualInstance3D
+properties:
+- name: update_mode
+  type: 2
+  type_name: int
+- name: intensity
+  type: 3
+  type_name: float
+- name: blend_distance
+  type: 3
+  type_name: float
+- name: max_distance
+  type: 3
+  type_name: float
+- name: size
+  type: 9
+  type_name: Vector3
+- name: origin_offset
+  type: 9
+  type_name: Vector3
+- name: box_projection
+  type: 1
+  type_name: bool
+- name: interior
+  type: 1
+  type_name: bool
+- name: enable_shadows
+  type: 1
+  type_name: bool
+- name: cull_mask
+  type: 2
+  type_name: int
+- name: reflection_mask
+  type: 2
+  type_name: int
+- name: mesh_lod_threshold
+  type: 3
+  type_name: float
+- name: ambient_mode
+  type: 2
+  type_name: int
+- name: ambient_color
+  type: 20
+  type_name: Color
+- name: ambient_color_energy
+  type: 3
+  type_name: float
+description: ''
+aliases: []

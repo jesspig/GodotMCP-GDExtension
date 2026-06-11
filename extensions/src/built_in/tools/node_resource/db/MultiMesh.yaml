@@ -1,0 +1,33 @@
+class: MultiMesh
+inherits: Resource
+properties:
+- name: transform_format
+  type: 2
+  type_name: int
+- name: use_colors
+  type: 1
+  type_name: bool
+- name: use_custom_data
+  type: 1
+  type_name: bool
+- name: custom_aabb
+  type: 16
+  type_name: AABB
+- name: instance_count
+  type: 2
+  type_name: int
+- name: visible_instance_count
+  type: 2
+  type_name: int
+- name: mesh
+  type: 24
+  type_name: Object
+  class_name: Mesh
+- name: buffer
+  type: 32
+  type_name: PackedFloat32Array
+- name: physics_interpolation_quality
+  type: 2
+  type_name: int
+description: ''
+aliases: []

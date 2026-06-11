@@ -1,0 +1,14 @@
+class: OpenXRAction
+inherits: Resource
+properties:
+- name: localized_name
+  type: 4
+  type_name: String
+- name: action_type
+  type: 2
+  type_name: int
+- name: toplevel_paths
+  type: 34
+  type_name: PackedStringArray
+description: ''
+aliases: []

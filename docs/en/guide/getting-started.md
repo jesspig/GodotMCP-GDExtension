@@ -8,6 +8,7 @@ GodotMCP is an **MCP (Model Context Protocol) server** that runs as a C++ GDExte
 graph LR
     AI[AI Client] -- Streamable HTTP :9600 --> GDExt[godot_mcp_gdext.dll/.so/.dylib]
     GDExt -- EditorPlugin API --> Godot[Godot Editor]
+    GDExt -- TCP :9601 --> Game[Game Process]
     GDExt -- LSP :6005 --> LSPClient[LSP Validation]
 ```
 
@@ -32,15 +33,15 @@ git clone https://github.com/jesspig/GodotMCP-GDExtension.git
 cd GodotMCP-GDExtension
 
 # Debug build
-py -3 build.py
+uv run python build.py
 
 # Release build
-py -3 build.py --release
+uv run python build.py --release
 
 # Build output is in example/addons/godot_mcp/
 ```
 
-> **Windows Note**: Use `py -3` instead of `python` — the Microsoft Store python shim may hang silently.
+> **Windows Note**: Use `uv run python` (auto-activates `.venv`). You can also use `py -3` — the Microsoft Store python shim may hang silently.
 
 ## Configure AI Client
 

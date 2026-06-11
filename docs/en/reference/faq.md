@@ -11,11 +11,7 @@
 
 ### Some tools unavailable after successful connection
 
-Tool schemas are loaded from `res://addons/godot_mcp/tool_schemas.json`. If the file is missing or malformed, tools can still be called but the client will have no parameter hints. Rebuild the plugin to fix:
-
-```bash
-py -3 build.py --no-zip
-```
+Tools are auto-collected via the X-macro registration mechanism. All `extensions/src/built_in/tools/**/*.hpp` files are included by `register_itools.cpp` via `#include`, requiring no `.cpp` files or codegen. If a tool is unavailable, ensure its header is correctly placed in the tools directory and registered in the corresponding X-macro registration file.
 
 ## Build Issues
 

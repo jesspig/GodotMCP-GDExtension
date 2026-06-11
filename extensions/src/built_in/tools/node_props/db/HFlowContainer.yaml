@@ -1,0 +1,5 @@
+class: HFlowContainer
+inherits: FlowContainer
+properties: []
+description: A horizontal flow container that arranges child controls in rows.
+aliases: []

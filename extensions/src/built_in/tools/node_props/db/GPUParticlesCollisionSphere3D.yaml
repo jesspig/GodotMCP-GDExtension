@@ -1,0 +1,8 @@
+class: GPUParticlesCollisionSphere3D
+inherits: GPUParticlesCollision3D
+properties:
+- name: radius
+  type: 3
+  type_name: float
+description: ''
+aliases: []

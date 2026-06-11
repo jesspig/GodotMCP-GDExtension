@@ -1,0 +1,11 @@
+class: Shape3D
+inherits: Resource
+properties:
+- name: custom_solver_bias
+  type: 3
+  type_name: float
+- name: margin
+  type: 3
+  type_name: float
+description: ''
+aliases: []

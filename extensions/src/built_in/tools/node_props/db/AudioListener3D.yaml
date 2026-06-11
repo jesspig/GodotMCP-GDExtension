@@ -1,0 +1,8 @@
+class: AudioListener3D
+inherits: Node3D
+properties:
+- name: doppler_tracking
+  type: 2
+  type_name: int
+description: Overrides the location sounds are heard from in 3D.
+aliases: []

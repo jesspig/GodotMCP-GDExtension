@@ -1,0 +1,5 @@
+class: VisualShaderNodeVectorLen
+inherits: VisualShaderNodeVectorBase
+properties: []
+description: ''
+aliases: []

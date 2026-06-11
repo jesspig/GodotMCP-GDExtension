@@ -1,0 +1,17 @@
+class: LimitAngularVelocityModifier3D
+inherits: SkeletonModifier3D
+properties:
+- name: max_angular_velocity
+  type: 3
+  type_name: float
+- name: exclude
+  type: 1
+  type_name: bool
+- name: chain_count
+  type: 2
+  type_name: int
+- name: joint_count
+  type: 2
+  type_name: int
+description: ''
+aliases: []

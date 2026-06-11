@@ -1,0 +1,11 @@
+class: AnimationNode
+inherits: Resource
+properties:
+- name: filter_enabled
+  type: 1
+  type_name: bool
+- name: filters
+  type: 28
+  type_name: Array
+description: ''
+aliases: []

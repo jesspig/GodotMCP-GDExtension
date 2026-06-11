@@ -2,58 +2,92 @@
 
 ## 目录布局
 
+```mermaid
+flowchart TB
+    Root["GodotMCP/"]
+    Root --> Src["extensions/src/<br/>C++ GDExtension 唯一源码根"]
+    Root --> Example["example/<br/>Godot 测试项目 + addons/godot_mcp/"]
+    Root --> Build["build/<br/>CMake 输出 + _deps/ (gitignored)"]
+    Root --> Tests["tests/<br/>Python 测试编排器"]
+    Root --> Docs["docs/<br/>Rspress 中英双语站点"]
+    Root --> Wiki[".repo_wiki/<br/>项目知识库"]
+    Root --> Opencode[".opencode/<br/>MCP 客户端配置"]
+    Root --> Pkg["pyproject.toml + uv.lock<br/>package.json + pnpm-lock.yaml"]
+    Root --> Cfg["CMakeLists.txt (顶级)<br/>build.py"]
+    Src --> Cpp["server/ + sdk/ + built_in/<br/>runtime/ + lsp/ + testing/"]
+    Cpp --> Entry["register_types.cpp + editor_plugin.cpp"]
+    Example --> Bin["addons/godot_mcp/bin/<br/>(godot_mcp_gdext.{dll,so,dylib})"]
+```
+
 ```
 GodotMCP/
-├── .opencode/              # OpenCode 配置
-├── .repo_wiki/             # 项目知识库
+├── .opencode/                     # MCP 客户端配置（opencode 预配置 streamable-http）
+├── .repo_wiki/                    # 项目知识库（Agent 快速上手参考）
+├── .github/workflows/             # CI (ci.yml) + Release
+├── docs/                          # Rspress 站点（中/英双语，i18n 由 i18n.json 驱动）
+├── example/                       # Godot 测试项目
+│   ├── project.godot              #   gitignore 仅保留这 3 个文件
+│   ├── icon.svg                   #
+│   ├── .gitignore                 #
+│   └── addons/godot_mcp/          # 构建产物目录
+│       ├── plugin.cfg             # 由 CMake 从 PROJECT_VERSION 生成
+│       ├── godot_mcp.gdextension  # entry_symbol = gdext_mcp_init, compatibility_minimum = 4.6
+│       └── bin/                   # godot_mcp_gdext.dll/.so/.dylib（gitignored）
 ├── extensions/
-│   └── gdext/              # C++ GDExtension（唯一代码库）
-│       ├── src/
-│       │   ├── commands/   # 工具处理器（17 个文件，16 组活跃注册）
-│       │   ├── ipc/        # HttpServer
-│       │   ├── mcp/        # McpHandler（JSON-RPC 2.0 会话管理 + 错误码）
-│       │   ├── lsp/        # LSP 验证客户端
-│       │   ├── register_types.cpp  # GDExtension 入口
-│       │   ├── editor_plugin.cpp   # McpEditorPlugin 生命周期
-│       │   └── logging.hpp         # 日志 inline 函数
-│       └── CMakeLists.txt  # godot-cpp 10.0.0-rc1 FetchContent
-├── tools/
-│   └── tool_schemas.json   # 工具 schema（CMake 复制到 addon）
-├── example/                # Godot 测试项目
-│   └── addons/godot_mcp/   # 构建输出目录
-│       ├── plugin.cfg              # 由 CMake 从 PROJECT_VERSION 生成
-│       ├── godot_mcp.gdextension   # GDExtension 入口（符号：gdext_rust_init）
-│       └── bin/                    # 构建产物（.gitignore 中）
-├── docs/                   # 文档
-├── CMakeLists.txt          # 顶级 CMake 构建（版本唯一来源）
-├── build.py                # 便捷构建脚本（argparse 包装 CMake）
-├── build/                  # CMake 构建输出
-├── pyproject.toml          # Python 构建工具依赖
-├── README.md               # 英文 README
-├── README-zh.md            # 中文 README
-├── License                 # MIT 许可证
-└── uv.lock                 # uv 锁定文件
+│   ├── CMakeLists.txt             # godot-cpp + ryml FetchContent
+│   └── src/                       # C++ 源码唯一根
+│       ├── register_types.cpp     # GDExtension 入口（gdext_mcp_init）
+│       ├── editor_plugin.cpp/.hpp # McpEditorPlugin 生命周期
+│       ├── built_in/              # ITool + cmd_utils + tools/
+│       ├── server/                # ipc/ + mcp/ + registry/
+│       ├── runtime/               # bridge.cpp + game_bridge.cpp
+│       ├── sdk/                   # McpToolDefinition + McpToolRegistry
+│       ├── lsp/                   # GDScript LSP 客户端
+│       └── testing/               # C++ TestEngine
+├── tests/
+│   ├── yaml_tests/                # *.yaml 测试套件
+│   ├── test_orchestrator.py       # Python 编排器（管理 Godot 生命周期）
+│   ├── godot_manager.py           # Godot 进程管理
+│   ├── report.py                  # 报告生成（JSON + Markdown）
+│   ├── requirements.txt           # mcp / pytest / httpx / python-dotenv / PyYAML
+│   ├── .env.example               # GODOT_PATH 等环境变量模板（.env gitignored）
+│   ├── output/                    # 报告输出（gitignored）
+│   └── backup/                    # 测试前备份（gitignored）
+├── build/                         # CMake 输出（gitignored）
+│   ├── _deps/                     #   godot-cpp + ryml FetchContent 缓存
+│   └── addons.zip                 #   CPack 产物
+├── CMakeLists.txt                 # 顶级构建（PROJECT_VERSION 唯一来源）
+├── build.py                       # argparse 包装的便捷构建脚本
+├── pyproject.toml                 # Python ≥3.14 + pyyaml
+├── uv.lock                        # uv 锁定
+├── package.json                   # pnpm + Rspress
+├── pnpm-lock.yaml
+├── i18n.json                      # Rspress 中英映射
+├── rspress.config.ts
+├── README.md / README-zh.md
+└── License                        # MIT
 ```
 
-## CMake 构建（唯一构建系统）
+## CMake 构建流程
 
-顶级 `CMakeLists.txt`：
-- `add_subdirectory(extensions/gdext)` → 构建 C++ GDExtension
-- 生成 `plugin.cfg` + `godot_mcp.gdextension`
-- 复制产物到 `example/addons/godot_mcp/bin/`
-- CPack → `addons.zip`
-
-## 构建与测试命令
-
-```bash
-py -3 build.py                          # debug 构建 + addons.zip
-py -3 build.py --release                # release 构建 + addons.zip
-py -3 build.py --clean                  # 清空 CMake 缓存（保留 _deps/）
-py -3 build.py --no-zip                 # 跳过打包（快速迭代）
+```mermaid
+flowchart LR
+    A["uv run python build.py"] --> B["cmake -B build -S ."]
+    B --> C["extensions/CMakeLists.txt<br/>FetchContent: godot-cpp 10.0.0-rc1 + ryml v0.7.0"]
+    C --> D["add_library(godot_mcp_gdext)<br/>GLOB tools/*.cpp + X-macro register_itools.cpp"]
+    D --> E["编译 .cpp + .hpp (Unity Build, batch_size = CPU 核数)"]
+    E --> F["link godot_mcp_gdext.dll/.so/.dylib"]
+    F --> G["copy_if_different → example/addons/godot_mcp/bin/"]
+    G --> H["CPack ZIP → build/addons.zip"]
 ```
 
 ## Godot 测试项目
 
-- 测试项目: `example/`（从仓库根访问）
-- 编辑器图标: `example/icon.svg`
-- 项目配置: `example/project.godot`
+| 路径 | 用途 |
+|------|------|
+| `example/project.godot` | Godot 项目配置（git 跟踪） |
+| `example/icon.svg` | 默认图标（git 跟踪） |
+| `example/.gitignore` | `example/*` 除上述 3 个外全部 gitignored |
+| `example/addons/godot_mcp/` | 构建产物（CMake 输出） |
+
+`.gitignore` 中 `example/*` + `!example/project.godot` + `!example/icon.svg` + `!example/.gitignore` 模式确保只有这 3 个文件被版本控制。

@@ -1,0 +1,14 @@
+class: CanvasGroup
+inherits: Node2D
+properties:
+- name: fit_margin
+  type: 3
+  type_name: float
+- name: clear_margin
+  type: 3
+  type_name: float
+- name: use_mipmaps
+  type: 1
+  type_name: bool
+description: Merges several 2D nodes into a single draw operation.
+aliases: []

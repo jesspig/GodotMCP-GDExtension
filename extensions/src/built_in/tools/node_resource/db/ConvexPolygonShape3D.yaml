@@ -1,0 +1,8 @@
+class: ConvexPolygonShape3D
+inherits: Shape3D
+properties:
+- name: points
+  type: 28
+  type_name: Array
+description: ''
+aliases: []

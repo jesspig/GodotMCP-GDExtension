@@ -1,0 +1,8 @@
+class: OpenXRRenderModel
+inherits: Node3D
+properties:
+- name: render_model
+  type: 23
+  type_name: RID
+description: ''
+aliases: []

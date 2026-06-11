@@ -1,0 +1,38 @@
+class: ScrollContainer
+inherits: Container
+properties:
+- name: follow_focus
+  type: 1
+  type_name: bool
+- name: draw_focus_border
+  type: 1
+  type_name: bool
+- name: scroll_horizontal
+  type: 2
+  type_name: int
+- name: scroll_vertical
+  type: 2
+  type_name: int
+- name: scroll_horizontal_custom_step
+  type: 3
+  type_name: float
+- name: scroll_vertical_custom_step
+  type: 3
+  type_name: float
+- name: horizontal_scroll_mode
+  type: 2
+  type_name: int
+- name: vertical_scroll_mode
+  type: 2
+  type_name: int
+- name: scroll_deadzone
+  type: 2
+  type_name: int
+- name: scroll_hint_mode
+  type: 2
+  type_name: int
+- name: tile_scroll_hint
+  type: 1
+  type_name: bool
+description: Scrollable container.
+aliases: []

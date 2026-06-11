@@ -1,0 +1,5 @@
+class: HBoxContainer
+inherits: BoxContainer
+properties: []
+description: Horizontal layout container.
+aliases: []

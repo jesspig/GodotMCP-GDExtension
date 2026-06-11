@@ -1,210 +1,289 @@
 # Tools Catalog
 
-GodotMCP provides **122 editor operation tools**, distributed across 16 active registered groups. Complete list organized by category.
+GodotMCP provides **149+ editor operation tools** organized by functional domain: meta operations, scene tree, scripts, filesystem, workspace/debugger, runtime bridge, and more. Tools are auto-registered via X-macro with `find_tool` search engine and progressive discovery.
 
-## Meta Operations (3)
-
-| Tool | Description |
-|------|-------------|
-| `ping` | Check connection status with the Godot editor |
-| `get_engine_version` | Get the Godot engine version |
-| `get_plugin_version` | Get the GodotMCP plugin version |
-
-## Scene Management (16)
+## Meta Tools (6)
 
 | Tool | Description |
 |------|-------------|
-| `create_scene` | Create a new scene file |
-| `open_scene` | Open a scene file in the editor |
-| `save_scene` | Save the current edited scene |
-| `save_scene_as` | Save the current scene to a new path |
-| `save_all_scenes` | Save all open scenes |
-| `close_scene` | Close the current editor scene tab |
-| `reload_scene` | Reload a scene from disk |
-| `delete_scene` | Delete a scene file |
-| `rename_scene` | Rename/move a scene file |
-| `branch_to_scene` | Convert a node branch to a scene file |
-| `scene_to_branch` | Convert an instanced scene to a local branch |
-| `instantiate_scene` | Instantiate a child scene |
-| `get_open_scenes` | List all open scene file paths |
-| `get_open_scene_roots` | List root node info of all open scenes |
-| `mark_scene_unsaved` | Mark the current scene as unsaved |
-| `is_scene_dirty` | Check if the current scene has unsaved changes |
+| `get_info` | Get editor connection status and runtime environment info |
+| `get_tools` | List all registered tools |
+| `get_categories` | List tool category tree |
+| `get_tool_detail` | Get full metadata for a specific tool |
+| `find_tool` | Full-text tool search (name, description, category) |
+| `call_tool` | Call any tool by name |
 
-## Node Operations (21)
+## Signal Management (4)
 
 | Tool | Description |
 |------|-------------|
-| `create_node` | Create a new node |
+| `connect_signal` | Connect a node signal |
+| `disconnect_signal` | Disconnect a node signal |
+| `list_signals` | List all signals of a node |
+| `get_signal_connections` | Get signal connection list |
+
+## Node Groups (4)
+
+| Tool | Description |
+|------|-------------|
+| `add_to_group` | Add a node to a group |
+| `remove_from_group` | Remove a node from a group |
+| `get_node_groups` | Get groups a node belongs to |
+| `get_nodes_in_group` | Get all nodes in a group |
+
+## Resource Operations (7)
+
+| Tool | Description |
+|------|-------------|
+| `save_resource` | Save a resource to file |
+| `load_resource` | Load a resource from path |
+| `new_resource` | Create a new resource |
+| `duplicate_resource` | Duplicate a resource |
+| `clear_resource` | Clear a node's resource reference |
+| `get_resource_info` | Get resource information |
+
+## Property Fallback (2)
+
+| Tool | Description |
+|------|-------------|
+| `get_node_property` | Get any node property value (generic fallback) |
+| `set_node_property` | Set any node property value (generic fallback) |
+
+## Scene Tree Operations (24)
+
+| Tool | Description |
+|------|-------------|
+| `add_node` | Create a new node |
 | `delete_node` | Delete a node |
 | `rename_node` | Rename a node |
-| `duplicate_node` | Duplicate a node |
 | `move_node` | Move a node to a new parent |
-| `reset_parent` | Reset parent (reparent) |
-| `set_as_root` | Set a node as the scene root |
+| `duplicate_node` | Duplicate a node |
+| `copy_node` | Copy a node to clipboard |
+| `paste_node` | Paste a node from clipboard |
+| `cut_node` | Cut a node |
 | `get_scene_tree` | Get the current scene node tree |
-| `get_node_path` | Get a node path |
-| `get_node_info` | Get complete node info (type, script, visibility, groups, etc.) |
-| `get_property_list` | Get all properties of a node |
-| `get_property` | Get a specific property value of a node |
-| `set_property` | Set a node property value |
-| `batch_set_property` | Batch set the same property on multiple nodes |
+| `save_scene` | Save the current scene |
+| `new_scene` | Create a new scene |
+| `change_node_type` | Change a node's type |
 | `attach_script` | Attach a script to a node |
 | `detach_script` | Detach a script from a node |
-| `add_node_to_group` | Add a node to a group |
-| `remove_node_from_group` | Remove a node from a group |
-| `set_node_transform_2d` | Set 2D position + rotation + scale in one action |
-| `set_node_transform_3d` | Set 3D position + rotation + scale in one action |
-| `get_script_variables` | List all @export variables on a script |
+| `reparent_node` | Reparent a node |
+| `reparent_to_new_node` | Reparent a node to a new node |
+| `group_selected_nodes` | Group selected nodes |
+| `make_local` | Make an instanced scene node local |
+| `save_branch_as_scene` | Save a node branch as a scene file |
+| `instance_child_scene` | Instance a child scene |
+| `set_unique_name` | Set node unique name (% prefix) |
+| `toggle_editable_children` | Toggle editable children state |
+| `toggle_edit_group` | Toggle edit group state |
+| `toggle_placeholder` | Toggle placeholder mode |
 
-## 2D Properties (21)
-
-| Tool | Description |
-|------|-------------|
-| `get_node_position` | Get node 2D position |
-| `set_node_position` | Set node 2D position |
-| `get_node_rotation` | Get node rotation (degrees) |
-| `set_node_rotation` | Set node rotation (degrees) |
-| `get_node_scale` | Get node scale |
-| `set_node_scale` | Set node scale |
-| `get_node_visible` | Get node visibility |
-| `set_node_visible` | Set node visibility |
-| `get_node_modulate` | Get node modulate color |
-| `set_node_modulate` | Set node modulate color |
-| `get_node_z_index` | Get node Z index |
-| `set_node_z_index` | Set node Z index |
-| `get_node_text` | Get node text |
-| `set_node_text` | Set node text |
-| `get_node_collision_layer` | Get collision layer |
-| `set_node_collision_layer` | Set collision layer |
-| `get_node_collision_mask` | Get collision mask |
-| `set_node_collision_mask` | Set collision mask |
-| `get_node_texture` | Get node texture property |
-| `set_node_texture` | Set node texture property |
-| `set_node_unique_name` | Set node unique name (% prefix) |
-
-## 3D Properties (6)
+## Animation (5)
 
 | Tool | Description |
 |------|-------------|
-| `get_node_position_3d` | Get Node3D position |
-| `set_node_position_3d` | Set Node3D position |
-| `get_node_rotation_3d` | Get Euler angle rotation (degrees) |
-| `set_node_rotation_3d` | Set Euler angle rotation (degrees) |
-| `get_node_scale_3d` | Get Node3D scale |
-| `set_node_scale_3d` | Set Node3D scale |
+| `create_animation_player` | Create an AnimationPlayer node |
+| `create_animation_clip` | Create an animation clip |
+| `add_animation_track` | Add an animation track |
+| `set_keyframe` | Set a keyframe |
+| `get_animation_info` | Get animation info |
 
-## Collision Shapes (2)
-
-| Tool | Description |
-|------|-------------|
-| `add_circle_collision` | Add a circle collision shape (CollisionShape2D + CircleShape2D) |
-| `add_rectangle_collision` | Add a rectangle collision shape (CollisionShape2D + RectangleShape2D) |
-
-## Node Search (4)
+## UI Controls (4)
 
 | Tool | Description |
 |------|-------------|
-| `find_nodes_by_name` | Search nodes by name substring |
-| `find_nodes_by_type` | Search nodes by exact node type |
-| `find_nodes_by_group` | Search nodes by group name |
-| `find_nodes_by_script` | Search nodes by script path |
+| `create_control` | Create a UI control node |
+| `create_stylebox` | Create a StyleBox resource |
+| `set_layout_preset` | Set control layout preset |
+| `set_theme_override` | Set theme override |
 
-## GDScript (5)
-
-| Tool | Description |
-|------|-------------|
-| `create_gdscript` | Create a GDScript file |
-| `read_gdscript` | Read GDScript file source |
-| `edit_gdscript` | Edit GDScript file source |
-| `validate_gdscript` | Validate GDScript syntax via Godot LSP |
-| `list_gdscripts` | List all GDScript files in the project |
-
-## C# Scripts (6, not yet registered)
+## Collision Shapes (1)
 
 | Tool | Description |
 |------|-------------|
-| `csharp_create_solution` | Create C# Solution file |
-| `csharp_build` | Build C# project |
-| `create_csharp_script` | Create a C# script file |
-| `read_csharp_script` | Read C# script file source |
-| `edit_csharp_script` | Edit C# script file source |
-| `list_csharp_scripts` | List all C# script files in the project |
+| `create_collision_shape` | Create a collision shape |
 
-## Script Helpers (3)
+## ClassDB Documentation (8)
 
 | Tool | Description |
 |------|-------------|
-| `call_method` | Call a method on a node |
-| `get_variable` | Read an @export variable value |
-| `set_variable` | Write an @export variable value |
+| `search_docs` | Search Godot documentation |
+| `get_class_info` | Get complete class info |
+| `get_best_practices` | Get best practices advice |
+| `get_class_list` | List all Godot classes |
+| `get_inheritance_chain` | Get class inheritance chain |
+| `get_property_doc` | Query property documentation |
+| `get_method_doc` | Query method documentation |
+| `get_enum_doc` | Query enum documentation |
 
-## Project Settings (7)
-
-| Tool | Description |
-|------|-------------|
-| `get_project_setting` | Read a project setting |
-| `set_project_setting` | Write a project setting |
-| `set_main_scene` | Set the main scene |
-| `list_autoloads` | List all Autoload singletons |
-| `add_autoload` | Add an Autoload singleton |
-| `remove_autoload` | Remove an Autoload singleton |
-| `list_scenes` | List all scene files in the project |
-
-## Project Settings Extensions (10)
+## Export (2)
 
 | Tool | Description |
 |------|-------------|
-| `get_display_settings` | Get display/window settings |
-| `set_display_settings` | Set display/window settings |
-| `get_project_info` | Get project basic info |
-| `set_project_info` | Set project basic info |
-| `get_physics_settings` | Get physics engine settings |
-| `set_physics_settings` | Set physics engine parameters |
-| `get_rendering_settings` | Get rendering settings |
-| `set_rendering_settings` | Set rendering parameters |
-| `get_layer_names` | Get physics/navigation/render layer names |
-| `set_layer_names` | Set physics/navigation/render layer names |
+| `list_export_presets` | List export presets |
+| `export_project` | Export project |
 
-## Editor Control (7)
+## Filesystem (12)
 
 | Tool | Description |
 |------|-------------|
-| `get_editor_info` | Get editor info (engine version, path, scale, language) |
-| `play_current_scene` | Play the current scene |
-| `play_main_scene` | Play the main scene |
-| `stop_scene` | Stop the running scene |
-| `is_scene_playing` | Check if a scene is playing |
-| `refresh_filesystem` | Refresh the editor filesystem scan |
-| `godot_editor_restart` | Restart the Godot editor |
+| `create` | Create a file |
+| `create_directory` | Create a directory |
+| `create_scene` | Create a scene file |
+| `create_resource` | Create a resource file |
+| `create_gdshader` | Create a shader file |
+| `delete_file` | Delete a file |
+| `move_file` | Move/rename a file |
+| `copy_file` | Copy a file |
+| `open_file` | Open a file in the editor |
+| `list_directory` | List directory contents |
+| `search_files` | Search project files |
+| `save_resource_as` | Save resource as |
 
-## Input Mapping (4)
-
-| Tool | Description |
-|------|-------------|
-| `list_input_actions` | List input actions and their bound events |
-| `add_input_action` | Add a new input action |
-| `remove_input_action` | Remove an input action |
-| `set_input_action_events` | Set events for an input action |
-
-## Search (3)
+## Input Mapping (1)
 
 | Tool | Description |
 |------|-------------|
-| `find_in_file` | Search for text or regex in a single file |
-| `search_project` | Full-text project search |
-| `find_and_replace` | Project-level find and replace |
+| `input_list_actions` | List all input actions and bound events |
 
-## Plugin Management (2)
+## Plugin Management (3)
 
 | Tool | Description |
 |------|-------------|
-| `list_plugins` | List all plugins and their enabled status |
-| `set_plugin_enabled` | Enable or disable an editor plugin |
+| `list_plugins` | List all plugins and their status |
+| `enable_plugin` | Enable a plugin |
+| `disable_plugin` | Disable a plugin |
 
-## Undo/Redo (2)
+## Project Scaffolding (1)
 
 | Tool | Description |
 |------|-------------|
-| `undo` | Undo the last operation |
-| `redo` | Redo the last operation |
+| `create_project` | Create a new Godot project |
+
+## Script Tools (12)
+
+| Tool | Description |
+|------|-------------|
+| `read_gd_script` | Read a GDScript file |
+| `write_gd_script` | Write a GDScript file |
+| `patch_gd_script` | Patch a GDScript file |
+| `validate_gd_script` | Validate GDScript syntax (via LSP) |
+| `list_gd_scripts` | List all GDScript files |
+| `grep_scripts` | Search text in scripts |
+| `glob_scripts` | Search script files by pattern |
+| `read_csharp_script` | Read a C# script file |
+| `write_csharp_script` | Write a C# script file |
+| `patch_csharp_script` | Patch a C# script file |
+| `validate_csharp_script` | Validate C# script syntax |
+| `list_csharp_scripts` | List all C# script files |
+
+## Project Settings (4)
+
+| Tool | Description |
+|------|-------------|
+| `get_setting` | Read a project setting |
+| `set_setting` | Write a project setting |
+| `reset_setting` | Reset a project setting to default |
+| `list_settings` | List all project settings |
+
+## Shaders (3)
+
+| Tool | Description |
+|------|-------------|
+| `create_shader` | Create a shader |
+| `read_shader` | Read shader source |
+| `apply_shader_preset` | Apply a shader preset |
+
+## TileMap (3)
+
+| Tool | Description |
+|------|-------------|
+| `get_tilemap_info` | Get TileMap info |
+| `set_tilemap_cells` | Set TileMap cells |
+| `erase_tilemap_cells` | Erase TileMap cells |
+
+## Project Graph Visualization (1)
+
+| Tool | Description |
+|------|-------------|
+| `get_project_graph` | Get project dependency graph |
+
+## Workspace & Debugger (31)
+
+### Viewport Capture (2)
+
+| Tool | Description |
+|------|-------------|
+| `capture_viewport` | Capture editor viewport |
+| `capture_game_viewport` | Capture game viewport |
+
+### Console (4)
+
+| Tool | Description |
+|------|-------------|
+| `clear_console` | Clear console output |
+| `get_console_output` | Get console output |
+| `get_console_errors` | Get console errors |
+| `get_console_warnings` | Get console warnings |
+
+### Debugger (15)
+
+| Tool | Description |
+|------|-------------|
+| `get_debugger_state` | Get debugger state |
+| `get_debugger_status` | Get debugger running status |
+| `get_debugger_errors` | Get debugger error list |
+| `get_fps` | Get current FPS |
+| `get_memory_usage` | Get memory usage |
+| `get_object_count` | Get object count |
+| `get_performance_monitors` | Get performance monitor data |
+| `get_physics_stats` | Get physics stats |
+| `get_render_stats` | Get render stats |
+| `get_stack_trace` | Get stack trace |
+| `get_locals` | Get local variables |
+| `debugger_break` | Pause execution (breakpoint) |
+| `debugger_continue` | Continue execution |
+| `debugger_control` | Debugger control (play/pause/step) |
+| `debugger_step_into` | Step into |
+| `debugger_step_out` | Step out |
+| `debugger_step_over` | Step over |
+
+### Breakpoints (3)
+
+| Tool | Description |
+|------|-------------|
+| `list_breakpoints` | List all breakpoints |
+| `set_breakpoint` | Set a breakpoint |
+| `remove_breakpoint` | Remove a breakpoint |
+
+### Workspace Switching (5)
+
+| Tool | Description |
+|------|-------------|
+| `set_workspace` | Switch workspace (2D/3D/Script/AssetLib) |
+| `set_workspace_2d` | Switch to 2D workspace |
+| `set_workspace_3d` | Switch to 3D workspace |
+| `set_workspace_script` | Switch to Script workspace |
+| `set_workspace_assetlib` | Switch to Asset Library workspace |
+
+## Runtime Bridge (6)
+
+| Tool | Description |
+|------|-------------|
+| `get_game_scene_tree` | Get game runtime scene tree |
+| `get_game_node_property` | Get game runtime node property |
+| `set_game_node_property` | Set game runtime node property |
+| `call_method_in_game` | Call method in game runtime |
+| `capture_game_screenshot` | Capture game runtime screenshot |
+| `simulate_game_input` | Simulate game runtime input |
+
+## Runtime Lifecycle (6)
+
+| Tool | Description |
+|------|-------------|
+| `run_project` | Run the project |
+| `run_current_scene` | Run the current scene |
+| `run_specific_scene` | Run a specific scene |
+| `stop_project` | Stop running |
+| `pause_project` | Pause/resume running |
+| `set_movie_maker` | Toggle Movie Maker mode |

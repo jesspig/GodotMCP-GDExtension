@@ -1,0 +1,5 @@
+class: TextureCubemapRD
+inherits: TextureLayeredRD
+properties: []
+description: ''
+aliases: []

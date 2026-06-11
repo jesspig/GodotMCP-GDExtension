@@ -1,0 +1,5 @@
+class: CompressedCubemapArray
+inherits: CompressedTextureLayered
+properties: []
+description: ''
+aliases: []

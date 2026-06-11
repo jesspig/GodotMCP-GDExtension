@@ -1,0 +1,11 @@
+class: SegmentShape2D
+inherits: Shape2D
+properties:
+- name: a
+  type: 5
+  type_name: Vector2
+- name: b
+  type: 5
+  type_name: Vector2
+description: ''
+aliases: []

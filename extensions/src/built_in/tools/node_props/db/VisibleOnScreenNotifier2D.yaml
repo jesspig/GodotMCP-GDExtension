@@ -1,0 +1,11 @@
+class: VisibleOnScreenNotifier2D
+inherits: Node2D
+properties:
+- name: rect
+  type: 7
+  type_name: Rect2
+- name: show_rect
+  type: 1
+  type_name: bool
+description: A node that detects when it is visible on screen in 2D.
+aliases: []

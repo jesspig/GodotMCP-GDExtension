@@ -1,0 +1,11 @@
+class: ConcavePolygonShape3D
+inherits: Shape3D
+properties:
+- name: data
+  type: 36
+  type_name: PackedVector3Array
+- name: backface_collision
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

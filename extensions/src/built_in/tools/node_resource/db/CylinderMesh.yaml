@@ -1,0 +1,26 @@
+class: CylinderMesh
+inherits: PrimitiveMesh
+properties:
+- name: top_radius
+  type: 3
+  type_name: float
+- name: bottom_radius
+  type: 3
+  type_name: float
+- name: height
+  type: 3
+  type_name: float
+- name: radial_segments
+  type: 2
+  type_name: int
+- name: rings
+  type: 2
+  type_name: int
+- name: cap_top
+  type: 1
+  type_name: bool
+- name: cap_bottom
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

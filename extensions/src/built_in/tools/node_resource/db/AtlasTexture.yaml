@@ -1,0 +1,18 @@
+class: AtlasTexture
+inherits: Texture2D
+properties:
+- name: atlas
+  type: 24
+  type_name: Object
+  class_name: Texture2D
+- name: region
+  type: 7
+  type_name: Rect2
+- name: margin
+  type: 7
+  type_name: Rect2
+- name: filter_clip
+  type: 1
+  type_name: bool
+description: ''
+aliases: []

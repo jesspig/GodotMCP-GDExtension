@@ -1,0 +1,15 @@
+class: AnimationTree
+inherits: AnimationMixer
+properties:
+- name: tree_root
+  type: 24
+  type_name: Object
+  class_name: AnimationRootNode
+- name: advance_expression_base_node
+  type: 22
+  type_name: NodePath
+- name: anim_player
+  type: 22
+  type_name: NodePath
+description: A node used for advanced animation transitions in an AnimationPlayer.
+aliases: []

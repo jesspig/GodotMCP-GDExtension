@@ -1,0 +1,8 @@
+class: GPUParticlesCollisionBox3D
+inherits: GPUParticlesCollision3D
+properties:
+- name: size
+  type: 9
+  type_name: Vector3
+description: ''
+aliases: []

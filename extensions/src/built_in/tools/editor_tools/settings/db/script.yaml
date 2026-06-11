@@ -1,0 +1,9 @@
+category: script
+settings:
+- name: script
+  type: 24
+  type_name: Object
+  hint: 17
+  hint_string: Script
+  basic: false
+  restart: false

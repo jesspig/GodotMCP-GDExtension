@@ -1,0 +1,8 @@
+class: Marker2D
+inherits: Node2D
+properties:
+- name: gizmo_extents
+  type: 3
+  type_name: float
+description: Generic 2D position hint for editing.
+aliases: []
