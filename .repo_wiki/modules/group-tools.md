@@ -29,7 +29,7 @@ flowchart LR
 
 ## 注册
 
-全部带 `// @tool register` 注释，由 codegen 自动注册。
+全部通过 X-macro 注册（`register/register_existing.hpp`）。
 
 ## Godot API 映射
 

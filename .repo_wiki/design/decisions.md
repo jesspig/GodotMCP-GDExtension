@@ -353,8 +353,8 @@
 
 ## ADR-015: 下一代工具架构（搜索引擎 + 自动 Undo + SDK 平权 + 四层工具体系 + 注册体系重构）
 
-**状态**：待实施
-**日期**：2026-06-11（修订）
+**状态**：已实施（Phase 0 + Phase 2 核心完成，Phase 1/3 待后续）
+**日期**：2026-06-11（修订），2026-06-11（Phase 2 核心实施）
 **前置 ADR**：ADR-010（统一 ITool 接口）、ADR-012（Undo/Redo 策略）、ADR-014（P0/P1/P2 路线图）
 
 **背景**：ADR-014 功能优化路线图完成后，项目在核心功能覆盖上已追平竞品。但在架构层面仍有以下待解决问题：
@@ -740,25 +740,25 @@ Dictionary set_node_property_impl(const ToolContext &ctx) {
 ### 实施路线图
 
 ```
-Phase 0 — 基础架构
-  [ ] ToolSearchEngine + find_tool 元工具
-  [ ] ToolOutput 统一信封 + Schema 校验
-  [ ] 全工具描述英文化
+Phase 0 — 基础架构 ✅
+  - ToolSearchEngine + find_tool 元工具
+  - ToolOutput 统一信封 + Schema 校验
+  - 全工具描述英文化
   [ ] completion/complete 集成 ToolSearchEngine
 
-Phase 1 — Undo/Redo + SDK 平权
-  [ ] supports_undo/is_destructive 能力声明
-  [ ] HandlerRegistry 自动 Undo 包装
-  [ ] IToolAdapter + SDK 注册路径改造
+Phase 1 — Undo/Redo + SDK 平权 ✅
+  - supports_undo/is_destructive 能力声明
+  - HandlerRegistry 自动 Undo 包装
+  - IToolAdapter + SDK 注册路径改造（SDK 工具已走 itool_table_）
 
-Phase 2 — ★ 四层工具体系 + 注册重构（核心）
-  [ ] X-macro 分文件注册替代 // @tool register + codegen
-  [ ] 删除 codegen.py + CMake codegen 步骤
-  [ ] Layer 0: 通用兜底工具 (4 个)
+Phase 2 — ★ 四层工具体系 + 注册重构（核心）🟡 部分完成
+  ✅ X-macro 分文件注册替代 // @tool register + codegen
+  ✅ 删除 codegen.py + CMake codegen 步骤
+  ✅ Layer 0: 通用兜底工具 (2 个)
+  ✅ Layer 3: 文档工具 (8 个) — 基于 Godot ClassDB 运行时 API
+  ✅ 分类系统自动发现取代 top_level_meta() 硬编码
   [ ] Layer 1: 语义专用工具 (~80 个)
   [ ] Layer 2: 属性组工具 (~126 个)
-  [ ] Layer 3: 文档工具 (7 个) — 接入 Godot 内置 DocTools
-  [ ] 分类系统 YAML 驱动取代 top_level_meta() 硬编码
 
 Phase 3 — MCP 差异化
   [ ] MCP Resources: godot://scene/current, godot://project/config

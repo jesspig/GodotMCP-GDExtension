@@ -7,9 +7,10 @@
 ```bash
 uv run python build.py                # debug 构建 + addons.zip
 uv run python build.py --release      # release 构建 + addons.zip
-uv run python build.py --clean        # 清空 CMake 缓存（保留 _deps/ FetchContent）
+uv run python build.py --clean        # 清空 build/（保留 _deps/ FetchContent）
 uv run python build.py --clean-all    # 完全清除 build/（含 _deps/）
 uv run python build.py --no-zip       # 跳过 addons.zip（快速迭代）
+uv run python build.py --purge-cache  # 仅清 _deps/（强制重下载）
 uv run python build.py -j N           # 指定并行编译作业数（默认 = CPU 核心数）
 cmake --build build --target deep-clean  # 仅清 example/addons/godot_mcp/bin/ + _deps/
 ```
@@ -25,8 +26,8 @@ CMake 自动处理：
 | 优化 | 状态 | 说明 |
 |------|:----:|------|
 | **sccache/ccache** | 自动检测 | 根 `CMakeLists.txt:29-35`，加速增量构建 2-5x |
-| **Unity (jumbo) build** | 默认 ON | `extensions/CMakeLists.txt:140-170`，batch size 自动匹配 CPU 核数（上限 32） |
-| **lld-link** | 自动检测 | `extensions/CMakeLists.txt:179-185`，MSVC + lld-link 加速链接 |
+| **Unity (jumbo) build** | 默认 ON | batch size 自动匹配 CPU 核数（上限 32） |
+| **lld-link** | 自动检测 | MSVC + lld-link 加速链接 |
 | **PCH** | 已移除 | ADR-013：Unity Build 已覆盖其优化价值，移除以简化构建 |
 
 ### 安装方式
@@ -43,8 +44,8 @@ winget install LLVM
 ## C++ GDExtension 构建流程
 
 1. FetchContent 拉取 `godot-cpp 10.0.0-rc1` + `rapidyaml v0.7.0`
-2. `tools/codegen.py` 扫描 `.hpp` + YAML 数据库 → 生成 `build/generated/generated_registration.cpp`
-3. 编译所有源文件 → `godot_mcp_gdext.{dll,so,dylib}`
+2. CMake GLOB 收集 `built_in/tools/*.cpp`（如有）
+3. 编译所有源文件（含 X-macro 注册）→ `godot_mcp_gdext.{dll,so,dylib}`
 4. 复制到 `example/addons/godot_mcp/bin/`
 
 ## 手动构建（跳过 build.py）
@@ -77,10 +78,11 @@ CI 只在 `master` 分支的 push 和 PR 上触发。
 
 ### Windows 注意事项
 
-- `build.py` 自动检测 `vswhere` + Ninja + MSVC `cl.exe`(`build.py:77-93, 160-193`)
-- 陈旧缓存自动重试：检测 MSB4019/VCTargetsPath 等错误模式，自动执行 `--clean` 后重试一次(`build.py:145-147, 236-239`)
-- `build.py --clean` 仅清除 CMake 缓存文件，保留 `_deps/`
+- `build.py` 自动检测 `vswhere` + Ninja + MSVC `cl.exe`
+- 陈旧缓存自动重试：检测 MSB4019/VCTargetsPath/编译器路径变更等错误模式，自动 `--clean` 后重试
+- SSL 错误自动降级：`CMAKE_TLS_VERIFY=0` 重试
 - **所有平台使用 `uv run python`**（裸 `py -3` 在 Microsoft Store stub 下会挂）
+- **Python >=3.14**：`.python-version` 锁定 `3.14`
 
 ## GDExtension 文件锁
 
@@ -93,7 +95,7 @@ CI 只在 `master` 分支的 push 和 PR 上触发。
 - 单版本源在根 `CMakeLists.txt:22`：`set(PROJECT_VERSION "0.2.0-dev7")`
 - `plugin.cfg` 和 `godot_mcp.gdextension` 由 CMake 从 `PROJECT_VERSION` 自动生成（`CMakeLists.txt:59-83`）
 - 升级 CMake 版本即可；不需要手动编辑 `plugin.cfg`
-- `pyproject.toml` 中的 `version` 需手动同步（仅保留构建工具依赖）
+- `pyproject.toml` 中的 `version` 需手动同步
 
 ## 依赖锁定
 

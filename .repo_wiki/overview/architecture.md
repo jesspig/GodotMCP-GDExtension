@@ -15,7 +15,7 @@ flowchart LR
             HTTP["HttpServer<br/>(:9600, SSE)"]
             MCPHandler["McpHandler<br/>(JSON-RPC 2.0)"]
             Registry["HandlerRegistry<br/>(ITool 统一调度)"]
-            Tools["built_in/tools/<br/>4 顶级分类 ~11758 工具"]
+            Tools["built_in/tools/<br/>~149 工具 (X-macro 注册)"]
             RB["RuntimeBridge<br/>(TCP :9601 客户端)"]
         end
         Main["_process() 每帧驱动<br/>poll HTTP + poll Bridge"]
@@ -38,9 +38,10 @@ flowchart LR
 |------|------|
 | 进程数 | **1**（C++ GDExtension 加载到 Godot 编辑器内） |
 | 传输 | MCP Streamable HTTP，端口 `:9600` |
-| 工具注册 | `// @tool register` + `tools/codegen.py` 编译期自动注册 |
+| 工具注册 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
+| 工具总数 | **~149**（无 codegen，无 YAML 数据库生成） |
 | 线程模型 | **纯主线程**（`McpEditorPlugin::_process()` 驱动） |
-| 入口符号 | `gdext_mcp_init`（`register_types.cpp:45`） |
+| 入口符号 | `gdext_mcp_init`（`register_types.cpp:56`） |
 | 编码规范 | 根 `CMakeLists.txt:43` 已加 `/utf-8 /bigobj`（MSVC） |
 | 构建优化 | sccache/ccache（自动检测）、Unity(jumbo)、lld-link |
 | 持久化 | C++ 侧无独立状态；Godot 编辑器持有数据 |
@@ -72,47 +73,58 @@ sequenceDiagram
     H-->>AI: 200 application/json
 ```
 
-## 当前目录布局
+## 目录布局
 
 ```
 extensions/src/                  # C++ GDExtension 唯一源码根
 ├── register_types.cpp           # GDExtension 入口 (gdext_mcp_init)
-├── editor_plugin.cpp/.hpp       # McpEditorPlugin 生命周期 + process_frame 泵
+├── editor_plugin.cpp/.hpp       # McpEditorPlugin 生命周期 + _process 泵
 ├── logging.hpp                  # 日志 inline 函数
 ├── built_in/
+│   ├── register_itools.cpp      # X-macro 注册主文件（#include + GODOT_MCP_TOOL 宏）
 │   ├── tool_base.hpp/.cpp       # ITool + ToolResult + ToolContext
+│   ├── tool_adapter.hpp/.cpp    # IToolAdapter（SDK → ITool 适配器）
 │   ├── cmd_utils.hpp/.cpp       # 共享工具（resolve_node / undoable_set / notify_file_changed）
 │   ├── cmd_utils_json.cpp       # JSON↔Variant 递归转换
-│   └── tools/                   # 所有 ITool 子类 (CMake GLOB 自动编译)
-│       ├── meta/                #   5 个元工具
-│       ├── node_tools/          #   资源工具模板
-│       │   └── general/         #     6 个（load/clear/new/duplicate/save/get_resource_info）
-│       ├── node_resource/       #   资源属性 YAML 数据库（419 文件）
-│       │   └── db/
-│       ├── group/               #   4 个分组工具
-│       ├── signal/              #   4 个信号工具
-│       ├── node_props/          #   节点属性 YAML 数据库（283 文件）+ 模板
-│       │   ├── node_property_tool.hpp
-│       │   └── db/
+│   ├── screenshot_utils.hpp     # 截图捕获
+│   └── tools/
+│       ├── register/            # X-macro 注册文件（4 个）
+│       │   ├── register_meta.hpp
+│       │   ├── register_existing.hpp
+│       │   ├── register_fallback.hpp
+│       │   └── register_docs.hpp
+│       ├── meta/                # 6 个元工具
+│       ├── signal/              # 4 个信号工具
+│       ├── group/               # 4 个分组工具
+│       ├── node_tools/general/  # 6 个资源管理工具
+│       ├── node_tools/          # NodeResourceGetTool, NodeResourceSetTool
+│       ├── node_props/          # NodePropertyGetTool, NodePropertySetTool
+│       ├── node_properties/     # 2 个通用兜底工具（Layer 0）
 │       ├── editor_tools/
-│       │   ├── scene_tree/      #   25+ 场景树 CRUD 工具 + scene_tree_utils
-│       │   ├── workspace/       #   24 个工作区工具
-│       │   ├── filesystem/      #   14 个文件系统工具
-│       │   ├── scripts/         #   12 个脚本读写验证工具
-│       │   └── settings/        #   4 个兜底工具 + 24 个 YAML 数据库
-│       │       ├── settings_tool.hpp
-│       │       ├── get_setting.hpp / set_setting.hpp / reset_setting.hpp / list_settings.hpp
-│       │       └── db/          #     24 个分类 YAML（844 设置项）
+│       │   ├── scene_tree/      # 24 个场景树 CRUD 工具
+│       │   ├── animation/       # 5 个动画工具
+│       │   ├── control/         # 4 个 UI/Control 工具
+│       │   ├── collision/       # 1 个碰撞形状工具
+│       │   ├── docs/            # 8 个文档查询工具（Layer 3）
+│       │   ├── export/          # 2 个导出工具
+│       │   ├── filesystem/      # 12 个文件系统工具
+│       │   ├── inputmap/        # 1 个输入映射工具
+│       │   ├── plugin/          # 3 个插件管理工具
+│       │   ├── scaffold/        # 1 个脚手架工具
+│       │   ├── scripts/         # 12 个脚本工具
+│       │   ├── settings/        # 4 个设置工具 + 2 个通用模板
+│       │   ├── shader/          # 3 个 shader 工具
+│       │   ├── tilemap/         # 3 个 TileMap 工具
+│       │   ├── visualizer/      # 1 个可视化工具
+│       │   └── workspace/       # 29 个工作区/调试器工具
 │       └── runtime_tools/
-│           ├── bridge/          #   6 个运行时桥接工具
-│           └── lifecycle/       #   5 个游戏生命周期工具
+│           ├── bridge/          # 6 个运行时桥接工具
+│           └── lifecycle/       # 6 个游戏生命周期工具
 ├── server/
-│   ├── ipc/
-│   │   └── http_server.cpp/.hpp # MCP Streamable HTTP 服务器
-│   ├── mcp/
-│   │   └── mcp_handler.cpp/.hpp # JSON-RPC 2.0 会话管理
+│   ├── ipc/http_server.cpp/.hpp # MCP Streamable HTTP 服务器
+│   ├── mcp/mcp_handler.cpp/.hpp # JSON-RPC 2.0 会话管理
 │   └── registry/
-│       └── handler_registry.cpp/.hpp  # ITool 调度 + top_level_meta（4 个顶级分类）
+│       └── handler_registry.cpp/.hpp  # ITool 调度 + 分类自动发现
 ├── sdk/
 │   ├── mcp_tool_definition.hpp/.cpp   # GDScript/C# 可继承基类
 │   └── mcp_tool_registry.hpp/.cpp     # 单例 SDK 注册表
@@ -124,24 +136,13 @@ extensions/src/                  # C++ GDExtension 唯一源码根
     ├── test_assertions.hpp      # 断言运行器
     ├── godot_file_verifier.hpp  # 磁盘文件校验
     └── type_utils.hpp           # 类型辅助
-
-extensions/CMakeLists.txt        # FetchContent + codegen + add_library + 编译优化
-tools/
-├── codegen.py                   # // @tool register 扫描 + YAML 数据库 → 注册代码
-├── collect_node_props.py        # Godot 运行时收集节点/资源属性 → YAML
-└── collect_settings.py          # Godot 运行时收集项目设置 → YAML
-
-example/addons/godot_mcp/        # 构建产物（CMake 生成 + copy-gdext target）
-├── plugin.cfg                   # 由根 CMakeLists.txt 从 PROJECT_VERSION 生成
-├── godot_mcp.gdextension        # entry_symbol = gdext_mcp_init
-└── bin/                         # godot_mcp_gdext.{dll,so,dylib}（gitignored）
 ```
 
 ## 运行时桥接
 
 编辑器 ↔ 游戏进程的 TCP JSON 通道，端口 9601：
 
-- **GameBridgeNode**（游戏进程）：`register_types.cpp:23` 在 `LEVEL_SCENE` 创建，`call_deferred` 加入场景树，7 个命令 handler
+- **GameBridgeNode**（游戏进程）：`register_types.cpp` 在 `LEVEL_SCENE` 创建，`call_deferred` 加入场景树，7 个命令 handler
 - **RuntimeBridge**（编辑器进程）：`McpEditorPlugin` 持有，`_process()` 每帧 `poll()` 驱动
 - **生命周期**：`_try_bridge_connect()` 通过 `ei->is_playing_scene()` 感知游戏启停
 
@@ -152,23 +153,22 @@ example/addons/godot_mcp/        # 构建产物（CMake 生成 + copy-gdext targ
 ```mermaid
 flowchart LR
     subgraph BuiltIn["内置工具（C++ 侧）"]
-        HPP["// @tool register 标记的 .hpp"]
-        CODEGEN["tools/codegen.py<br/>(CMake 自定义命令)"]
-        GEN["build/generated/<br/>generated_registration.cpp"]
+        HPP["built_in/tools/**/*.hpp"]
+        XMACRO["register_itools.cpp<br/>#include + GODOT_MCP_TOOL 宏"]
         ITBL["HandlerRegistry::itool_table_<br/>(std::map)"]
-        HPP --> CODEGEN --> GEN --> ITBL
+        HPP --> XMACRO --> ITBL
     end
     subgraph SDK["SDK 自定义工具（GDScript / C#）"]
         DEF["继承 McpToolDefinition"]
         REG["McpToolRegistry::register_definition(this)<br/>或 register_tool(...)"]
-        CUSTOM["McpToolRegistry 中带 custom_ 前缀的 CommandFn"]
-        TBL["HandlerRegistry::table_<br/>(HashMap<String, CommandFn>)"]
-        DEF --> REG --> CUSTOM --> TBL
+        ADAPTER["IToolAdapter<br/>(包装 Callable 为 ITool)"]
+        ITBL2["HandlerRegistry::itool_table_<br/>(同内置工具表)"]
+        DEF --> REG --> ADAPTER --> ITBL2
     end
     subgraph Dispatch["统一调度"]
         EXEC["HandlerRegistry::execute(name, args)"]
         ITBL -.查 ITool.-> EXEC
-        TBL -.未命中时查 CommandFn.-> EXEC
+        ITBL2 -.查 ITool.-> EXEC
     end
 ```
 

@@ -366,43 +366,7 @@ extensions/src/
 ├── server/ipc/
 │   ├── http_server.hpp/.cpp        # 路由 /run-tests → TestEngine
 │   └── test_http_handler.hpp       # HTTP YAML→JSON 编解码
-
-├── plugin/
-│   ├── test_runner_dock.hpp        # TestRunnerDock 声明 (VBoxContainer)
-│   └── test_runner_dock.cpp        # 实现: 文件选择 + 运行 + Tree 结果
 ```
-
-## TestRunnerDock UI
-
-C++ 底部面板，使用 `Object::call("add_control_to_bottom_panel", dock, "MCP Tests")` 添加（因 godot-cpp 10.0.0-rc1 未绑定此方法）。
-
-布局：
-
-```
-┌──────────────────────────────────────────────────┐
-│ [tests/scene_test.test.yaml ▼] [▶ 运行] [🔄]     │  ← HBoxContainer (toolbar)
-├──────────────────────────────────────────────────┤
-│ Test Name       │ Tool         │ Status │ Detail  │  ← Tree (4 列)
-│──────────────────────────────────────────────────│
-│ ✔ 创建 Node2D   │ create_node  │ PASS   │         │
-│ ✗ 设 position   │ set_property │ FAIL   │ 展开 ▼  │
-│                  │              │        │ 磁盘:   │
-│                  │              │        │ 期望    │
-│                  │              │        │ (100,100)│
-│                  │              │        │ 实际    │
-│                  │              │        │ (0,0)   │
-│ ✔ 删除节点      │ delete_node  │ PASS   │         │
-├──────────────────────────────────────────────────┤
-│ ✅ 4/5 passed  (1 failed)  耗时 1.2s            │  ← Label (summary)
-└──────────────────────────────────────────────────┘
-```
-
-组件：
-- `OptionButton`：扫描 `*.test.yaml` 文件
-- `Button "▶ 运行"`：触发测试
-- `Button "🔄"`：刷新文件列表
-- `Tree`：4 列结果展示，FAIL 项可展开
-- `Label`：汇总统计
 
 ## 外部 Python 测试 (CI/开发)
 

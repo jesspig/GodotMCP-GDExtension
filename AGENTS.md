@@ -8,14 +8,16 @@ Godot 4.6+ 编辑器 MCP 服务器（C++ GDExtension，纯主线程无锁，Stre
 uv run python build.py                  # Debug + addons 复制到 example/
 uv run python build.py --release        # Release
 uv run python build.py --no-zip         # 跳过 zip 快速迭代
-uv run python build.py --clean          # 清 CMake 缓存（保留 _deps/）
-uv run python build.py --purge-cache    # 清 _deps/（强制重下载）
+uv run python build.py --clean          # 清 build/（保留 _deps/）
+uv run python build.py --clean-all      # 删整个 build/（含 _deps/）
+uv run python build.py --purge-cache    # 仅清 _deps/（强制重下载）
 cmake --build build --target deep-clean # 仅清 addons/bin/ + _deps/
 ```
 
 - **始终用 `uv run python`**（`uv` 自动激活 `.venv`，依赖锁在 `pyproject.toml`）
+- **Python 版本**：`.python-version` 锁定 `3.14`，`pyproject.toml` 要求 `>=3.14`
 - **DLL 文件锁**：`example/addons/godot_mcp/bin/godot_mcp_gdext.dll` 被 Godot 编辑器持有，重建失败先关编辑器
-- **老旧缓存**：`build.py:145-147` 检测 MSB4019/VCTargetsPath 自动 `--clean` 重试；SSL 错误自动 `CMAKE_TLS_VERIFY=0` 降级重试
+- **老旧缓存**：`build.py` 自动检测 MSB4019/VCTargetsPath/编译器路径变更 → 自动 `--clean` 重试；SSL 错误自动 `CMAKE_TLS_VERIFY=0` 降级重试
 - **优化**：sccache/ccache 自动检测；Unity build 默认开（batch_size=CPU 核数）；lld-link 自动检测
 
 ## 关键约束
@@ -32,7 +34,7 @@ cmake --build build --target deep-clean # 仅清 addons/bin/ + _deps/
 graph LR
     AI["AI Client"] -->|POST /mcp JSON-RPC 2.0 :9600| HTTP["HttpServer"]
     HTTP --> MCP["McpHandler"]
-    MCP --> Registry["HandlerRegistry + Codegen"]
+    MCP --> Registry["HandlerRegistry"]
     Registry --> Editor["EditorInterface / SceneTree"]
     EditorPlugin["McpEditorPlugin::_process()"] -->|每帧 poll| HTTP
     GameBridgeNode -->|TCP :9601| RuntimeBridge["RuntimeBridge (编辑器侧)"]
@@ -46,18 +48,18 @@ graph LR
   - `RuntimeBridge`（`bridge.cpp`）：编辑器侧 TCP 客户端，`send_command()` 发送 JSON 命令，`make_response()` 展平 `{ok,data}` → `{success,data}`
   - 生命周期：`_try_bridge_connect()` 通过 `ei->is_playing_scene()` 感知游戏启停，自动 connect/disconnect
 - **双重注册**：`GDREGISTER` 注册 SDK 类（`McpToolDefinition`/`McpToolRegistry`）+ EditorPlugin；`HandlerRegistry` 管理 `ITool` 主表 + SDK `CommandFn` 旁路表
-- **工具数**：~11758（`@tool register` + 节点属性 ×2 + 资源属性 ×2 + 设置项 ×2）
+- **工具数**：~149（全部通过 X-macro 注册，无 codegen）
 
 ## 添加内置工具
 
-**自动编译**：`extensions/src/built_in/tools/**/*.cpp` 通过 `file(GLOB_RECURSE)` 收集。
+**自动编译**：`extensions/src/built_in/tools/**/*.hpp` 通过 `register_itools.cpp` 的 `#include` 收集（无需 `.cpp` 文件）。
 **注册方式**：X-macro 分文件注册（`extensions/src/built_in/tools/register/*.hpp`）。
 
 ```cpp
 // extensions/src/built_in/tools/<category>/my_tool.hpp
 class MyTool : public ITool {
     String name() const override { return "my_tool"; }
-    String category() const override { return "node_tools"; }
+    String category() const override { return "editor_tools/my_category"; }
     String brief() const override { ... }
     String description() const override { ... }  // 纯虚函数，必须实现
     Dictionary input_schema() const override { ... }
@@ -70,54 +72,65 @@ class MyTool : public ITool {
 
 - **注册步骤**：创建 `.hpp` 文件后，在 `extensions/src/built_in/tools/register/` 下对应分类的 X-macro 注册文件中加一行：
   ```cpp
-  GODOT_MCP_TOOL(MyTool, "my_tool", "node_tools", false, false)
+  GODOT_MCP_TOOL(MyTool, "my_tool", "editor_tools/my_category", false, false, false)
   ```
+  `GODOT_MCP_TOOL` 宏签名：`(cls, name_str, cat, is_meta_val, need_scene_val, need_node_val)` — 定义于 `register_itools.cpp:201`。
+- **同时**需要在 `extensions/src/built_in/register_itools.cpp` 中对应分类区域加 `#include` 指令。
 - **不需要** `// @tool register` 注释，不需要运行 codegen。编译器原生处理注册。
-- **顶级分类**硬编码于 `handler_registry.cpp::top_level_meta()`：`meta_tools`、`node_tools`、`editor_tools`、`runtime_tools`。新增须同步加 meta（ADR-015 决策 8 计划改为自动发现）。
+- **顶级分类**自动发现：`category()` 第一个 `/` 前的段即为顶级分类名，label 自动美化（`editor_tools` → `Editor tools`）。
+- **顶级分类描述**：在该分类任一工具上覆盖 `category_description()` 即可自动填充。
 - **场景树修改**：必须用 `EditorUndoRedoManager`（`ei->get_editor_undo_redo()`），不用裸 `UndoRedo`。
 - **写入文件**：不能直接写 `.tscn`，须经 EditorInterface API 或写后 `notify_file_changed()`。
 
-## YAML 数据库（仅文档用途）
+## YAML 数据库（仅文档用途，不参与构建）
 
-| 类型 | YAML 目录 | 文件数 | 用途 |
-|------|----------|--------|------|
-| 节点属性 | `node_props/db/*.yaml` | 283 | 文档参考，不参与构建 |
-| 资源属性 | `node_resource/db/*.yaml` | 419 | 文档参考，不参与构建 |
-| 项目设置 | `editor_tools/settings/db/*.yaml` | 24 | 文档参考，不参与构建 |
+| 类型 | YAML 目录 | 文件数 |
+|------|----------|--------|
+| 节点属性 | `node_props/db/*.yaml` | 283 |
+| 资源属性 | `node_resource/db/*.yaml` | 419 |
+| 项目设置 | `editor_tools/settings/db/*.yaml` | 24 |
 
-YAML 数据库不再生成工具注册代码。指令数据由 Godot 内置文档系统（`EditorHelp::get_doc_data()`）提供，通过 Layer 3 文档工具（`get_class_doc`、`get_property_doc` 等）查询。
-
-如需重新生成：`uv run python tools/collect_node_props.py --godot /path/to/godot`
+YAML 不再生成注册代码。文档数据通过 Layer 3 工具（`get_class_list`、`get_property_doc`、`get_method_doc`、`get_enum_doc`、`get_inheritance_chain`）从 Godot ClassDB 运行时查询。
 
 ## C++ 注意事项
 
-- **MSVC UTF-8**：根 `CMakeLists.txt:43` 已加 `/utf-8 /bigobj`。非 ASCII 字符串**必须**用 `String::utf8("中文")`。
+- **MSVC UTF-8**：根 `CMakeLists.txt:43` 已加 `/utf-8 /bigobj`。**不要用 `String::utf8("中文")`** — 全英文化后直接 `String("English")` 即可。
 - **编辑器内部类**不在 godot-cpp 绑定中，用 `find_children("*", "ClassName")` + `call()` 动态调用。
 - **常用 helper**（`cmd_utils.hpp`）：
   - `resolve_node()`：接受 `""`/`"."`/`"/"`/根节点名/`"Root/Child"`
   - `undoable_set()`：改节点属性优先用（立即应用 + 注册撤销）
   - `variant_to_json` / `json_to_variant`：Variant ↔ JSON 递归转换
+  - `json_to_variant` 支持 `{"path": "res://..."}` 加载 Resource
 - **底部面板**：`add_control_to_bottom_panel` 在 godot-cpp 10.0.0-rc1 未绑定，用 `call()` 兜底
+- **`ITool::execute()` 类型验证**：`tool_base.cpp:99` 允许 `Variant::FLOAT` 通过 integer 类型检查
 
-## 已知易错模式（Agent 务必注意）
+## 已知易错模式
 
 - **`EditorProgress` → `Main::iteration()` → 重入**：`ei->save_scene()` 默认走 `_save_scene_with_preview()`，内部 `EditorProgress::step()` 调 `Main::iteration()` → 递归 `_process()` → `http_server_.poll()` 重入。**编辑器工具绝对不要触发嵌套事件循环**。应在保存时用 `ei->save_scene_as(path, false)` 跳过预览。
 - **`HashMap` range-for 内 `erase()`**：调用 `connections_.erase()` 会使 range-for 内置迭代器失效 → UB → 崩溃。如需删除，应推入 `dead` 列表，循环外统一清理。
 - **`json_to_variant` 前置声明**：`game_bridge.cpp` 前向声明了 `cmd_utils_json.cpp` 中的 `json_to_variant`。如需新增转换工具，直接 `#include "built_in/cmd_utils.hpp"`，不要重复前向声明（ODR 风险）。
 - **`save_scene` 后不要访问 `ctx.root`**：`ei->save_scene()` 后编辑器可能释放/重建根节点。
 - **`is_file()` 在文件删除后恒 false**：需在删除前捕获状态。
+- **`set_node_property` 的 value 参数 schema 不应声明 `"type": "object"`** — 否则 string 值会被 `ITool::execute()` 的类型检查拒绝。移除 type 约束即可。
+- **`add_node` 的 name 参数**：schema 中参数名为 `node_name`，但客户端可能传 `name`。`execute_impl` 中需 `args_string(ctx.args, "name")` 后备。
+- **`std::sort` 不能用于 `godot::Vector::Iterator`**（非 random-access）。如需排序，用 `std::vector<T>` 替代。
 
 ## 测试
 
 YAML 驱动，C++ `TestEngine` 在编辑器进程内执行。
 
 ```bash
+# 单个 YAML 测试文件（需要 Godot 编辑器运行中）
 curl -X POST http://localhost:9600/run-tests \
   -H "Content-Type: application/x-yaml" \
   --data-binary @tests/yaml_tests/<name>.yaml
+
+# 完整测试套件（自动启动/关闭 Godot）
+pytest tests/test_orchestrator.py -v --asyncio-mode=auto
 ```
 
-测试依赖：`pytest`、`pytest-asyncio`、`httpx`、`python-dotenv`、`PyYAML`、`mcp`（见 `tests/requirements.txt`）。
+- **前置配置**：复制 `tests/.env.example` → `tests/.env`，设置 `GODOT_PATH` 指向 Godot 4.6 可执行文件
+- **测试依赖**：`pytest`、`pytest-asyncio`、`httpx`、`python-dotenv`、`PyYAML`、`mcp`（见 `tests/requirements.txt`）
 
 ## 本地开发 MCP 连接
 
@@ -125,8 +138,20 @@ curl -X POST http://localhost:9600/run-tests \
 
 ## 文档
 
-- `docs/`：Rspress 站点（中/英双语），`pnpm run dev`
-
-## 项目知识库
-
+- `docs/`：Rspress 站点（中/英双语），`pnpm run dev` 启动本地预览
 - [项目 Wiki](.repo_wiki/index.md) — 模块文档、架构图、设计决策、变更日志
+
+## 目录结构速查
+
+```
+extensions/src/           # C++ 源码根（不是仓库根 src/）
+  built_in/tools/         # 所有 ITool 工具实现（.hpp only，按 category 分目录）
+  built_in/tools/register/ # X-macro 注册文件（register_meta/existing/fallback/docs.hpp）
+  built_in/register_itools.cpp  # 工具 #include 汇总 + GODOT_MCP_TOOL 宏定义
+  server/                 # HTTP 服务器 + MCP 协议处理
+  runtime/                # 运行时桥接（bridge.cpp, game_bridge.cpp）
+  sdk/                    # GDScript SDK 类（McpToolDefinition/Registry）
+tests/                    # Python 测试编排器 + YAML 测试用例
+example/                  # Godot 测试项目（addons/ 由构建自动填充）
+docs/                     # Rspress 文档站（zh/ + en/）
+```

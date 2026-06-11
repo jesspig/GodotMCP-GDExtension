@@ -50,8 +50,11 @@
 | `ping` | 保活 |
 | `tools/list` | 列出可用工具（返回全部，无分页） |
 | `tools/call` | 执行工具 |
-| `resources/list` | 空数组（不支持） |
-| `prompts/list` | 空数组（不支持） |
+| `resources/list` | 列出 godot:// 资源（scene-tree/project-settings/editor-info） |
+| `resources/read` | 读取指定资源内容 |
+| `resources/templates/list` | 列出 URI 模板（scene-node/{path}） |
+| `prompts/list` | 列出 5 个内置提示模板 |
+| `prompts/get` | 获取提示内容 |
 | `logging/setLevel` | 设置日志级别 |
 
 ## SSE 事件

@@ -13,13 +13,13 @@ flowchart TB
             MCP["server/mcp/mcp_handler.cpp<br/>McpHandler"]
             REG["server/registry/handler_registry.cpp<br/>HandlerRegistry"]
             BASE["built_in/tool_base.hpp<br/>ITool + ToolResult + ToolContext"]
-            TOOLS["built_in/tools/<br/>19 个 .hpp 标 // @tool register<br/>+ node_props/db/*.yaml"]
+            TOOLS["built_in/tools/<br/>~149 个 .hpp (X-macro 注册)"]
             UTILS["built_in/cmd_utils.hpp<br/>resolve_node / undoable_set / notify_file_changed"]
             SDK["sdk/<br/>McpToolDefinition / McpToolRegistry"]
             LSP["lsp/client.cpp<br/>GDScript 验证"]
             TEST["testing/test_engine.cpp<br/>YAML 进程内引擎"]
+            BRIDGE["runtime/bridge.cpp<br/>RuntimeBridge (TCP :9601)"]
         end
-        DOCK["plugin/test_runner_dock.cpp<br/>编辑器底部 Tests 面板"]
     end
 
     EP --> HTTP
@@ -29,11 +29,15 @@ flowchart TB
     REG --> SDK
     TOOLS --> UTILS
     TOOLS --> BASE
-    EP -.->|process_frame 信号| HTTP
-    EP -.->|_enter_tree 添加| DOCK
-    DOCK --> TEST
-    SDK -->|register_custom_tool 写入 table_| REG
+    EP -.->|_process() 每帧驱动| HTTP
+    EP -.->|_process() 每帧驱动| BRIDGE
+    SDK -->|register_custom_tool → IToolAdapter| REG
     TOOLS -->|Godot API| EP
+
+    subgraph Game["Godot Game Process"]
+        GB["runtime/game_bridge.cpp<br/>GameBridgeNode (TCP :9601)"]
+    end
+    BRIDGE <-->|TCP JSON| GB
 ```
 
 ## 文件结构
@@ -41,115 +45,132 @@ flowchart TB
 ```
 extensions/src/
 ├── register_types.cpp              # GDExtension 入口：gdext_mcp_init
-├── editor_plugin.cpp/.hpp          # McpEditorPlugin 生命周期 + process_frame 泵
+├── editor_plugin.cpp/.hpp          # McpEditorPlugin 生命周期 + _process() 泵
 ├── pch.hpp                         # 预编译头（STL + Godot 核心类型）
 ├── logging.hpp                     # log_info/warn/error（28 行）
 ├── built_in/
+│   ├── register_itools.cpp         # X-macro 注册主文件（#include + GODOT_MCP_TOOL 宏）
 │   ├── tool_base.hpp/.cpp          # ITool + ToolResult + ToolContext
+│   ├── tool_adapter.hpp/.cpp       # IToolAdapter（SDK Callable → ITool 适配器）
 │   ├── cmd_utils.hpp/.cpp          # 共享工具（resolve_node、undoable_set、notify_file_changed）
 │   ├── cmd_utils_json.cpp          # JSON↔Variant 递归转换
-│   └── tools/                      # 所有 ITool 子类（CMake GLOB 自动编译）
-│       ├── meta/                   #   get_info / get_categories / get_tools / get_tool_detail / call_tool
+│   ├── screenshot_utils.hpp        # 截图捕获
+│   └── tools/                      # 所有 ITool 子类（CMake GLOB 自动编译 .cpp）
+│       ├── register/               # X-macro 注册文件（4 个）
+│       │   ├── register_meta.hpp
+│       │   ├── register_existing.hpp
+│       │   ├── register_fallback.hpp
+│       │   └── register_docs.hpp
+│       ├── meta/                   #   6 个元工具
+│       ├── signal/                 #   4 个信号工具
+│       ├── group/                  #   4 个分组工具
+│       ├── node_tools/general/     #   6 个资源管理工具
 │       ├── node_tools/             #   node_resource_tool（模板）
-│       │   └── general/            #   load/clear/new/duplicate/save/get_resource_info
-│       ├── group/                  #   add_to_group / remove_from_group / get_nodes_in_group / get_node_groups
-│       ├── signal/                 #   connect_signal / disconnect_signal / list_signals / get_signal_connections
-│       ├── node_resource/          #   YAML 数据库（419 资源类型属性）
-│       │   └── db/
-│       ├── node_props/             #   YAML 数据库（283 节点类型属性）+ 模板
-│       │   ├── node_property_tool.hpp
-│       │   └── db/
+│       ├── node_props/             #   node_property_tool（模板）+ YAML 数据库
+│       ├── node_properties/        #   2 个通用兜底工具（Layer 0）
 │       ├── editor_tools/
 │       │   ├── scene_tree/         #   25+ 场景树 CRUD 工具 + utils
-│       │   ├── workspace/          #   24 个工作区工具
-│       │   ├── filesystem/         #   14 个文件系统工具
-│       │   ├── scripts/            #   12 个脚本读写验证工具
-│       │   └── settings/           #   4 个兜底工具 + 24 YAML 数据库
+│       │   ├── animation/          #   5 个动画工具
+│       │   ├── control/            #   4 个 UI/Control 工具
+│       │   ├── collision/          #   1 个碰撞形状工具
+│       │   ├── docs/               #   8 个文档查询工具（Layer 3）
+│       │   ├── export/             #   2 个导出工具
+│       │   ├── filesystem/         #   12 个文件系统工具
+│       │   ├── inputmap/           #   1 个输入映射工具
+│       │   ├── plugin/             #   3 个插件管理工具
+│       │   ├── scaffold/           #   1 个脚手架工具
+│       │   ├── scripts/            #   13 个脚本读写验证工具
+│       │   ├── settings/           #   4 个设置工具
+│       │   ├── shader/             #   3 个 shader 工具
+│       │   ├── tilemap/            #   3 个 TileMap 工具
+│       │   ├── visualizer/         #   1 个可视化工具
+│       │   └── workspace/          #   29 个工作区/调试器工具
 │       └── runtime_tools/
 │           ├── bridge/             #   6 个运行时桥接工具
-│           └── lifecycle/          #   5 个游戏生命周期工具
+│           └── lifecycle/          #   6 个游戏生命周期工具
 ├── server/
 │   ├── ipc/
-│   │   └── http_server.cpp/.hpp        # MCP Streamable HTTP 服务器（:9600）
+│   │   ├── http_server.cpp/.hpp    # MCP Streamable HTTP 服务器（:9600）
+│   │   ├── http_parser.cpp         # HTTP 请求行+头部解析
+│   │   ├── http_connection.cpp     # TCP 连接管理 + 响应发送
+│   │   ├── http_sse.cpp            # SSE 事件流
+│   │   └── test_http_handler.hpp   # /run-tests 端点
 │   ├── mcp/
-│   │   └── mcp_handler.cpp/.hpp        # MCP JSON-RPC 2.0 会话管理
+│   │   └── mcp_handler.cpp/.hpp    # MCP JSON-RPC 2.0 会话管理
 │   └── registry/
-│       └── handler_registry.cpp/.hpp   # ITool 主表 + CommandFn 后备表 + top_level_meta
+│       └── handler_registry.cpp/.hpp  # ITool 调度 + 分类自动发现 + 搜索引擎
 ├── runtime/
-│   ├── bridge.hpp/.cpp                # RuntimeBridge：编辑器侧 TCP 客户端（→9601）
-│   └── game_bridge.hpp/.cpp           # GameBridgeNode：游戏进程 TCP 服务端（:9601）
+│   ├── bridge.hpp/.cpp             # RuntimeBridge：编辑器侧 TCP 客户端（→9601）
+│   └── game_bridge.hpp/.cpp        # GameBridgeNode：游戏进程 TCP 服务端（:9601）
 ├── sdk/
-│   ├── mcp_tool_definition.hpp/.cpp    # GDScript/C# 可继承的 RefCounted 基类
-│   └── mcp_tool_registry.hpp/.cpp      # 单例注册表
+│   ├── mcp_tool_definition.hpp/.cpp  # GDScript 可继承的 RefCounted 基类
+│   └── mcp_tool_registry.hpp/.cpp    # 单例注册表
 ├── lsp/
-│   └── client.cpp/.hpp                # GDScript LSP 验证（StreamPeerTCP）
-├── testing/
-│   ├── test_engine.cpp/.hpp           # 进程内 YAML 测试引擎
-│   ├── yaml_parser.hpp                # ryml → Godot Variant 解析
-│   ├── test_assertions.hpp            # 断言引擎（status/has_keys/field_checks/error_contains）
-│   ├── godot_file_verifier.hpp        # .tscn/project.godot 磁盘验证
-│   └── type_utils.hpp                 # 类型规范化辅助
-└── plugin/
-    └── test_runner_dock.cpp/.hpp      # 编辑器底部面板
+│   └── client.cpp/.hpp             # GDScript LSP 验证（StreamPeerTCP）
+└── testing/
+    ├── test_engine.cpp/.hpp        # 进程内 YAML 测试引擎
+    ├── yaml_parser.hpp             # ryml → Godot Variant 解析
+    ├── test_assertions.hpp         # 断言引擎（status/has_keys/field_checks/error_contains）
+    ├── godot_file_verifier.hpp     # .tscn/project.godot 磁盘验证
+    └── type_utils.hpp              # 类型辅助
 ```
 
-## 工具注册（ITool + codegen）
+## 工具注册（X-macro 分文件）
 
-`editor_plugin.cpp:48` 直接调用 `register_itools(registry_)`。**`tools/codegen.py`** 扫描：
+`editor_plugin.cpp` 调用 `register_itools(registry_)`。注册机制是 X-macro：
 
-1. `extensions/src/built_in/tools/**/*.hpp` —— 查找 `// @tool register` 注释，提取类名 → 生成 `register_itools()` 函数体
-2. `extensions/src/built_in/tools/node_props/db/*.yaml` —— 每个 YAML 数据库文件生成 `NodePropertyGetTool` / `NodePropertySetTool` 注册代码
-3. `extensions/src/built_in/tools/node_resource/db/*.yaml` —— 资源属性工具
-
-生成代码写入 `build/generated/generated_registration.cpp`，CMake 自定义命令在依赖变化时自动重跑。
+1. `register_itools.cpp` 包含所有工具 `.hpp` 的 `#include` 指令
+2. 定义 `GODOT_MCP_TOOL` 宏，展开为 `reg.register_tool(std::make_unique<cls>())`
+3. 通过 `#include` 展开四个注册文件：
+   - `register/register_meta.hpp` — 6 个元工具
+   - `register/register_existing.hpp` — ~120 个功能工具
+   - `register/register_fallback.hpp` — 2 个后备属性工具
+   - `register/register_docs.hpp` — 8 个文档查询工具
 
 **添加新内置工具的完整流程**：
 
-1. 在 `extensions/src/built_in/tools/<category>/` 创建 `<name>.hpp`
-2. 文件首行加 `// @tool register`
-3. 实现继承 `ITool` 的类（`name()` / `category()` / `brief()` / `input_schema()` / `is_meta()` / `needs_scene()` / `needs_node()` / `execute_impl()`）
-4. 编译 —— CMake 自动 GLOB `tools/**/*.cpp` + codegen 自动注册
+1. 在 `extensions/src/built_in/tools/<category>/` 创建 `<name>.hpp`，实现 ITool 接口
+2. 在 `extensions/src/built_in/tools/register/` 对应 X-macro 文件加一行：
+   ```cpp
+   GODOT_MCP_TOOL(MyTool, "my_tool", "editor_tools/my_category", false, false, false)
+   ```
+3. 在 `extensions/src/built_in/register_itools.cpp` 对应分类区域加 `#include`
+4. 编译 —— CMake 自动 GLOB `tools/**/*.cpp`（如有）+ X-macro 编译时注册
 
-**无需**手动修改 `extensions/CMakeLists.txt` 或 `handler_registry.cpp`。
+**无需** codegen，**无需** `// @tool register` 注释。
 
 ## 顶级分类
 
-`HandlerRegistry::top_level_meta()`（`handler_registry.cpp`）硬编码四个顶级分类：
+`HandlerRegistry` 从工具的 `category()` 字符串自动发现顶级分类（`/` 分割取首段），通过 `prettify_segment()` 美化 label：
 
 | category | label | description |
 |----------|-------|-------------|
 | `meta_tools` | Meta Tools | 元工具与系统信息查询 |
-| `node_tools` | Node Tools | 节点/资源属性读取与修改工具，按 Godot 类型分类组织 |
-| `editor_tools` | Editor Tools | 编辑器操作工具：场景树 CRUD、剪贴板、脚本等 |
-| `runtime_tools` | Runtime Tools | 游戏运行时桥接：属性读写、方法调用、截图、输入模拟 |
+| `node_tools` | Node Tools | 节点/资源属性读取与修改工具 |
+| `editor_tools` | Editor Tools | 编辑器操作工具：场景树、脚本、调试器等 |
+| `runtime_tools` | Runtime Tools | 游戏运行时桥接与生命周期管理 |
 
-新增顶级分类需同步修改 `top_level_meta()`：加 `String::utf8("标签")` + 描述。
+## `cmd_utils.hpp` 共享工具函数
 
-## `cmd_utils.hpp` 共享工具函数（`extensions/src/built_in/cmd_utils.hpp`）
-
-| 函数 | 行号 | 签名 | 说明 |
-|------|:----:|------|------|
-| `resolve_node` | L51 | `(Node *root, String path) -> Node*` | 节点路径解析：接受 `""`, `"."`, `"/"`, `"/root"`, 根节点名, `"Root/Child"` |
-| `get_root` | L39 | `() -> Node*` | 获取当前编辑场景根节点 |
-| `get_root_or_error` | L43 | `(Dictionary &out_error) -> Node*` | 同上，失败时填 `{"error": "no scene open"}` |
-| `get_undo_redo` | L55 | `() -> EditorUndoRedoManager*` | 编辑器 UndoRedo 管理器 |
-| `undoable_set` | L84 | `(Node*, String prop, Variant val, String action)` | "立即应用 + 注册撤销"惯用模式 |
-| `mark_scene_dirty` | L91 | `()` | 标记当前场景未保存 |
-| `notify_file_changed` | L95 | `(String path)` | 通知 EditorFileSystem 文件变更 |
-| `save_version_marker` | L99 | `(Node *root)` | 记录当前 undo 版本作为已保存标记 |
-| `collect_owner_warnings` | L103 | `(Node *root) -> Array` | 收集无 owner 的节点警告 |
-| `relative_path` | L111 | `(Node *root, Node *node) -> String` | 编辑器路径 → 场景相对路径 |
-| `globalize_path` | L115 | `(String path) -> String` | res:// → 绝对磁盘路径 |
-| `ensure_parent_dir` | L119 | `(String path) -> bool` | 创建 res:// 路径的父目录 |
-| `args_string` | L126 | `(args, key, default)` | 类型安全的 String 参数读取 |
-| `args_int` | L131 | `(args, key, default)` | int64 参数 |
-| `args_float` | L136 | `(args, key, default)` | double 参数 |
-| `args_bool` | L141 | `(args, key, default)` | bool 参数 |
-| `variant_to_json` | L64 | `(Variant) -> Variant` | Variant → JSON 递归展开（Vector2/3/4、Color、Rect2、Quaternion） |
-| `json_to_variant` | L76 | `(Variant) -> Variant` | JSON → Godot Variant 还原 |
-| `json_stringify_safe` | L149 | `(Variant) -> String` | `JSON::stringify` 透传 + 非 ASCII 安全 |
-| `collect_nodes_by` | L155 | `(Node*, predicate, Array&, max, root)` | 通用树遍历（lambda 谓词） |
-| `walk_project_dir` | L178 | `(dir, extensions, include_addons, max, out)` | 通用目录遍历（参数化扩展名） |
+| 函数 | 说明 |
+|------|------|
+| `resolve_node(root, path)` | 节点路径解析：接受 `""`, `"."`, `"/"`, 根节点名, `"Root/Child"` |
+| `get_root()` | 获取当前编辑场景根节点 |
+| `get_root_or_error(out_error)` | 同上，失败时填 error |
+| `get_undo_redo()` | 编辑器 UndoRedo 管理器 |
+| `undoable_set(node, prop, val, action)` | "立即应用 + 注册撤销"惯用模式 |
+| `mark_scene_dirty()` | 标记当前场景未保存 |
+| `notify_file_changed(path)` | 通知 EditorFileSystem 文件变更 |
+| `save_version_marker(root)` | 记录当前 undo 版本作为已保存标记 |
+| `collect_owner_warnings(root)` | 收集无 owner 的节点警告 |
+| `relative_path(root, node)` | 编辑器路径 → 场景相对路径 |
+| `globalize_path(path)` | res:// → 绝对磁盘路径 |
+| `ensure_parent_dir(path)` | 创建 res:// 路径的父目录 |
+| `args_string/int/float/bool` | 类型安全的参数读取 |
+| `variant_to_json(Variant)` | Variant → JSON 递归展开 |
+| `json_to_variant(Variant)` | JSON → Godot Variant 还原 |
+| `collect_nodes_by(node, pred, ...)` | 通用树遍历（lambda 谓词） |
+| `walk_project_dir(dir, exts, ...)` | 通用目录遍历 |
 
 ## 构建关键（`extensions/CMakeLists.txt`）
 
@@ -158,10 +179,10 @@ extensions/src/
 | L15 | `set(GODOTCPP_API_VERSION "4.6")` |
 | L17-21 | `FetchContent` 拉取 `godot-cpp 10.0.0-rc1` |
 | L30-42 | `FetchContent` 拉取 `rapidyaml v0.7.0`（GIT_SUBMODULES 包含 c4core） |
-| L48-80 | `GODOT_MCP_SOURCES`（含 register_types / editor_plugin / server / sdk / lsp / testing / plugin） |
-| L85 | `file(GLOB_RECURSE TOOL_SOURCES "src/built_in/tools/*.cpp")` — 自动收集 ITool 实现 |
-| L91-116 | `codegen.py` 自定义命令（依赖 .hpp + YAML 数据库）→ 生成 `build/generated/generated_registration.cpp` |
-| L118 | `add_library(godot_mcp_gdext SHARED ...)` |
-| L130-135 | 编译定义 `GODOT_MCP_PLUGIN_VERSION`（来自根 `CMakeLists.txt:22`） |
-| L140-170 | Unity Build ON（自动 CPU 核数）、PCH(MSVC)、lld-link 自动检测 |
-| L208-213 | MSVC: `/utf-8 /bigobj /W3 /wd4244 /wd4267`；其他: `-Wall -Wno-unused-parameter` |
+| L49-86 | `GODOT_MCP_SOURCES`（含 register_types / editor_plugin / server / sdk / lsp / testing） |
+| L91 | `file(GLOB_RECURSE TOOL_SOURCES "src/built_in/tools/*.cpp")` — 自动收集 .cpp |
+| L96 | `add_library(godot_mcp_gdext SHARED ...)` |
+| L107-112 | 编译定义 `GODOT_MCP_PLUGIN_VERSION` |
+| L117-146 | Unity Build ON（batch size 自动匹配 CPU 核数，上限 32） |
+| L156-162 | lld-link 自动检测（MSVC） |
+| L166 | MSVC: `/utf-8 /bigobj /W3 /wd4244 /wd4267` |

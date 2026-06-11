@@ -6,18 +6,16 @@
 flowchart TB
     Root["GodotMCP/"]
     Root --> Src["extensions/src/<br/>C++ GDExtension 唯一源码根"]
-    Root --> Tools["tools/<br/>codegen.py + collect_node_props.py"]
     Root --> Example["example/<br/>Godot 测试项目 + addons/godot_mcp/"]
     Root --> Build["build/<br/>CMake 输出 + _deps/ (gitignored)"]
-    Root --> Tests["tests/<br/>YAML 测试 + Python 编排器"]
+    Root --> Tests["tests/<br/>Python 测试编排器"]
     Root --> Docs["docs/<br/>Rspress 中英双语站点"]
     Root --> Wiki[".repo_wiki/<br/>项目知识库"]
     Root --> Opencode[".opencode/<br/>MCP 客户端配置"]
     Root --> Pkg["pyproject.toml + uv.lock<br/>package.json + pnpm-lock.yaml"]
     Root --> Cfg["CMakeLists.txt (顶级)<br/>build.py"]
-    Src --> Cpp["server/ + sdk/ + built_in/<br/>lsp/ + testing/ + plugin/"]
+    Src --> Cpp["server/ + sdk/ + built_in/<br/>runtime/ + lsp/ + testing/"]
     Cpp --> Entry["register_types.cpp + editor_plugin.cpp"]
-    Tools --> Schemas["built_in/tools/node_props/db/*.yaml<br/>(200+ 节点属性数据库)"]
     Example --> Bin["addons/godot_mcp/bin/<br/>(godot_mcp_gdext.{dll,so,dylib})"]
 ```
 
@@ -40,17 +38,14 @@ GodotMCP/
 │   └── src/                       # C++ 源码唯一根
 │       ├── register_types.cpp     # GDExtension 入口（gdext_mcp_init）
 │       ├── editor_plugin.cpp/.hpp # McpEditorPlugin 生命周期
-│       ├── built_in/              # ITool + cmd_utils + tools/ + node_props/
+│       ├── built_in/              # ITool + cmd_utils + tools/
 │       ├── server/                # ipc/ + mcp/ + registry/
+│       ├── runtime/               # bridge.cpp + game_bridge.cpp
 │       ├── sdk/                   # McpToolDefinition + McpToolRegistry
 │       ├── lsp/                   # GDScript LSP 客户端
-│       ├── testing/               # C++ TestEngine
-│       └── plugin/                # TestRunnerDock
-├── tools/
-│   ├── codegen.py                 # // @tool register + YAML db → 注册代码
-│   └── collect_node_props.py      # Godot 运行时收集节点属性 → YAML
+│       └── testing/               # C++ TestEngine
 ├── tests/
-│   ├── yaml_tests/                # *.test.yaml / *.yaml 测试套件
+│   ├── yaml_tests/                # *.yaml 测试套件
 │   ├── test_orchestrator.py       # Python 编排器（管理 Godot 生命周期）
 │   ├── godot_manager.py           # Godot 进程管理
 │   ├── report.py                  # 报告生成（JSON + Markdown）
@@ -60,8 +55,7 @@ GodotMCP/
 │   └── backup/                    # 测试前备份（gitignored）
 ├── build/                         # CMake 输出（gitignored）
 │   ├── _deps/                     #   godot-cpp + ryml FetchContent 缓存
-│   ├── addons.zip                 #   CPack 产物
-│   └── extensions/generated/      #   codegen 输出的 generated_registration.cpp
+│   └── addons.zip                 #   CPack 产物
 ├── CMakeLists.txt                 # 顶级构建（PROJECT_VERSION 唯一来源）
 ├── build.py                       # argparse 包装的便捷构建脚本
 ├── pyproject.toml                 # Python ≥3.14 + pyyaml
@@ -80,12 +74,11 @@ GodotMCP/
 flowchart LR
     A["uv run python build.py"] --> B["cmake -B build -S ."]
     B --> C["extensions/CMakeLists.txt<br/>FetchContent: godot-cpp 10.0.0-rc1 + ryml v0.7.0"]
-    C --> D["add_library(godot_mcp_gdext)"]
-    D --> E["CMake PRE_BUILD:<br/>tools/codegen.py → generated_registration.cpp"]
-    E --> F["编译 .cpp + .hpp (Unity Build, batch_size 8)"]
-    F --> G["link godot_mcp_gdext.dll/.so/.dylib"]
-    G --> H["copy_if_different → example/addons/godot_mcp/bin/"]
-    H --> I["CPack ZIP → build/addons.zip"]
+    C --> D["add_library(godot_mcp_gdext)<br/>GLOB tools/*.cpp + X-macro register_itools.cpp"]
+    D --> E["编译 .cpp + .hpp (Unity Build, batch_size = CPU 核数)"]
+    E --> F["link godot_mcp_gdext.dll/.so/.dylib"]
+    F --> G["copy_if_different → example/addons/godot_mcp/bin/"]
+    G --> H["CPack ZIP → build/addons.zip"]
 ```
 
 ## Godot 测试项目
