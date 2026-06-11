@@ -794,6 +794,124 @@ Phase 3 — MCP 差异化
 - 纯主线程无锁模型不变
 - 现有 141 个手写工具类不变（仅改注册方式）
 
+## ADR-016: V2 产品化优化（从架构领先到产品领先）
+
+**状态**：已接受
+**日期**：2026-06-12
+**前置 ADR**：ADR-001（单进程架构）、ADR-002（MCP Streamable HTTP）、ADR-004（CMake 构建）、ADR-011（运行时桥接）、ADR-014（P0/P1/P2 路线图）、ADR-015（四层工具体系）
+**详细实施**：[v2-optimization-plan.md](v2-optimization-plan.md)、[phases/](phases/)
+
+**背景**：基于全网 20+ Godot MCP 竞品深度分析（详见 [competitive-analysis.md](competitive-analysis.md)），本项目在架构层面（C++ GDExtension 进程内、纯主线程无锁、渐进式披露）具有唯一不可替代优势，但在产品层面存在六大短板：
+
+1. **分发阻断**：`release.yml` 的 `addons.zip` 缺少 `plugin.cfg` 和 `.gdextension`，预编译 Release 实际不可用
+2. **零 UI**：插件无任何可视化状态展示，用户只能通过日志判断 MCP 服务状态
+3. **工具盲区**：AnimationTree/Audio/Navigation/3D Physics 等领域完全缺失
+4. **安全缺陷**：`_confirm` 机制未启用、CORS 矛盾、Session 永不过期、GameBridge 端口对外暴露
+5. **WSL2 不兼容**：Windows Godot + WSL2 AI Client 场景不可用
+6. **用户引导缺失**：无快速上手指南、无客户端配置模板
+
+**决策**：按 P0（阻断性）→ P1（竞争力）→ P2（差异化）三级优先级实施 V2 产品化优化，共 12 项子决策。
+
+---
+
+### 决策 1：修复预编译分发流水线
+
+修复 `release.yml` 的 `package` job：增加 `actions/checkout` + `cmake configure`（生成配置文件）+ 复制 `plugin.cfg` 和 `.gdextension` 到 zip。同时替换 `LICENSE` 占位符、填写 `plugin.cfg` 的 `author` 字段、补充 `.gdextension` 的 macOS ARM64 条目。
+
+### 决策 2：CI 跨平台编译验证
+
+`ci.yml` 从单平台（ubuntu-latest）改为三平台矩阵（ubuntu/macos/windows），PR 提交后三平台 CI 全绿。
+
+### 决策 3：GameBridge 绑定地址安全修复
+
+`game_bridge.cpp` 的 `server_->listen(port_)` 改为 `server_->listen(port_, "127.0.0.1")`，消除游戏运行时桥接端口对外暴露风险。
+
+### 决策 4：编辑器底部面板 UI
+
+新增 `McpPanel`（继承 `Control`），通过 `McpEditorPlugin::add_control_to_bottom_panel()` 注册为底部面板。包含状态区（运行/停止指示灯、端口、工具数、桥接状态）、活动日志（RichTextEdit 最近 50 条调用）、设置区（端口 SpinBox、Bind Mode 选择、重启按钮）。UI 更新节流为每秒 1 次。
+
+godot-cpp 10.0.0-rc1 的 `add_control_to_bottom_panel` 已完整绑定，AGENTS.md 中"未绑定需 call() 兜底"的信息已过时。
+
+### 决策 5：关键工具领域补全（22-30 个新工具）
+
+分两批补全：
+
+**第一批（核心工作流阻断，9 个）**：
+- 3D 碰撞：`create_collision_shape_3d`
+- AnimationTree：`create_animation_tree`、`get_animation_tree_info`、`add_animation_node`、`add_transition`、`set_transition_condition`
+- Audio：`create_audio_player`、`set_audio_stream`、`list_audio_buses`
+
+**第二批（补全工作流，13 个）**：
+- Navigation：`create_navigation_region`、`create_navigation_agent`、`bake_navigation_mesh`
+- 3D 场景：`create_mesh_instance_3d`、`create_light_3d`、`set_world_environment`
+- Shader：`get_shader_uniforms`、`set_shader_uniform`
+- Export：`validate_export_presets`、`get_export_platforms`
+- InputMap：`add_input_action`、`remove_input_action`、`add_input_event_binding`
+
+每个新工具遵循现有模式：一个 `.hpp` 文件 + X-macro 注册行 + `register_itools.cpp` 的 `#include`。
+
+### 决策 6：WSL2 兼容
+
+`HttpServer::start()` 接受动态绑定地址（取代硬编码 `kBindAddress`）。新增环境变量 `GODOT_MCP_HTTP_HOST`（默认 `127.0.0.1`，WSL 场景设为 `0.0.0.0`）。底部面板提供 Bind Mode UI（Localhost / All Interfaces / Custom）。不自动检测 WSL——显式配置更可靠。
+
+### 决策 7：CORS 加固 + Session 生命周期
+
+`Access-Control-Allow-Origin` 从 `*` 改为反射白名单内的 Origin（localhost/127.0.0.1/::1）。Session 新增 `last_activity` 时间戳，1 小时 TTL 自动清理，上限 16 个 session。
+
+### 决策 8：安全模型增强
+
+1. **扩展宏签名**：`GODOT_MCP_TOOL` 从 6 参数扩展为 7 参数，新增 `is_destructive_val`
+2. **标记破坏性工具**：`delete_node`、`delete_file`、`move_file`、`change_node_type`、`export_project`、`set_game_node_property` 标记为 destructive
+3. **全局权限策略**：`GODOT_MCP_PERMISSION` 环境变量（`allow_all` 默认 / `confirm_destructive` / `deny_destructive`）
+4. **可选 Token 认证**：`GODOT_MCP_AUTH_TOKEN` 环境变量
+
+### 决策 9：客户端配置模板元工具
+
+新增 `generate_client_config` MCP 元工具（`meta_tools` 分类），返回指定客户端（Claude Desktop/Claude Code/Cursor/VS Code Copilot/Windsurf/Cline/OpenCode）的配置片段。本产品使用 HTTP Streamable 传输，配置均为 `{"url": "http://127.0.0.1:9600/mcp"}`。
+
+### 决策 10：请求限流
+
+简单令牌桶（per connection）：30 req/s 最大速率，超限返回 `429 Too Many Requests`。
+
+### 决策 11：CI Smoke Test
+
+新增 `smoke.yaml`（仅覆盖 `get_info`、`get_categories` 等基础工具），CI 中下载 Godot 4.6 headless + 启动插件 + `curl POST /run-tests`。
+
+### 决策 12：不做什么
+
+| 方向 | 原因 |
+|------|------|
+| Godot AssetLib 注册 | C++ GDExtension 的 AssetLib 分发体验不如纯 GDScript；GitHub Release 足够 |
+| 付费模式 | 用户基数不足；开源竞品全部免费 |
+| 粒子预设库 | 硬编码参数可通过 SDK 系统由 GDScript 补充 |
+| SaaS 云服务 | 本地开发工具不需要云依赖 |
+| 浏览器可视化器 | 可通过 SDK 扩展实现 |
+
+---
+
+### 后果
+
+**正面**：
+- 预编译分发使安装体验从"需编译环境"降为"解压即用"
+- 编辑器 UI 消除"只能看日志判断状态"的体验缺陷
+- 工具覆盖面从 ~149 增加到 ~175，3D 游戏开发核心工作流可用
+- 安全模型达到竞品最高水平（Guarded-action + Token + CORS + Session TTL）
+- WSL2 支持覆盖"Windows Godot + WSL2 AI Client"场景
+- 客户端配置模板消除配置门槛
+
+**负面**：
+- 新增 ~2000 行 C++ 代码（UI ~200 + 工具 ~1500 + 安全/限流 ~300）
+- 宏签名变更需更新所有 127 行注册宏调用
+- Release zip 体积增加（三平台二进制约 15-20 MB）
+- CI 运行时间增加（三平台 + Smoke Test）
+
+**保留**：
+- 单进程 GDExtension 架构不变（ADR-001）
+- ITool 接口 + HandlerRegistry 调度不变（ADR-010）
+- 纯主线程无锁模型不变
+- 渐进式披露机制不变
+- X-macro 分文件注册不变（ADR-015 决策 11）
+
 ## 已废弃的决策
 
 以下 ADR 随 Python 服务器移除而废弃：

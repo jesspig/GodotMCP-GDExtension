@@ -350,3 +350,41 @@
 | MCP Resources：godot://scene/current, godot://project/config | ❌ |
 | MCP Prompts：create_player_controller, debug_performance, setup_collision_shapes | ❌ |
 | 集成测试 + 文档更新 | ❌ |
+
+---
+
+## V2 优化阶段（2026-06-12 规划）
+
+> 基于 20+ 竞品深度分析制定的 V2 优化方案。详见 [v2-optimization-plan.md](v2-optimization-plan.md)。
+> ADR-016 统一记录全部 12 项子决策。
+
+### Phase 0 (P0) — 阻断性修复（1-2 天）
+
+| 任务 | 状态 | ADR-016 子决策 |
+|------|:----:|---------|
+| 修复 `release.yml` 打包（缺少 plugin.cfg + .gdextension） | ❌ | 决策 1 |
+| `LICENSE` 替换占位符 + `plugin.cfg` author 字段 | ❌ | 决策 1 |
+| `.gdextension` Apple Silicon 条目 | ❌ | 决策 1 |
+| CI 跨平台编译验证（三平台矩阵） | ❌ | 决策 2 |
+| GameBridge `listen()` 绑定 127.0.0.1 | ❌ | 决策 3 |
+
+### Phase 1 (P1) — 竞争力提升（2-3 周）
+
+| 任务 | 状态 | ADR-016 子决策 |
+|------|:----:|---------|
+| 编辑器底部面板 UI（McpPanel） | ❌ | 决策 4 |
+| 第一批工具：3D 碰撞 + AnimationTree + Audio（~9 个） | ❌ | 决策 5 |
+| 第二批工具：Navigation + 3D + Shader + Export + InputMap（~13 个） | ❌ | 决策 5 |
+| WSL2 支持（动态绑定地址 + 环境变量 + Bind Mode UI） | ❌ | 决策 6 |
+| CORS 安全加固（反射 Origin）+ Session TTL（1h / 上限 16） | ❌ | 决策 7 |
+
+### Phase 2 (P2) — 差异化优势（1-2 周）
+
+| 任务 | 状态 | ADR-016 子决策 |
+|------|:----:|---------|
+| 宏签名扩展（7 参数 + is_destructive）+ 破坏性工具标记 | ❌ | 决策 8 |
+| 全局权限策略（allow_all / confirm_destructive / deny_destructive） | ❌ | 决策 8 |
+| 可选 Token 认证（GODOT_MCP_AUTH_TOKEN） | ❌ | 决策 8 |
+| 客户端配置模板元工具（generate_client_config） | ❌ | 决策 9 |
+| 请求限流（令牌桶 30 req/s per connection） | ❌ | 决策 10 |
+| CI Smoke Test（Godot headless + YAML smoke.yaml） | ❌ | 决策 11 |
