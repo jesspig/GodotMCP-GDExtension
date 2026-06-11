@@ -74,6 +74,11 @@
 #include "built_in/tools/editor_tools/docs/search_docs.hpp"
 #include "built_in/tools/editor_tools/docs/get_class_info.hpp"
 #include "built_in/tools/editor_tools/docs/get_best_practices.hpp"
+#include "built_in/tools/editor_tools/docs/get_class_list.hpp"
+#include "built_in/tools/editor_tools/docs/get_inheritance_chain.hpp"
+#include "built_in/tools/editor_tools/docs/get_property_doc.hpp"
+#include "built_in/tools/editor_tools/docs/get_method_doc.hpp"
+#include "built_in/tools/editor_tools/docs/get_enum_doc.hpp"
 
 // ── Export tools ──
 #include "built_in/tools/editor_tools/export/list_export_presets.hpp"
