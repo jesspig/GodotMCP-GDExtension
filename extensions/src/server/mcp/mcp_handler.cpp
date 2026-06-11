@@ -466,15 +466,46 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
         } else {
             err_msg = err_val;
         }
+        if (tool_result.has("recoverable") && tool_result["recoverable"].operator bool()) {
+            Dictionary error_data;
+            error_data["recoverable"] = true;
+            if (tool_result.has("suggestion")) {
+                error_data["suggestion"] = tool_result["suggestion"];
+            }
+            return make_jsonrpc_error(id, kInternalError, err_msg, error_data);
+        }
         return make_jsonrpc_error(id, kInternalError, err_msg);
     }
     if (tool_result.has("success") && !tool_result["success"].operator bool()) {
+        if (tool_result.has("recoverable") && tool_result["recoverable"].operator bool()) {
+            String err_msg = "Tool execution failed";
+            if (tool_result.has("error")) {
+                Variant err_val = tool_result["error"];
+                if (err_val.get_type() == Variant::DICTIONARY) {
+                    err_msg = Dictionary(err_val).get("message", "Unknown error");
+                } else {
+                    err_msg = err_val;
+                }
+            }
+            Dictionary error_data;
+            error_data["recoverable"] = true;
+            if (tool_result.has("suggestion")) {
+                error_data["suggestion"] = tool_result["suggestion"];
+            }
+            return make_jsonrpc_error(id, kInternalError, err_msg, error_data);
+        }
         return make_jsonrpc_error(id, kInternalError, "Tool execution failed");
     }
 
     Dictionary result;
     result["content"] = tool_result_to_mcp_content(tool_result);
     result["isError"] = false;
+    if (tool_result.has("meta")) {
+        result["meta"] = tool_result["meta"];
+    }
+    if (tool_result.has("confirm")) {
+        result["confirm"] = tool_result["confirm"];
+    }
 
     // 透传其他字段（兼容旧行为）
     const Array dict_keys = tool_result.keys();
@@ -918,6 +949,17 @@ Dictionary McpHandler::handle_completion_complete(const Dictionary &params, cons
     completion["values"] = Array();
     completion["total"] = 0;
     completion["hasMore"] = false;
+
+    if (registry_) {
+        const Dictionary argument = params.get("argument", Dictionary());
+        const String current_value = argument.get("value", "");
+        if (!current_value.is_empty()) {
+            const Array suggestions = registry_->get_search_suggestions(current_value, 10);
+            completion["values"] = suggestions;
+            completion["total"] = suggestions.size();
+            completion["hasMore"] = suggestions.size() >= 10;
+        }
+    }
 
     Dictionary result;
     result["completion"] = completion;

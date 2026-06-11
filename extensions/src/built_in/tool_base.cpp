@@ -18,6 +18,28 @@ Dictionary ToolResult::ok(Dictionary data) {
     return r;
 }
 
+Dictionary ToolResult::ok_with_meta(const Dictionary &data, const Dictionary &meta) {
+    Dictionary r;
+    r["success"] = true;
+    if (data.size() > 0) {
+        r["data"] = data;
+    }
+    if (meta.size() > 0) {
+        r["meta"] = meta;
+    }
+    return r;
+}
+
+Dictionary ToolResult::ok_with_confirm(const Dictionary &data, const String &confirm_message) {
+    Dictionary r;
+    r["success"] = true;
+    if (data.size() > 0) {
+        r["data"] = data;
+    }
+    r["confirm"] = confirm_message;
+    return r;
+}
+
 Dictionary ToolResult::err(const String &code, const String &message) {
     Dictionary error;
     error["code"] = code;
@@ -28,6 +50,18 @@ Dictionary ToolResult::err(const String &code, const String &message) {
     return r;
 }
 
+Dictionary ToolResult::err_with_recoverable(const String &code, const String &message, const String &suggestion) {
+    Dictionary error;
+    error["code"] = code;
+    error["message"] = message;
+    Dictionary r;
+    r["success"] = false;
+    r["error"] = error;
+    r["recoverable"] = true;
+    r["suggestion"] = suggestion;
+    return r;
+}
+
 // =========================================================================
 // ITool::execute — 模板方法
 // =========================================================================
@@ -35,6 +69,53 @@ Dictionary ToolResult::err(const String &code, const String &message) {
 Dictionary ITool::execute(const Dictionary &args) {
     ToolContext ctx;
     ctx.args = args;
+
+    // ── Input Schema Validation ──
+    {
+        Dictionary schema = input_schema();
+        if (schema.has("required")) {
+            Array required = schema["required"];
+            for (int i = 0; i < required.size(); i++) {
+                String param_name = required[i];
+                if (!ctx.args.has(param_name)) {
+                    return ToolResult::err("MISSING_REQUIRED_PARAM",
+                        String("Missing required parameter: ") + param_name);
+                }
+            }
+        }
+        if (schema.has("properties")) {
+            Dictionary props = schema["properties"];
+            Array param_names = props.keys();
+            for (int i = 0; i < param_names.size(); i++) {
+                String pname = param_names[i];
+                if (!ctx.args.has(pname)) continue;
+                Variant val = ctx.args[pname];
+                Dictionary prop_def = props[pname];
+                if (prop_def.has("type")) {
+                    String expected_type = prop_def["type"];
+                    bool type_ok = true;
+                    if (expected_type == "string" && val.get_type() != Variant::STRING && val.get_type() != Variant::NIL)
+                        type_ok = false;
+                    else if (expected_type == "integer" && val.get_type() != Variant::INT)
+                        type_ok = false;
+                    else if (expected_type == "number" && val.get_type() != Variant::FLOAT && val.get_type() != Variant::INT)
+                        type_ok = false;
+                    else if (expected_type == "boolean" && val.get_type() != Variant::BOOL)
+                        type_ok = false;
+                    else if (expected_type == "array" && val.get_type() != Variant::ARRAY)
+                        type_ok = false;
+                    else if (expected_type == "object" && val.get_type() != Variant::DICTIONARY)
+                        type_ok = false;
+
+                    if (!type_ok) {
+                        return ToolResult::err("INVALID_PARAM_TYPE",
+                            String("Parameter '") + pname + "' expected type " + expected_type +
+                            " but got " + Variant::get_type_name(val.get_type()));
+                    }
+                }
+            }
+        }
+    }
 
     // ── 场景根节点解析 ──
     if (needs_scene()) {

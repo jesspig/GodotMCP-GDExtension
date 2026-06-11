@@ -1,6 +1,7 @@
 #pragma once
 
 #include <godot_cpp/classes/node.hpp>
+#include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/variant.hpp>
@@ -15,7 +16,10 @@ class HandlerRegistry; // 前向声明，避免循环依赖
 class ToolResult {
 public:
     static godot::Dictionary ok(godot::Dictionary data = {});
+    static godot::Dictionary ok_with_meta(const godot::Dictionary &data, const godot::Dictionary &meta);
+    static godot::Dictionary ok_with_confirm(const godot::Dictionary &data, const godot::String &confirm_message);
     static godot::Dictionary err(const godot::String &code, const godot::String &message);
+    static godot::Dictionary err_with_recoverable(const godot::String &code, const godot::String &message, const godot::String &suggestion);
 };
 
 // ── ToolContext: 前置检查后注入的上下文 ──

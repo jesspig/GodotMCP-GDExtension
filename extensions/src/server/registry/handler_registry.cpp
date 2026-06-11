@@ -32,6 +32,8 @@ void HandlerRegistry::register_custom_tool(const String &name, const String &cat
     info.is_custom = true;
     info.enabled = true;
     tool_info_[name] = info;
+
+    rebuild_search_index();
 }
 
 bool HandlerRegistry::unregister_custom_tool(const String &name) {
@@ -41,6 +43,7 @@ bool HandlerRegistry::unregister_custom_tool(const String &name) {
     }
     tool_info_.erase(name);
     table_.erase(name);
+    rebuild_search_index();
     return true;
 }
 
@@ -70,6 +73,8 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool) {
     tool_info_[name] = info;
 
     itool_table_.emplace(name, std::move(tool));
+
+    rebuild_search_index();
 }
 
 // ---------------------------------------------------------------------------
@@ -77,6 +82,8 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool) {
 // ---------------------------------------------------------------------------
 
 Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args) {
+    record_tool_call(name);
+
     // Check ITool table first
     auto it = itool_table_.find(name);
     if (it != itool_table_.end()) {
@@ -182,14 +189,14 @@ struct TopLevelMeta {
 };
 const HashMap<String, TopLevelMeta> &top_level_meta() {
     static const HashMap<String, TopLevelMeta> kTopLevel = {
-        {String("meta_tools"), TopLevelMeta(String::utf8("Meta Tools"),
-                                            String::utf8("元工具与系统信息查询"))},
-        {String("node_tools"), TopLevelMeta(String::utf8("Node Tools"),
-                                            String::utf8("节点属性读取与修改工具，按 Godot 节点类型分类组织"))},
-        {String("editor_tools"), TopLevelMeta(String::utf8("Editor Tools"),
-                                              String::utf8("编辑器操作工具：场景树 CRUD、剪贴板、脚本、工作区切换、控制台、调试器、性能监视器等"))},
-        {String("runtime_tools"), TopLevelMeta(String::utf8("Runtime Tools"),
-                                               String::utf8("游戏运行时桥接工具：场景树查询、属性读写、脚本执行、输入模拟、截图、UI 发现等"))},
+        {String("meta_tools"), TopLevelMeta(String("Meta Tools"),
+                                            String("Meta tools and system information queries"))},
+        {String("node_tools"), TopLevelMeta(String("Node Tools"),
+                                            String("Node property read and modify tools, organized by Godot node type"))},
+        {String("editor_tools"), TopLevelMeta(String("Editor Tools"),
+                                              String("Editor operation tools: scene tree CRUD, clipboard, script, workspace switching, console, debugger, performance monitors, etc."))},
+        {String("runtime_tools"), TopLevelMeta(String("Runtime Tools"),
+                                               String("Game runtime bridge tools: scene tree queries, property read/write, script execution, input simulation, screenshot, UI discovery, etc."))},
     };
     return kTopLevel;
 }
@@ -354,6 +361,181 @@ int HandlerRegistry::custom_tool_count() const {
         if (kv.value.is_custom) ++count;
     }
     return count;
+}
+
+// ---------------------------------------------------------------------------
+// Search engine
+// ---------------------------------------------------------------------------
+
+PackedStringArray HandlerRegistry::tokenize(const String &text) {
+    String clean = text.to_lower();
+    clean = clean.replace("_", " ").replace("/", " ").replace(".", " ").replace("-", " ");
+    PackedStringArray raw = clean.split(" ", false);
+    PackedStringArray result;
+    for (int i = 0; i < raw.size(); ++i) {
+        String t = raw[i].strip_edges();
+        if (!t.is_empty()) {
+            result.push_back(t);
+        }
+    }
+    return result;
+}
+
+void HandlerRegistry::rebuild_search_index() {
+    search_index_.clear();
+    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+        PackedStringArray tokens = tokenize(kv.value.name + " " + kv.value.brief + " " + kv.value.description);
+        for (int i = 0; i < tokens.size(); ++i) {
+            if (!search_index_.has(tokens[i])) {
+                search_index_[tokens[i]] = Array();
+            }
+            search_index_[tokens[i]].push_back(kv.key);
+        }
+    }
+}
+
+void HandlerRegistry::record_tool_call(const String &name) {
+    auto it = freq_index_.find(name);
+    if (it != freq_index_.end()) {
+        it->value++;
+    } else {
+        freq_index_[name] = 1;
+    }
+}
+
+Array HandlerRegistry::search_tools(const String &query, const String &category, int limit) const {
+    if (query.is_empty()) return Array();
+
+    const String q = query.to_lower().strip_edges();
+    HashMap<String, int> best_weight;
+
+    // Phase 1: Exact match (weight 1000)
+    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+        if (!category.is_empty() && !kv.value.category.begins_with(category)) continue;
+        if (kv.value.name.to_lower() == q) {
+            best_weight[kv.key] = 1000;
+        }
+    }
+
+    // Phase 2: Prefix match (weight 500)
+    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+        if (!category.is_empty() && !kv.value.category.begins_with(category)) continue;
+        if (kv.value.name.to_lower().begins_with(q)) {
+            if (!best_weight.has(kv.key) || best_weight[kv.key] < 500) {
+                best_weight[kv.key] = 500;
+            }
+        }
+    }
+
+    // Phase 3: Token fuzzy — any token contains query (weight 200)
+    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+        if (!category.is_empty() && !kv.value.category.begins_with(category)) continue;
+        PackedStringArray tokens = tokenize(kv.value.name + " " + kv.value.brief + " " + kv.value.description);
+        for (int i = 0; i < tokens.size(); ++i) {
+            if (tokens[i].find(q) >= 0) {
+                if (!best_weight.has(kv.key) || best_weight[kv.key] < 200) {
+                    best_weight[kv.key] = 200;
+                }
+                break;
+            }
+        }
+    }
+
+    // Phase 4: Fulltext description substring (weight 50)
+    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+        if (!category.is_empty() && !kv.value.category.begins_with(category)) continue;
+        if (kv.value.description.to_lower().find(q) >= 0) {
+            if (!best_weight.has(kv.key) || best_weight[kv.key] < 50) {
+                best_weight[kv.key] = 50;
+            }
+        }
+    }
+
+    // Convert to sortable vector
+    struct ScoredTool {
+        String name;
+        int weight;
+        int freq;
+    };
+    Vector<ScoredTool> scored;
+    for (const KeyValue<String, int> &kv : best_weight) {
+        ScoredTool st;
+        st.name = kv.key;
+        st.weight = kv.value;
+        auto fit = freq_index_.find(kv.key);
+        st.freq = (fit != freq_index_.end()) ? fit->value : 0;
+        scored.push_back(st);
+    }
+
+    // Sort: freq desc, then weight desc
+    std::sort(scored.begin(), scored.end(), [](const ScoredTool &a, const ScoredTool &b) {
+        if (a.freq != b.freq) return a.freq > b.freq;
+        return a.weight > b.weight;
+    });
+
+    // Build output
+    Array result;
+    for (int i = 0; i < scored.size() && i < limit; ++i) {
+        Dictionary entry;
+        entry["name"] = scored[i].name;
+        const ToolInfo *info = find_tool_info(scored[i].name);
+        if (info) {
+            entry["brief"] = info->brief;
+            entry["category"] = info->category;
+            entry["description"] = info->description;
+        }
+        entry["frequency"] = scored[i].freq;
+        result.push_back(entry);
+    }
+
+    return result;
+}
+
+Array HandlerRegistry::get_search_suggestions(const String &prefix, int limit) const {
+    if (prefix.is_empty()) return Array();
+
+    const String p = prefix.to_lower().strip_edges();
+    HashMap<String, int> candidates;
+
+    // Phase 1: Prefix match on tool names
+    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+        if (kv.value.name.to_lower().begins_with(p)) {
+            auto fit = freq_index_.find(kv.key);
+            candidates[kv.key] = (fit != freq_index_.end()) ? fit->value : 0;
+        }
+    }
+
+    // Phase 2: Token prefix match for tools not already matched by name
+    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+        if (candidates.has(kv.key)) continue;
+        PackedStringArray tokens = tokenize(kv.value.name + " " + kv.value.brief + " " + kv.value.description);
+        for (int i = 0; i < tokens.size(); ++i) {
+            if (tokens[i].begins_with(p)) {
+                auto fit = freq_index_.find(kv.key);
+                candidates[kv.key] = (fit != freq_index_.end()) ? fit->value : 0;
+                break;
+            }
+        }
+    }
+
+    // Sort by freq desc
+    struct SuggEntry {
+        String name;
+        int freq;
+    };
+    Vector<SuggEntry> sorted;
+    for (const KeyValue<String, int> &kv : candidates) {
+        sorted.push_back({kv.key, kv.value});
+    }
+    std::sort(sorted.begin(), sorted.end(), [](const SuggEntry &a, const SuggEntry &b) {
+        return a.freq > b.freq;
+    });
+
+    Array result;
+    for (int i = 0; i < sorted.size() && i < limit; ++i) {
+        result.push_back(sorted[i].name);
+    }
+    return result;
 }
 
 }  // namespace godot_mcp
