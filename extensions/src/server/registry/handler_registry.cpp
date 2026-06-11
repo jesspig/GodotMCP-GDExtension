@@ -1,4 +1,6 @@
 #include "handler_registry.hpp"
+#include "built_in/cmd_utils.hpp"
+#include "built_in/tool_adapter.hpp"
 #include "built_in/tool_base.hpp"
 
 #include <algorithm>
@@ -19,7 +21,15 @@ void HandlerRegistry::register_custom_tool(const String &name, const String &cat
                                            const String &brief, const String &description,
                                            const Dictionary &schema, CommandFn fn,
                                            bool is_meta) {
-    table_[name] = std::move(fn);
+    table_[name] = fn;
+
+    // Also register as IToolAdapter in itool_table_ for full capabilities
+    auto adapter = std::make_unique<IToolAdapter>(
+        name, category, brief, description, schema,
+        fn,
+        is_meta, false, false, false, false);
+    adapter->set_registry(this);
+    itool_table_.emplace(name, std::move(adapter));
 
     ToolInfo info;
     info.name = name;
@@ -29,6 +39,8 @@ void HandlerRegistry::register_custom_tool(const String &name, const String &cat
     info.category_description = String();   // SDK 工具无 category_description() 虚函数,显式留空
     info.input_schema = schema;
     info.is_meta = is_meta;
+    info.supports_undo = false;
+    info.is_destructive = false;
     info.is_custom = true;
     info.enabled = true;
     tool_info_[name] = info;
@@ -43,6 +55,12 @@ bool HandlerRegistry::unregister_custom_tool(const String &name) {
     }
     tool_info_.erase(name);
     table_.erase(name);
+
+    auto it_tool = itool_table_.find(name);
+    if (it_tool != itool_table_.end()) {
+        itool_table_.erase(it_tool);
+    }
+
     rebuild_search_index();
     return true;
 }
@@ -51,7 +69,7 @@ bool HandlerRegistry::unregister_custom_tool(const String &name) {
 // ITool registration
 // ---------------------------------------------------------------------------
 
-void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool) {
+void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool, bool is_custom) {
     if (!tool) return;
 
     // 注入 registry 指针（meta 工具需要它回调查询）
@@ -68,7 +86,9 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool) {
     info.category_description = tool->category_description();
     info.input_schema = tool->input_schema();
     info.is_meta = tool->is_meta();
-    info.is_custom = false;
+    info.supports_undo = tool->supports_undo();
+    info.is_destructive = tool->is_destructive();
+    info.is_custom = is_custom;
     info.enabled = true;
     tool_info_[name] = info;
 
@@ -84,15 +104,41 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool) {
 Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args) {
     record_tool_call(name);
 
+    // Find tool info for ability checks
+    auto info_it = tool_info_.find(name);
+    bool undoable = (info_it != tool_info_.end()) && info_it->value.supports_undo;
+
     // Check ITool table first
     auto it = itool_table_.find(name);
     if (it != itool_table_.end()) {
+        // Auto-Undo wrapping
+        if (undoable) {
+            EditorUndoRedoManager *undo_redo = get_undo_redo();
+            if (undo_redo) {
+                undo_redo->create_action(
+                    String("MCP: ") + name,
+                    EditorUndoRedoManager::MERGE_ENDS);
+
+                Dictionary result = it->second->execute(args);
+
+                if (result.has("success") && result["success"].operator bool()) {
+                    undo_redo->commit_action(false);
+                } else {
+                    undo_redo->commit_action(true);
+                }
+
+                return result;
+            }
+        }
+
+        // No undo wrapping (tool doesn't support undo, or no undo manager)
         return it->second->execute(args);
     }
 
     // Fall back to CommandFn table
     auto fn_it = table_.find(name);
     if (fn_it != table_.end()) {
+        // CommandFn tools currently don't support undo wrapping
         return fn_it->value(args);
     }
 
@@ -128,6 +174,8 @@ Dictionary HandlerRegistry::make_tool_entry(const ToolInfo &info) const {
         }
     }
     d["inputSchema"] = schema;
+    d["supports_undo"] = info.supports_undo;
+    d["is_destructive"] = info.is_destructive;
     return d;
 }
 

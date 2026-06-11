@@ -26,6 +26,8 @@ struct ToolInfo {
     godot::String category;
     godot::String category_description;
     bool is_meta = false;
+    bool supports_undo = false;
+    bool is_destructive = false;
     bool is_custom = false;
     godot::Dictionary input_schema;
     bool enabled = true;
@@ -44,7 +46,7 @@ public:
     bool unregister_custom_tool(const godot::String &name);
 
     // ── ITool 注册──
-    void register_tool(std::unique_ptr<ITool> tool);
+    void register_tool(std::unique_ptr<ITool> tool, bool is_custom = false);
     godot::Dictionary execute(const godot::String &name, const godot::Dictionary &args);
 
     const ToolInfo *find_tool_info(const godot::String &name) const;

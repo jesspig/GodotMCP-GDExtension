@@ -64,6 +64,8 @@ private:
         godot::String description;
         godot::Dictionary input_schema;
         bool is_meta = false;
+        bool supports_undo = false;
+        bool is_destructive = false;
     };
 
     godot::HashMap<godot::String, CustomTool> tools_;

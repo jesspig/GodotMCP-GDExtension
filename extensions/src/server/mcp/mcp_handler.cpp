@@ -357,6 +357,24 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
                                 ? Dictionary(params["arguments"])
                                 : Dictionary();
 
+    // Check is_destructive — requires confirmation
+    if (registry_) {
+        const ToolInfo *info = registry_->find_tool_info(tool_name);
+        if (info && info->is_destructive) {
+            bool confirmed = args.get("_confirm", false);
+            if (!confirmed) {
+                Dictionary err_data;
+                err_data["destructive"] = true;
+                err_data["tool_name"] = tool_name;
+                err_data["message"] = String("This tool is destructive and requires explicit confirmation. "
+                                              "Set '_confirm' to true to proceed. Tool: ") + tool_name;
+                return make_jsonrpc_error(id, kInvalidRequest,
+                    "Confirmation required for destructive tool: " + tool_name,
+                    err_data);
+            }
+        }
+    }
+
     log_info("mcp", String("tools/call: ") + tool_name);
 
     // Log key parameters (limit to first 200 chars to avoid flooding)
