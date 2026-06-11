@@ -26,6 +26,9 @@ public:
                "index=-1 appends at the end. "
                "All changes go through EditorUndoRedoManager and can be undone with Ctrl+Z.";
     }
+    String category_description() const override {
+        return "Editor operation tools: scene tree CRUD, clipboard, script, workspace switching, console, debugger, performance monitors, etc.";
+    }
     Dictionary input_schema() const override {
         Dictionary props;
         {
@@ -67,6 +70,9 @@ protected:
         String parent_path = args_string(ctx.args, "parent_path", "");
         String class_name = args_string(ctx.args, "class_name");
         String node_name = args_string(ctx.args, "node_name");
+        if (node_name.is_empty()) {
+            node_name = args_string(ctx.args, "name");
+        }
         int64_t index = args_int(ctx.args, "index", -1);
 
         if (class_name.is_empty()) {

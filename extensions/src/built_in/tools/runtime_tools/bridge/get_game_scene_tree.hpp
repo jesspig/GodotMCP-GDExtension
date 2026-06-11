@@ -18,6 +18,9 @@ public:
         return String("Gets the full scene tree of the running game, including name, type and path of all nodes. "
                              "Optional max_depth parameter limits recursion depth (-1 for unlimited).");
     }
+    String category_description() const override {
+        return "Game runtime bridge tools: scene tree queries, property read/write, script execution, input simulation, screenshot, UI discovery, etc.";
+    }
     bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 

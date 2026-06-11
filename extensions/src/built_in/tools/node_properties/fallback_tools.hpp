@@ -91,8 +91,7 @@ public:
         pp["description"] = "Property name to write";
         p["property"] = pp;
         Dictionary vp;
-        vp["type"] = "object";
-        vp["description"] = "Value to set (supports all Godot types: primitives, vectors, colors, resources, etc.)";
+        vp["description"] = "Value to set (supports all Godot types: primitives, strings, vectors, colors, resources, etc.)";
         p["value"] = vp;
         s["properties"] = p;
         Array r;

@@ -96,7 +96,7 @@ Dictionary ITool::execute(const Dictionary &args) {
                     bool type_ok = true;
                     if (expected_type == "string" && val.get_type() != Variant::STRING && val.get_type() != Variant::NIL)
                         type_ok = false;
-                    else if (expected_type == "integer" && val.get_type() != Variant::INT)
+                    else if (expected_type == "integer" && val.get_type() != Variant::INT && val.get_type() != Variant::FLOAT)
                         type_ok = false;
                     else if (expected_type == "number" && val.get_type() != Variant::FLOAT && val.get_type() != Variant::INT)
                         type_ok = false;

@@ -227,7 +227,9 @@ namespace {
 
 String prettify_segment(const String &seg) {
     if (seg.is_empty()) return seg;
-    return seg.substr(0, 1).to_upper() + seg.substr(1);
+    // Replace underscores with spaces, then capitalize first letter
+    String result = seg.replace("_", " ");
+    return result.substr(0, 1).to_upper() + result.substr(1);
 }
 
 }  // namespace
