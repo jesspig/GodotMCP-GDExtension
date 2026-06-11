@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -84,7 +84,7 @@ protected:
         data["category_id"] = cat_id;
         data["category_path"] = cat_path;
 
-        // 生成使用示例（MCP 工具调用格式，直接传参）
+        // 鐢熸垚浣跨敤绀轰緥锛圡CP 宸ュ叿璋冪敤鏍煎紡锛岀洿鎺ヤ紶鍙傦級
         String example = String("{\n");
         for (int i = 0; i < param_names.size(); ++i) {
             String pn = param_names[i];

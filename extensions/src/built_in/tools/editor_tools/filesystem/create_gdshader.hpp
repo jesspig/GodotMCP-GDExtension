@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -53,11 +52,11 @@ protected:
         }
         if (!path.ends_with(".gdshader")) {
             return ToolResult::err("BAD_EXTENSION",
-                "Path must end with .gdshader"));
+                "Path must end with .gdshader");
         }
         if (!fs_utils::ensure_parent_dir(path)) {
             return ToolResult::err("MKDIR_FAILED",
-                "Failed to create parent directory"));
+                "Failed to create parent directory");
         }
         if (content.is_empty()) {
             content = String("shader_type canvas_item;\n")
@@ -70,7 +69,7 @@ protected:
         Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
         if (file.is_null()) {
             return ToolResult::err("CREATE_FAILED",
-                "Failed to open file for writing"));
+                "Failed to open file for writing");
         }
         file->store_string(content);
         file->close();
@@ -85,3 +84,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

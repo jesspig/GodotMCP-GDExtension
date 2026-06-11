@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"

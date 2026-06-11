@@ -24,6 +24,7 @@ struct ToolInfo {
     godot::String description;
     godot::String brief;
     godot::String category;
+    godot::String category_label;
     godot::String category_description;
     bool is_meta = false;
     bool supports_undo = false;

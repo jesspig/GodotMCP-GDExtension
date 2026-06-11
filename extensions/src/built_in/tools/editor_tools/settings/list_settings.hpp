@@ -1,4 +1,4 @@
-// @tool register
+﻿
 // list_settings.hpp -- List all project settings, supports category filtering and search
 
 #pragma once

@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -159,7 +158,7 @@ protected:
         }
         if (!mode_ok) {
             return ToolResult::err("INVALID_MODE",
-                "Invalid match mode, supported: exact/substring/glob/regex/fuzzy"));
+                "Invalid match mode, supported: exact/substring/glob/regex/fuzzy");
         }
 
         // Normalize pattern for case-insensitive
@@ -224,3 +223,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

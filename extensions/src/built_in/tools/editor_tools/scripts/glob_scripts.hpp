@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -67,7 +66,7 @@ protected:
 
         if (pattern.is_empty()) {
             return ToolResult::err("MISSING_ARG",
-                "pattern cannot be empty"));
+                "pattern cannot be empty");
         }
 
         Dictionary verr = fs_utils::validate_res_path(directory);
@@ -114,3 +113,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

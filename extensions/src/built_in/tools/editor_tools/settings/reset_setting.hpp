@@ -1,4 +1,3 @@
-// @tool register
 // reset_setting.hpp -- Reset a project setting to its default value
 
 #pragma once

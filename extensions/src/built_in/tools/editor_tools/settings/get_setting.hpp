@@ -1,4 +1,4 @@
-// @tool register
+﻿
 // get_setting.hpp -- Generic project setting reader (catch-all)
 // Used when the AI is unsure of the specific setting path; accepts any setting_path parameter.
 

@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -87,7 +86,7 @@ protected:
         Node *target = resolve_node(ctx.root, target_path);
         if (!target) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("目标节点未找到: ") + target_path);
+                String::utf8("目标节点未找�? ") + target_path);
         }
 
         Callable callable(target, target_method);

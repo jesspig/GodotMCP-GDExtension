@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -64,7 +63,7 @@ protected:
         Ref<PackedScene> clipboard = scene_tree_utils::get_clipboard();
         if (clipboard.is_null()) {
             return ToolResult::err("EMPTY_CLIPBOARD",
-                "Clipboard is empty, use copy_node or cut_node first"));
+                "Clipboard is empty, use copy_node or cut_node first");
         }
 
         Node *target = nullptr;
@@ -82,34 +81,34 @@ protected:
         } else if (mode == "sibling") {
             if (!target) {
                 return ToolResult::err("MISSING_TARGET",
-                    "sibling mode requires target_path"));
+                    "sibling mode requires target_path");
             }
             parent = target->get_parent();
             if (!parent) {
                 return ToolResult::err("ORPHAN_TARGET",
-                    "Target node has no parent"));
+                    "Target node has no parent");
             }
             target_index = target->get_index() + 1;
         } else if (mode == "replacement") {
             if (!target) {
                 return ToolResult::err("MISSING_TARGET",
-                    "replacement mode requires target_path"));
+                    "replacement mode requires target_path");
             }
             parent = target->get_parent();
             if (!parent) {
                 return ToolResult::err("ORPHAN_TARGET",
-                    "Target node has no parent"));
+                    "Target node has no parent");
             }
             target_index = target->get_index();
         } else {
             return ToolResult::err("BAD_MODE",
-                "mode must be child | sibling | replacement"));
+                "mode must be child | sibling | replacement");
         }
 
         Node *inst = scene_tree_utils::instantiate_subtree(clipboard);
         if (!inst) {
             return ToolResult::err("INSTANTIATE_FAILED",
-                "Failed to instantiate node from clipboard"));
+                "Failed to instantiate node from clipboard");
         }
         if (!new_name.is_empty()) {
             inst->set_name(new_name);
@@ -169,7 +168,7 @@ protected:
             }
         }
 
-        // Compute path manually â€” inst may not have a valid scene path yet
+        // Compute path manually â€?inst may not have a valid scene path yet
         // (undo commit may add it asynchronously relative to scene root)
         String new_node_path;
         if (parent == ctx.root || !parent) {
@@ -187,3 +186,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

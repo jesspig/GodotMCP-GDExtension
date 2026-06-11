@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -34,10 +34,10 @@ public:
     String name() const override { return "set_layout_preset"; }
     String category() const override { return "editor_tools/control"; }
     String brief() const override {
-        return String::utf8("Set anchor preset on a Control node");
+        return String("Set anchor preset on a Control node");
     }
     String description() const override {
-        return String::utf8("Sets the anchor preset on a Control node and optionally keeps offsets. "
+        return String("Sets the anchor preset on a Control node and optionally keeps offsets. "
                             "Undo restores the previous anchor and offset values.");
     }
     Dictionary input_schema() const override {
@@ -45,19 +45,19 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("Control node path");
+            p["description"] = String("Control node path");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("Preset name: full_rect/center/top_left/top_right/bottom_left/bottom_right/etc.");
+            p["description"] = String("Preset name: full_rect/center/top_left/top_right/bottom_left/bottom_right/etc.");
             props["preset"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("Keep current offset values");
+            p["description"] = String("Keep current offset values");
             p["default"] = false;
             props["keep_offsets"] = p;
         }
@@ -77,11 +77,11 @@ protected:
 
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND", String::utf8("Node not found: ") + node_path);
+            return ToolResult::err("NODE_NOT_FOUND", String("Node not found: ") + node_path);
         }
         godot::Control *control = godot::Object::cast_to<godot::Control>(node);
         if (!control) {
-            return ToolResult::err("NOT_A_CONTROL", String::utf8("Node is not a Control: ") + node_path);
+            return ToolResult::err("NOT_A_CONTROL", String("Node is not a Control: ") + node_path);
         }
 
         godot::Control::LayoutPreset preset = resolve_preset_name(preset_name);
@@ -96,7 +96,7 @@ protected:
         double old_offset_bottom = control->get_offset(godot::Side::SIDE_BOTTOM);
 
         EditorUndoRedoManager *ur = get_undo_redo();
-        ur->create_action(String::utf8("MCP: Set Layout Preset ") + preset_name,
+        ur->create_action(String("MCP: Set Layout Preset ") + preset_name,
                           godot::UndoRedo::MERGE_DISABLE, ctx.root);
         ur->add_do_method(control, "set_anchors_preset", preset, keep_offsets);
         ur->add_undo_property(control, "anchor_left", old_left);
@@ -117,3 +117,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

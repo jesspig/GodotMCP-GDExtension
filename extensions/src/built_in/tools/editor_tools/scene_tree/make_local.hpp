@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -22,7 +22,7 @@ public:
                "(no longer linked to the original .tscn). "
                "All ownership is auto-rewritten to the current scene root. "
                "Equivalent to the editor's Make Local operation. Only applies to scene instance nodes. "
-               "All changes are undoable (restoring scene_file_path has limited support — old value must be recorded first).";
+               "All changes are undoable (restoring scene_file_path has limited support 鈥?old value must be recorded first).";
     }
     Dictionary input_schema() const override {
         Dictionary props;

@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -66,7 +65,7 @@ protected:
         }
         if (!path.ends_with(".gd")) {
             return ToolResult::err("BAD_EXTENSION",
-                "Path must end with .gd"));
+                "Path must end with .gd");
         }
         if (!FileAccess::file_exists(path)) {
             return ToolResult::err("NOT_FOUND",
@@ -74,7 +73,7 @@ protected:
         }
         if (old_text.is_empty()) {
             return ToolResult::err("MISSING_ARG",
-                "old_text cannot be empty"));
+                "old_text cannot be empty");
         }
 
         Ref<FileAccess> file = FileAccess::open(path, FileAccess::READ);
@@ -137,3 +136,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

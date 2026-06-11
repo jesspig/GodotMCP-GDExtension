@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -41,7 +41,7 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         RuntimeBridge *bridge = registry_ ? registry_->get_runtime_bridge() : nullptr;
         if (!bridge || !bridge->is_connected()) {
-            return ToolResult::err("GAME_NOT_RUNNING", String::utf8("游戏未运行或桥接未连接"));
+            return ToolResult::err("GAME_NOT_RUNNING", "Game not running or bridge not connected");
         }
         bool paused = args_bool(ctx.args, "paused");
         Dictionary params;
@@ -51,3 +51,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -60,7 +59,7 @@ protected:
                 "Path does not exist: " + path);
         }
 
-        // Capture before deletion â€” is_file() returns false after file is deleted
+        // Capture before deletion â€?is_file() returns false after file is deleted
         bool was_dir = !fs_utils::is_file(path);
 
         Error err;

@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -83,20 +82,20 @@ protected:
             if (!n) continue;
             Node *p = n->get_parent();
             if (!p) {
-                return ToolResult::err("ORPHAN_SELECTED",
-                    "Selected node " + n->get_name() +
-                    " has no parent"));
+            return ToolResult::err("ORPHAN_SELECTED",
+                "Selected node " + n->get_name() +
+                " has no parent");
             }
             if (common_parent == nullptr) {
                 common_parent = p;
             } else if (p != common_parent) {
                 return ToolResult::err("DIFFERENT_PARENTS",
-                    "Selected nodes must share the same parent"));
+                    "Selected nodes must share the same parent");
             }
         }
         if (!common_parent) {
             return ToolResult::err("NO_VALID_SELECTION",
-                "No valid selected nodes"));
+                "No valid selected nodes");
         }
         if (common_parent->has_node(String("./") + new_name)) {
             return ToolResult::err("NAME_CONFLICT",
@@ -176,3 +175,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

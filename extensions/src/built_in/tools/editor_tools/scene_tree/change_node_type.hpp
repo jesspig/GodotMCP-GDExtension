@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -96,7 +95,7 @@ protected:
         Node *parent = node->get_parent();
         if (!parent) {
             return ToolResult::err("ORPHAN_NODE",
-                "Node has no parent"));
+                "Node has no parent");
         }
         int64_t old_index = node->get_index();
 
@@ -180,3 +179,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

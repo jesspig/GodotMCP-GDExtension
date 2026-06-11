@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -56,23 +55,23 @@ protected:
         String save_path = args_string(ctx.args, "save_path");
 
         if (prop_name.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("property_name 不能为空"));
+            return ToolResult::err("MISSING_ARG", String("property_name cannot be empty"));
         }
         if (save_path.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("save_path 不能为空"));
+            return ToolResult::err("MISSING_ARG", String("save_path cannot be empty"));
         }
 
         Node *node = resolve_node(ctx.root, path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + path);
+                String("Node not found ") + path);
         }
 
         Variant val = node->get(prop_name);
         Ref<Resource> res = val;
         if (res.is_null()) {
             return ToolResult::err("NOT_A_RESOURCE",
-                String::utf8("该属性当前没有 Resource 值"));
+                String("Property does not currently have a Resource"));
         }
 
         ensure_parent_dir(save_path);

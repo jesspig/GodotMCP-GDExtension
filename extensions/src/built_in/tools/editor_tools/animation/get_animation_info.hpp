@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -54,7 +54,7 @@ protected:
             Node *node = resolve_node(ctx.root, anim_player_path);
             if (!node) {
                 return ToolResult::err("NODE_NOT_FOUND",
-                    String::utf8("AnimationPlayer not found: ") + anim_player_path);
+                    String("AnimationPlayer not found: ") + anim_player_path);
             }
             player = Object::cast_to<AnimationPlayer>(node);
         }
@@ -145,3 +145,4 @@ private:
 };
 
 } // namespace godot_mcp
+

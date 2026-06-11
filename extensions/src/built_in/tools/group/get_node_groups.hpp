@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -42,7 +42,7 @@ protected:
         Node *node = resolve_node(ctx.root, path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + path);
+                String("鑺傜偣鏈壘鍒? ") + path);
         }
 
         PackedStringArray groups = node->get_groups();
@@ -60,3 +60,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

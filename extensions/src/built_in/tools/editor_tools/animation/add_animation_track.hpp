@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -109,13 +109,13 @@ protected:
         Node *node = resolve_node(ctx.root, anim_player_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("AnimationPlayer not found: ") + anim_player_path);
+                String("AnimationPlayer not found: ") + anim_player_path);
         }
 
         AnimationPlayer *player = Object::cast_to<AnimationPlayer>(node);
         if (!player) {
             return ToolResult::err("WRONG_TYPE",
-                String::utf8("Node is not an AnimationPlayer: ") + anim_player_path);
+                String("Node is not an AnimationPlayer: ") + anim_player_path);
         }
 
         Ref<AnimationLibrary> library;
@@ -133,13 +133,13 @@ protected:
 
         if (library.is_null()) {
             return ToolResult::err("LIBRARY_NOT_FOUND",
-                String::utf8("AnimationLibrary not found: ") + library_name);
+                String("AnimationLibrary not found: ") + library_name);
         }
 
         Ref<Animation> animation = library->get_animation(StringName(clip_name));
         if (animation.is_null()) {
             return ToolResult::err("CLIP_NOT_FOUND",
-                String::utf8("Animation clip not found: ") + clip_name);
+                String("Animation clip not found: ") + clip_name);
         }
 
         Animation::TrackType track_type = _parse_track_type(track_type_str);
@@ -154,7 +154,7 @@ protected:
             animation->track_set_interpolation_type(track_idx, interp);
             mark_scene_dirty();
         } else {
-            ur->create_action(String::utf8("MCP: Add Animation Track"),
+            ur->create_action(String("MCP: Add Animation Track"),
                               UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(animation.ptr(), "add_track", track_type);
             ur->add_do_method(animation.ptr(), "track_set_path",
@@ -175,3 +175,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

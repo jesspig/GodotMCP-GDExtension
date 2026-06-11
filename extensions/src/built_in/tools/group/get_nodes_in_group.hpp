@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -41,12 +40,12 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String group_name = args_string(ctx.args, "group_name");
         if (group_name.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("group_name 不能为空"));
+            return ToolResult::err("MISSING_ARG", String("group_name cannot be empty"));
         }
 
         SceneTree *tree = ctx.root->get_tree();
         if (!tree) {
-            return ToolResult::err("NO_TREE", String::utf8("无法获取场景树"));
+            return ToolResult::err("NO_TREE", String("Cannot get scene tree"));
         }
 
         TypedArray<Node> nodes = tree->get_nodes_in_group(group_name);

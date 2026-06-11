@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -56,7 +55,7 @@ protected:
         }
         if (!path.ends_with(".tres") && !path.ends_with(".res")) {
             return ToolResult::err("BAD_EXTENSION",
-                "Resource path must end with .tres or .res"));
+                "Resource path must end with .tres or .res");
         }
         if (FileAccess::file_exists(path)) {
             return ToolResult::err("FILE_EXISTS",
@@ -68,7 +67,7 @@ protected:
         }
         if (!fs_utils::ensure_parent_dir(path)) {
             return ToolResult::err("MKDIR_FAILED",
-                "Failed to create parent directory"));
+                "Failed to create parent directory");
         }
 
         // Method 1: create via ClassDB::instantiate()
@@ -110,3 +109,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

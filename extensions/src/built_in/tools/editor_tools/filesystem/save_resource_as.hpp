@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -56,7 +56,7 @@ protected:
         }
         if (!FileAccess::file_exists(resource_path)) {
             return ToolResult::err("FILE_NOT_FOUND",
-                String::utf8("Resource file not found: ") + resource_path);
+                String("Resource file not found: ") + resource_path);
         }
 
         if (save_path.is_empty()) {
@@ -79,7 +79,7 @@ protected:
         Ref<Resource> res = ResourceLoader::get_singleton()->load(resource_path);
         if (res.is_null()) {
             return ToolResult::err("LOAD_FAILED",
-                String::utf8("Failed to load resource: ") + resource_path);
+                String("Failed to load resource: ") + resource_path);
         }
 
         Error err = ResourceSaver::get_singleton()->save(res, save_path,
@@ -87,8 +87,8 @@ protected:
 
         if (err != OK) {
             return ToolResult::err("SAVE_FAILED",
-                String::utf8("Failed to save resource (error ") +
-                String::num_int64((int64_t)err) + String::utf8("): ") + save_path);
+                String("Failed to save resource (error ") +
+                String::num_int64((int64_t)err) + String("): ") + save_path);
         }
 
         fs_utils::notify_file_changed(save_path);
@@ -102,3 +102,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

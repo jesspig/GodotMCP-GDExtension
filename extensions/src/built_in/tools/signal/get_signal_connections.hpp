@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -53,7 +53,7 @@ protected:
 
         Node *node = resolve_node(ctx.root, path);
         if (!node)
-            return ToolResult::err("NODE_NOT_FOUND", String::utf8("节点未找到: ") + path);
+            return ToolResult::err("NODE_NOT_FOUND", String("鑺傜偣鏈壘鍒? ") + path);
 
         Array connections;
         if (signal_name.is_empty()) {
@@ -108,3 +108,4 @@ private:
 };
 
 } // namespace godot_mcp
+

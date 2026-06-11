@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "built_in/cmd_utils.hpp"
 
@@ -47,7 +47,7 @@ inline Dictionary capture_editor_viewport(const String &viewport_type, int viewp
                                            const String &format, const String &save_path) {
     EditorInterface *ei = EditorInterface::get_singleton();
     if (!ei) {
-        return ToolResult::err("NO_EDITOR", String::utf8("EditorInterface 不可用"));
+        return ToolResult::err("NO_EDITOR", "EditorInterface not available");
     }
 
     SubViewport *viewport = nullptr;
@@ -57,12 +57,12 @@ inline Dictionary capture_editor_viewport(const String &viewport_type, int viewp
         viewport = ei->get_editor_viewport_2d();
     }
     if (!viewport) {
-        return ToolResult::err("NO_VIEWPORT", String::utf8("视口不可用"));
+        return ToolResult::err("NO_VIEWPORT", "Viewport not available");
     }
 
     Ref<Image> img = viewport->get_texture()->get_image();
     if (img.is_null()) {
-        return ToolResult::err("CAPTURE_FAILED", String::utf8("截图失败"));
+        return ToolResult::err("CAPTURE_FAILED", "Screenshot capture failed");
     }
 
     Dictionary data;
@@ -84,16 +84,16 @@ inline Dictionary capture_editor_viewport(const String &viewport_type, int viewp
 inline Dictionary capture_game_viewport_impl(const String &format, const String &save_path) {
     EditorInterface *ei = EditorInterface::get_singleton();
     if (!ei) {
-        return ToolResult::err("NO_EDITOR", String::utf8("EditorInterface 不可用"));
+        return ToolResult::err("NO_EDITOR", "EditorInterface not available");
     }
     if (!ei->is_playing_scene()) {
-        return ToolResult::err("GAME_NOT_RUNNING", String::utf8("游戏未运行"));
+        return ToolResult::err("GAME_NOT_RUNNING", "Game not running");
     }
 
     DisplayServer *ds = DisplayServer::get_singleton();
     Ref<Image> img = ds->screen_get_image(0);
     if (img.is_null()) {
-        return ToolResult::err("CAPTURE_FAILED", String::utf8("游戏截图失败"));
+        return ToolResult::err("CAPTURE_FAILED", "Game screenshot failed");
     }
 
     Dictionary data;
@@ -113,3 +113,4 @@ inline Dictionary capture_game_viewport_impl(const String &format, const String 
 }
 
 } // namespace godot_mcp
+

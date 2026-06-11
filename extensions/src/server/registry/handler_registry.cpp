@@ -36,6 +36,7 @@ void HandlerRegistry::register_custom_tool(const String &name, const String &cat
     info.category = category;
     info.brief = brief;
     info.description = description;
+    info.category_label = category;         // SDK 工具默认 label = category
     info.category_description = String();   // SDK 工具无 category_description() 虚函数,显式留空
     info.input_schema = schema;
     info.is_meta = is_meta;
@@ -83,6 +84,7 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool, bool is_custom)
     info.category = tool->category();
     info.brief = tool->brief();
     info.description = tool->description();
+    info.category_label = tool->category_label();
     info.category_description = tool->category_description();
     info.input_schema = tool->input_schema();
     info.is_meta = tool->is_meta();
@@ -117,7 +119,7 @@ Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args) 
             if (undo_redo) {
                 undo_redo->create_action(
                     String("MCP: ") + name,
-                    EditorUndoRedoManager::MERGE_ENDS);
+                    UndoRedo::MERGE_ENDS);
 
                 Dictionary result = it->second->execute(args);
 
@@ -215,9 +217,9 @@ void HandlerRegistry::set_tool_enabled(const String &name, bool enabled) {
 //
 // get_categories() 输出字段契约(每个分类节点):
 //   id          : 分类段名(如 "node"、"property"),用于 get_tools 查询
-//   name        : 分类展示名(如 "Node"、"Property"),客户端 UI 显示用
+//   name        : 分类展示名(如 "Node"、"Property")(prettify 自动美化,客户端 UI 显示用)
 //   path        : 完整分类路径(如 "node/property"),用于 get_tools 查询
-//   description : 分类描述(权威源,来自 top_level_meta 硬编码或工具 category_description())
+//   description : 分类描述(来自工具的 category_description(),自动发现)
 //   tool_count  : 直接挂载到该分类的工具数(不含子分类)
 //   total       : 包含子分类的累加值
 //   subcategories : 子分类列表(数组),递归结构一致,若无则省略
@@ -228,34 +230,13 @@ String prettify_segment(const String &seg) {
     return seg.substr(0, 1).to_upper() + seg.substr(1);
 }
 
-struct TopLevelMeta {
-    String label;
-    String description;
-    TopLevelMeta() = default;
-    TopLevelMeta(const String &p_label, const String &p_desc) :
-        label(p_label), description(p_desc) {}
-};
-const HashMap<String, TopLevelMeta> &top_level_meta() {
-    static const HashMap<String, TopLevelMeta> kTopLevel = {
-        {String("meta_tools"), TopLevelMeta(String("Meta Tools"),
-                                            String("Meta tools and system information queries"))},
-        {String("node_tools"), TopLevelMeta(String("Node Tools"),
-                                            String("Node property read and modify tools, organized by Godot node type"))},
-        {String("editor_tools"), TopLevelMeta(String("Editor Tools"),
-                                              String("Editor operation tools: scene tree CRUD, clipboard, script, workspace switching, console, debugger, performance monitors, etc."))},
-        {String("runtime_tools"), TopLevelMeta(String("Runtime Tools"),
-                                               String("Game runtime bridge tools: scene tree queries, property read/write, script execution, input simulation, screenshot, UI discovery, etc."))},
-    };
-    return kTopLevel;
-}
-
 }  // namespace
 
 // 把 CatNode 序列化为 Dictionary(MCP 协议输出契约)。
 //   id          : 分类段名(如 "node"、"property"),用于 get_tools 查询
 //   name        : 分类展示名(如 "Node"、"Property"),客户端 UI 显示用
 //   path        : 完整分类路径(如 "node/property"),用于 get_tools 查询
-//   description : 分类描述(权威源,来自 top_level_meta 硬编码或工具 category_description())
+//   description : 分类描述(来自工具的 category_description(),自动发现)
 //   tool_count  : 直接挂载到该分类的工具数(不含子分类)
 //   total       : 包含子分类的累加值
 //   subcategories : 子分类列表(数组),递归结构一致,若无则省略
@@ -281,7 +262,7 @@ Array HandlerRegistry::get_categories() const {
     struct CatNode {
         String name;
         String description;
-        String label;       // 顶级可被硬编码 meta 覆盖;非顶级为空,序列化时 prettify
+        String label;       // 顶级可被工具 category_label() 覆盖;非顶级为空,序列化时 prettify
         int direct = 0;       // 直接挂载数(不含子分类)
         int total = 0;        // 累加数(含子分类)
         HashMap<String, CatNode> children;
@@ -317,14 +298,19 @@ Array HandlerRegistry::get_categories() const {
         node->direct++;
     }
 
-    // 顶级节点应用硬编码 meta(label + description)
-    // 这是权威源,覆盖任何 catDesc/brief 反填
-    const HashMap<String, TopLevelMeta> &top_meta = top_level_meta();
+    // 自动发现顶级分类的描述(description)
+    // label 使用 prettify_segment() 自动美化(如 "editor_tools" → "Editor Tools")
     for (KeyValue<String, CatNode> &kv : root.children) {
-        const TopLevelMeta *m = top_meta.getptr(kv.key);
-        if (m) {
-            if (!m->label.is_empty()) kv.value.label = m->label;
-            if (!m->description.is_empty()) kv.value.description = m->description;
+        const String &first_seg = kv.key;
+        for (const KeyValue<String, ToolInfo> &ti : tool_info_) {
+            if (!ti.value.enabled) continue;
+            int slash = ti.value.category.find("/");
+            String ti_first = (slash >= 0) ? ti.value.category.substr(0, slash) : ti.value.category;
+            if (ti_first != first_seg) continue;
+
+            if (kv.value.description.is_empty() && !ti.value.category_description.is_empty()) {
+                kv.value.description = ti.value.category_description;
+            }
         }
     }
 
@@ -432,7 +418,7 @@ PackedStringArray HandlerRegistry::tokenize(const String &text) {
 void HandlerRegistry::rebuild_search_index() {
     search_index_.clear();
     for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
-        PackedStringArray tokens = tokenize(kv.value.name + " " + kv.value.brief + " " + kv.value.description);
+        PackedStringArray tokens = tokenize(kv.value.name + String(" ") + kv.value.brief + String(" ") + kv.value.description);
         for (int i = 0; i < tokens.size(); ++i) {
             if (!search_index_.has(tokens[i])) {
                 search_index_[tokens[i]] = Array();
@@ -478,7 +464,7 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
     // Phase 3: Token fuzzy — any token contains query (weight 200)
     for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
         if (!category.is_empty() && !kv.value.category.begins_with(category)) continue;
-        PackedStringArray tokens = tokenize(kv.value.name + " " + kv.value.brief + " " + kv.value.description);
+        PackedStringArray tokens = tokenize(kv.value.name + String(" ") + kv.value.brief + String(" ") + kv.value.description);
         for (int i = 0; i < tokens.size(); ++i) {
             if (tokens[i].find(q) >= 0) {
                 if (!best_weight.has(kv.key) || best_weight[kv.key] < 200) {
@@ -505,7 +491,7 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
         int weight;
         int freq;
     };
-    Vector<ScoredTool> scored;
+    std::vector<ScoredTool> scored;
     for (const KeyValue<String, int> &kv : best_weight) {
         ScoredTool st;
         st.name = kv.key;
@@ -556,7 +542,7 @@ Array HandlerRegistry::get_search_suggestions(const String &prefix, int limit) c
     // Phase 2: Token prefix match for tools not already matched by name
     for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
         if (candidates.has(kv.key)) continue;
-        PackedStringArray tokens = tokenize(kv.value.name + " " + kv.value.brief + " " + kv.value.description);
+        PackedStringArray tokens = tokenize(kv.value.name + String(" ") + kv.value.brief + String(" ") + kv.value.description);
         for (int i = 0; i < tokens.size(); ++i) {
             if (tokens[i].begins_with(p)) {
                 auto fit = freq_index_.find(kv.key);
@@ -571,7 +557,7 @@ Array HandlerRegistry::get_search_suggestions(const String &prefix, int limit) c
         String name;
         int freq;
     };
-    Vector<SuggEntry> sorted;
+    std::vector<SuggEntry> sorted;
     for (const KeyValue<String, int> &kv : candidates) {
         sorted.push_back({kv.key, kv.value});
     }

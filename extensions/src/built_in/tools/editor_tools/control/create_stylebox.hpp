@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -16,10 +16,10 @@ public:
     String name() const override { return "create_stylebox"; }
     String category() const override { return "editor_tools/control"; }
     String brief() const override {
-        return String::utf8("Create a StyleBoxFlat resource and optionally apply as theme override");
+        return String("Create a StyleBoxFlat resource and optionally apply as theme override");
     }
     String description() const override {
-        return String::utf8("Creates a StyleBoxFlat resource with configurable background color, "
+        return String("Creates a StyleBoxFlat resource with configurable background color, "
                             "border color, border width, and corner radius. Can optionally apply "
                             "it as a theme stylebox override on a Control node.");
     }
@@ -28,47 +28,47 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("StyleBox name (used as theme override name)");
+            p["description"] = String("StyleBox name (used as theme override name)");
             props["stylebox_name"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("Optional: node path to apply the stylebox to");
+            p["description"] = String("Optional: node path to apply the stylebox to");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("Background color hex (e.g. #ffffff)");
+            p["description"] = String("Background color hex (e.g. #ffffff)");
             p["default"] = "#ffffff";
             props["bg_color"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("Border color hex (e.g. #000000)");
+            p["description"] = String("Border color hex (e.g. #000000)");
             p["default"] = "#000000";
             props["border_color"] = p;
         }
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("Border width in pixels");
+            p["description"] = String("Border width in pixels");
             p["default"] = 0;
             props["border_width"] = p;
         }
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("Corner radius in pixels");
+            p["description"] = String("Corner radius in pixels");
             p["default"] = 0;
             props["corner_radius"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("Apply as theme override on the target node");
+            p["description"] = String("Apply as theme override on the target node");
             p["default"] = false;
             props["apply_to_node"] = p;
         }
@@ -104,15 +104,15 @@ protected:
         if (apply_to_node && !node_path.is_empty()) {
             Node *node = resolve_node(ctx.root, node_path);
             if (!node) {
-                return ToolResult::err("NODE_NOT_FOUND", String::utf8("Node not found: ") + node_path);
+                return ToolResult::err("NODE_NOT_FOUND", String("Node not found: ") + node_path);
             }
             control = godot::Object::cast_to<godot::Control>(node);
             if (!control) {
-                return ToolResult::err("NOT_A_CONTROL", String::utf8("Node is not a Control: ") + node_path);
+                return ToolResult::err("NOT_A_CONTROL", String("Node is not a Control: ") + node_path);
             }
 
             EditorUndoRedoManager *ur = get_undo_redo();
-            ur->create_action(String::utf8("MCP: Create StyleBox ") + stylebox_name,
+            ur->create_action(String("MCP: Create StyleBox ") + stylebox_name,
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
 
             bool had_override = control->has_theme_stylebox_override(stylebox_name);
@@ -145,3 +145,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

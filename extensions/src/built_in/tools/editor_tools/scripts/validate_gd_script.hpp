@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -47,7 +46,7 @@ protected:
         }
         if (!path.ends_with(".gd")) {
             return ToolResult::err("BAD_EXTENSION",
-                "Path must end with .gd"));
+                "Path must end with .gd");
         }
         if (!FileAccess::file_exists(path)) {
             return ToolResult::err("NOT_FOUND",
@@ -57,7 +56,7 @@ protected:
         OS *os = OS::get_singleton();
         if (!os) {
             return ToolResult::err("NO_OS",
-                "OS singleton not available"));
+                "OS singleton not available");
         }
 
         String godot_path = String("godot");
@@ -86,3 +85,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

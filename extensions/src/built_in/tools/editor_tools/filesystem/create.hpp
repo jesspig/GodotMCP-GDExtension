@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -24,10 +23,10 @@ public:
     }
     String description() const override {
         return "A composite tool that selects the creation strategy based on the path extension: "
-               ".tscn â†’ PackedScene::pack() + ResourceSaver::save() "
-               ".tres/.res â†’ ResourceSaver::save() "
-               ".gdshader â†’ FileAccess writes text "
-               "Other â†’ creates an empty file. "
+               ".tscn â†?PackedScene::pack() + ResourceSaver::save() "
+               ".tres/.res â†?ResourceSaver::save() "
+               ".gdshader â†?FileAccess writes text "
+               "Other â†?creates an empty file. "
                "For .gd/.cs scripts, use the dedicated write_gd_script / write_csharp_script tools.";
     }
     Dictionary input_schema() const override {
@@ -80,7 +79,7 @@ protected:
         }
         if (!fs_utils::ensure_parent_dir(path)) {
             return ToolResult::err("MKDIR_FAILED",
-                "Failed to create parent directory"));
+                "Failed to create parent directory");
         }
 
         String ext = fs_utils::get_file_extension(path);
@@ -179,7 +178,7 @@ private:
         Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
         if (file.is_null()) {
             return ToolResult::err("CREATE_FAILED",
-                "Failed to open file for writing"));
+                "Failed to open file for writing");
         }
         file->store_string(actual_content);
         file->close();
@@ -195,3 +194,4 @@ private:
 };
 
 } // namespace godot_mcp
+

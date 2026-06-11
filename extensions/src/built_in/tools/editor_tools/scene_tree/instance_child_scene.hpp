@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -92,7 +91,7 @@ protected:
         }
         if (!packed->can_instantiate()) {
             return ToolResult::err("NOT_INSTANTIABLE",
-                "This PackedScene cannot be instantiated (may be corrupted)"));
+                "This PackedScene cannot be instantiated (may be corrupted)");
         }
 
         Node *inst = packed->instantiate(
@@ -100,7 +99,7 @@ protected:
                              : godot::PackedScene::GEN_EDIT_STATE_DISABLED);
         if (!inst) {
             return ToolResult::err("INSTANTIATE_FAILED",
-                "Instantiation failed"));
+                "Instantiation failed");
         }
         if (!instance_name.is_empty()) {
             inst->set_name(instance_name);
@@ -136,3 +135,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

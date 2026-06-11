@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -66,7 +65,7 @@ protected:
         Node *node = resolve_node(ctx.root, path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + path);
+                String::utf8("节点未找�? ") + path);
         }
 
         Ref<Resource> res = ResourceLoader::get_singleton()->load(res_path);

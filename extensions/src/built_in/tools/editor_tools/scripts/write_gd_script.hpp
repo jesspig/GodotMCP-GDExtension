@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -52,11 +51,11 @@ protected:
         }
         if (!path.ends_with(".gd")) {
             return ToolResult::err("BAD_EXTENSION",
-                "Path must end with .gd"));
+                "Path must end with .gd");
         }
         if (!fs_utils::ensure_parent_dir(path)) {
             return ToolResult::err("MKDIR_FAILED",
-                "Failed to create parent directory"));
+                "Failed to create parent directory");
         }
 
         if (content.is_empty()) {
@@ -66,7 +65,7 @@ protected:
         Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
         if (file.is_null()) {
             return ToolResult::err("WRITE_FAILED",
-                "Failed to open file for writing"));
+                "Failed to open file for writing");
         }
         file->store_string(content);
         file->close();
@@ -83,3 +82,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

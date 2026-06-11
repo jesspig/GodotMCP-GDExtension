@@ -1,4 +1,3 @@
-// @tool register
 // set_setting.hpp -- Generic project setting writer (catch-all)
 // Used when the AI is unsure of the specific setting path; accepts any setting_path + value parameters.
 

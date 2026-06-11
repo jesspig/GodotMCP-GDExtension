@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -38,8 +38,8 @@ public:
     bool is_meta() const override { return true; }
 
 protected:
-    // 在 categories 数组中按 id 查找指定 segment
-    // 返回该节点的副本，未找到则返回空 Dictionary
+    // 鍦?categories 鏁扮粍涓寜 id 鏌ユ壘鎸囧畾 segment
+    // 杩斿洖璇ヨ妭鐐圭殑鍓湰锛屾湭鎵惧埌鍒欒繑鍥炵┖ Dictionary
     static Dictionary find_by_id(const Array &categories, const String &id) {
         for (int i = 0; i < categories.size(); ++i) {
             Dictionary cat = categories[i];
@@ -50,7 +50,7 @@ protected:
         return Dictionary();
     }
 
-    // 递归裁剪：depth 从 1 开始计数，超过 max_depth 时移除 subcategories
+    // 閫掑綊瑁佸壀锛歞epth 浠?1 寮€濮嬭鏁帮紝瓒呰繃 max_depth 鏃剁Щ闄?subcategories
     static Dictionary trim_depth(const Dictionary &node, int max_depth, int depth) {
         Dictionary out = node;
         if (max_depth >= 0 && depth >= max_depth) {
@@ -68,7 +68,7 @@ protected:
         return out;
     }
 
-    // 递归查找路径节点：返回找到的节点副本（已裁剪），空 Dictionary 表示未找到
+    // 閫掑綊鏌ユ壘璺緞鑺傜偣锛氳繑鍥炴壘鍒扮殑鑺傜偣鍓湰锛堝凡瑁佸壀锛夛紝绌?Dictionary 琛ㄧず鏈壘鍒?
     static Dictionary find_path_node(const Array &categories,
                                      const PackedStringArray &segments,
                                      int seg_idx,

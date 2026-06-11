@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -62,7 +61,7 @@ protected:
         }
         if (!fs_utils::ensure_parent_dir(destination)) {
             return ToolResult::err("MKDIR_FAILED",
-                "Failed to create target parent directory"));
+                "Failed to create target parent directory");
         }
 
         Error err;
@@ -88,3 +87,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

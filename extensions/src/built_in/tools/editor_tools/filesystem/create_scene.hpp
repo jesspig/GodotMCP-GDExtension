@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -64,7 +63,7 @@ protected:
         }
         if (!path.ends_with(".tscn")) {
             return ToolResult::err("BAD_EXTENSION",
-                "Scene path must end with .tscn"));
+                "Scene path must end with .tscn");
         }
         if (FileAccess::file_exists(path)) {
             return ToolResult::err("FILE_EXISTS",
@@ -76,7 +75,7 @@ protected:
         }
         if (!fs_utils::ensure_parent_dir(path)) {
             return ToolResult::err("MKDIR_FAILED",
-                "Failed to create parent directory"));
+                "Failed to create parent directory");
         }
 
         Node *temp_root = Object::cast_to<Node>(ClassDB::instantiate(root_type));
@@ -114,3 +113,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

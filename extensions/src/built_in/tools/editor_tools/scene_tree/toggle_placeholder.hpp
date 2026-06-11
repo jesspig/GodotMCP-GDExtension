@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -55,7 +54,7 @@ protected:
         }
         if (node->get_scene_file_path().is_empty()) {
             return ToolResult::err("NOT_AN_INSTANCE",
-                "Node is not a scene instance"));
+                "Node is not a scene instance");
         }
         bool current = node->get_scene_instance_load_placeholder();
         bool enable;
@@ -90,3 +89,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

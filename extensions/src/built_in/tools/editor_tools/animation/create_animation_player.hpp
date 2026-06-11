@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -62,7 +62,7 @@ protected:
         Node *parent = resolve_node(ctx.root, parent_path);
         if (!parent) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("Parent node not found: ") + parent_path);
+                String("Parent node not found: ") + parent_path);
         }
 
         Node *player_node = Object::cast_to<Node>(ClassDB::instantiate("AnimationPlayer"));
@@ -94,7 +94,7 @@ protected:
             }
             mark_scene_dirty();
         } else {
-            ur->create_action(String::utf8("MCP: Create AnimationPlayer"),
+            ur->create_action(String("MCP: Create AnimationPlayer"),
                               UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", player_node, true,
                               (int64_t)Node::INTERNAL_MODE_DISABLED);
@@ -122,3 +122,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

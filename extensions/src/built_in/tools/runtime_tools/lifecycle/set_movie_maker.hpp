@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -38,7 +38,7 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
-            return ToolResult::err("NO_EDITOR", String::utf8("EditorInterface 不可用"));
+            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
         bool enabled = args_bool(ctx.args, "enabled");
         ei->set_movie_maker_enabled(enabled);
@@ -51,3 +51,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

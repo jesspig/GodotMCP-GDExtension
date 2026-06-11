@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -21,9 +20,9 @@ public:
     }
     String description() const override {
         return "Opens the specified file in the Godot editor. Routes to the appropriate editor component based on file extension: "
-               ".tscn â†’ scene editor; .gd â†’ script editor; "
-               ".gdshader â†’ shader editor; .tres/.res â†’ resource editor; "
-               "other files â†’ selected in the file system panel.";
+               ".tscn â†?scene editor; .gd â†?script editor; "
+               ".gdshader â†?shader editor; .tres/.res â†?resource editor; "
+               "other files â†?selected in the file system panel.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
@@ -63,7 +62,7 @@ protected:
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR",
-                "EditorInterface not available"));
+                "EditorInterface not available");
         }
 
         String ext = fs_utils::get_file_extension(path);
@@ -121,3 +120,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

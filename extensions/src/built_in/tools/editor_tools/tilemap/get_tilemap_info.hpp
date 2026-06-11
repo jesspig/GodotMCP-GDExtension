@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -17,10 +17,10 @@ public:
     String name() const override { return "get_tilemap_info"; }
     String category() const override { return "editor_tools/tilemap"; }
     String brief() const override {
-        return String::utf8("Query TileMapLayer metadata and cell data");
+        return String("Query TileMapLayer metadata and cell data");
     }
     String description() const override {
-        return String::utf8("Returns metadata about a TileMapLayer: enabled state, tile set info, "
+        return String("Returns metadata about a TileMapLayer: enabled state, tile set info, "
                             "used cells count and positions, used rect, collision/navigation state, "
                             "y_sort_origin, and rendering quadrant size. Read-only, no undo needed.");
     }
@@ -29,7 +29,7 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("TileMapLayer node path");
+            p["description"] = String("TileMapLayer node path");
             props["node_path"] = p;
         }
         Dictionary s;
@@ -46,11 +46,11 @@ protected:
 
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND", String::utf8("TileMapLayer not found: ") + node_path);
+            return ToolResult::err("NODE_NOT_FOUND", String("TileMapLayer not found: ") + node_path);
         }
         godot::TileMapLayer *tilemap = godot::Object::cast_to<godot::TileMapLayer>(node);
         if (!tilemap) {
-            return ToolResult::err("NOT_TILEMAP_LAYER", String::utf8("Node is not a TileMapLayer: ") + node_path);
+            return ToolResult::err("NOT_TILEMAP_LAYER", String("Node is not a TileMapLayer: ") + node_path);
         }
 
         Dictionary data;
@@ -114,3 +114,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

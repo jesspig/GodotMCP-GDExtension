@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -44,8 +43,8 @@ protected:
         }
 
         if (path.is_empty()) {
-            // Capture path BEFORE save â€” ei->save_scene() may reload the scene
-            // and invalidate ctx.root (dangling pointer â†’ crash).
+            // Capture path BEFORE save â€?ei->save_scene() may reload the scene
+            // and invalidate ctx.root (dangling pointer â†?crash).
             path = ctx.root->get_scene_file_path();
             if (path.is_empty()) {
                 return ToolResult::err("NO_PATH",
@@ -54,12 +53,12 @@ protected:
             // Use save_scene_as(path, false) directly to bypass EditorProgress
             // (_save_scene_with_preview). EditorProgress::step() calls
             // Main::iteration() internally, which triggers a recursive
-            // _process() â†’ http_server_.poll() and causes crashes.
+            // _process() â†?http_server_.poll() and causes crashes.
             ei->save_scene_as(path, false);
         } else {
             if (!path.ends_with(".tscn") && !path.ends_with(".scn")) {
                 return ToolResult::err("BAD_EXTENSION",
-                    "Path must end with .tscn or .scn"));
+                    "Path must end with .tscn or .scn");
             }
             if (!ensure_parent_dir(path)) {
                 return ToolResult::err("MKDIR_FAILED",
@@ -75,3 +74,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

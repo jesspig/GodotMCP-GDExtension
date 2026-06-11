@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -45,7 +44,7 @@ protected:
         }
         if (!path.ends_with(".gd")) {
             return ToolResult::err("BAD_EXTENSION",
-                "Path must end with .gd"));
+                "Path must end with .gd");
         }
         if (!FileAccess::file_exists(path)) {
             return ToolResult::err("NOT_FOUND",
@@ -75,3 +74,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

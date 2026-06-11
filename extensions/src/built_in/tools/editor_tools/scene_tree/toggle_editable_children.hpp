@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -56,7 +55,7 @@ protected:
         }
         if (node->get_scene_file_path().is_empty()) {
             return ToolResult::err("NOT_AN_INSTANCE",
-                "Node is not a scene instance (no scene_file_path)"));
+                "Node is not a scene instance (no scene_file_path)");
         }
         bool current = node->is_editable_instance(node);
         bool enable;
@@ -91,3 +90,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

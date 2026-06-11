@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -38,18 +38,18 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
-            return ToolResult::err("NO_EDITOR", String::utf8("EditorInterface 不可用"));
+            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
         String path = args_string(ctx.args, "scene_path");
         if (path.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("scene_path 不能为空"));
+            return ToolResult::err("MISSING_ARG", "scene_path cannot be empty");
         }
         if (!path.begins_with("res://")) {
-            return ToolResult::err("INVALID_PATH", String::utf8("scene_path 必须以 res:// 开头"));
+            return ToolResult::err("INVALID_PATH", "scene_path must start with res://");
         }
         if (!ResourceLoader::get_singleton()->exists(path)) {
             return ToolResult::err("SCENE_FILE_MISSING",
-                String::utf8("场景文件不存在: ") + path);
+                "Scene file does not exist: " + path);
         }
         ei->play_custom_scene(path);
         Dictionary data;
@@ -61,3 +61,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

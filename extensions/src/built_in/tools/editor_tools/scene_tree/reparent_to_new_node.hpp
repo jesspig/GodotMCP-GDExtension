@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -72,7 +71,7 @@ protected:
         Node *old_parent = node->get_parent();
         if (!old_parent) {
             return ToolResult::err("ORPHAN_NODE",
-                "Node has no parent"));
+                "Node has no parent");
         }
         if (new_name.is_empty()) new_name = new_class;
 
@@ -132,3 +131,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

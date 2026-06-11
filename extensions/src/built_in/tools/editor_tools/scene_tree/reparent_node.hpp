@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -77,20 +76,20 @@ protected:
         }
         if (new_parent == node) {
             return ToolResult::err("SELF_PARENT",
-                "Cannot set a node as its own parent"));
+                "Cannot set a node as its own parent");
         }
         // detect descendant
         Node *cur = new_parent;
         while (cur) {
             if (cur == node) {
                 return ToolResult::err("DESCENDANT_PARENT",
-                    "New parent is a descendant of the original node"));
+                    "New parent is a descendant of the original node");
             }
             cur = cur->get_parent();
         }
 
         if (new_parent == old_parent) {
-            // Same parent: just reorder. Defer to move_node tool â€” but still
+            // Same parent: just reorder. Defer to move_node tool â€?but still
             // allow this to function as a no-op-with-reorder for convenience.
             int64_t cur_idx = node->get_index();
             int64_t target = index;
@@ -157,3 +156,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

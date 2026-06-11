@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -73,13 +73,13 @@ protected:
         Node *node = resolve_node(ctx.root, anim_player_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("AnimationPlayer not found: ") + anim_player_path);
+                String("AnimationPlayer not found: ") + anim_player_path);
         }
 
         AnimationPlayer *player = Object::cast_to<AnimationPlayer>(node);
         if (!player) {
             return ToolResult::err("WRONG_TYPE",
-                String::utf8("Node is not an AnimationPlayer: ") + anim_player_path);
+                String("Node is not an AnimationPlayer: ") + anim_player_path);
         }
 
         // Resolve library: auto-find first if empty
@@ -98,12 +98,12 @@ protected:
 
         if (library.is_null()) {
             return ToolResult::err("LIBRARY_NOT_FOUND",
-                String::utf8("AnimationLibrary not found: ") + library_name);
+                String("AnimationLibrary not found: ") + library_name);
         }
 
         if (library->has_animation(StringName(clip_name))) {
             return ToolResult::err("CLIP_EXISTS",
-                String::utf8("Animation clip already exists: ") + clip_name);
+                String("Animation clip already exists: ") + clip_name);
         }
 
         Ref<Animation> animation;
@@ -119,7 +119,7 @@ protected:
             library->add_animation(StringName(clip_name), animation);
             mark_scene_dirty();
         } else {
-            ur->create_action(String::utf8("MCP: Create Animation Clip"),
+            ur->create_action(String("MCP: Create Animation Clip"),
                               UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(library.ptr(), "add_animation",
                               StringName(clip_name), animation);
@@ -138,3 +138,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

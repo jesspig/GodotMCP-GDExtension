@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -63,16 +63,16 @@ protected:
 
         Node *source = resolve_node(ctx.root, path);
         if (!source)
-            return ToolResult::err("NODE_NOT_FOUND", String::utf8("源节点未找到: ") + path);
+            return ToolResult::err("NODE_NOT_FOUND", String("婧愯妭鐐规湭鎵惧埌: ") + path);
 
         Node *target = resolve_node(ctx.root, target_path);
         if (!target)
-            return ToolResult::err("NODE_NOT_FOUND", String::utf8("目标节点未找到: ") + target_path);
+            return ToolResult::err("NODE_NOT_FOUND", String("鐩爣鑺傜偣鏈壘鍒? ") + target_path);
 
         Callable callable(target, target_method);
         if (!source->is_connected(signal_name, callable)) {
             return ToolResult::err("NOT_CONNECTED",
-                String::utf8("信号未连接: ") + signal_name);
+                String("淇″彿鏈繛鎺? ") + signal_name);
         }
 
         source->disconnect(signal_name, callable);
@@ -87,3 +87,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

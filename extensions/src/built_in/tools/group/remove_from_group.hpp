@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -53,12 +52,12 @@ protected:
         Node *node = resolve_node(ctx.root, path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + path);
+                String::utf8("节点未找�? ") + path);
         }
 
         if (!node->is_in_group(group_name)) {
             return ToolResult::err("NOT_IN_GROUP",
-                String::utf8("节点不在分组中: ") + group_name);
+                String::utf8("节点不在分组�? ") + group_name);
         }
 
         node->remove_from_group(group_name);

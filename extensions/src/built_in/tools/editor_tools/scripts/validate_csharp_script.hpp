@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -47,7 +46,7 @@ protected:
         }
         if (!path.ends_with(".cs")) {
             return ToolResult::err("BAD_EXTENSION",
-                "Path must end with .cs"));
+                "Path must end with .cs");
         }
         if (!FileAccess::file_exists(path)) {
             return ToolResult::err("NOT_FOUND",
@@ -56,13 +55,13 @@ protected:
 
         if (!script_utils::has_dotnet()) {
             return ToolResult::err("NO_DOTNET",
-                ".NET is not enabled, cannot validate C# script"));
+                ".NET is not enabled, cannot validate C# script");
         }
 
         OS *os = OS::get_singleton();
         if (!os) {
             return ToolResult::err("NO_OS",
-                "OS singleton not available"));
+                "OS singleton not available");
         }
 
         ProjectSettings *ps = ProjectSettings::get_singleton();
@@ -87,3 +86,4 @@ protected:
 };
 
 } // namespace godot_mcp
+

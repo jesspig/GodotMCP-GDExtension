@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -48,26 +47,26 @@ protected:
         String prop_name = args_string(ctx.args, "property_name");
 
         if (prop_name.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("property_name 不能为空"));
+            return ToolResult::err("MISSING_ARG", String("property_name cannot be empty"));
         }
 
         Node *node = resolve_node(ctx.root, path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + path);
+                String("Node not found ") + path);
         }
 
         Variant val = node->get(prop_name);
         Object *obj = val;
         if (!obj) {
             return ToolResult::err("NOT_A_RESOURCE",
-                String::utf8("该属性当前没有值"));
+                String("Property does not currently have a value"));
         }
 
         Resource *res = Object::cast_to<Resource>(obj);
         if (!res) {
             return ToolResult::err("NOT_A_RESOURCE",
-                String::utf8("该属性不是 Resource 类型: ") + obj->get_class());
+                String("Property is not a Resource type: ") + obj->get_class());
         }
 
         Dictionary data;

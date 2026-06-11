@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -54,7 +53,7 @@ protected:
         Node *node = resolve_node(ctx.root, path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + path);
+                String::utf8("节点未找�? ") + path);
         }
 
         undoable_set(node, prop_name, Variant(),

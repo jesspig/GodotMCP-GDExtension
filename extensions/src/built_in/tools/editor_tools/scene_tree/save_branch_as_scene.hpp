@@ -1,4 +1,3 @@
-// @tool register
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -23,7 +22,7 @@ public:
     String description() const override {
         return "Packs the specified node and its subtree into a PackedScene and writes it to a res:// path. "
                "After saving, the branch can be re-instantiated using the instance_child_scene tool. "
-               "This tool performs a structural transformation â€” undo does not restore the file (only affects the node structure).";
+               "This tool performs a structural transformation â€?undo does not restore the file (only affects the node structure).";
     }
     Dictionary input_schema() const override {
         Dictionary props;
@@ -57,7 +56,7 @@ protected:
         }
         if (!path.ends_with(".tscn")) {
             return ToolResult::err("BAD_EXTENSION",
-                "Path must end with .tscn"));
+                "Path must end with .tscn");
         }
 
         Node *node = resolve_node(ctx.root, node_path);
@@ -67,7 +66,7 @@ protected:
         }
         if (node == ctx.root) {
             return ToolResult::err("ROOT_NOT_ALLOWED",
-                "Cannot save the scene root as a sub-scene, please select another node"));
+                "Cannot save the scene root as a sub-scene, please select another node");
         }
 
         if (!ensure_parent_dir(path)) {
@@ -83,7 +82,7 @@ protected:
         if (packed.is_null()) {
             node->set_scene_file_path(old_sfp);
             return ToolResult::err("PACK_FAILED",
-                "Failed to pack node"));
+                "Failed to pack node");
         }
 
         godot::Error err = godot::ResourceSaver::get_singleton()->save(packed, path);
@@ -103,3 +102,4 @@ protected:
 };
 
 }  // namespace godot_mcp
+

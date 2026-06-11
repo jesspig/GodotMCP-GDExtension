@@ -1,4 +1,4 @@
-// @tool register
+﻿
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -31,7 +31,7 @@ protected:
     Dictionary execute_impl(const ToolContext &) override {
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
-            return ToolResult::err("NO_EDITOR", String::utf8("EditorInterface 不可用"));
+            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
         bool was_playing = ei->is_playing_scene();
         ei->stop_playing_scene();
@@ -50,3 +50,4 @@ protected:
 };
 
 } // namespace godot_mcp
+
