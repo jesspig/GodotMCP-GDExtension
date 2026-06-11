@@ -57,6 +57,8 @@ public:
     // ── 能力声明（组合优于继承）──
     virtual bool needs_scene() const { return false; }
     virtual bool needs_node() const { return false; }
+    virtual bool supports_undo() const { return false; }
+    virtual bool is_destructive() const { return false; }
 
     // ── 依赖注入 ──
     // HandlerRegistry 在注册时调用此方法注入自身指针，meta 工具需要用它回调查询
