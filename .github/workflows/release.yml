@@ -53,6 +53,11 @@ jobs:
       contents: write
 
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate config files
+        run: cmake -B build -S .
+
       - name: Download GDExtension artifacts
         uses: actions/download-artifact@v4
         with:
@@ -65,6 +70,8 @@ jobs:
           cp libs/gdext-windows-latest/godot_mcp_gdext.dll godot/addons/godot_mcp/bin/
           cp libs/gdext-ubuntu-latest/libgodot_mcp_gdext.so godot/addons/godot_mcp/bin/
           cp libs/gdext-macos-latest/libgodot_mcp_gdext.dylib godot/addons/godot_mcp/bin/
+          cp build/example/addons/godot_mcp/plugin.cfg godot/addons/godot_mcp/
+          cp build/example/addons/godot_mcp/godot_mcp.gdextension godot/addons/godot_mcp/
           cd godot/addons
           zip -r ../../addons.zip godot_mcp/
 

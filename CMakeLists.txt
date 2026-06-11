@@ -60,7 +60,7 @@ file(WRITE "${_addon_dir}/plugin.cfg"
     "[plugin]\n"
     "name=\"Godot MCP\"\n"
     "description=\"Model Context Protocol bridge for Godot Engine.\"\n"
-    "author=\"\"\n"
+    "author=\"JessPig\"\n"
     "version=\"${PROJECT_VERSION}\"\n"
     "script=\"\"\n"
 )
