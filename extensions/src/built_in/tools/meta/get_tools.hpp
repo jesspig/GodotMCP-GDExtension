@@ -12,10 +12,10 @@ public:
 
     String name() const override { return "get_tools"; }
     String category() const override { return "meta_tools"; }
-    String brief() const override { return String::utf8("列出指定分类路径下的所有工具"); }
+    String brief() const override { return String("List all tools under a category path"); }
     String description() const override {
-        return String::utf8("根据分类路径返回该分类下所有工具的简要信息列表（id、name、description），"
-                            "不包含子分类的工具。");
+        return String("Returns a brief list (id, name, description) of all tools registered "
+                      "under the given category path. Does not include tools from subcategories.");
     }
     Dictionary input_schema() const override {
         Dictionary schema;
@@ -23,7 +23,7 @@ public:
         Dictionary props;
         Dictionary cat;
         cat["type"] = "string";
-        cat["description"] = String::utf8("分类路径，如 meta_tools、node_tools/property/CanvasItem");
+        cat["description"] = String("Category path, e.g. meta_tools, node_tools/property/CanvasItem");
         props["category"] = cat;
         schema["properties"] = props;
         Array req;

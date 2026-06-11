@@ -15,19 +15,19 @@ public:
     String name() const override { return "detach_script"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("移除节点上的脚本");
+        return "Remove the script from a node";
     }
     String description() const override {
-        return String::utf8("通过 set_script(Variant()) 移除节点上的脚本。"
-                            "Ctrl+Z 会恢复原有脚本。"
-                            "如果节点没有脚本，返回 NO_SCRIPT 错误（不视为 no-op）。");
+        return "Removes the script from a node via set_script(Variant()). "
+               "Ctrl+Z restores the original script. "
+               "If the node has no script, returns a NO_SCRIPT error (not treated as no-op).";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径");
+            p["description"] = "Node path";
             props["node_path"] = p;
         }
         Dictionary s;
@@ -45,18 +45,18 @@ protected:
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + node_path);
+                "Node not found: " + node_path);
         }
         godot::Ref<godot::Script> old_script = node->get_script();
         if (old_script.is_null()) {
             return ToolResult::err("NO_SCRIPT",
-                String::utf8("节点没有附加脚本: ") + node_path);
+                "Node has no script attached: " + node_path);
         }
         String old_path = old_script->get_path();
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
-            ur->create_action(String::utf8("MCP: Detach Script"),
+            ur->create_action("MCP: Detach Script",
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "set_script", godot::Variant());
             ur->add_undo_method(node, "set_script", old_script);

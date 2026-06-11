@@ -12,10 +12,10 @@ public:
 
     String name() const override { return "get_categories"; }
     String category() const override { return "meta_tools"; }
-    String brief() const override { return String::utf8("以树型结构列出工具分类，支持路径钻取和深度控制"); }
+    String brief() const override { return String("List tool categories as a tree, supporting path drilling and depth control"); }
     String description() const override {
-        return String::utf8("返回工具分类树。可指定 path 钻取到特定分类，"
-                            "max_depth 控制展开深度（默认 3，-1 为无限制）。");
+        return String("Returns the tool category tree. Specify path to drill into a specific "
+                      "category, and max_depth to control expansion depth (default 3, -1 for unlimited).");
     }
     Dictionary input_schema() const override {
         Dictionary schema;
@@ -24,12 +24,12 @@ public:
 
         Dictionary p;
         p["type"] = "string";
-        p["description"] = String::utf8("分类路径，空则从根开始。如 node_tools/property/Node/CanvasItem");
+        p["description"] = String("Category path, empty starts from root. E.g. node_tools/property/Node/CanvasItem");
         props["path"] = p;
 
         Dictionary d;
         d["type"] = "integer";
-        d["description"] = String::utf8("最大深度（默认 3，-1 为无限制）");
+        d["description"] = String("Maximum depth (default 3, -1 for unlimited)");
         props["max_depth"] = d;
 
         schema["properties"] = props;
@@ -108,7 +108,7 @@ protected:
             Dictionary found = find_path_node(all, segments, 0, max_depth, 1);
             if (found.is_empty()) {
                 return ToolResult::err("CATEGORY_NOT_FOUND",
-                    String::utf8("未找到分类路径: ") + path);
+                    String("Category path not found: ") + path);
             }
             result.push_back(found);
         }

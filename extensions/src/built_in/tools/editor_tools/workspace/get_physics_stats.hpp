@@ -13,7 +13,7 @@ class GetPhysicsStatsTool : public ITool {
 public:
     String name() const override { return "get_physics_stats"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("获取物理引擎统计信息"); }
+    String brief() const override { return String("Get physics engine statistics"); }
     String description() const override { return brief(); }
 
     Dictionary input_schema() const override {

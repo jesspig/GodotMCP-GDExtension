@@ -14,30 +14,30 @@ public:
     String name() const override { return "reparent_node"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("更改节点的父节点");
+        return "Change a node's parent";
     }
     String description() const override {
-        return String::utf8("将指定节点移动到 new_parent 下。index=-1 表示追加到末尾。"
-                            "如果新父节点是原节点的后代会自动检测并拒绝。所有变更可撤销。");
+        return "Moves the specified node under new_parent. index=-1 appends at the end. "
+               "If the new parent is a descendant of the original node, the operation is automatically detected and rejected. All changes are undoable.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("要移动的节点路径");
+            p["description"] = "Node path to move";
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("新父节点路径");
+            p["description"] = "New parent node path";
             props["new_parent_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("在新父节点中的插入位置（-1 = 末尾）");
+            p["description"] = "Insert position in the new parent (-1 = end)";
             p["default"] = (int64_t)-1;
             props["index"] = p;
         }
@@ -57,34 +57,34 @@ protected:
         int64_t index = args_int(ctx.args, "index", -1);
 
         if (new_parent_path.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("new_parent_path 不能为空"));
+            return ToolResult::err("MISSING_ARG", "new_parent_path cannot be empty");
         }
 
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + node_path);
+                "Node not found: " + node_path);
         }
         Node *old_parent = node->get_parent();
         if (!old_parent) {
             return ToolResult::err("ORPHAN_NODE",
-                String::utf8("节点无父节点"));
+                "Node has no parent");
         }
         Node *new_parent = resolve_node(ctx.root, new_parent_path);
         if (!new_parent) {
             return ToolResult::err("PARENT_NOT_FOUND",
-                String::utf8("新父节点未找到: ") + new_parent_path);
+                "New parent node not found: " + new_parent_path);
         }
         if (new_parent == node) {
             return ToolResult::err("SELF_PARENT",
-                String::utf8("不能将节点设为自己的父节点"));
+                "Cannot set a node as its own parent"));
         }
         // detect descendant
         Node *cur = new_parent;
         while (cur) {
             if (cur == node) {
                 return ToolResult::err("DESCENDANT_PARENT",
-                    String::utf8("新父节点是原节点的后代"));
+                    "New parent is a descendant of the original node"));
             }
             cur = cur->get_parent();
         }
@@ -101,9 +101,9 @@ protected:
                 data["changed"] = false;
                 return ToolResult::ok(data);
             }
-            godot::EditorUndoRedoManager *ur = get_undo_redo();
-            if (ur) {
-                ur->create_action(String::utf8("MCP: Reparent (reorder)"),
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        if (ur) {
+            ur->create_action("MCP: Reparent (reorder)",
                                   godot::UndoRedo::MERGE_DISABLE, ctx.root);
                 ur->add_do_method(new_parent, "move_child", node, target);
                 ur->add_undo_method(new_parent, "move_child", node, cur_idx);
@@ -126,7 +126,7 @@ protected:
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
-            ur->create_action(String::utf8("MCP: Reparent ") + node->get_name(),
+            ur->create_action("MCP: Reparent " + node->get_name(),
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(old_parent, "remove_child", node);
             ur->add_do_method(new_parent, "add_child", node, true,

@@ -15,10 +15,10 @@ public:
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
     String name() const override { return "stop_project"; }
     String category() const override { return "runtime_tools/lifecycle"; }
-    String brief() const override { return String::utf8("停止运行中的项目"); }
+    String brief() const override { return String("Stop the running project"); }
     String description() const override {
-        return String::utf8("停止当前正在运行的项目。等同于在编辑器中按 F8（或点击「停止」按钮）。"
-                             "如果项目未运行则不做任何操作。");
+        return String("Stops the currently running project. Equivalent to pressing F8 (or clicking the Stop button) in the editor. "
+                             "Does nothing if the project is not running.");
     }
     Dictionary input_schema() const override {
         Dictionary s;

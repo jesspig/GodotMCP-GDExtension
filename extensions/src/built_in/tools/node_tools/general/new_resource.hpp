@@ -14,31 +14,31 @@ public:
     String name() const override { return "new_resource"; }
     String category() const override { return "node_tools/general"; }
     String brief() const override {
-        return String::utf8("创建新的默认资源");
+        return String("Create a new default resource");
     }
     String description() const override {
-        return String::utf8("为节点属性创建一个新的默认资源实例。"
-                            "如果属性已有资源，将被替换为新实例。"
-                            "资源类型由属性定义决定，也可以通过 resource_type 参数指定。");
+        return String("Creates a new default resource instance for a node property. "
+                            "If the property already has a resource, it will be replaced. "
+                            "The resource type is determined by the property definition, or can be specified via the resource_type parameter.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径（空=当前编辑场景根节点）");
+            p["description"] = String("Node path (empty = root node of current edited scene)");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("属性名称（如 texture、material）");
+            p["description"] = String("Property name (e.g. texture, material)");
             props["property_name"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选的资源类型名（如 Texture2D、Material），不填则从属性定义自动检测");
+            p["description"] = String("Optional resource type name (e.g. Texture2D, Material); auto-detected from property definition if not specified");
             props["resource_type"] = p;
         }
         Dictionary s;

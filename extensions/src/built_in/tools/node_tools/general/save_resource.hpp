@@ -15,29 +15,29 @@ public:
     String name() const override { return "save_resource"; }
     String category() const override { return "node_tools/general"; }
     String brief() const override {
-        return String::utf8("保存资源到文件");
+        return String("Save a resource to file");
     }
     String description() const override {
-        return String::utf8("将节点属性上的资源保存到指定文件路径。支持 .tres（文本）和 .res（二进制）格式。");
+        return String("Saves the resource on a node property to a file path. Supports .tres (text) and .res (binary) formats.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径（空=当前编辑场景根节点）");
+            p["description"] = String("Node path (empty = root node of current edited scene)");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("属性名称（如 texture、material）");
+            p["description"] = String("Property name (e.g. texture, material)");
             props["property_name"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("保存路径（res:// 或 user:// 开头，如 res://assets/my_resource.tres）");
+            p["description"] = String("Save path (res:// or user:// prefix, e.g. res://assets/my_resource.tres)");
             props["save_path"] = p;
         }
         Dictionary s;

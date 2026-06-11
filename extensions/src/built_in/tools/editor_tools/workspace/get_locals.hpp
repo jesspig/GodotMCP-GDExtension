@@ -15,7 +15,7 @@ class GetLocalsTool : public ITool {
 public:
     String name() const override { return "get_locals"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("获取当前栈帧的局部变量"); }
+    String brief() const override { return String("Get local variables of current stack frame"); }
     String description() const override { return brief(); }
 
     Dictionary input_schema() const override {
@@ -23,7 +23,7 @@ public:
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("栈帧索引（默认 0）");
+            p["description"] = String("Stack frame index (default 0)");
             p["default"] = 0;
             props["frame"] = p;
         }
@@ -40,7 +40,7 @@ protected:
 
         Object *debugger = _find_debugger_node();
         if (!debugger)
-            return ToolResult::err("NO_DEBUGGER", "未找到 EditorDebuggerNode");
+            return ToolResult::err("NO_DEBUGGER", "EditorDebuggerNode not found");
 
         Object *active_dbg = debugger->call("get_current_debugger");
         if (!active_dbg) {

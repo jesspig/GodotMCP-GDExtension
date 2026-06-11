@@ -14,26 +14,26 @@ public:
     String name() const override { return "copy_file"; }
     String category() const override { return "editor_tools/filesystem"; }
     String brief() const override {
-        return String::utf8("复制文件或目录");
+        return "Copy a file or directory";
     }
     String description() const override {
-        return String::utf8("将文件或目录从 source 复制到 destination。"
-                            "文件使用 DirAccess::copy_absolute()，"
-                            "目录使用递归复制（自动创建目标目录）。"
-                            "包含 addons 目录时不变更。");
+        return "Copies a file or directory from source to destination. "
+               "Files use DirAccess::copy_absolute(), "
+               "directories use recursive copy (automatically creates target directories). "
+               "The addons directory is not modified.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("源路径（res:// 开头）");
+            p["description"] = "Source path (res:// prefix)";
             props["source"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标路径（res:// 开头）");
+            p["description"] = "Destination path (res:// prefix)";
             props["destination"] = p;
         }
         Dictionary s;
@@ -58,11 +58,11 @@ protected:
         }
         if (!fs_utils::path_exists(source)) {
             return ToolResult::err("NOT_FOUND",
-                String::utf8("源路径不存在: ") + source);
+                "Source path does not exist: " + source);
         }
         if (!fs_utils::ensure_parent_dir(destination)) {
             return ToolResult::err("MKDIR_FAILED",
-                String::utf8("无法创建目标父目录"));
+                "Failed to create target parent directory"));
         }
 
         Error err;
@@ -74,7 +74,7 @@ protected:
 
         if (err != Error::OK) {
             return ToolResult::err("COPY_FAILED",
-                String::utf8("复制失败，错误码: ") + String::num_int64((int64_t)err));
+                "Copy failed, error code: " + String::num_int64((int64_t)err));
         }
 
         fs_utils::notify_fs_changes();

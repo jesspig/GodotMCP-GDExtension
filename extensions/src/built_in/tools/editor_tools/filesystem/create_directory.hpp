@@ -14,19 +14,19 @@ public:
     String name() const override { return "create_directory"; }
     String category() const override { return "editor_tools/filesystem"; }
     String brief() const override {
-        return String::utf8("创建目录");
+        return "Create a directory";
     }
     String description() const override {
-        return String::utf8("在指定的 res:// 路径创建一个或多个目录（mkdir -p）。"
-                            "使用 DirAccess::make_dir_recursive_absolute() 实现。"
-                            "可以一次创建嵌套目录。");
+        return "Creates one or more directories at the specified res:// path (mkdir -p). "
+               "Uses DirAccess::make_dir_recursive_absolute(). "
+               "Can create nested directories in one call.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("要创建的目录路径（res:// 开头）");
+            p["description"] = "Directory path to create (res:// prefix)";
             props["path"] = p;
         }
         Dictionary s;
@@ -46,13 +46,13 @@ protected:
         }
         if (fs_utils::path_exists(path)) {
             return ToolResult::err("ALREADY_EXISTS",
-                String::utf8("路径已存在: ") + path);
+                "Path already exists: " + path);
         }
 
         Error err = DirAccess::make_dir_recursive_absolute(path);
         if (err != Error::OK) {
             return ToolResult::err("MKDIR_FAILED",
-                String::utf8("创建目录失败，错误码: ") + String::num_int64((int64_t)err));
+                "Failed to create directory, error code: " + String::num_int64((int64_t)err));
         }
 
         fs_utils::notify_fs_changes();

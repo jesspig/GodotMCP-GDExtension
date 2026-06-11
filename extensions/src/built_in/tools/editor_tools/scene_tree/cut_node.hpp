@@ -16,18 +16,18 @@ public:
     String name() const override { return "cut_node"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("剪切节点到剪贴板（同时删除原节点）");
+        return "Cut a node to the clipboard (deleting the original)";
     }
     String description() const override {
-        return String::utf8("等价于 copy_node + delete_node 组合，但合并为单一 undo action。"
-                            "粘贴前剪贴板持续有效；Ctrl+Z 可恢复被剪切节点。所有变更可撤销。");
+        return "Equivalent to copy_node + delete_node combined, but merged into a single undo action. "
+               "The clipboard remains valid until pasted; Ctrl+Z restores the cut node. All changes are undoable.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径");
+            p["description"] = "Node path";
             props["node_path"] = p;
         }
         Dictionary s;
@@ -45,30 +45,30 @@ protected:
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + node_path);
+                "Node not found: " + node_path);
         }
         if (node == ctx.root) {
             return ToolResult::err("ROOT_NOT_ALLOWED",
-                String::utf8("不能剪切场景根节点"));
+                "Cannot cut the scene root node");
         }
         Node *parent = node->get_parent();
         if (!parent) {
             return ToolResult::err("ORPHAN_NODE",
-                String::utf8("节点无父节点"));
+                "Node has no parent");
         }
 
         // Pack first (before removal)
         Ref<PackedScene> scene = scene_tree_utils::pack_subtree(node);
         if (scene.is_null()) {
             return ToolResult::err("PACK_FAILED",
-                String::utf8("打包节点失败"));
+                "Failed to pack node");
         }
         scene_tree_utils::set_clipboard(scene);
 
         int64_t index = node->get_index();
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
-            ur->create_action(String::utf8("MCP: Cut ") + node->get_name(),
+            ur->create_action("MCP: Cut " + node->get_name(),
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "remove_child", node);
             ur->add_undo_method(parent, "add_child", node, true,

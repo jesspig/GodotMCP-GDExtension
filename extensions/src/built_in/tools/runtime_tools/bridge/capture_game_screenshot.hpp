@@ -13,10 +13,10 @@ class CaptureGameScreenshotTool : public ITool {
 public:
     String name() const override { return "capture_game_screenshot"; }
     String category() const override { return "runtime_tools/bridge"; }
-    String brief() const override { return String::utf8("截取运行中游戏的游戏视口"); }
+    String brief() const override { return String("Capture the game viewport of a running game"); }
     String description() const override {
-        return String::utf8("截取运行中游戏的游戏视口截图，返回 Base64 编码的图片数据。"
-                             "format 可选 png（默认）或 jpg。");
+        return String("Captures a screenshot of the running game's viewport and returns base64-encoded image data. "
+                             "format can be png (default) or jpg.");
     }
     bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
@@ -26,7 +26,7 @@ public:
         {
             Dictionary d;
             d["type"] = "string";
-            d["description"] = "图片格式：png 或 jpg（默认 png）";
+            d["description"] = "Image format: png or jpg (default png)";
             d["default"] = "png";
             p["format"] = d;
         }

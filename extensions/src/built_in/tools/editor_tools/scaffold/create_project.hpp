@@ -17,11 +17,11 @@ class CreateProjectTool : public ITool {
 public:
     String name() const override { return "create_project"; }
     String category() const override { return "editor_tools/scaffold"; }
-    String brief() const override { return String::utf8("创建新 Godot 项目"); }
+    String brief() const override { return "Create a new Godot project"; }
     String description() const override {
-        return String::utf8("在指定路径创建新的 Godot 项目。"
-                            "会创建 project.godot 配置文件、主场景、默认环境和图标。"
-                            "WARNING：此操作为文件系统写入，无法撤销。");
+        return "Creates a new Godot project at the specified path. "
+               "Creates project.godot config file, main scene, default environment, and icon. "
+               "WARNING: This operation writes to the filesystem and cannot be undone.";
     }
 
     Dictionary input_schema() const override {
@@ -29,26 +29,26 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("项目路径（绝对路径）");
+            p["description"] = "Project path (absolute path)";
             props["project_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("项目名称");
+            p["description"] = "Project name";
             props["project_name"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("模板类型: 2d, 3d, empty");
+            p["description"] = "Template type: 2d, 3d, empty";
             p["default"] = "2d";
             props["template"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("是否包含默认环境");
+            p["description"] = "Whether to include default environment";
             p["default"] = true;
             props["include_default_env"] = p;
         }
@@ -77,10 +77,10 @@ protected:
             Error err = DirAccess::make_dir_recursive_absolute(project_path);
             if (err != Error::OK)
                 return ToolResult::err("MKDIR_FAILED",
-                    String::utf8("无法创建项目目录: ") + project_path);
+                    "Failed to create project directory: " + project_path);
             dir = DirAccess::open(project_path);
             if (dir.is_null())
-                return ToolResult::err("NO_DIR", String::utf8("无法打开项目目录: ") + project_path);
+                return ToolResult::err("NO_DIR", "Failed to open project directory: " + project_path);
         }
 
         Array files_created;
@@ -89,7 +89,7 @@ protected:
         String project_config = _make_project_config(project_name);
         Error err = _write_file(project_path + "project.godot", project_config);
         if (err != Error::OK)
-            return ToolResult::err("WRITE_FAILED", String::utf8("创建 project.godot 失败"));
+            return ToolResult::err("WRITE_FAILED", "Failed to create project.godot");
         files_created.append(project_path + "project.godot");
 
         // Create icon.svg
@@ -103,7 +103,7 @@ protected:
             String scene_content = _make_main_scene(tmpl);
             err = _write_file(project_path + "main.tscn", scene_content);
             if (err != Error::OK)
-                return ToolResult::err("WRITE_FAILED", String::utf8("创建 main.tscn 失败"));
+                return ToolResult::err("WRITE_FAILED", "Failed to create main.tscn");
             files_created.append(project_path + "main.tscn");
 
             // Add main scene to project settings config
@@ -111,7 +111,7 @@ protected:
             config_line += "run/main_scene=\"res://main.tscn\"\n";
             err = _append_file(project_path + "project.godot", config_line);
             if (err != Error::OK)
-                return ToolResult::err("WRITE_FAILED", String::utf8("更新 project.godot 失败"));
+                return ToolResult::err("WRITE_FAILED", "Failed to update project.godot");
         }
 
         // Create default_env.tres

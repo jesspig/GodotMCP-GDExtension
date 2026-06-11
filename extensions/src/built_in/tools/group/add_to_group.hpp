@@ -13,30 +13,30 @@ public:
     String name() const override { return "add_to_group"; }
     String category() const override { return "node_tools/group"; }
     String brief() const override {
-        return String::utf8("将节点添加到指定分组");
+        return String("Add a node to a group");
     }
     String description() const override {
-        return String::utf8("将一个节点添加到场景分组（Group）中。"
-                            "persistent=true 表示该分组关系在场景保存时持久化。");
+        return String("Adds a node to a scene group. "
+                            "persistent=true means the group relationship is saved when the scene is saved.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径（空=当前编辑场景根节点）");
+            p["description"] = String("Node path (empty = root node of current edited scene)");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("分组名称");
+            p["description"] = String("Group name");
             props["group_name"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("是否持久化（保存到场景文件）");
+            p["description"] = String("Whether to persist (save to scene file)");
             props["persistent"] = p;
         }
         Dictionary s;

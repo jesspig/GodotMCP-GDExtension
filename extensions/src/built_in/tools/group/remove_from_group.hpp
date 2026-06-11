@@ -13,23 +13,23 @@ public:
     String name() const override { return "remove_from_group"; }
     String category() const override { return "node_tools/group"; }
     String brief() const override {
-        return String::utf8("将节点从指定分组中移除");
+        return String("Remove a node from a group");
     }
     String description() const override {
-        return String::utf8("将节点从场景分组（Group）中移除。如果节点不在该分组中则返回错误。");
+        return String("Removes a node from a scene group. Returns an error if the node is not in the group.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径（空=当前编辑场景根节点）");
+            p["description"] = String("Node path (empty = root node of current edited scene)");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("分组名称");
+            p["description"] = String("Group name");
             props["group_name"] = p;
         }
         Dictionary s;

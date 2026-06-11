@@ -17,24 +17,24 @@ public:
     String name() const override { return "get_signal_connections"; }
     String category() const override { return "node_tools/signal"; }
     String brief() const override {
-        return String::utf8("列出节点指定信号的所有现有连接");
+        return String("List all connections for a node signal");
     }
     String description() const override {
-        return String::utf8("返回指定节点上某个信号（或全部信号）已建立的连接列表，"
-                            "包含每个连接的目标对象、方法名和标志位。");
+        return String("Returns the list of established connections for a given signal (or all signals) on the specified node, "
+                            "including target object, method name and flags for each connection.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径");
+            p["description"] = String("Node path");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("信号名称（留空则列出所有信号的所有连接）");
+            p["description"] = String("Signal name (leave empty to list connections for all signals)");
             props["signal_name"] = p;
         }
         Dictionary s;

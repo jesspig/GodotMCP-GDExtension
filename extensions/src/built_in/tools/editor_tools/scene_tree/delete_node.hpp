@@ -16,24 +16,24 @@ public:
     String name() const override { return "delete_node"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("从场景中删除节点（含子节点）");
+        return "Delete a node and its children from the scene";
     }
     String description() const override {
-        return String::utf8("删除指定节点及其所有子节点。默认不能在 safe_mode 下删除根节点。"
-                            "所有变更通过 EditorUndoRedoManager 提交，可通过 Ctrl+Z 恢复被删节点。");
+        return "Deletes the specified node and all its children. Root node deletion is restricted by default. "
+               "All changes go through EditorUndoRedoManager and can be restored with Ctrl+Z.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("要删除的节点路径（空 = 根节点，不允许）");
+            p["description"] = "Node path to delete (empty = root, not allowed)";
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("是否强制删除根节点（危险：可能丢失未保存数据）");
+            p["description"] = "Force delete root node (dangerous: may lose unsaved data)";
             p["default"] = false;
             props["force"] = p;
         }
@@ -53,17 +53,17 @@ protected:
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + node_path);
+                "Node not found: " + node_path);
         }
         if (node == ctx.root && !force) {
             return ToolResult::err("ROOT_DELETE",
-                String::utf8("不能删除场景根节点；如确认要删除请传 force=true"));
+                "Cannot delete the scene root node; pass force=true to override");
         }
 
         Node *parent = node->get_parent();
         if (!parent) {
             return ToolResult::err("ORPHAN_NODE",
-                String::utf8("节点没有父节点，无法通过 add_child 流程删除"));
+                "Node has no parent, cannot be removed through add_child flow");
         }
 
         String deleted_path = relative_path(ctx.root, node);
@@ -75,7 +75,7 @@ protected:
             parent->remove_child(node);
             memdelete(node);
         } else {
-            ur->create_action(String::utf8("MCP: Delete ") + deleted_type,
+            ur->create_action("MCP: Delete " + deleted_type,
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
 
             ur->add_do_method(parent, "remove_child", node);
@@ -84,13 +84,13 @@ protected:
             ur->add_undo_method(parent, "move_child", node, index);
             ur->add_undo_method(node, "set_owner", ctx.root);
 
-            ur->add_do_reference(node);  // 保护被删对象在 do 后存活
-            ur->add_undo_reference(node);  // 保护被删对象在 undo 时可恢复
+            ur->add_do_reference(node);
+            ur->add_undo_reference(node);
 
             ur->commit_action();
         }
 
-        // 清空选择
+        // Clear selection
         EditorInterface *ei = EditorInterface::get_singleton();
         if (ei) {
             EditorSelection *sel = ei->get_selection();

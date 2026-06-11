@@ -18,11 +18,11 @@ class GetProjectGraphTool : public ITool {
 public:
     String name() const override { return "get_project_graph"; }
     String category() const override { return "editor_tools/visualizer"; }
-    String brief() const override { return String::utf8("获取项目的场景依赖关系图"); }
+    String brief() const override { return "Get the project's scene dependency graph"; }
     String description() const override {
-        return String::utf8("扫描项目中的 .tscn 文件，分析场景依赖关系。"
-                            "返回节点（scene 文件）和边（child/signal/resource 依赖）的列表。"
-                            "同时返回当前编辑器打开的场景结构。仅读操作，无副作用。");
+        return "Scans .tscn files in the project and analyzes scene dependencies. "
+               "Returns a list of nodes (scene files) and edges (child/signal/resource dependencies). "
+               "Also returns the structure of the currently open scene in the editor. Read-only operation with no side effects.";
     }
 
     Dictionary input_schema() const override {
@@ -30,14 +30,14 @@ public:
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("最大递归深度");
+            p["description"] = "Maximum recursion depth";
             p["default"] = 3;
             props["max_depth"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("是否包含场景内资源引用");
+            p["description"] = "Whether to include in-scene resource references";
             p["default"] = true;
             props["include_scene_resources"] = p;
         }

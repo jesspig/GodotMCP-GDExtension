@@ -13,18 +13,18 @@ public:
     String name() const override { return "save_scene"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("保存当前编辑的场景到 res:// 路径");
+        return "Save the current edited scene to a res:// path";
     }
     String description() const override {
-        return String::utf8("将当前打开的场景保存到磁盘。path 留空则保存到原 .tscn 路径。"
-                            "如果场景从未保存且 path 为空，返回错误。");
+        return "Saves the currently open scene to disk. If path is empty, saves to the original .tscn path. "
+               "Returns an error if the scene was never saved and path is empty.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("res:// 路径（留空 = 保存到原路径，必须以 .tscn/.scn 结尾）");
+            p["description"] = "res:// path (empty = save to original path, must end with .tscn/.scn)";
             props["path"] = p;
         }
         Dictionary s;
@@ -40,7 +40,7 @@ protected:
         String path = args_string(ctx.args, "path");
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
-            return ToolResult::err("NO_EDITOR", String::utf8("EditorInterface 不可用"));
+            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
 
         if (path.is_empty()) {
@@ -49,7 +49,7 @@ protected:
             path = ctx.root->get_scene_file_path();
             if (path.is_empty()) {
                 return ToolResult::err("NO_PATH",
-                    String::utf8("场景未保存过且未提供 path 参数"));
+                    "Scene was never saved and no path argument provided");
             }
             // Use save_scene_as(path, false) directly to bypass EditorProgress
             // (_save_scene_with_preview). EditorProgress::step() calls
@@ -59,11 +59,11 @@ protected:
         } else {
             if (!path.ends_with(".tscn") && !path.ends_with(".scn")) {
                 return ToolResult::err("BAD_EXTENSION",
-                    String::utf8("路径必须以 .tscn 或 .scn 结尾"));
+                    "Path must end with .tscn or .scn"));
             }
             if (!ensure_parent_dir(path)) {
                 return ToolResult::err("MKDIR_FAILED",
-                    String::utf8("无法创建父目录: ") + path);
+                    "Failed to create parent directory: " + path);
             }
             ei->save_scene_as(path, false);
         }

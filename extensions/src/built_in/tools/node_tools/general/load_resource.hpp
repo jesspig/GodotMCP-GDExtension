@@ -15,30 +15,30 @@ public:
     String name() const override { return "load_resource"; }
     String category() const override { return "node_tools/general"; }
     String brief() const override {
-        return String::utf8("从文件加载资源");
+        return String("Load a resource from file");
     }
     String description() const override {
-        return String::utf8("从指定文件路径加载资源，并赋值到节点属性上。"
-                            "支持 .tres、.res、.png、.ogg 等 Godot 支持的所有资源格式。");
+        return String("Loads a resource from a file path and assigns it to a node property. "
+                            "Supports .tres, .res, .png, .ogg and all other Godot resource formats.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径（空=当前编辑场景根节点）");
+            p["description"] = String("Node path (empty = root node of current edited scene)");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("属性名称（如 texture、material）");
+            p["description"] = String("Property name (e.g. texture, material)");
             props["property_name"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("资源文件路径（res:// 开头，如 res://assets/icon.png）");
+            p["description"] = String("Resource file path (res:// prefix, e.g. res://assets/icon.png)");
             props["resource_path"] = p;
         }
         Dictionary s;

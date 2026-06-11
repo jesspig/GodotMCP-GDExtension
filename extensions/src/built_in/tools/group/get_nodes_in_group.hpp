@@ -15,17 +15,17 @@ public:
     String name() const override { return "get_nodes_in_group"; }
     String category() const override { return "node_tools/group"; }
     String brief() const override {
-        return String::utf8("获取指定分组中的所有节点");
+        return String("Get all nodes in a group");
     }
     String description() const override {
-        return String::utf8("返回当前场景树中属于指定分组的所有节点的名称、类型和路径。");
+        return String("Returns the name, type and path of all nodes belonging to the specified group in the current scene tree.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("分组名称");
+            p["description"] = String("Group name");
             props["group_name"] = p;
         }
         Dictionary s;

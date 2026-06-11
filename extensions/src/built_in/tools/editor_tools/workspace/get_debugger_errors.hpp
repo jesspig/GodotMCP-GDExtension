@@ -15,7 +15,7 @@ class GetDebuggerErrorsTool : public ITool {
 public:
     String name() const override { return "get_debugger_errors"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("获取调试器的错误与警告计数"); }
+    String brief() const override { return String("Get debugger error and warning counts"); }
     String description() const override { return brief(); }
 
     Dictionary input_schema() const override {
@@ -26,7 +26,7 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &) override {
         Object *dbg = _find_debugger();
-        if (!dbg) return ToolResult::err("NO_DEBUGGER", "未找到 EditorDebuggerNode");
+        if (!dbg) return ToolResult::err("NO_DEBUGGER", "EditorDebuggerNode not found");
 
         Object *active = dbg->call("get_current_debugger");
         Dictionary d;

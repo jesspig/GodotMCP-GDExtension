@@ -13,24 +13,24 @@ public:
     String name() const override { return "clear_resource"; }
     String category() const override { return "node_tools/general"; }
     String brief() const override {
-        return String::utf8("清除资源引用");
+        return String("Clear a resource reference");
     }
     String description() const override {
-        return String::utf8("将节点属性上的资源引用置空。如果属性需要资源才能正常工作，"
-                            "后续可调用 new_resource 创建新的默认实例。");
+        return String("Clears the resource reference on a node property. "
+                            "If the property needs a resource to function, call new_resource afterwards to create a new default instance.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径（空=当前编辑场景根节点）");
+            p["description"] = String("Node path (empty = root node of current edited scene)");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("属性名称（如 texture、material）");
+            p["description"] = String("Property name (e.g. texture, material)");
             props["property_name"] = p;
         }
         Dictionary s;

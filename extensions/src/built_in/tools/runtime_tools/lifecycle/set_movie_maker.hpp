@@ -12,19 +12,19 @@ class SetMovieMakerTool : public ITool {
 public:
     String name() const override { return "set_movie_maker"; }
     String category() const override { return "runtime_tools/lifecycle"; }
-    String brief() const override { return String::utf8("启用或关闭 Movie Maker（录像）模式"); }
+    String brief() const override { return String("Enable or disable Movie Maker (recording) mode"); }
     String description() const override {
-        return String::utf8("启用或关闭 Godot 的 Movie Maker（录像）模式。启用后运行项目时会自动录制生成视频文件。"
-                             "输出路径和相关设置在 ProjectSettings 的 editor/movie_writer/* 中配置。"
-                             "等同于编辑器中「项目 -> 启用 Movie Maker」菜单项。"
-                             "可通过 is_movie_maker_enabled 查询当前开关状态。");
+        return String("Enables or disables Godot's Movie Maker (recording) mode. When enabled, running the project will automatically record a video file. "
+                             "Output path and related settings are configured in ProjectSettings under editor/movie_writer/*. "
+                             "Equivalent to the Project > Enable Movie Maker menu item in the editor. "
+                             "Use is_movie_maker_enabled to query the current state.");
     }
     Dictionary input_schema() const override {
         Dictionary p;
         {
             Dictionary d;
             d["type"] = "boolean";
-            d["description"] = String::utf8("是否启用 Movie Maker 模式");
+            d["description"] = String("Whether to enable Movie Maker mode");
             p["enabled"] = d;
         }
         Dictionary s;

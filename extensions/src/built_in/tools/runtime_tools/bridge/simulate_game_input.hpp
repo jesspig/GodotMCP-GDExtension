@@ -13,14 +13,14 @@ class SimulateGameInputTool : public ITool {
 public:
     String name() const override { return "simulate_game_input"; }
     String category() const override { return "runtime_tools/bridge"; }
-    String brief() const override { return String::utf8("向运行中的游戏模拟输入"); }
+    String brief() const override { return String("Simulate input in a running game"); }
     String description() const override {
-        return String::utf8("向运行中的游戏发送键盘、鼠标或 Action 输入事件。"
-                             "actions 为输入动作数组，每个动作包含 type（key/mouse_button/mouse_motion/action）和对应参数。"
-                             "示例：\n"
-                             "- 按键：{\"type\": \"key\", \"key\": \"W\", \"pressed\": true}\n"
-                             "- 鼠标点击：{\"type\": \"mouse_button\", \"button\": \"left\", \"x\": 100, \"y\": 200}\n"
-                             "- Action：{\"type\": \"action\", \"action\": \"ui_accept\", \"pressed\": true}");
+        return String("Sends keyboard, mouse or Action input events to the running game. "
+                             "actions is an array of input actions, each containing type (key/mouse_button/mouse_motion/action) and corresponding parameters.\n"
+                             "Examples:\n"
+                             "- Key: {\"type\": \"key\", \"key\": \"W\", \"pressed\": true}\n"
+                             "- Mouse click: {\"type\": \"mouse_button\", \"button\": \"left\", \"x\": 100, \"y\": 200}\n"
+                             "- Action: {\"type\": \"action\", \"action\": \"ui_accept\", \"pressed\": true}");
     }
     bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
@@ -34,25 +34,25 @@ public:
             {
                 Dictionary tp;
                 tp["type"] = "string";
-                tp["description"] = "动作类型：key / mouse_button / mouse_motion / action";
+                tp["description"] = "Action type: key / mouse_button / mouse_motion / action";
                 item_props["type"] = tp;
             }
             {
                 Dictionary kp;
                 kp["type"] = "string";
-                kp["description"] = "键名（key 类型时必填），如 W、Space、Escape";
+                kp["description"] = "Key name (required for key type), e.g. W, Space, Escape";
                 item_props["key"] = kp;
             }
             {
                 Dictionary bp;
                 bp["type"] = "string";
-                bp["description"] = "鼠标按钮（mouse_button 类型时）：left / right / middle";
+                bp["description"] = "Mouse button (for mouse_button type): left / right / middle";
                 item_props["button"] = bp;
             }
             {
                 Dictionary ap;
                 ap["type"] = "string";
-                ap["description"] = "Action 名称（action 类型时必填）";
+                ap["description"] = "Action name (required for action type)";
                 item_props["action"] = ap;
             }
             item_schema["properties"] = item_props;
@@ -60,7 +60,7 @@ public:
 
             Dictionary d;
             d["type"] = "array";
-            d["description"] = String::utf8("输入动作数组");
+            d["description"] = String("Array of input actions");
             d["items"] = item_schema;
             p["actions"] = d;
         }

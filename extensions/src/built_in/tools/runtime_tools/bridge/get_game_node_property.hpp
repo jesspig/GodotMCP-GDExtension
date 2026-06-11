@@ -13,11 +13,11 @@ class GetGameNodePropertyTool : public ITool {
 public:
     String name() const override { return "get_game_node_property"; }
     String category() const override { return "runtime_tools/bridge"; }
-    String brief() const override { return String::utf8("读取运行中游戏的节点属性"); }
+    String brief() const override { return String("Read a running game node property"); }
     String description() const override {
-        return String::utf8("读取运行中游戏的指定节点的属性值。"
-                             "参数 node_path 为节点路径（如 /root/Main/Player），"
-                             "property 为属性名称（如 position、rotation 等）。");
+        return String("Reads a property value from a node in the running game. "
+                             "node_path is the node path (e.g. /root/Main/Player), "
+                             "property is the property name (e.g. position, rotation).");
     }
     bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
@@ -27,13 +27,13 @@ public:
         {
             Dictionary d;
             d["type"] = "string";
-            d["description"] = String::utf8("节点路径，如 /root/Main/Player");
+            d["description"] = String("Node path, e.g. /root/Main/Player");
             p["node_path"] = d;
         }
         {
             Dictionary d;
             d["type"] = "string";
-            d["description"] = String::utf8("属性名称，如 position");
+            d["description"] = String("Property name, e.g. position");
             p["property"] = d;
         }
         Dictionary s;

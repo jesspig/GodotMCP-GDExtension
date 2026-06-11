@@ -15,37 +15,37 @@ public:
     String name() const override { return "change_node_type"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("修改节点的类型（保持名字、子节点、属性映射）");
+        return "Change a node's type (preserving name, children, and property mapping)";
     }
     String description() const override {
-        return String::utf8("使用 Node::replace_by 交换节点类型。新类型必须继承自原类型（is_parent_class 检查）。"
-                            "name 留空 = 保留原名。可用 property_mapping 调整属性值（如新类型的属性名不同）。"
-                            "注意：原类型特有的属性值会丢失。所有变更可撤销。");
+        return "Swaps the node type using Node::replace_by. The new type must inherit from the original type (is_parent_class check). "
+               "name left empty = keeps the original name. property_mapping can adjust property values (e.g. if the new type uses different property names). "
+               "Note: properties exclusive to the original type will be lost. All changes are undoable.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("要修改类型的节点路径");
+            p["description"] = "Node path whose type to change";
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("新类型（Godot 类名）");
+            p["description"] = "New type (Godot class name)";
             props["new_type"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("新节点名（留空 = 保留原名）");
+            p["description"] = "New node name (empty = keep original)";
             props["new_name"] = p;
         }
         {
             Dictionary p;
             p["type"] = "object";
-            p["description"] = String::utf8("属性映射 {old_property: new_property}（可选）");
+            p["description"] = "Property mapping {old_property: new_property} (optional)";
             props["property_mapping"] = p;
         }
         Dictionary s;
@@ -65,16 +65,16 @@ protected:
         Variant prop_mapping_var = ctx.args.get("property_mapping", Variant());
 
         if (new_type.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("new_type 不能为空"));
+            return ToolResult::err("MISSING_ARG", "new_type cannot be empty");
         }
         if (!godot::ClassDB::class_exists(new_type)) {
             return ToolResult::err("UNKNOWN_CLASS",
-                String::utf8("未知的 Godot 类: ") + new_type);
+                "Unknown Godot class: " + new_type);
         }
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + node_path);
+                "Node not found: " + node_path);
         }
         String old_type = node->get_class();
         if (old_type == new_type) {
@@ -89,14 +89,14 @@ protected:
         if (!godot::ClassDB::is_parent_class(new_type, old_type) &&
             old_type != new_type) {
             return ToolResult::err("TYPE_INCOMPATIBLE",
-                String::utf8("新类型 ") + new_type +
-                String::utf8(" 必须继承自 ") + old_type);
+                "New type " + new_type +
+                " must inherit from " + old_type);
         }
 
         Node *parent = node->get_parent();
         if (!parent) {
             return ToolResult::err("ORPHAN_NODE",
-                String::utf8("节点无父节点"));
+                "Node has no parent"));
         }
         int64_t old_index = node->get_index();
 
@@ -104,7 +104,7 @@ protected:
         Node *new_node = scene_tree_utils::create_node(new_type, "");
         if (!new_node) {
             return ToolResult::err("CREATE_FAILED",
-                String::utf8("无法创建类型为 ") + new_type + String::utf8(" 的节点"));
+                "Failed to create node of type: " + new_type);
         }
         if (!new_name.is_empty()) {
             new_node->set_name(new_name);
@@ -133,8 +133,8 @@ protected:
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
-            ur->create_action(String::utf8("MCP: Change Type ") + old_type +
-                                  String::utf8(" → ") + new_type,
+            ur->create_action("MCP: Change Type " + old_type +
+                                  " -> " + new_type,
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "replace_by", new_node, true);
             ur->add_undo_method(new_node, "replace_by", node, true);

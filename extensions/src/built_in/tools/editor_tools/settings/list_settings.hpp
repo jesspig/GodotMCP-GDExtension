@@ -1,5 +1,5 @@
 // @tool register
-// list_settings.hpp — 列举所有项目设置，支持按分类过滤和搜索
+// list_settings.hpp -- List all project settings, supports category filtering and search
 
 #pragma once
 
@@ -18,8 +18,8 @@ public:
         return "List all project settings, optionally filtered";
     }
     String description() const override {
-        return "列举所有项目设置（包含特性标签变体）。支持按分类前缀过滤（如 \"display/window\"）"
-               "和文本搜索。返回设置名称、类型、当前值。";
+        return "Lists all project settings (including feature tag variants). Supports filtering by category prefix (e.g. \"display/window\") "
+               "and text search. Returns setting name, type and current value.";
     }
     bool is_meta() const override { return true; }
     bool needs_scene() const override { return false; }

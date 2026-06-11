@@ -13,41 +13,41 @@ public:
     String name() const override { return "glob_scripts"; }
     String category() const override { return "editor_tools/scripts"; }
     String brief() const override {
-        return String::utf8("按路径模式匹配脚本文件");
+        return "Match script files by path pattern";
     }
     String description() const override {
-        return String::utf8("使用 glob 模式匹配项目中的脚本文件路径。支持通配符：*（任意字符）、?（单个字符）。支持按语言过滤（gdscript/csharp/all）。");
+        return "Match script file paths in the project using glob patterns. Supports wildcards: * (any characters), ? (single character). Supports filtering by language (gdscript/csharp/all).";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("Glob 匹配模式（如 **/enemy*）");
+            p["description"] = "Glob match pattern (e.g. **/enemy*)";
             props["pattern"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：语言过滤（gdscript/csharp/all，默认 all）");
+            p["description"] = "Optional: language filter (gdscript/csharp/all, default all)";
             props["language"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：搜索根目录（默认 res://）");
+            p["description"] = "Optional: search root directory (default res://)";
             props["directory"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("可选：包含 addons 目录（默认 false）");
+            p["description"] = "Optional: include addons directory (default false)";
             props["include_addons"] = p;
         }
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("可选：最大结果数（默认 200）");
+            p["description"] = "Optional: maximum results (default 200)";
             props["max_results"] = p;
         }
         Dictionary s;
@@ -67,7 +67,7 @@ protected:
 
         if (pattern.is_empty()) {
             return ToolResult::err("MISSING_ARG",
-                String::utf8("pattern 不能为空"));
+                "pattern cannot be empty"));
         }
 
         Dictionary verr = fs_utils::validate_res_path(directory);

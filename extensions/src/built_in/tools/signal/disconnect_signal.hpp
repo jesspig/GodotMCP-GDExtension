@@ -14,35 +14,35 @@ public:
     String name() const override { return "disconnect_signal"; }
     String category() const override { return "node_tools/signal"; }
     String brief() const override {
-        return String::utf8("断开节点的信号连接");
+        return String("Disconnect a node signal");
     }
     String description() const override {
-        return String::utf8("断开 source_node 的 signal_name 信号与 target_node.target_method 的连接。");
+        return String("Disconnects source_node's signal_name from target_node.target_method.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("源节点路径");
+            p["description"] = String("Source node path");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("信号名称");
+            p["description"] = String("Signal name");
             props["signal_name"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标节点路径");
+            p["description"] = String("Target node path");
             props["target_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标节点上的方法名");
+            p["description"] = String("Method name on the target node");
             props["target_method"] = p;
         }
         Dictionary s;

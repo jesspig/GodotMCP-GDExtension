@@ -13,19 +13,19 @@ class CaptureViewportTool : public ITool {
 public:
     String name() const override { return "capture_viewport"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("捕获编辑器 2D/3D 视口截图"); }
+    String brief() const override { return String("Capture editor 2D/3D viewport screenshot"); }
     String description() const override {
-        return String::utf8("捕获 Godot 编辑器的 2D 或 3D 视口截图并保存到 res://screenshots/。"
-                            "返回截图的文件路径、尺寸、格式。");
+        return String("Captures the editor's 2D or 3D viewport screenshot and saves it to "
+                      "res://screenshots/. Returns file path, dimensions, and format of the screenshot.");
     }
     Dictionary input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         Dictionary props;
-        Dictionary vp_type; vp_type["type"] = "string"; vp_type["description"] = "视口类型: \"2d\" 或 \"3d\""; vp_type["default"] = "2d"; props["viewport_type"] = vp_type;
-        Dictionary vp_idx; vp_idx["type"] = "integer"; vp_idx["description"] = "3D 视口索引"; vp_idx["default"] = 0; props["viewport_index"] = vp_idx;
-        Dictionary fmt; fmt["type"] = "string"; fmt["description"] = "图片格式: \"png\" 或 \"jpg\""; fmt["default"] = "png"; props["format"] = fmt;
-        Dictionary sp; sp["type"] = "string"; sp["description"] = "保存路径（res://），为空则自动生成"; sp["default"] = ""; props["save_path"] = sp;
+        Dictionary vp_type; vp_type["type"] = "string"; vp_type["description"] = "Viewport type: \"2d\" or \"3d\""; vp_type["default"] = "2d"; props["viewport_type"] = vp_type;
+        Dictionary vp_idx; vp_idx["type"] = "integer"; vp_idx["description"] = "3D viewport index"; vp_idx["default"] = 0; props["viewport_index"] = vp_idx;
+        Dictionary fmt; fmt["type"] = "string"; fmt["description"] = "Image format: \"png\" or \"jpg\""; fmt["default"] = "png"; props["format"] = fmt;
+        Dictionary sp; sp["type"] = "string"; sp["description"] = "Save path (res://), auto-generated if empty"; sp["default"] = ""; props["save_path"] = sp;
         s["properties"] = props;
         return s;
     }

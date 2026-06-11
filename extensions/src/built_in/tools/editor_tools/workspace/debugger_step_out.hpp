@@ -15,10 +15,10 @@ class DebuggerStepOutTool : public ITool {
 public:
     String name() const override { return "debugger_step_out"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("调试器单步跳出"); }
+    String brief() const override { return String("Debugger step out"); }
     String description() const override {
-        return String::utf8("从当前函数跳出（Godot 没有直接的 step_out 命令，"
-                            "使用 debug_next 作为替代）。");
+        return String("Steps out of the current function (Godot has no direct step_out command, "
+                      "uses debug_next as a substitute).");
     }
 
     Dictionary input_schema() const override {
@@ -29,7 +29,7 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &) override {
         Object *dbg = _find_debugger();
-        if (!dbg) return ToolResult::err("NO_DEBUGGER", "未找到 EditorDebuggerNode");
+        if (!dbg) return ToolResult::err("NO_DEBUGGER", "EditorDebuggerNode not found");
         dbg->call("debug_next");
         Dictionary d;
         d["action"] = "step_out";

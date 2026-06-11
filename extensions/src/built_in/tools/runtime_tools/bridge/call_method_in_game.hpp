@@ -13,11 +13,11 @@ class CallMethodInGameTool : public ITool {
 public:
     String name() const override { return "call_method_in_game"; }
     String category() const override { return "runtime_tools/bridge"; }
-    String brief() const override { return String::utf8("调用运行中游戏的节点方法"); }
+    String brief() const override { return String("Call a method on a running game node"); }
     String description() const override {
-        return String::utf8("在运行中的游戏调用指定节点的任意方法并返回结果。"
-                             "参数 node_path 为节点路径（如 /root/Main/Player），"
-                             "method 为方法名称，args 为方法参数数组。");
+        return String("Calls an arbitrary method on a node in the running game and returns the result. "
+                             "node_path is the node path (e.g. /root/Main/Player), "
+                             "method is the method name, args is the method argument array.");
     }
     bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
@@ -27,19 +27,19 @@ public:
         {
             Dictionary d;
             d["type"] = "string";
-            d["description"] = String::utf8("节点路径，如 /root/Main/Player");
+            d["description"] = String("Node path, e.g. /root/Main/Player");
             p["node_path"] = d;
         }
         {
             Dictionary d;
             d["type"] = "string";
-            d["description"] = String::utf8("方法名称");
+            d["description"] = String("Method name");
             p["method"] = d;
         }
         {
             Dictionary d;
             d["type"] = "array";
-            d["description"] = String::utf8("方法参数数组（可选）");
+            d["description"] = String("Method argument array (optional)");
             p["args"] = d;
         }
         Dictionary s;

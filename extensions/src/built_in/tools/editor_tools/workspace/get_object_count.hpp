@@ -13,7 +13,7 @@ class GetObjectCountTool : public ITool {
 public:
     String name() const override { return "get_object_count"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("获取对象/资源/节点计数"); }
+    String brief() const override { return String("Get object/resource/node count"); }
     String description() const override { return brief(); }
 
     Dictionary input_schema() const override {

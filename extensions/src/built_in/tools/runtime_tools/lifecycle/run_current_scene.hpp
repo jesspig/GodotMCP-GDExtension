@@ -12,11 +12,11 @@ class RunCurrentSceneTool : public ITool {
 public:
     String name() const override { return "run_current_scene"; }
     String category() const override { return "runtime_tools/lifecycle"; }
-    String brief() const override { return String::utf8("运行当前在编辑器中打开的场景"); }
+    String brief() const override { return String("Run the currently open scene in the editor"); }
     String description() const override {
-        return String::utf8("运行当前在编辑器中打开的场景。等同于在编辑器中按 F6（或点击「运行当前场景」按钮）。"
-                             "该场景必须包含一个继承自 Node 的根节点。"
-                             "场景运行后可通过 stop_project 停止。");
+        return String("Runs the currently open scene in the editor. Equivalent to pressing F6 (or clicking the Run Current Scene button) in the editor. "
+                             "The scene must have a root node inheriting from Node. "
+                             "Can be stopped via stop_project.");
     }
     Dictionary input_schema() const override {
         Dictionary s;

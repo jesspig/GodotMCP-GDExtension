@@ -13,7 +13,7 @@ class SetWorkspaceAssetLibTool : public ITool {
 public:
     String name() const override { return "set_workspace_assetlib"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("打开资源库工作区"); }
+    String brief() const override { return String("Switch to Asset Library workspace"); }
     String description() const override { return brief(); }
 
     Dictionary input_schema() const override {
@@ -24,7 +24,7 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &) override {
         EditorInterface *ei = EditorInterface::get_singleton();
-        if (!ei) return ToolResult::err("NO_EDITOR", "EditorInterface 不可用");
+        if (!ei) return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         ei->set_main_screen_editor("AssetLib");
         Dictionary d;
         d["workspace"] = "AssetLib";

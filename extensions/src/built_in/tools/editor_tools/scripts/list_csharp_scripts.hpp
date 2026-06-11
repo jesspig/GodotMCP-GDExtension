@@ -13,29 +13,29 @@ public:
     String name() const override { return "list_csharp_scripts"; }
     String category() const override { return "editor_tools/scripts"; }
     String brief() const override {
-        return String::utf8("列出项目中的 C# Script (.cs) 文件");
+        return "List C# Script (.cs) files in the project";
     }
     String description() const override {
-        return String::utf8("递归遍历项目目录，列出所有 C# 脚本文件。支持按目录过滤、排除 addons、最大结果数限制。");
+        return "Recursively traverse the project directory and list all C# script files. Supports filtering by directory, excluding addons, and maximum results limit.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：搜索根目录（默认 res://）");
+            p["description"] = "Optional: search root directory (default res://)";
             props["directory"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("可选：包含 addons 目录（默认 false）");
+            p["description"] = "Optional: include addons directory (default false)";
             props["include_addons"] = p;
         }
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("可选：最大结果数（默认 200）");
+            p["description"] = "Optional: maximum results (default 200)";
             props["max_results"] = p;
         }
         Dictionary s;

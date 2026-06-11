@@ -15,23 +15,23 @@ public:
     String name() const override { return "write_csharp_script"; }
     String category() const override { return "editor_tools/scripts"; }
     String brief() const override {
-        return String::utf8("写入/创建 C# Script (.cs) 文件");
+        return "Write/Create C# Script (.cs) file";
     }
     String description() const override {
-        return String::utf8("创建或覆盖一个 C# 脚本文件。提供 content 时直接写入；不提供 content 时创建最小合法脚本。");
+        return "Create or overwrite a C# script file. Writes directly when content is provided; creates a minimal valid script when content is empty.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标路径（必须以 .cs 结尾）");
+            p["description"] = "Target path (must end with .cs)";
             props["path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：脚本内容（留空则创建最小脚本）");
+            p["description"] = "Optional: script content (empty = create minimal script)";
             props["content"] = p;
         }
         Dictionary s;
@@ -52,11 +52,11 @@ protected:
         }
         if (!path.ends_with(".cs")) {
             return ToolResult::err("BAD_EXTENSION",
-                String::utf8("路径必须以 .cs 结尾"));
+                "Path must end with .cs"));
         }
         if (!fs_utils::ensure_parent_dir(path)) {
             return ToolResult::err("MKDIR_FAILED",
-                String::utf8("无法创建父目录"));
+                "Failed to create parent directory"));
         }
 
         if (content.is_empty()) {
@@ -67,7 +67,7 @@ protected:
         Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
         if (file.is_null()) {
             return ToolResult::err("WRITE_FAILED",
-                String::utf8("无法打开文件进行写入"));
+                "Failed to open file for writing"));
         }
         file->store_string(content);
         file->close();

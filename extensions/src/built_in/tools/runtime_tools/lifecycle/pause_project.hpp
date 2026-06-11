@@ -13,12 +13,12 @@ class PauseProjectTool : public ITool {
 public:
     String name() const override { return "pause_project"; }
     String category() const override { return "runtime_tools/lifecycle"; }
-    String brief() const override { return String::utf8("暂停或恢复运行中的项目"); }
+    String brief() const override { return String("Pause or resume the running project"); }
     String description() const override {
-        return String::utf8("暂停或恢复运行中的项目。暂停时游戏场景的 _process 和 _physics_process 停止处理，"
-                             "但引擎继续运行。等同于调用 SceneTree.set_pause()。"
-                             "此功能需要游戏通过运行时桥接连接（:9601）。"
-                             "如果游戏未运行或桥接未连接则返回错误。");
+        return String("Pauses or resumes the running project. When paused, the game scene's _process and _physics_process stop processing, "
+                             "but the engine continues running. Equivalent to calling SceneTree.set_pause(). "
+                             "This feature requires the game to be connected via the runtime bridge (:9601). "
+                             "Returns an error if the game is not running or the bridge is not connected.");
     }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
@@ -27,7 +27,7 @@ public:
         {
             Dictionary d;
             d["type"] = "boolean";
-            d["description"] = String::utf8("true 暂停，false 恢复");
+            d["description"] = String("true to pause, false to resume");
             p["paused"] = d;
         }
         Dictionary s;

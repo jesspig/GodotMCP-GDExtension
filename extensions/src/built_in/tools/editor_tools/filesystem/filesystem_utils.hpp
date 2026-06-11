@@ -58,24 +58,24 @@ inline Dictionary validate_res_path(const String &path) {
     Dictionary err;
     if (path.is_empty()) {
         err["code"] = "MISSING_ARG";
-        err["message"] = String::utf8("路径不能为空");
+        err["message"] = "Path cannot be empty";
         return err;
     }
     if (!path.begins_with("res://")) {
         err["code"] = "PATH_INVALID";
-        err["message"] = String::utf8("路径必须以 res:// 开头");
+        err["message"] = "Path must start with res://";
         return err;
     }
     // Path traversal prevention
     if (path.find("..") >= 0) {
         err["code"] = "PATH_TRAVERSAL";
-        err["message"] = String::utf8("路径不允许包含 '..'");
+        err["message"] = "Path must not contain '..'";
         return err;
     }
     // Reject Windows absolute paths sneaking in
     if (path.find("\\") >= 0) {
         err["code"] = "PATH_INVALID";
-        err["message"] = String::utf8("路径不允许包含反斜杠");
+        err["message"] = "Path must not contain backslashes";
         return err;
     }
     // Verify path doesn't escape res://
@@ -85,7 +85,7 @@ inline Dictionary validate_res_path(const String &path) {
         String global_target = ps->globalize_path(path);
         if (!global_target.begins_with(global_res)) {
             err["code"] = "PATH_TRAVERSAL";
-            err["message"] = String::utf8("路径超出了 res:// 范围");
+            err["message"] = "Path exceeds res:// scope";
             return err;
         }
     }
@@ -134,7 +134,7 @@ inline String get_file_base_name(const String &path) {
     return name.substr(0, dot);
 }
 
-// ── Matching helpers for search ──
+// -- Matching helpers for search --
 
 inline bool match_exact(const String &name, const String &pattern, bool case_sensitive) {
     if (case_sensitive) return name == pattern;
@@ -172,7 +172,7 @@ inline bool match_fuzzy(const String &name, const String &pattern, bool case_sen
     return pi == p.length();
 }
 
-// ── Recursive directory deletion ──
+// -- Recursive directory deletion --
 
 inline Error remove_recursive(const String &res_path) {
     // First delete all children

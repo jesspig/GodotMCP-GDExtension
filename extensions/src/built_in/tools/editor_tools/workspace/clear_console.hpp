@@ -15,11 +15,11 @@ class ClearConsoleTool : public ITool {
 public:
     String name() const override { return "clear_console"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("清除编辑器控制台输出"); }
+    String brief() const override { return String("Clear editor console output"); }
     String description() const override {
-        return String::utf8("清除编辑器 Output 面板的全部日志内容。"
-                            "与 Godot 源码 editor/editor_log.cpp 的 _clear_request() 流程对齐，"
-                            "通过 call(\"clear\") 调用 EditorLog::clear()。");
+        return String("Clears all log content from the editor Output panel. "
+                      "Aligned with the _clear_request() flow in Godot source editor/editor_log.cpp, "
+                      "calls EditorLog::clear() via call(\"clear\").");
     }
 
     Dictionary input_schema() const override {
@@ -35,22 +35,22 @@ protected:
 
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
-            return ToolResult::err("NO_EDITOR", "EditorInterface 不可用");
+            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
 
         Control *base = ei->get_base_control();
         if (!base) {
-            return ToolResult::err("NO_BASE", "编辑器基础控件不可用");
+            return ToolResult::err("NO_BASE", "Editor base control not available");
         }
 
         Array log_nodes = base->find_children("*", "EditorLog", true, false);
         if (log_nodes.size() == 0) {
-            return ToolResult::err("NO_LOG", "未找到 EditorLog 节点");
+            return ToolResult::err("NO_LOG", "EditorLog node not found");
         }
 
         Node *editor_log = Object::cast_to<Node>(log_nodes[0]);
         if (!editor_log) {
-            return ToolResult::err("INVALID_LOG", "EditorLog 节点无效");
+            return ToolResult::err("INVALID_LOG", "EditorLog node invalid");
         }
 
         editor_log->call("clear");

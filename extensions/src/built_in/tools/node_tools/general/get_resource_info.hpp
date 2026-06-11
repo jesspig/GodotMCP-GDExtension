@@ -14,23 +14,23 @@ public:
     String name() const override { return "get_resource_info"; }
     String category() const override { return "node_tools/general"; }
     String brief() const override {
-        return String::utf8("获取资源属性元数据");
+        return String("Get resource property metadata");
     }
     String description() const override {
-        return String::utf8("返回指定节点属性上的资源对象的元数据信息，包括类型、路径、名称、是否内置，以及所有可读写属性的列表。");
+        return String("Returns metadata of the resource on a specified node property, including type, path, name, whether it is built-in, and a list of all readable/writable properties.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径（空=当前编辑场景根节点）");
+            p["description"] = String("Node path (empty = root node of current edited scene)");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("属性名称（如 texture、material）");
+            p["description"] = String("Property name (e.g. texture, material)");
             props["property_name"] = p;
         }
         Dictionary s;

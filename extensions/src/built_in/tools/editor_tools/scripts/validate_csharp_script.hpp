@@ -17,17 +17,17 @@ public:
     String name() const override { return "validate_csharp_script"; }
     String category() const override { return "editor_tools/scripts"; }
     String brief() const override {
-        return String::utf8("验证 C# Script (.cs) 文件语法");
+        return "Validate C# Script (.cs) file syntax";
     }
     String description() const override {
-        return String::utf8("使用 dotnet build --no-restore 验证 C# 脚本文件语法。返回验证结果和退出码。需要项目中已配置 .NET SDK。");
+        return "Validate C# script file syntax using dotnet build --no-restore. Returns the validation result and exit code. Requires .NET SDK configured in the project.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标文件路径（必须以 .cs 结尾）");
+            p["description"] = "Target file path (must end with .cs)";
             props["path"] = p;
         }
         Dictionary s;
@@ -47,22 +47,22 @@ protected:
         }
         if (!path.ends_with(".cs")) {
             return ToolResult::err("BAD_EXTENSION",
-                String::utf8("路径必须以 .cs 结尾"));
+                "Path must end with .cs"));
         }
         if (!FileAccess::file_exists(path)) {
             return ToolResult::err("NOT_FOUND",
-                String::utf8("文件不存在: ") + path);
+                "File does not exist: " + path);
         }
 
         if (!script_utils::has_dotnet()) {
             return ToolResult::err("NO_DOTNET",
-                String::utf8("项目未启用 .NET，无法验证 C# 脚本"));
+                ".NET is not enabled, cannot validate C# script"));
         }
 
         OS *os = OS::get_singleton();
         if (!os) {
             return ToolResult::err("NO_OS",
-                String::utf8("OS 单例不可用"));
+                "OS singleton not available"));
         }
 
         ProjectSettings *ps = ProjectSettings::get_singleton();

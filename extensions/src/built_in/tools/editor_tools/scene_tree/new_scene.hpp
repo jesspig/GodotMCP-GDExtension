@@ -16,24 +16,25 @@ public:
     String name() const override { return "new_scene"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("创建新场景，指定根节点类型和名称");
+        return "Create a new scene with a specified root node type and name";
     }
     String description() const override {
-        return String::utf8("在编辑器中新建一个空白场景，根节点类型由 class_name 指定（如 \"Node2D\"、\"Node3D\"、\"Control\"、\"Node\"）。"
-                            "可指定根节点名称；场景保存在内存中，可用 save_scene 写入 res:// 路径。");
+        return "Creates a new blank scene in the editor. The root node type is specified by class_name "
+               "(e.g. \"Node2D\", \"Node3D\", \"Control\", \"Node\"). "
+               "Optionally specify the root name; the scene is held in memory and can be saved via save_scene.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("根节点类型（Godot 类名，如 Node2D、Node3D、Control、Node）");
+            p["description"] = "Root node type (Godot class name, e.g. Node2D, Node3D, Control, Node)";
             props["root_type"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("根节点名称（默认 = 类型名）");
+            p["description"] = "Root node name (default = type name)";
             props["root_name"] = p;
         }
         Dictionary s;
@@ -50,11 +51,11 @@ protected:
         String root_type = args_string(ctx.args, "root_type");
         String root_name = args_string(ctx.args, "root_name");
         if (root_type.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("root_type 不能为空"));
+            return ToolResult::err("MISSING_ARG", "root_type cannot be empty");
         }
         if (!godot::ClassDB::class_exists(root_type)) {
             return ToolResult::err("UNKNOWN_CLASS",
-                String::utf8("未知的 Godot 类: ") + root_type);
+                "Unknown Godot class: " + root_type);
         }
         if (root_name.is_empty()) {
             root_name = root_type;
@@ -63,13 +64,13 @@ protected:
         Node *new_root = scene_tree_utils::create_node(root_type, root_name);
         if (!new_root) {
             return ToolResult::err("CREATE_FAILED",
-                String::utf8("无法创建类型为 ") + root_type + String::utf8(" 的节点"));
+                "Failed to create node of type: " + root_type);
         }
 
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
             memdelete(new_root);
-            return ToolResult::err("NO_EDITOR", String::utf8("EditorInterface 不可用"));
+            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
         ei->add_root_node(new_root);
 

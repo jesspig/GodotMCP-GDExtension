@@ -16,7 +16,7 @@ class ListBreakpointsTool : public ITool {
 public:
     String name() const override { return "list_breakpoints"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("列出所有断点"); }
+    String brief() const override { return String("List all breakpoints"); }
     String description() const override { return brief(); }
 
     Dictionary input_schema() const override {

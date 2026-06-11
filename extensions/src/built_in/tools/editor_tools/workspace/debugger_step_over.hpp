@@ -15,7 +15,7 @@ class DebuggerStepOverTool : public ITool {
 public:
     String name() const override { return "debugger_step_over"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("调试器单步跳过"); }
+    String brief() const override { return String("Debugger step over"); }
     String description() const override { return brief(); }
 
     Dictionary input_schema() const override {
@@ -26,7 +26,7 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &) override {
         Object *dbg = _find_debugger();
-        if (!dbg) return ToolResult::err("NO_DEBUGGER", "未找到 EditorDebuggerNode");
+        if (!dbg) return ToolResult::err("NO_DEBUGGER", "EditorDebuggerNode not found");
         dbg->call("debug_next");
         Dictionary d;
         d["action"] = "step_over";

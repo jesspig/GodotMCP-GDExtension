@@ -17,10 +17,11 @@ public:
 
     String name() const override { return "get_info"; }
     String category() const override { return "meta_tools"; }
-    String brief() const override { return String::utf8("返回连接状态与引擎/插件/项目/编辑器信息"); }
+    String brief() const override { return String("Return connection status and engine/plugin/project/editor information"); }
     String description() const override {
-        return String::utf8("返回 Godot 编辑器的运行时信息，包括连接状态、引擎版本、"
-                            "项目配置、编辑器状态（当前场景、播放状态、打开场景列表）");
+        return String("Returns the editor's runtime information, including connection status, "
+                      "engine version, project configuration, and editor state (current scene, "
+                      "play status, open scenes list).");
     }
     Dictionary input_schema() const override { Dictionary s; s["type"] = "object"; s["properties"] = Dictionary(); return s; }
     bool is_meta() const override { return true; }

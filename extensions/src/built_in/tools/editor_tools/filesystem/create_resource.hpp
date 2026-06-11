@@ -16,26 +16,26 @@ public:
     String name() const override { return "create_resource"; }
     String category() const override { return "editor_tools/filesystem"; }
     String brief() const override {
-        return String::utf8("创建 Godot 资源文件 (.tres / .res)");
+        return "Create a Godot resource file (.tres / .res)";
     }
     String description() const override {
-        return String::utf8("在指定的 res:// 路径创建一个 Godot 资源文件。"
-                            "使用 ResourceSaver::save() 流程，与 Godot 的 ResourceSaver 官方路径一致。"
-                            "支持 .tres（文本格式）和 .res（二进制格式）。"
-                            "可通过 resource_type 参数指定 Resource 子类（如 StyleBoxFlat、Curve、Gradient）。");
+        return "Creates a Godot resource file at the specified res:// path. "
+               "Uses the ResourceSaver::save() workflow, consistent with Godot's official ResourceSaver path. "
+               "Supports .tres (text format) and .res (binary format). "
+               "The resource_type parameter can specify a Resource subclass (e.g. StyleBoxFlat, Curve, Gradient).";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标路径（以 .tres 或 .res 结尾）");
+            p["description"] = "Target path (ending with .tres or .res)";
             props["path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：Resource 子类名（如 StyleBoxFlat、Curve、Gradient，默认 Resource）");
+            p["description"] = "Optional: Resource subclass name (e.g. StyleBoxFlat, Curve, Gradient, default Resource)";
             props["resource_type"] = p;
         }
         Dictionary s;
@@ -56,19 +56,19 @@ protected:
         }
         if (!path.ends_with(".tres") && !path.ends_with(".res")) {
             return ToolResult::err("BAD_EXTENSION",
-                String::utf8("资源路径必须以 .tres 或 .res 结尾"));
+                "Resource path must end with .tres or .res"));
         }
         if (FileAccess::file_exists(path)) {
             return ToolResult::err("FILE_EXISTS",
-                String::utf8("文件已存在: ") + path);
+                "File already exists: " + path);
         }
         if (!ClassDB::class_exists(resource_type)) {
             return ToolResult::err("UNKNOWN_CLASS",
-                String::utf8("未知的资源类型: ") + resource_type);
+                "Unknown resource type: " + resource_type);
         }
         if (!fs_utils::ensure_parent_dir(path)) {
             return ToolResult::err("MKDIR_FAILED",
-                String::utf8("无法创建父目录"));
+                "Failed to create parent directory"));
         }
 
         // Method 1: create via ClassDB::instantiate()
@@ -84,7 +84,7 @@ protected:
             Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
             if (file.is_null()) {
                 return ToolResult::err("WRITE_FAILED",
-                    String::utf8("无法写入文件: ") + path);
+                    "Failed to write file: " + path);
             }
             file->store_string(content);
             file->close();

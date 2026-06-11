@@ -15,12 +15,13 @@ class GetStackTraceTool : public ITool {
 public:
     String name() const override { return "get_stack_trace"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("获取当前调试栈追踪"); }
+    String brief() const override { return String("Get current debug stack trace"); }
     String description() const override {
-        return String::utf8("当调试器处于中断状态时，返回当前栈追踪信息。"
-                            "包括栈帧列表（帧号、文件、函数名、行号）。"
-                            "与 Godot 源码 editor/debugger/script_editor_debugger.cpp 的 "
-                            "_msg_stack_dump() 流程对齐。仅在调试器中断时可用。");
+        return String("Returns the current stack trace when the debugger is paused. "
+                      "Includes the list of stack frames (frame number, file, function name, line number). "
+                      "Aligned with the _msg_stack_dump() flow in Godot source "
+                      "editor/debugger/script_editor_debugger.cpp. "
+                      "Only available when the debugger is paused.");
     }
 
     Dictionary input_schema() const override {
@@ -36,19 +37,19 @@ protected:
 
         Object *debugger = _find_debugger_node();
         if (!debugger) {
-            return ToolResult::err("NO_DEBUGGER", "未找到 EditorDebuggerNode");
+            return ToolResult::err("NO_DEBUGGER", "EditorDebuggerNode not found");
         }
 
         Object *active_dbg = debugger->call("get_current_debugger");
         if (!active_dbg) {
-            return ToolResult::err("NO_ACTIVE_DEBUGGER", "没有活跃的调试器会话");
+            return ToolResult::err("NO_ACTIVE_DEBUGGER", "No active debugger session");
         }
 
         bool is_breaked = (bool)active_dbg->call("is_breaked");
         if (!is_breaked) {
             Dictionary data;
             data["breaked"] = false;
-            data["message"] = String::utf8("调试器未处于中断状态，无栈追踪数据");
+            data["message"] = String("Debugger is not paused, no stack trace data available");
             return ToolResult::ok(data);
         }
 

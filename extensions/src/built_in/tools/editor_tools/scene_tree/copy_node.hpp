@@ -12,19 +12,19 @@ public:
     String name() const override { return "copy_node"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("复制节点到内部剪贴板");
+        return "Copy a node to the internal clipboard";
     }
     String description() const override {
-        return String::utf8("将节点子树序列化到内部 PackedScene 剪贴板，供 paste_node 使用。"
-                            "剪贴板在 Godot 进程内持续有效，跨 MCP 工具调用保持。"
-                            "可携带节点和场景实例（带编辑器状态），与 Godot 编辑器内部剪贴板不互通。");
+        return "Serializes the node subtree into an internal PackedScene clipboard, for use by paste_node. "
+               "The clipboard persists within the Godot process across MCP tool calls. "
+               "Carries node and scene instance data (with editor state), separate from the Godot editor's internal clipboard.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("节点路径（空 = 场景根，不允许）");
+            p["description"] = "Node path (empty = scene root, not allowed)";
             props["node_path"] = p;
         }
         Dictionary s;
@@ -42,17 +42,17 @@ protected:
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找到: ") + node_path);
+                "Node not found: " + node_path);
         }
         if (node == ctx.root) {
             return ToolResult::err("ROOT_NOT_ALLOWED",
-                String::utf8("不能复制场景根节点"));
+                "Cannot copy the scene root node");
         }
 
         Ref<PackedScene> scene = scene_tree_utils::pack_subtree(node);
         if (scene.is_null()) {
             return ToolResult::err("PACK_FAILED",
-                String::utf8("打包节点失败"));
+                "Failed to pack node");
         }
         scene_tree_utils::set_clipboard(scene);
 

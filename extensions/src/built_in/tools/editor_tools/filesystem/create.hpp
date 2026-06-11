@@ -20,40 +20,40 @@ public:
     String name() const override { return "create"; }
     String category() const override { return "editor_tools/filesystem"; }
     String brief() const override {
-        return String::utf8("创建文件（自动根据扩展名分派）");
+        return "Create a file (auto-dispatch by extension)";
     }
     String description() const override {
-        return String::utf8("根据路径扩展名自动选择创建策略的复合工具："
-                            ".tscn → PackedScene::pack() + ResourceSaver::save() "
-                            ".tres/.res → ResourceSaver::save() "
-                            ".gdshader → FileAccess 写入文本 "
-                            "其他 → 创建空文件。"
-                            ".gd/.cs 脚本创建请使用 write_gd_script / write_csharp_script 专用工具。");
+        return "A composite tool that selects the creation strategy based on the path extension: "
+               ".tscn → PackedScene::pack() + ResourceSaver::save() "
+               ".tres/.res → ResourceSaver::save() "
+               ".gdshader → FileAccess writes text "
+               "Other → creates an empty file. "
+               "For .gd/.cs scripts, use the dedicated write_gd_script / write_csharp_script tools.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标路径（res:// 开头，扩展名决定创建策略）");
+            p["description"] = "Target path (res:// prefix, extension determines strategy)";
             props["path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：文件内容（用于 .gd/.gdshader/.cs 等文本文件）");
+            p["description"] = "Optional: file content (for .gd/.gdshader/.cs and other text files)";
             props["content"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：创建场景时的根节点类型（默认 Node）");
+            p["description"] = "Optional: root node type when creating a scene (default Node)";
             props["root_type"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("可选：创建资源时的 Resource 子类名（默认 Resource）");
+            p["description"] = "Optional: Resource subclass name when creating a resource (default Resource)";
             props["resource_type"] = p;
         }
         Dictionary s;
@@ -76,11 +76,11 @@ protected:
         }
         if (FileAccess::file_exists(path)) {
             return ToolResult::err("FILE_EXISTS",
-                String::utf8("文件已存在: ") + path);
+                "File already exists: " + path);
         }
         if (!fs_utils::ensure_parent_dir(path)) {
             return ToolResult::err("MKDIR_FAILED",
-                String::utf8("无法创建父目录"));
+                "Failed to create parent directory"));
         }
 
         String ext = fs_utils::get_file_extension(path);
@@ -98,13 +98,13 @@ private:
     Dictionary create_scene(const String &path, const String &root_type) {
         if (!ClassDB::class_exists(root_type)) {
             return ToolResult::err("UNKNOWN_CLASS",
-                String::utf8("未知的节点类型: ") + root_type);
+                "Unknown node type: " + root_type);
         }
 
         Node *temp_root = Object::cast_to<Node>(ClassDB::instantiate(root_type));
         if (!temp_root) {
             return ToolResult::err("CREATE_FAILED",
-                String::utf8("无法创建类型为 ") + root_type + String::utf8(" 的节点"));
+                "Failed to create node of type: " + root_type);
         }
         temp_root->set_name(root_type);
 
@@ -115,13 +115,13 @@ private:
 
         if (err != Error::OK) {
             return ToolResult::err("PACK_FAILED",
-                String::utf8("打包场景失败，错误码: ") + String::num_int64((int64_t)err));
+                "Failed to pack scene, error code: " + String::num_int64((int64_t)err));
         }
 
         err = ResourceSaver::get_singleton()->save(scene, path, ResourceSaver::FLAG_CHANGE_PATH);
         if (err != Error::OK) {
             return ToolResult::err("SAVE_FAILED",
-                String::utf8("保存场景失败，错误码: ") + String::num_int64((int64_t)err));
+                "Failed to save scene, error code: " + String::num_int64((int64_t)err));
         }
 
         fs_utils::notify_file_changed(path);
@@ -136,13 +136,13 @@ private:
     Dictionary create_resource(const String &path, const String &resource_type) {
         if (!ClassDB::class_exists(resource_type)) {
             return ToolResult::err("UNKNOWN_CLASS",
-                String::utf8("未知的资源类型: ") + resource_type);
+                "Unknown resource type: " + resource_type);
         }
 
         Resource *res_obj = Object::cast_to<Resource>(ClassDB::instantiate(resource_type));
         if (!res_obj) {
             return ToolResult::err("CREATE_FAILED",
-                String::utf8("无法创建类型为 ") + resource_type + String::utf8(" 的资源"));
+                "Failed to create resource of type: " + resource_type);
         }
         Ref<Resource> res;
         res.reference_ptr(res_obj);
@@ -150,7 +150,7 @@ private:
         Error err = ResourceSaver::get_singleton()->save(res, path, ResourceSaver::FLAG_CHANGE_PATH);
         if (err != Error::OK) {
             return ToolResult::err("SAVE_FAILED",
-                String::utf8("保存资源失败，错误码: ") + String::num_int64((int64_t)err));
+                "Failed to save resource, error code: " + String::num_int64((int64_t)err));
         }
 
         fs_utils::notify_file_changed(path);
@@ -179,7 +179,7 @@ private:
         Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
         if (file.is_null()) {
             return ToolResult::err("CREATE_FAILED",
-                String::utf8("无法打开文件进行写入"));
+                "Failed to open file for writing"));
         }
         file->store_string(actual_content);
         file->close();

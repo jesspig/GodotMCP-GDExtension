@@ -16,20 +16,21 @@ public:
     String name() const override { return "paste_node"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("从剪贴板粘贴节点");
+        return "Paste a node from the clipboard";
     }
     String description() const override {
-        return String::utf8("从内部 PackedScene 剪贴板实例化节点。mode: child（作为 target_path 的子节点，默认）、"
-                            "sibling（作为 target_path 的同级节点，添加在它之后）、"
-                            "replacement（替换 target_path 节点）。"
-                            "剪贴板为空时返回错误。Ctrl+Z 可恢复被替换节点。");
+        return "Instantiates a node from the internal PackedScene clipboard. "
+               "mode: child (as child of target_path, default), "
+               "sibling (as sibling of target_path, inserted after it), "
+               "replacement (replaces the target_path node). "
+               "Returns an error if the clipboard is empty. Ctrl+Z restores a replaced node.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标节点路径（mode=sibling/replacement 时必填）");
+            p["description"] = "Target node path (required for mode=sibling/replacement)";
             props["target_path"] = p;
         }
         {
@@ -43,7 +44,7 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("新节点名（留空 = 保持剪贴板中的名字）");
+            p["description"] = "New node name (empty = keep clipboard name)";
             props["new_name"] = p;
         }
         Dictionary s;
@@ -63,7 +64,7 @@ protected:
         Ref<PackedScene> clipboard = scene_tree_utils::get_clipboard();
         if (clipboard.is_null()) {
             return ToolResult::err("EMPTY_CLIPBOARD",
-                String::utf8("剪贴板为空，请先用 copy_node 或 cut_node 复制节点"));
+                "Clipboard is empty, use copy_node or cut_node first"));
         }
 
         Node *target = nullptr;
@@ -73,7 +74,7 @@ protected:
             target = resolve_node(ctx.root, target_path);
             if (!target) {
                 return ToolResult::err("TARGET_NOT_FOUND",
-                    String::utf8("目标节点未找到: ") + target_path);
+                    "Target node not found: " + target_path);
             }
         }
         if (mode == "child") {
@@ -81,34 +82,34 @@ protected:
         } else if (mode == "sibling") {
             if (!target) {
                 return ToolResult::err("MISSING_TARGET",
-                    String::utf8("sibling 模式需要 target_path"));
+                    "sibling mode requires target_path"));
             }
             parent = target->get_parent();
             if (!parent) {
                 return ToolResult::err("ORPHAN_TARGET",
-                    String::utf8("目标节点无父节点"));
+                    "Target node has no parent"));
             }
             target_index = target->get_index() + 1;
         } else if (mode == "replacement") {
             if (!target) {
                 return ToolResult::err("MISSING_TARGET",
-                    String::utf8("replacement 模式需要 target_path"));
+                    "replacement mode requires target_path"));
             }
             parent = target->get_parent();
             if (!parent) {
                 return ToolResult::err("ORPHAN_TARGET",
-                    String::utf8("目标节点无父节点"));
+                    "Target node has no parent"));
             }
             target_index = target->get_index();
         } else {
             return ToolResult::err("BAD_MODE",
-                String::utf8("mode 必须是 child | sibling | replacement"));
+                "mode must be child | sibling | replacement"));
         }
 
         Node *inst = scene_tree_utils::instantiate_subtree(clipboard);
         if (!inst) {
             return ToolResult::err("INSTANTIATE_FAILED",
-                String::utf8("无法从剪贴板实例化节点"));
+                "Failed to instantiate node from clipboard"));
         }
         if (!new_name.is_empty()) {
             inst->set_name(new_name);
@@ -117,7 +118,7 @@ protected:
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
-            ur->create_action(String::utf8("MCP: Paste ") + inst->get_name(),
+            ur->create_action("MCP: Paste " + inst->get_name(),
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             if (mode == "replacement") {
                 ur->add_do_method(target, "replace_by", inst, true);

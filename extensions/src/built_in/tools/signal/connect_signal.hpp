@@ -15,42 +15,42 @@ public:
     String name() const override { return "connect_signal"; }
     String category() const override { return "node_tools/signal"; }
     String brief() const override {
-        return String::utf8("将节点的信号连接到目标节点的方法");
+        return String("Connect a node signal to a target method");
     }
     String description() const override {
-        return String::utf8("将 source_node 的 signal_name 信号连接到 target_node 的 "
-                            "target_method 方法。支持 CONNECT_DEFERRED(1)、CONNECT_ONESHOT(2) 等标志。");
+        return String("Connects a signal from source_node to target_method on target_node. "
+                            "Supports flags like CONNECT_DEFERRED(1), CONNECT_ONESHOT(2), etc.");
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("源节点路径（发出信号的节点）");
+            p["description"] = String("Source node path (the node emitting the signal)");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("要连接的信号名称");
+            p["description"] = String("Signal name to connect");
             props["signal_name"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标节点路径（接收信号的节点）");
+            p["description"] = String("Target node path (the node receiving the signal)");
             props["target_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标节点上的方法名");
+            p["description"] = String("Method name on the target node");
             props["target_method"] = p;
         }
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("连接标志（1=DEFERRED, 2=ONESHOT, 4=PERSIST, 8=REFERENCE_COUNTED）");
+            p["description"] = String("Connection flags (1=DEFERRED, 2=ONESHOT, 4=PERSIST, 8=REFERENCE_COUNTED)");
             props["flags"] = p;
         }
         Dictionary s;

@@ -15,7 +15,7 @@ class RemoveBreakpointTool : public ITool {
 public:
     String name() const override { return "remove_breakpoint"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("移除脚本行断点"); }
+    String brief() const override { return String("Remove breakpoint from script line"); }
     String description() const override { return brief(); }
 
     Dictionary input_schema() const override {
@@ -23,13 +23,13 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("脚本路径（res:// 开头）");
+            p["description"] = String("Script path (res:// prefix)");
             props["script_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("行号");
+            p["description"] = String("Line number");
             props["line"] = p;
         }
         Dictionary s;
@@ -46,7 +46,7 @@ protected:
 
         Object *debugger = _find_debugger();
         if (!debugger)
-            return ToolResult::err("NO_DEBUGGER", "未找到 EditorDebuggerNode");
+            return ToolResult::err("NO_DEBUGGER", "EditorDebuggerNode not found");
 
         debugger->call("set_breakpoint", script_path, line, false);
 

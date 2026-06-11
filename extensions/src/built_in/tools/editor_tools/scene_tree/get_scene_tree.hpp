@@ -15,25 +15,25 @@ public:
     String name() const override { return "get_scene_tree"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("递归获取当前场景树结构");
+        return "Recursively get the current scene tree structure";
     }
     String description() const override {
-        return String::utf8("返回当前编辑场景的完整节点树，包含名称、类型、路径、子节点数、ownership 状态、脚本路径。"
-                            "max_depth=-1 表示递归到叶节点。");
+        return "Returns the full node tree of the currently edited scene, including name, type, path, child count, ownership status, and script path. "
+               "max_depth=-1 means recurse to leaf nodes.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "integer";
-            p["description"] = String::utf8("最大递归深度（-1 = 无限，0 = 仅根节点，1 = 根+子节点）");
+            p["description"] = "Maximum recursion depth (-1 = infinite, 0 = root only, 1 = root + children)";
             p["default"] = (int64_t)-1;
             props["max_depth"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("是否包含每个节点的脚本路径");
+            p["description"] = "Whether to include each node's script path";
             p["default"] = false;
             props["include_scripts"] = p;
         }

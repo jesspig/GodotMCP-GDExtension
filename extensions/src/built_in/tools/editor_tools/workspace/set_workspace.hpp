@@ -13,12 +13,13 @@ class SetWorkspaceTool : public ITool {
 public:
     String name() const override { return "set_workspace"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String::utf8("切换编辑器工作区"); }
+    String brief() const override { return String("Switch editor workspace"); }
     String description() const override {
-        return String::utf8("切换到指定工作区：2D（2D 编辑）、3D（3D 编辑）、"
-                            "Script（脚本编辑）、AssetLib（资源库）。"
-                            "与 Godot 源码 editor/editor_main_screen.cpp 的 select_by_name() 流程对齐，"
-                            "通过 EditorInterface::set_main_screen_editor() 实现。");
+        return String("Switches to the specified workspace: 2D (2D editing), 3D (3D editing), "
+                      "Script (script editing), AssetLib (asset library). "
+                      "Aligned with the select_by_name() flow in Godot source "
+                      "editor/editor_main_screen.cpp, implemented via "
+                      "EditorInterface::set_main_screen_editor().");
     }
 
     Dictionary input_schema() const override {
@@ -26,7 +27,7 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("目标工作区名称：2D / 3D / Script / AssetLib");
+            p["description"] = String("Target workspace name: 2D / 3D / Script / AssetLib");
             props["name"] = p;
         }
         Dictionary s;
@@ -40,7 +41,7 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String name = args_string(ctx.args, "name");
         if (name.is_empty()) {
-            return ToolResult::err("MISSING_ARG", "name 不能为空，可选值：2D / 3D / Script / AssetLib");
+            return ToolResult::err("MISSING_ARG", "name cannot be empty, valid values: 2D / 3D / Script / AssetLib");
         }
 
         String normalized = name.strip_edges().capitalize();
@@ -54,12 +55,12 @@ protected:
         }
         if (!valid) {
             return ToolResult::err("INVALID_ARG",
-                String("无效的工作区名称 '") + name + String("'，可选值：2D / 3D / Script / AssetLib"));
+                String("Invalid workspace name '") + name + String("', valid values: 2D / 3D / Script / AssetLib"));
         }
 
         EditorInterface *ei = EditorInterface::get_singleton();
         if (!ei) {
-            return ToolResult::err("NO_EDITOR", "EditorInterface 不可用");
+            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
 
         ei->set_main_screen_editor(normalized);

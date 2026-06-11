@@ -13,18 +13,18 @@ class RunSpecificSceneTool : public ITool {
 public:
     String name() const override { return "run_specific_scene"; }
     String category() const override { return "runtime_tools/lifecycle"; }
-    String brief() const override { return String::utf8("运行指定的场景文件"); }
+    String brief() const override { return String("Run a specific scene file"); }
     String description() const override {
-        return String::utf8("运行指定的场景文件路径。路径应以 res:// 开头，指向一个 .tscn 或 .scn 文件。"
-                             "等同于使用「运行特定场景」对话框。"
-                             "场景运行后可通过 stop_project 停止。");
+        return String("Runs a specific scene file path. The path must start with res:// and point to a .tscn or .scn file. "
+                             "Equivalent to using the Run Specific Scene dialog. "
+                             "Can be stopped via stop_project.");
     }
     Dictionary input_schema() const override {
         Dictionary p;
         {
             Dictionary d;
             d["type"] = "string";
-            d["description"] = String::utf8("场景文件路径，如 res://scenes/level1.tscn");
+            d["description"] = String("Scene file path, e.g. res://scenes/level1.tscn");
             p["scene_path"] = d;
         }
         Dictionary s;

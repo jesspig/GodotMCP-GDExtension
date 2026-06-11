@@ -15,46 +15,46 @@ public:
     String name() const override { return "instance_child_scene"; }
     String category() const override { return "editor_tools/scene_tree"; }
     String brief() const override {
-        return String::utf8("实例化 .tscn 文件为场景子节点");
+        return "Instantiate a .tscn file as a child node in the scene";
     }
     String description() const override {
-        return String::utf8("将 .tscn 文件实例化为 parent_path 下的子节点。"
-                            "instance_name 留空 = 使用 .tscn 根节点名。"
-                            "editable_children=true 时子节点可在场景中编辑。"
-                            "load_placeholder=true 时不展开内部结构（仅占位符）。"
-                            "所有变更可撤销。");
+        return "Instantiates a .tscn file as a child node under parent_path. "
+               "instance_name left empty = uses the .tscn root node name. "
+               "editable_children=true allows children to be edited in the scene. "
+               "load_placeholder=true loads as a placeholder (no internal structure expanded). "
+               "All changes are undoable.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("父节点路径（空 = 场景根）");
+            p["description"] = "Parent node path (empty = scene root)";
             props["parent_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("要实例化的 .tscn 文件 res:// 路径");
+            p["description"] = ".tscn file res:// path to instantiate";
             props["scene_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("实例节点名（留空 = 用 .tscn 根名）");
+            p["description"] = "Instance node name (empty = use .tscn root name)";
             props["instance_name"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("是否可编辑子节点（Allow Editable Children）");
+            p["description"] = "Allow Editable Children on the instance";
             p["default"] = false;
             props["editable_children"] = p;
         }
         {
             Dictionary p;
             p["type"] = "boolean";
-            p["description"] = String::utf8("作为占位符实例（不展开内部）");
+            p["description"] = "Instantiate as placeholder (don't expand internals)";
             p["default"] = false;
             props["load_placeholder"] = p;
         }
@@ -76,23 +76,23 @@ protected:
         bool load_placeholder = args_bool(ctx.args, "load_placeholder", false);
 
         if (scene_path.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("scene_path 不能为空"));
+            return ToolResult::err("MISSING_ARG", "scene_path cannot be empty");
         }
         Node *parent = resolve_node(ctx.root, parent_path);
         if (!parent) {
             return ToolResult::err("PARENT_NOT_FOUND",
-                String::utf8("父节点未找到: ") + parent_path);
+                "Parent node not found: " + parent_path);
         }
 
         godot::Ref<godot::PackedScene> packed =
             godot::ResourceLoader::get_singleton()->load(scene_path);
         if (packed.is_null()) {
             return ToolResult::err("LOAD_FAILED",
-                String::utf8("无法加载场景: ") + scene_path);
+                "Failed to load scene: " + scene_path);
         }
         if (!packed->can_instantiate()) {
             return ToolResult::err("NOT_INSTANTIABLE",
-                String::utf8("该 PackedScene 不可实例化（可能损坏）"));
+                "This PackedScene cannot be instantiated (may be corrupted)"));
         }
 
         Node *inst = packed->instantiate(
@@ -100,7 +100,7 @@ protected:
                              : godot::PackedScene::GEN_EDIT_STATE_DISABLED);
         if (!inst) {
             return ToolResult::err("INSTANTIATE_FAILED",
-                String::utf8("实例化失败"));
+                "Instantiation failed"));
         }
         if (!instance_name.is_empty()) {
             inst->set_name(instance_name);
@@ -114,7 +114,7 @@ protected:
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
-            ur->create_action(String::utf8("MCP: Instance ") + scene_path,
+            ur->create_action("MCP: Instance " + scene_path,
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", inst, true,
                               (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
