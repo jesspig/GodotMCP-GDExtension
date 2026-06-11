@@ -16,8 +16,8 @@ hero:
       theme: alt
 
 features:
-  - title: 🎮 122 Editor Tools
-    details: Covering scene management, node operations, script editing, resource control, project settings, input mapping, and more
+  - title: 🎮 149+ Editor Tools
+    details: Covering scene management, node operations, script editing, resource control, project settings, runtime bridge, debugger, and more
   - title: ⚡ Native C++ Performance
     details: Built on C++ GDExtension, zero GC pauses, pure main-thread polling, lock-free and contention-free
   - title: 🔌 Streamable HTTP

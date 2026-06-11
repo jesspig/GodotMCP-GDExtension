@@ -11,7 +11,7 @@
 
 ### 连接成功后部分工具不可用
 
-工具 schemas 通过 C++ 编译时由 `tools/codegen.py` 扫描 `// @tool register` 注释自动生成并嵌入插件，无需外部文件。确保工具头文件包含 `// @tool register` 注释后重新构建即可。
+工具通过 X-macro 注册机制自动收集，所有 `extensions/src/built_in/tools/**/*.hpp` 文件由 `register_itools.cpp` 的 `#include` 收集，无需 `.cpp` 文件或 codegen。如果工具不可用，请确保工具头文件已正确放置在 tools 目录下，并且已在对应的 X-macro 注册文件中注册。
 
 ## 构建问题
 
