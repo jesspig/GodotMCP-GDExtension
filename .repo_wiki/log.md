@@ -2,6 +2,18 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-12 — V2 优化方案 + 竞品深度分析 + ADR-016~022
+
+**竞品深度分析与 V2 优化方案制定**
+
+- **新增** `design/competitive-analysis.md`：20+ Godot MCP 竞品技术分析、SWOT 评估、能力矩阵对比
+- **新增** `design/v2-optimization-plan.md`：V2 优化总方案（P0/P1/P2 三级优先级，Phase 0-2 时间线）
+- **新增** `design/phases/phase0-blocking-fixes.md`：P0 阻断性修复实施指南（Release 流水线、CI、GameBridge 安全）
+- **新增** `design/phases/phase1-competitiveness.md`：P1 竞争力提升实施指南（编辑器 UI、22-30 个新工具、WSL2、CORS/Session）
+- **新增** `design/phases/phase2-differentiation.md`：P2 差异化优势实施指南（安全增强、客户端模板、限流、CI 测试）
+- **新增** `design/decisions.md` ADR-016~022：预编译分发、网络绑定安全、编辑器 UI、工具覆盖面补全、WSL2 兼容、安全模型增强、用户引导与分发
+- **更新** `index.md`：导航新增竞品分析 + V2 方案 + Phase 指南
+
 ## 2026-06-11 — Wiki 全量事实校正 + ADR-015 修订
 
 **Wiki 全量事实校正：codegen 引用清理 + 线程模型修正 + 工具计数同步**

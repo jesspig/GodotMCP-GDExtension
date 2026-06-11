@@ -49,6 +49,11 @@
 | 输入映射 | [modules/input-map.md](modules/input-map.md) |
 | 构建与打包 | [reference/build-and-package.md](reference/build-and-package.md) |
 | 设计决策（ADR） | [design/decisions.md](design/decisions.md) |
+| **竞品深度分析** | [design/competitive-analysis.md](design/competitive-analysis.md) |
+| **V2 优化方案** | [design/v2-optimization-plan.md](design/v2-optimization-plan.md) |
+| Phase 0 实施指南 | [design/phases/phase0-blocking-fixes.md](design/phases/phase0-blocking-fixes.md) |
+| Phase 1 实施指南 | [design/phases/phase1-competitiveness.md](design/phases/phase1-competitiveness.md) |
+| Phase 2 实施指南 | [design/phases/phase2-differentiation.md](design/phases/phase2-differentiation.md) |
 | 测试框架 | [testing/overview.md](testing/overview.md) |
 | 变更日志 | [log.md](log.md) |
 

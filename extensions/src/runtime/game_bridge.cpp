@@ -89,7 +89,7 @@ void GameBridgeNode::_self_add() {
 
 void GameBridgeNode::start_server() {
     server_.instantiate();
-    Error err = server_->listen(port_);
+    Error err = server_->listen(port_, "localhost");
     if (err != OK) {
         log_error("game_bridge", String("Failed to listen on :") + String::num_int64(port_));
         server_.unref();

@@ -11,7 +11,7 @@
 
 ### Some tools unavailable after successful connection
 
-Tool schemas are generated at compile time by `tools/codegen.py` scanning `// @tool register` comments and embedded directly into the plugin — no external file needed. Ensure your tool header contains the `// @tool register` annotation, then rebuild.
+Tools are auto-collected via the X-macro registration mechanism. All `extensions/src/built_in/tools/**/*.hpp` files are included by `register_itools.cpp` via `#include`, requiring no `.cpp` files or codegen. If a tool is unavailable, ensure its header is correctly placed in the tools directory and registered in the corresponding X-macro registration file.
 
 ## Build Issues
 

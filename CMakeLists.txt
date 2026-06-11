@@ -19,7 +19,7 @@ endif()
 # Project version — maintained directly here (no more Cargo.toml parsing).
 # Bump when releasing.
 # ---------------------------------------------------------------------------
-set(PROJECT_VERSION "0.2.0-dev7")
+set(PROJECT_VERSION "0.2.0")
 message(STATUS "GodotMCP version: ${PROJECT_VERSION}")
 
 # ---------------------------------------------------------------------------
@@ -60,7 +60,7 @@ file(WRITE "${_addon_dir}/plugin.cfg"
     "[plugin]\n"
     "name=\"Godot MCP\"\n"
     "description=\"Model Context Protocol bridge for Godot Engine.\"\n"
-    "author=\"\"\n"
+    "author=\"JessPig\"\n"
     "version=\"${PROJECT_VERSION}\"\n"
     "script=\"\"\n"
 )
