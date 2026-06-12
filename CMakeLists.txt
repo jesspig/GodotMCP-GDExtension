@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.25)
 project(GodotMCP LANGUAGES CXX C)
 
 # ---------------------------------------------------------------------------
@@ -41,6 +41,8 @@ endif()
 # MSVC: treat source files & execution charset as UTF-8 (fixes CJK in string literals)
 if(MSVC)
     add_compile_options(/utf-8 /bigobj /D_CRT_SECURE_NO_WARNINGS)
+    # Embed debug info in .obj files (/Z7) to avoid C1041 PDB conflicts with sccache + /MP.
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded)
 endif()
 
 add_subdirectory(extensions)
