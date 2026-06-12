@@ -61,9 +61,9 @@ protected:
         Variant new_val = json_to_variant(ctx.args["value"]);
         ps->set_setting(path, new_val);
         Error err = ps->save();
-        if (err != OK) {
+        if (err != godot::OK) {
             return ToolResult::err("SAVE_FAILED",
-                String("Failed to save project settings (error ") + itos(err) + String(")"));
+                String("Failed to save project settings (error ") + godot::itos(err) + String(")"));
         }
         Dictionary data;
         data["setting"] = path;

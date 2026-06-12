@@ -94,8 +94,8 @@ protected:
 
         Callable callable(target, target_method);
         Error err = source->connect(signal_name, callable, (uint32_t)flags);
-        if (err != OK) {
-            String msg = String::utf8("连接信号失败，错误码: ") + itos((int)err);
+        if (err != godot::OK) {
+            String msg = String::utf8("连接信号失败，错误码: ") + godot::itos((int)err);
             return ToolResult::err("CONNECT_FAILED", msg);
         }
 

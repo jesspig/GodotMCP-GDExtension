@@ -511,7 +511,7 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
 
     // Build output
     Array result;
-    for (int i = 0; i < scored.size() && i < limit; ++i) {
+    for (int i = 0; i < (int)scored.size() && i < limit; ++i) {
         Dictionary entry;
         entry["name"] = scored[i].name;
         const ToolInfo *info = find_tool_info(scored[i].name);

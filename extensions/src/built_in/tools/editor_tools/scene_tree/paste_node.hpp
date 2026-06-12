@@ -175,7 +175,7 @@ protected:
             new_node_path = inst->get_name();
         } else {
             String parent_rel = relative_path(ctx.root, parent);
-            new_node_path = parent_rel.is_empty() ? inst->get_name() : parent_rel + "/" + inst->get_name();
+            new_node_path = parent_rel.is_empty() ? String(inst->get_name()) : parent_rel + "/" + inst->get_name();
         }
         Dictionary data;
         data["new_node"] = new_node_path;

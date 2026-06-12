@@ -85,7 +85,7 @@ protected:
         shader->set_code(code);
 
         Error err = godot::ResourceSaver::get_singleton()->save(shader, resource_path);
-        if (err != OK) {
+        if (err != godot::OK) {
             return ToolResult::err("SAVE_FAILED",
                 "Failed to save shader: " + resource_path);
         }

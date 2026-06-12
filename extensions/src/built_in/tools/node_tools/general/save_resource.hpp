@@ -76,9 +76,9 @@ protected:
 
         ensure_parent_dir(save_path);
         Error err = godot::ResourceSaver::get_singleton()->save(res, save_path);
-        if (err != OK) {
+        if (err != godot::OK) {
             return ToolResult::err("SAVE_FAILED",
-                String::utf8("保存失败，错误码: ") + itos(err));
+                String::utf8("保存失败，错误码: ") + godot::itos(err));
         }
 
         notify_file_changed(save_path);

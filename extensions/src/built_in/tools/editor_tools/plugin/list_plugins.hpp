@@ -43,7 +43,7 @@ protected:
                 String plugin_cfg = "res://addons/" + n + "/plugin.cfg";
                 godot::Ref<godot::ConfigFile> cfg;
                 cfg.instantiate();
-                if (cfg->load(plugin_cfg) != OK) continue;
+                if (cfg->load(plugin_cfg) != godot::OK) continue;
 
                 String plugin_name = cfg->get_value("plugin", "name", n);
                 bool enabled = false;

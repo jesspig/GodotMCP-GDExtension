@@ -51,9 +51,9 @@ protected:
         Variant old_val = ps->get_setting(path);
         ps->clear(path);
         Error err = ps->save();
-        if (err != OK) {
+        if (err != godot::OK) {
             return ToolResult::err("SAVE_FAILED",
-                String("Failed to save after reset (error ") + itos(err) + String(")"));
+                String("Failed to save after reset (error ") + godot::itos(err) + String(")"));
         }
         Dictionary data;
         data["setting"] = path;

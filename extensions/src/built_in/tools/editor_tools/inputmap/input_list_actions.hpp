@@ -29,16 +29,16 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        InputMap *im = InputMap::get_singleton();
+        godot::InputMap *im = godot::InputMap::get_singleton();
         if (!im) {
             return ToolResult::err("NO_INPUT_MAP", "InputMap not available");
         }
 
-        TypedArray<StringName> actions = im->get_actions();
+        godot::TypedArray<godot::StringName> actions = im->get_actions();
         Array results;
 
         for (int i = 0; i < actions.size(); i++) {
-            StringName action = actions[i];
+            godot::StringName action = actions[i];
             Array events = im->action_get_events(action);
 
             Dictionary entry;
@@ -48,7 +48,7 @@ protected:
 
             Array event_list;
             for (int e = 0; e < events.size(); e++) {
-                Ref<InputEvent> event = events[e];
+                godot::Ref<godot::InputEvent> event = events[e];
                 Dictionary ev_entry;
                 ev_entry["type"] = event->get_class();
                 ev_entry["as_text"] = event->call("as_text");

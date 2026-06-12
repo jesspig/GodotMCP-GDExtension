@@ -96,7 +96,7 @@ protected:
             return ToolResult::ok(data);
         }
 
-        Error err = godot::ResourceSaver::get_singleton()->save(res, path, godot::ResourceSaver::FLAG_CHANGE_PATH);
+        godot::ResourceSaver::get_singleton()->save(res, path, godot::ResourceSaver::FLAG_CHANGE_PATH);
 
         fs_utils::notify_file_changed(path);
 

@@ -73,7 +73,6 @@ protected:
         }
 
         String old_name = node->get_name();
-        godot::Error err;
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
             ur->create_action("MCP: Rename " + old_name,
@@ -81,10 +80,8 @@ protected:
             ur->add_do_method(node, "set_name", new_name);
             ur->add_undo_method(node, "set_name", old_name);
             ur->commit_action();
-            err = godot::OK;
         } else {
             node->set_name(new_name);
-            err = godot::OK;
         }
 
         Dictionary data;

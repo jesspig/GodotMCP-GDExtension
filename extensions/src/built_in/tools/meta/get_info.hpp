@@ -53,7 +53,7 @@ protected:
         project["name"] = ps->get_setting("application/config/name", String());
         project["path"] = ps->globalize_path("res://");
         Variant main_scene = ps->get_setting("application/run/main_scene");
-        project["main_scene"] = main_scene.get_type() != Variant::NIL ? main_scene : String();
+        project["main_scene"] = main_scene.get_type() != Variant::NIL ? String(main_scene) : String();
         result["project"] = project;
 
         Dictionary editor;

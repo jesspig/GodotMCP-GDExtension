@@ -33,6 +33,10 @@ jobs:
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.8
 
+      - name: Setup MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Cache godot-cpp sources
         uses: actions/cache@v4
         with:

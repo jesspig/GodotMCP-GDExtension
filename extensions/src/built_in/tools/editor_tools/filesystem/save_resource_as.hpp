@@ -85,7 +85,7 @@ protected:
         Error err = godot::ResourceSaver::get_singleton()->save(res, save_path,
             godot::ResourceSaver::FLAG_CHANGE_PATH);
 
-        if (err != OK) {
+        if (err != godot::OK) {
             return ToolResult::err("SAVE_FAILED",
                 String("Failed to save resource (error ") +
                 String::num_int64((int64_t)err) + String("): ") + save_path);

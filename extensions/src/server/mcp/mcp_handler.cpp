@@ -41,7 +41,7 @@ String McpHandler::generate_uuid() {
                  (unsigned)(hi >> 32),
                  (unsigned)(hi >> 16) & 0xffff,
                  (unsigned)(hi & 0x0fff),
-                 (unsigned)(lo >> 48) & 0x3fff | 0x8000,
+                 ((unsigned)(lo >> 48) & 0x3fff) | 0x8000,
                  (unsigned long long)(lo & 0x0000ffffffffffffULL));
     return String(buf);
 }
@@ -187,7 +187,6 @@ String McpHandler::negotiate_protocol_version(const String &header_value) {
 // (initialize), the new session ID is written back here.
 Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg, String &io_session_id) {
     const Variant id_v = jsonrpc_msg.has("id") ? jsonrpc_msg["id"] : Variant();
-    const bool is_request = id_v.get_type() != Variant::NIL;
 
     const String version = jsonrpc_msg.get("jsonrpc", "");
     if (!version.is_empty() && version != "2.0") {
