@@ -18,24 +18,25 @@ HttpServer::~HttpServer() {
     stop();
 }
 
-bool HttpServer::start(int port, McpHandler *mcp_handler) {
+Error HttpServer::start(uint16_t port, McpHandler *mcp_handler, const String &bind_address) {
     stop();
     mcp_handler_ = mcp_handler;
     port_ = port;
+    bind_address_ = bind_address;
 
     tcp_server_.instantiate();
-    const Error err = tcp_server_->listen((uint16_t)port, kBindAddress);
+    const Error err = tcp_server_->listen(port, bind_address_);
     if (err != OK) {
-        log_error("http", String("Failed to listen on ") + String(kBindAddress) +
+        log_error("http", String("Failed to listen on ") + bind_address_ +
                               String(":") + String::num_int64(port) +
                               String(" (err=") + String::num_int64((int64_t)err) + String(")"));
         tcp_server_.unref();
-        return false;
+        return err;
     }
 
     log_info("http",
-             String("MCP Streamable HTTP on ") + String(kBindAddress) + String(":") + String::num_int64(port));
-    return true;
+             String("MCP Streamable HTTP on ") + bind_address_ + String(":") + String::num_int64(port));
+    return OK;
 }
 
 void HttpServer::stop() {
@@ -468,7 +469,8 @@ void HttpServer::handle_delete(int conn_id, Connection &conn) {
 }
 
 void HttpServer::handle_options(int conn_id, Connection &conn) {
-    String cors_headers = String("Access-Control-Allow-Origin: *\r\n") +
+    String cors_headers = String("Access-Control-Allow-Origin: ") + get_cors_origin(conn) + String("\r\n") +
+        "Vary: Origin\r\n"
         "Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS\r\n"
         "Access-Control-Allow-Headers: Content-Type, Accept, MCP-Session-Id, Last-Event-ID, MCP-Protocol-Version\r\n"
         "Access-Control-Max-Age: " + String::num_int64(kCorsMaxAgeSeconds) +

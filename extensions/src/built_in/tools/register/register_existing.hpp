@@ -50,6 +50,11 @@ GODOT_MCP_TOOL(CreateAnimationClipTool,     "create_animation_clip",    "editor_
 GODOT_MCP_TOOL(AddAnimationTrackTool,       "add_animation_track",      "editor_tools/animation", false, true, false)
 GODOT_MCP_TOOL(SetKeyframeTool,             "set_keyframe",             "editor_tools/animation", false, true, false)
 GODOT_MCP_TOOL(GetAnimationInfoTool,        "get_animation_info",       "editor_tools/animation", false, true, false)
+GODOT_MCP_TOOL(CreateAnimationTreeTool,     "create_animation_tree",    "editor_tools/animation", false, true, false)
+GODOT_MCP_TOOL(GetAnimationTreeInfoTool,    "get_animation_tree_info",  "editor_tools/animation", false, true, false)
+GODOT_MCP_TOOL(AddAnimationNodeTool,        "add_animation_node",       "editor_tools/animation", false, true, false)
+GODOT_MCP_TOOL(AddTransitionTool,           "add_transition",           "editor_tools/animation", false, true, false)
+GODOT_MCP_TOOL(SetTransitionConditionTool,  "set_transition_condition", "editor_tools/animation", false, true, false)
 
 // ── Control tools ──
 GODOT_MCP_TOOL(CreateControlTool,           "create_control",           "editor_tools/control", false, true, false)
@@ -68,6 +73,8 @@ GODOT_MCP_TOOL(GetBestPracticesTool,        "get_best_practices",       "editor_
 // ── Export tools ──
 GODOT_MCP_TOOL(ListExportPresetsTool,       "list_export_presets",      "editor_tools/export", false, false, false)
 GODOT_MCP_TOOL(ExportProjectTool,           "export_project",           "editor_tools/export", false, false, false)
+GODOT_MCP_TOOL(ValidateExportPresetsTool,   "validate_export_presets",  "editor_tools/export", false, false, false)
+GODOT_MCP_TOOL(GetExportPlatformsTool,      "get_export_platforms",     "editor_tools/export", false, false, false)
 
 // ── Filesystem tools ──
 GODOT_MCP_TOOL(CreateTool,                  "create",                   "editor_tools/filesystem", false, false, false)
@@ -85,6 +92,9 @@ GODOT_MCP_TOOL(SaveResourceAsTool,          "save_resource_as",         "editor_
 
 // ── Input map tools ──
 GODOT_MCP_TOOL(InputListActionsTool,        "input_list_actions",       "editor_tools/inputmap", false, false, false)
+GODOT_MCP_TOOL(AddInputActionTool,          "add_input_action",         "editor_tools/inputmap", false, false, false)
+GODOT_MCP_TOOL(RemoveInputActionTool,       "remove_input_action",      "editor_tools/inputmap", false, false, false)
+GODOT_MCP_TOOL(AddInputEventBindingTool,    "add_input_event_binding",  "editor_tools/inputmap", false, false, false)
 
 // ── Plugin tools ──
 GODOT_MCP_TOOL(ListPluginsTool,             "list_plugins",             "editor_tools/plugin", false, false, false)
@@ -118,6 +128,23 @@ GODOT_MCP_TOOL(ListSettingsTool,            "list_settings",            "editor_
 GODOT_MCP_TOOL(CreateShaderTool,            "create_shader",            "editor_tools/shader", false, false, false)
 GODOT_MCP_TOOL(ReadShaderTool,              "read_shader",              "editor_tools/shader", false, false, false)
 GODOT_MCP_TOOL(ApplyShaderPresetTool,       "apply_shader_preset",      "editor_tools/shader", false, true, false)
+GODOT_MCP_TOOL(GetShaderUniformsTool,       "get_shader_uniforms",      "editor_tools/shader", false, false, false)
+GODOT_MCP_TOOL(SetShaderUniformTool,        "set_shader_uniform",       "editor_tools/shader", false, true, false)
+
+// ── Audio tools ──
+GODOT_MCP_TOOL(CreateAudioPlayerTool,       "create_audio_player",      "editor_tools/audio", false, true, false)
+GODOT_MCP_TOOL(SetAudioStreamTool,          "set_audio_stream",         "editor_tools/audio", false, true, false)
+GODOT_MCP_TOOL(ListAudioBusesTool,          "list_audio_buses",         "editor_tools/audio", false, false, false)
+
+// ── Navigation tools ──
+GODOT_MCP_TOOL(CreateNavigationRegionTool,  "create_navigation_region", "editor_tools/navigation", false, true, false)
+GODOT_MCP_TOOL(CreateNavigationAgentTool,   "create_navigation_agent",  "editor_tools/navigation", false, true, false)
+GODOT_MCP_TOOL(BakeNavigationMeshTool,      "bake_navigation_mesh",     "editor_tools/navigation", false, true, false)
+
+// ── 3D Scene tools ──
+GODOT_MCP_TOOL(CreateMeshInstance3DTool,    "create_mesh_instance_3d",  "editor_tools/3d_scene", false, true, false)
+GODOT_MCP_TOOL(CreateLight3DTool,           "create_light_3d",          "editor_tools/3d_scene", false, true, false)
+GODOT_MCP_TOOL(SetWorldEnvironmentTool,     "set_world_environment",    "editor_tools/3d_scene", false, true, false)
 
 // ── TileMap tools ──
 GODOT_MCP_TOOL(GetTileMapInfoTool,          "get_tilemap_info",         "editor_tools/tilemap", false, true, true)

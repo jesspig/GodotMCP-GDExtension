@@ -47,6 +47,9 @@ public:
     static constexpr int kResourceNotFound = -32002;
     static constexpr int kServerTerminated = -32001;
 
+    static constexpr double kSessionTtl = 3600.0;
+    static constexpr int kMaxSessions = 16;
+
 private:
     struct Session {
         String id;
@@ -55,11 +58,13 @@ private:
         Dictionary client_info;
         bool initialized = false;
         double created_at;
+        double last_activity = 0.0;
         int log_level = 3; // RFC 5424: Error=3
         Vector<Dictionary> sse_event_queue;
     };
 
     Session *find_session(const String &id);
+    void cleanup_expired_sessions();
 
     static String generate_uuid();
     static Dictionary make_jsonrpc_response(const Variant &id, const Variant &result);

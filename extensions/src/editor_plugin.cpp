@@ -65,7 +65,10 @@ void McpEditorPlugin::_enter_tree() {
 
     http_port_ = read_port_from_env("GODOT_MCP_HTTP_PORT", 9600);
 
-    if (!http_server_.start(http_port_, &mcp_handler_)) {
+    String http_host = OS::get_singleton()->get_environment("GODOT_MCP_HTTP_HOST");
+    if (http_host.is_empty()) http_host = "127.0.0.1";
+
+    if (http_server_.start(http_port_, &mcp_handler_, http_host) != OK) {
         log_error("plugin", "Failed to start HTTP server");
         return;
     }
