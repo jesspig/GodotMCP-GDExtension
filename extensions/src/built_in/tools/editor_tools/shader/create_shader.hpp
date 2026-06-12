@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -80,11 +80,11 @@ protected:
 
         ensure_parent_dir(resource_path);
 
-        Ref<Shader> shader;
+        godot::Ref<godot::Shader> shader;
         shader.instantiate();
         shader->set_code(code);
 
-        Error err = ResourceSaver::get_singleton()->save(shader, resource_path);
+        Error err = godot::ResourceSaver::get_singleton()->save(shader, resource_path);
         if (err != OK) {
             return ToolResult::err("SAVE_FAILED",
                 "Failed to save shader: " + resource_path);

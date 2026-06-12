@@ -23,10 +23,10 @@ public:
     }
     String description() const override {
         return "A composite tool that selects the creation strategy based on the path extension: "
-               ".tscn â†?PackedScene::pack() + ResourceSaver::save() "
-               ".tres/.res â†?ResourceSaver::save() "
-               ".gdshader â†?FileAccess writes text "
-               "Other â†?creates an empty file. "
+               ".tscn ï¿½?PackedScene::pack() + ResourceSaver::save() "
+               ".tres/.res ï¿½?ResourceSaver::save() "
+               ".gdshader ï¿½?FileAccess writes text "
+               "Other ï¿½?creates an empty file. "
                "For .gd/.cs scripts, use the dedicated write_gd_script / write_csharp_script tools.";
     }
     Dictionary input_schema() const override {
@@ -73,7 +73,7 @@ protected:
         if (!verr.is_empty()) {
             return ToolResult::err(verr["code"], verr["message"]);
         }
-        if (FileAccess::file_exists(path)) {
+        if (godot::FileAccess::file_exists(path)) {
             return ToolResult::err("FILE_EXISTS",
                 "File already exists: " + path);
         }
@@ -107,7 +107,7 @@ private:
         }
         temp_root->set_name(root_type);
 
-        Ref<PackedScene> scene;
+        godot::Ref<godot::PackedScene> scene;
         scene.instantiate();
         Error err = scene->pack(temp_root);
         memdelete(temp_root);
@@ -117,7 +117,7 @@ private:
                 "Failed to pack scene, error code: " + String::num_int64((int64_t)err));
         }
 
-        err = ResourceSaver::get_singleton()->save(scene, path, ResourceSaver::FLAG_CHANGE_PATH);
+        err = godot::ResourceSaver::get_singleton()->save(scene, path, godot::ResourceSaver::FLAG_CHANGE_PATH);
         if (err != Error::OK) {
             return ToolResult::err("SAVE_FAILED",
                 "Failed to save scene, error code: " + String::num_int64((int64_t)err));
@@ -138,15 +138,15 @@ private:
                 "Unknown resource type: " + resource_type);
         }
 
-        Resource *res_obj = Object::cast_to<Resource>(ClassDB::instantiate(resource_type));
+        godot::Resource *res_obj = Object::cast_to<godot::Resource>(ClassDB::instantiate(resource_type));
         if (!res_obj) {
             return ToolResult::err("CREATE_FAILED",
                 "Failed to create resource of type: " + resource_type);
         }
-        Ref<Resource> res;
+        godot::Ref<godot::Resource> res;
         res.reference_ptr(res_obj);
 
-        Error err = ResourceSaver::get_singleton()->save(res, path, ResourceSaver::FLAG_CHANGE_PATH);
+        Error err = godot::ResourceSaver::get_singleton()->save(res, path, godot::ResourceSaver::FLAG_CHANGE_PATH);
         if (err != Error::OK) {
             return ToolResult::err("SAVE_FAILED",
                 "Failed to save resource, error code: " + String::num_int64((int64_t)err));
@@ -175,7 +175,7 @@ private:
             }
         }
 
-        Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
+        godot::Ref<godot::FileAccess> file = godot::FileAccess::open(path, godot::FileAccess::WRITE);
         if (file.is_null()) {
             return ToolResult::err("CREATE_FAILED",
                 "Failed to open file for writing");

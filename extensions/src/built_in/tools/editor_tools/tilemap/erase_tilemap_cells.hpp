@@ -107,7 +107,7 @@ protected:
             tilemap->erase_cell(coords);
         }
 
-        EditorUndoRedoManager *ur = get_undo_redo();
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
         ur->create_action(String::utf8("MCP: Erase TileMap Cells"),
                           godot::UndoRedo::MERGE_DISABLE, ctx.root);
 

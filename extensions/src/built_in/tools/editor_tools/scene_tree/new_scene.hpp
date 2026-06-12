@@ -67,14 +67,14 @@ protected:
                 "Failed to create node of type: " + root_type);
         }
 
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             memdelete(new_root);
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
         ei->add_root_node(new_root);
 
-        EditorSelection *sel = ei->get_selection();
+        godot::EditorSelection *sel = ei->get_selection();
         if (sel) {
             sel->clear();
             sel->add_node(new_root);

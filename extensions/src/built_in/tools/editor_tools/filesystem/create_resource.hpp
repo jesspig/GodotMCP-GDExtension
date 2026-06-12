@@ -57,7 +57,7 @@ protected:
             return ToolResult::err("BAD_EXTENSION",
                 "Resource path must end with .tres or .res");
         }
-        if (FileAccess::file_exists(path)) {
+        if (godot::FileAccess::file_exists(path)) {
             return ToolResult::err("FILE_EXISTS",
                 "File already exists: " + path);
         }
@@ -74,13 +74,13 @@ protected:
         // ClassDB::instantiate() creates engine objects without proper godot-cpp
         // Resource binding, making ResourceSaver::save() fail with ERR_QUERY_FAILED (31).
         // Use memnew(Resource) which creates a native godot-cpp Resource with full binding.
-        Ref<Resource> res = memnew(Resource);
+        godot::Ref<godot::Resource> res = memnew(godot::Resource);
 
         // Write the .tres file manually when a specific resource type is requested,
         // since we can't dynamically call memnew<Gradient>() etc. from a string.
         if (resource_type != "Resource") {
             String content = "[gd_resource type=\"" + resource_type + "\" format=3]\n[resource]\n";
-            Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
+            godot::Ref<godot::FileAccess> file = godot::FileAccess::open(path, godot::FileAccess::WRITE);
             if (file.is_null()) {
                 return ToolResult::err("WRITE_FAILED",
                     "Failed to write file: " + path);
@@ -96,7 +96,7 @@ protected:
             return ToolResult::ok(data);
         }
 
-        Error err = ResourceSaver::get_singleton()->save(res, path, ResourceSaver::FLAG_CHANGE_PATH);
+        Error err = godot::ResourceSaver::get_singleton()->save(res, path, godot::ResourceSaver::FLAG_CHANGE_PATH);
 
         fs_utils::notify_file_changed(path);
 

@@ -43,7 +43,7 @@ protected:
         if (path.is_empty()) {
             return ToolResult::err("MISSING_PARAM", "setting_path is required");
         }
-        ProjectSettings *ps = ProjectSettings::get_singleton();
+        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
         if (!ps->has_setting(path)) {
             return ToolResult::err("SETTING_NOT_FOUND",
                 String("Setting not found: ") + path);

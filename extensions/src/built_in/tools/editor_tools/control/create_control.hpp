@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -142,7 +142,7 @@ protected:
             ));
         }
 
-        EditorUndoRedoManager *ur = get_undo_redo();
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (!ur) {
             parent->add_child(child, true, godot::Node::INTERNAL_MODE_DISABLED);
             child->set_owner(ctx.root);
@@ -158,9 +158,9 @@ protected:
             ur->commit_action();
         }
 
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            EditorSelection *sel = ei->get_selection();
+            godot::EditorSelection *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(child);

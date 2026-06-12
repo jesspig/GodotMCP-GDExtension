@@ -40,7 +40,7 @@ endif()
 
 # MSVC: treat source files & execution charset as UTF-8 (fixes CJK in string literals)
 if(MSVC)
-    add_compile_options(/utf-8 /bigobj)
+    add_compile_options(/utf-8 /bigobj /D_CRT_SECURE_NO_WARNINGS)
 endif()
 
 add_subdirectory(extensions)

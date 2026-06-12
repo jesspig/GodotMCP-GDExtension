@@ -65,10 +65,10 @@ protected:
         Node *node = resolve_node(ctx.root, path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找�? ") + path);
+                String::utf8("节点未找�? ") + path);
         }
 
-        Ref<Resource> res = ResourceLoader::get_singleton()->load(res_path);
+        godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(res_path);
         if (res.is_null()) {
             return ToolResult::err("LOAD_FAILED",
                 String::utf8("无法加载资源: ") + res_path);

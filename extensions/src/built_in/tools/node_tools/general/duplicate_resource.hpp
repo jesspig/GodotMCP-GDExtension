@@ -58,13 +58,13 @@ protected:
         }
 
         Variant val = node->get(prop_name);
-        Ref<Resource> res = val;
+        godot::Ref<godot::Resource> res = val;
         if (res.is_null()) {
             return ToolResult::err("NOT_A_RESOURCE",
                 String("Property does not currently have a Resource"));
         }
 
-        Ref<Resource> dup = res->duplicate(true);
+        godot::Ref<godot::Resource> dup = res->duplicate(true);
         if (dup.is_null()) {
             return ToolResult::err("DUPLICATE_FAILED",
                 String("Resource duplication failed"));

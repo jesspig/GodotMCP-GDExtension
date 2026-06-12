@@ -35,7 +35,7 @@ protected:
         result["connection"] = conn;
 
         Dictionary engine;
-        Dictionary vi = Engine::get_singleton()->get_version_info();
+        Dictionary vi = godot::Engine::get_singleton()->get_version_info();
         engine["version"] = vi.get("string", String());
         engine["hash"] = vi.get("hash", String());
         result["engine"] = engine;
@@ -49,7 +49,7 @@ protected:
         result["plugin"] = plugin;
 
         Dictionary project;
-        ProjectSettings *ps = ProjectSettings::get_singleton();
+        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
         project["name"] = ps->get_setting("application/config/name", String());
         project["path"] = ps->globalize_path("res://");
         Variant main_scene = ps->get_setting("application/run/main_scene");
@@ -57,7 +57,7 @@ protected:
         result["project"] = project;
 
         Dictionary editor;
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (ei) {
             String current = ei->get_edited_scene_root()
                                  ? ei->get_edited_scene_root()->get_scene_file_path()

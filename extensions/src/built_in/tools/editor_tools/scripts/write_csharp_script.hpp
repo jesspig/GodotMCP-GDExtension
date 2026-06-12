@@ -63,7 +63,7 @@ protected:
             content = String("using Godot;\n\nnamespace Game;\n\npublic partial class ") + class_name + String(" : Node\n{\n}\n");
         }
 
-        Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
+        godot::Ref<godot::FileAccess> file = godot::FileAccess::open(path, godot::FileAccess::WRITE);
         if (file.is_null()) {
             return ToolResult::err("WRITE_FAILED",
                 "Failed to open file for writing");

@@ -67,7 +67,7 @@ protected:
             return ToolResult::err("BAD_EXTENSION",
                 "Path must end with .cs");
         }
-        if (!FileAccess::file_exists(path)) {
+        if (!godot::FileAccess::file_exists(path)) {
             return ToolResult::err("NOT_FOUND",
                 "File does not exist: " + path);
         }
@@ -76,7 +76,7 @@ protected:
                 "old_text cannot be empty");
         }
 
-        Ref<FileAccess> file = FileAccess::open(path, FileAccess::READ);
+        godot::Ref<godot::FileAccess> file = godot::FileAccess::open(path, godot::FileAccess::READ);
         if (file.is_null()) {
             return ToolResult::err("READ_FAILED",
                 "Failed to open file for reading: " + path);
@@ -115,7 +115,7 @@ protected:
                 "No matching text found: " + old_text);
         }
 
-        Ref<FileAccess> wf = FileAccess::open(path, FileAccess::WRITE);
+        godot::Ref<godot::FileAccess> wf = godot::FileAccess::open(path, godot::FileAccess::WRITE);
         if (wf.is_null()) {
             return ToolResult::err("WRITE_FAILED",
                 "Failed to open file for writing: " + path);

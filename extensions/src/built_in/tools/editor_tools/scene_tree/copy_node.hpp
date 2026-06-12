@@ -49,7 +49,7 @@ protected:
                 "Cannot copy the scene root node");
         }
 
-        Ref<PackedScene> scene = scene_tree_utils::pack_subtree(node);
+        godot::Ref<godot::PackedScene> scene = scene_tree_utils::pack_subtree(node);
         if (scene.is_null()) {
             return ToolResult::err("PACK_FAILED",
                 "Failed to pack node");

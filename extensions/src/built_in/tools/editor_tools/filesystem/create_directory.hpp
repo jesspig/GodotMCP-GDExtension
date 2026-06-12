@@ -48,7 +48,7 @@ protected:
                 "Path already exists: " + path);
         }
 
-        Error err = DirAccess::make_dir_recursive_absolute(path);
+        Error err = godot::DirAccess::make_dir_recursive_absolute(path);
         if (err != Error::OK) {
             return ToolResult::err("MKDIR_FAILED",
                 "Failed to create directory, error code: " + String::num_int64((int64_t)err));

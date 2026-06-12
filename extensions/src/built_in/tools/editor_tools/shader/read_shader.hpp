@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -47,7 +47,7 @@ protected:
             return ToolResult::err("BAD_PARAM", "resource_path is required");
         }
 
-        Ref<Shader> shader = ResourceLoader::get_singleton()->load(resource_path);
+        godot::Ref<godot::Shader> shader = godot::ResourceLoader::get_singleton()->load(resource_path);
         if (shader.is_null()) {
             return ToolResult::err("LOAD_FAILED",
                 "Failed to load shader: " + resource_path);

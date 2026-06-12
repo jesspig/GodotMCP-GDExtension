@@ -59,7 +59,7 @@ protected:
                 "Method '" + method + "' not found in class " + class_name);
         }
 
-        TypedArray<Dictionary> methods = ClassDB::class_get_method_list(class_name, false);
+        godot::TypedArray<Dictionary> methods = ClassDB::class_get_method_list(class_name, false);
         Dictionary found;
         for (int i = 0; i < methods.size(); i++) {
             Dictionary m = methods[i];

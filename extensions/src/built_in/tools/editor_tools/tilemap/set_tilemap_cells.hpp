@@ -109,7 +109,7 @@ protected:
             tilemap->set_cell(coords, (int)source_id, atlas_coords, (int)alternative_tile);
         }
 
-        EditorUndoRedoManager *ur = get_undo_redo();
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
         ur->create_action(String::utf8("MCP: Set TileMap Cells"),
                           godot::UndoRedo::MERGE_DISABLE, ctx.root);
 

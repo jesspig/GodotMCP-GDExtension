@@ -58,7 +58,7 @@ protected:
         }
 
         // Pack first (before removal)
-        Ref<PackedScene> scene = scene_tree_utils::pack_subtree(node);
+        godot::Ref<godot::PackedScene> scene = scene_tree_utils::pack_subtree(node);
         if (scene.is_null()) {
             return ToolResult::err("PACK_FAILED",
                 "Failed to pack node");
@@ -81,9 +81,9 @@ protected:
             parent->remove_child(node);
         }
 
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            EditorSelection *sel = ei->get_selection();
+            godot::EditorSelection *sel = ei->get_selection();
             if (sel) sel->clear();
         }
 

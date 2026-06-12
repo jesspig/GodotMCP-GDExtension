@@ -43,12 +43,12 @@ protected:
             return ToolResult::err("MISSING_ARG", String("group_name cannot be empty"));
         }
 
-        SceneTree *tree = ctx.root->get_tree();
+        godot::SceneTree *tree = ctx.root->get_tree();
         if (!tree) {
             return ToolResult::err("NO_TREE", String("Cannot get scene tree"));
         }
 
-        TypedArray<Node> nodes = tree->get_nodes_in_group(group_name);
+        godot::TypedArray<Node> nodes = tree->get_nodes_in_group(group_name);
         Array result;
         for (int i = 0; i < nodes.size(); i++) {
             Node *n = Object::cast_to<Node>(nodes[i]);

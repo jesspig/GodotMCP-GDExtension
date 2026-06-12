@@ -1,12 +1,26 @@
 #pragma once
 
+#include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/variant/array.hpp>
+#include <godot_cpp/variant/callable.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
+#include <godot_cpp/variant/packed_string_array.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/variant.hpp>
 
 namespace godot_mcp {
+
+using godot::Array;
+using godot::Callable;
+using godot::ClassDB;
+using godot::Dictionary;
+using godot::Error;
+using godot::Node;
+using godot::Object;
+using godot::PackedStringArray;
+using godot::String;
+using godot::Variant;
 
 class HandlerRegistry; // 前向声明，避免循环依赖
 

@@ -60,11 +60,11 @@ protected:
         }
         if (new_name.is_empty()) new_name = new_class;
 
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
-        EditorSelection *sel = ei->get_selection();
+        godot::EditorSelection *sel = ei->get_selection();
         if (!sel) {
             return ToolResult::err("NO_SELECTION", "Failed to get EditorSelection");
         }

@@ -36,7 +36,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
@@ -47,7 +47,7 @@ protected:
         if (!path.begins_with("res://")) {
             return ToolResult::err("INVALID_PATH", "scene_path must start with res://");
         }
-        if (!ResourceLoader::get_singleton()->exists(path)) {
+        if (!godot::ResourceLoader::get_singleton()->exists(path)) {
             return ToolResult::err("SCENE_FILE_MISSING",
                 "Scene file does not exist: " + path);
         }

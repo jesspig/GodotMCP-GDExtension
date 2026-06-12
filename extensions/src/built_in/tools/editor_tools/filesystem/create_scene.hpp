@@ -65,7 +65,7 @@ protected:
             return ToolResult::err("BAD_EXTENSION",
                 "Scene path must end with .tscn");
         }
-        if (FileAccess::file_exists(path)) {
+        if (godot::FileAccess::file_exists(path)) {
             return ToolResult::err("FILE_EXISTS",
                 "File already exists: " + path);
         }
@@ -85,7 +85,7 @@ protected:
         }
         temp_root->set_name(root_name);
 
-        Ref<PackedScene> scene;
+        godot::Ref<godot::PackedScene> scene;
         scene.instantiate();
         Error err = scene->pack(temp_root);
         memdelete(temp_root);
@@ -95,7 +95,7 @@ protected:
                 "Failed to pack scene, error code: " + String::num_int64((int64_t)err));
         }
 
-        err = ResourceSaver::get_singleton()->save(scene, path, ResourceSaver::FLAG_CHANGE_PATH);
+        err = godot::ResourceSaver::get_singleton()->save(scene, path, godot::ResourceSaver::FLAG_CHANGE_PATH);
         if (err != Error::OK) {
             return ToolResult::err("SAVE_FAILED",
                 "Failed to save scene, error code: " + String::num_int64((int64_t)err));

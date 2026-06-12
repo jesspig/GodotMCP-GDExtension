@@ -60,7 +60,7 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
         const Array checks = expect["field_checks"];
         for (int i = 0; i < checks.size(); ++i) {
             const Dictionary check = checks[i];
-            const String path = check.has("path") ? check["path"].operator String() : check.get("key", "");
+            const String path = check.has("path") ? String(check["path"]) : String(check.get("key", ""));
             const Variant expected_val = check.has("expect") ? check["expect"] : check.get("value", Variant());
             String type_hint = normalize_type_hint(check.get("type", ""));
             const bool not_empty = check.get("not_empty", false);

@@ -48,19 +48,19 @@ protected:
             return ToolResult::err("BAD_EXTENSION",
                 "Path must end with .gd");
         }
-        if (!FileAccess::file_exists(path)) {
+        if (!godot::FileAccess::file_exists(path)) {
             return ToolResult::err("NOT_FOUND",
                 "File does not exist: " + path);
         }
 
-        OS *os = OS::get_singleton();
+        godot::OS *os = godot::OS::get_singleton();
         if (!os) {
             return ToolResult::err("NO_OS",
                 "OS singleton not available");
         }
 
         String godot_path = String("godot");
-        ProjectSettings *ps = ProjectSettings::get_singleton();
+        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
         String abs_path = ps ? ps->globalize_path(path) : path;
         String res_path = ps ? ps->globalize_path("res://") : String(".");
 

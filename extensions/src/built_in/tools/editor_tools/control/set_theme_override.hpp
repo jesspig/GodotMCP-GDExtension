@@ -196,7 +196,7 @@ protected:
 
         control->end_bulk_theme_override();
 
-        EditorUndoRedoManager *ur = get_undo_redo();
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
         ur->create_action(String::utf8("MCP: Set Theme Overrides"),
                           godot::UndoRedo::MERGE_DISABLE, ctx.root);
 

@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -45,7 +45,7 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String anim_player_path = args_string(ctx.args, "anim_player_path", "");
 
-        AnimationPlayer *player = nullptr;
+        godot::AnimationPlayer *player = nullptr;
 
         if (anim_player_path.is_empty()) {
             // Auto-find first AnimationPlayer in the scene
@@ -56,7 +56,7 @@ protected:
                 return ToolResult::err("NODE_NOT_FOUND",
                     String("AnimationPlayer not found: ") + anim_player_path);
             }
-            player = Object::cast_to<AnimationPlayer>(node);
+            player = Object::cast_to<godot::AnimationPlayer>(node);
         }
 
         if (!player) {
@@ -73,23 +73,23 @@ protected:
 
         // Libraries
         Array libraries_arr;
-        TypedArray<StringName> lib_names = player->get_animation_library_list();
+        godot::TypedArray<godot::StringName> lib_names = player->get_animation_library_list();
 
         for (int64_t i = 0; i < lib_names.size(); i++) {
-            StringName lib_name = lib_names[i];
-            Ref<AnimationLibrary> lib = player->get_animation_library(lib_name);
+            godot::StringName lib_name = lib_names[i];
+            godot::Ref<godot::AnimationLibrary> lib = player->get_animation_library(lib_name);
             if (lib.is_null()) continue;
 
             Dictionary lib_dict;
             lib_dict["name"] = String(lib_name);
 
-            TypedArray<StringName> anim_names = lib->get_animation_list();
+            godot::TypedArray<godot::StringName> anim_names = lib->get_animation_list();
             lib_dict["animation_count"] = (int64_t)anim_names.size();
 
             Array anims_arr;
             for (int64_t j = 0; j < anim_names.size(); j++) {
-                StringName anim_name = anim_names[j];
-                Ref<Animation> anim = lib->get_animation(anim_name);
+                godot::StringName anim_name = anim_names[j];
+                godot::Ref<godot::Animation> anim = lib->get_animation(anim_name);
                 if (anim.is_null()) continue;
 
                 Dictionary anim_dict;
@@ -98,9 +98,9 @@ protected:
 
                 int32_t loop = (int32_t)anim->get_loop_mode();
                 String loop_str;
-                if (loop == Animation::LOOP_NONE) loop_str = "none";
-                else if (loop == Animation::LOOP_LINEAR) loop_str = "linear";
-                else if (loop == Animation::LOOP_PINGPONG) loop_str = "pingpong";
+                if (loop == godot::Animation::LOOP_NONE) loop_str = "none";
+                else if (loop == godot::Animation::LOOP_LINEAR) loop_str = "linear";
+                else if (loop == godot::Animation::LOOP_PINGPONG) loop_str = "pingpong";
                 else loop_str = String::num_int64(loop);
                 anim_dict["loop_mode"] = loop_str;
 
@@ -129,15 +129,15 @@ protected:
     }
 
 private:
-    static AnimationPlayer *_find_first_animation_player(Node *root) {
+    static godot::AnimationPlayer *_find_first_animation_player(Node *root) {
         if (!root) return nullptr;
-        if (Object::cast_to<AnimationPlayer>(root)) {
-            return Object::cast_to<AnimationPlayer>(root);
+        if (Object::cast_to<godot::AnimationPlayer>(root)) {
+            return Object::cast_to<godot::AnimationPlayer>(root);
         }
         for (int64_t i = 0; i < root->get_child_count(); i++) {
             Node *child = root->get_child(i);
             if (!child) continue;
-            AnimationPlayer *found = _find_first_animation_player(child);
+            godot::AnimationPlayer *found = _find_first_animation_player(child);
             if (found) return found;
         }
         return nullptr;
