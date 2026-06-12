@@ -92,7 +92,7 @@ CI 只在 `master` 分支的 push 和 PR 上触发。
 
 ## 版本管理
 
-- 单版本源在根 `CMakeLists.txt:22`：`set(PROJECT_VERSION "0.2.0")`
+- 单版本源在根 `CMakeLists.txt:22`：`set(PROJECT_VERSION "0.2.1-dev1")`
 - `plugin.cfg` 和 `godot_mcp.gdextension` 由 CMake 从 `PROJECT_VERSION` 自动生成（`CMakeLists.txt:59-83`）
 - 升级 CMake 版本即可；不需要手动编辑 `plugin.cfg`
 - `pyproject.toml` 中的 `version` 需手动同步
