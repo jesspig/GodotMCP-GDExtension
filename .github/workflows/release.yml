@@ -18,7 +18,7 @@ jobs:
             gdext_lib: libgodot_mcp_gdext.so
           - os: macos-latest
             gdext_lib: libgodot_mcp_gdext.dylib
-          - os: windows-latest
+          - os: windows-2022
             gdext_lib: godot_mcp_gdext.dll
 
     runs-on: ${{ matrix.os }}
@@ -80,7 +80,7 @@ jobs:
       - name: Assemble addons.zip
         run: |
           mkdir -p godot/addons/godot_mcp/bin
-          cp libs/gdext-windows-latest/godot_mcp_gdext.dll godot/addons/godot_mcp/bin/
+          cp libs/gdext-windows-2022/godot_mcp_gdext.dll godot/addons/godot_mcp/bin/
           cp libs/gdext-ubuntu-latest/libgodot_mcp_gdext.so godot/addons/godot_mcp/bin/
           cp libs/gdext-macos-latest/libgodot_mcp_gdext.dylib godot/addons/godot_mcp/bin/
           cp build/example/addons/godot_mcp/plugin.cfg godot/addons/godot_mcp/

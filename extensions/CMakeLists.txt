@@ -40,6 +40,12 @@ FetchContent_Declare(
     GIT_SUBMODULES "ext/c4core"
 )
 
+# Ensure rapidyaml/c4core static libs are compiled with -fPIC (needed for shared lib linking).
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# MSVC: /FS avoids C1041 when multiple CL.exe write to the same .pdb.
+if(MSVC)
+    add_compile_options(/FS)
+endif()
 FetchContent_MakeAvailable(rapidyaml)
 
 # ---------------------------------------------------------------------------
