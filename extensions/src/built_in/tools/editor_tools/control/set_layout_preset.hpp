@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -95,7 +95,7 @@ protected:
         double old_offset_right = control->get_offset(godot::Side::SIDE_RIGHT);
         double old_offset_bottom = control->get_offset(godot::Side::SIDE_BOTTOM);
 
-        EditorUndoRedoManager *ur = get_undo_redo();
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
         ur->create_action(String("MCP: Set Layout Preset ") + preset_name,
                           godot::UndoRedo::MERGE_DISABLE, ctx.root);
         ur->add_do_method(control, "set_anchors_preset", preset, keep_offsets);

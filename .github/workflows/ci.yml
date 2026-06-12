@@ -2,8 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [master]
+    branches: [master, develop]
   push:
+    branches: [develop]
     tags:
       - "v*"
 
@@ -24,14 +25,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache godot-cpp
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.8
+
+      - name: Cache godot-cpp sources
         uses: actions/cache@v4
         with:
           path: build/_deps
-          key: godot-cpp-${{ runner.os }}-10.0.0-rc1
+          key: godot-cpp-${{ runner.os }}-10.0.0-rc1-v1
 
       - name: Configure CMake
-        run: cmake -B build -S .
+        run: >
+          cmake -B build -S . -G Ninja
+          -DCMAKE_C_COMPILER_LAUNCHER=sccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 
       - name: Build
         run: cmake --build build --config Debug
+
+      - name: Print sccache stats
+        if: always()
+        run: sccache --show-stats

@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -59,7 +59,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
@@ -79,18 +79,18 @@ protected:
                 "Node not found: " + node_path_str);
         }
 
-        Ref<Shader> shader = ResourceLoader::get_singleton()->load(shader_path);
+        godot::Ref<godot::Shader> shader = godot::ResourceLoader::get_singleton()->load(shader_path);
         if (shader.is_null()) {
             return ToolResult::err("SHADER_NOT_FOUND",
                 "Failed to load shader: " + shader_path);
         }
 
         bool material_created = false;
-        Ref<ShaderMaterial> material;
+        godot::Ref<godot::ShaderMaterial> material;
 
         Variant existing = node->get("material");
         if (existing.get_type() != Variant::NIL && !overwrite) {
-            Ref<ShaderMaterial> sm = existing;
+            godot::Ref<godot::ShaderMaterial> sm = existing;
             if (sm.is_valid()) {
                 material = sm;
             }

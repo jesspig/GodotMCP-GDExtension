@@ -55,7 +55,7 @@ protected:
         }
 
         // Search in class property list
-        TypedArray<Dictionary> props = ClassDB::class_get_property_list(class_name, false);
+        godot::TypedArray<Dictionary> props = ClassDB::class_get_property_list(class_name, false);
         Dictionary found;
         for (int i = 0; i < props.size(); i++) {
             Dictionary p = props[i];

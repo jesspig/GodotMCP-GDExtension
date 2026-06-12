@@ -67,12 +67,12 @@ protected:
         bool exclude_mcp = args_bool(ctx.args, "exclude_mcp", true);
         int64_t max_lines = args_int(ctx.args, "max_lines", 500);
 
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
 
-        Control *base = ei->get_base_control();
+        godot::Control *base = ei->get_base_control();
         if (!base) {
             return ToolResult::err("NO_BASE", "Editor base control not available");
         }
@@ -92,7 +92,7 @@ protected:
             return ToolResult::err("NO_RTL", "RichTextLabel child node not found");
         }
 
-        RichTextLabel *rtl = Object::cast_to<RichTextLabel>(rtl_nodes[0]);
+        godot::RichTextLabel *rtl = Object::cast_to<godot::RichTextLabel>(rtl_nodes[0]);
         if (!rtl) {
             return ToolResult::err("INVALID_RTL", "RichTextLabel node is invalid");
         }

@@ -86,7 +86,7 @@ protected:
         return fs_utils::match_substring; // default
     }
 
-    static void collect_files(EditorFileSystemDirectory *dir,
+    static void collect_files(godot::EditorFileSystemDirectory *dir,
                               const String &pattern,
                               MatchFn matcher,
                               bool case_sensitive,
@@ -166,12 +166,12 @@ protected:
         MatchFn matcher = get_matcher(mode);
 
         // Use EditorFileSystem for structured traversal
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         Array results;
         if (ei) {
-            EditorFileSystem *efs = ei->get_resource_filesystem();
+            godot::EditorFileSystem *efs = ei->get_resource_filesystem();
             if (efs) {
-                EditorFileSystemDirectory *start_dir;
+                godot::EditorFileSystemDirectory *start_dir;
                 if (root_path == "res://") {
                     start_dir = efs->get_filesystem();
                 } else {

@@ -76,10 +76,10 @@ protected:
 
 private:
     static Object *_find_debugger_node() {
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) return nullptr;
 
-        Control *base = ei->get_base_control();
+        godot::Control *base = ei->get_base_control();
         if (!base) return nullptr;
 
         Array nodes = base->find_children("*", "EditorDebuggerNode", true, false);

@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -80,7 +80,7 @@ protected:
         }
 
         // Add current edited scene info
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         String current_scene;
         if (ei) {
             Node *root = ei->get_edited_scene_root();
@@ -123,7 +123,7 @@ private:
                              Dictionary &visited, const Array &all_scenes) const {
         if (max_depth > 0 && depth >= max_depth) return;
 
-        Ref<PackedScene> packed = ResourceLoader::get_singleton()->load(scene_path, "PackedScene");
+        godot::Ref<godot::PackedScene> packed = godot::ResourceLoader::get_singleton()->load(scene_path, "PackedScene");
         if (packed.is_null()) return;
 
         Node *temp = packed->instantiate();

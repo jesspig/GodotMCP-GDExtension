@@ -60,7 +60,7 @@ protected:
         String mode = args_string(ctx.args, "mode", "child");
         String new_name = args_string(ctx.args, "new_name", "");
 
-        Ref<PackedScene> clipboard = scene_tree_utils::get_clipboard();
+        godot::Ref<godot::PackedScene> clipboard = scene_tree_utils::get_clipboard();
         if (clipboard.is_null()) {
             return ToolResult::err("EMPTY_CLIPBOARD",
                 "Clipboard is empty, use copy_node or cut_node first");
@@ -159,16 +159,16 @@ protected:
         }
 
         // select new node
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            EditorSelection *sel = ei->get_selection();
+            godot::EditorSelection *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(inst);
             }
         }
 
-        // Compute path manually â€?inst may not have a valid scene path yet
+        // Compute path manually ï¿½?inst may not have a valid scene path yet
         // (undo commit may add it asynchronously relative to scene root)
         String new_node_path;
         if (parent == ctx.root || !parent) {

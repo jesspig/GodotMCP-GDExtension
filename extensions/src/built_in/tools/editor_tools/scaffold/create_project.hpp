@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -72,13 +72,13 @@ protected:
             project_path += "/";
 
         // Create project directory
-        Ref<DirAccess> dir = DirAccess::open(project_path);
+        godot::Ref<godot::DirAccess> dir = godot::DirAccess::open(project_path);
         if (dir.is_null()) {
-            Error err = DirAccess::make_dir_recursive_absolute(project_path);
+            Error err = godot::DirAccess::make_dir_recursive_absolute(project_path);
             if (err != Error::OK)
                 return ToolResult::err("MKDIR_FAILED",
                     "Failed to create project directory: " + project_path);
-            dir = DirAccess::open(project_path);
+            dir = godot::DirAccess::open(project_path);
             if (dir.is_null())
                 return ToolResult::err("NO_DIR", "Failed to open project directory: " + project_path);
         }
@@ -191,7 +191,7 @@ private:
     }
 
     static Error _write_file(const String &path, const String &content) {
-        Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
+        godot::Ref<godot::FileAccess> file = godot::FileAccess::open(path, godot::FileAccess::WRITE);
         if (file.is_null())
             return Error::FAILED;
         file->store_string(content);
@@ -200,7 +200,7 @@ private:
     }
 
     static Error _append_file(const String &path, const String &content) {
-        Ref<FileAccess> file = FileAccess::open(path, FileAccess::READ_WRITE);
+        godot::Ref<godot::FileAccess> file = godot::FileAccess::open(path, godot::FileAccess::READ_WRITE);
         if (file.is_null())
             return Error::FAILED;
         file->seek_end();

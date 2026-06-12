@@ -28,13 +28,12 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
-        // Check main scene exists before running
-        String main_scene = ProjectSettings::get_singleton()->get_setting("application/run/main_scene", "");
-        if (!main_scene.is_empty() && !ResourceLoader::get_singleton()->exists(main_scene)) {
+        String main_scene = godot::ProjectSettings::get_singleton()->get_setting("application/run/main_scene", "");
+        if (!main_scene.is_empty() && !godot::ResourceLoader::get_singleton()->exists(main_scene)) {
             return ToolResult::err("SCENE_FILE_MISSING",
                 "Main scene file has been deleted: " + main_scene);
         }

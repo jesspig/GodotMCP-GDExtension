@@ -268,7 +268,7 @@ protected:
             return ToolResult::err("NAME_CONFLICT", String::utf8("A node with the same name already exists: ") + body_name);
         }
 
-        EditorUndoRedoManager *ur = get_undo_redo();
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
         ur->create_action(String::utf8("MCP: Create CollisionShape ") + body_name,
                           godot::UndoRedo::MERGE_DISABLE, ctx.root);
 
@@ -290,9 +290,9 @@ protected:
 
         ur->commit_action();
 
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            EditorSelection *sel = ei->get_selection();
+            godot::EditorSelection *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(body);

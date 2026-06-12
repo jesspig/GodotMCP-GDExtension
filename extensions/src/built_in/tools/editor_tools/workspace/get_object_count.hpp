@@ -23,12 +23,12 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        Performance *p = Performance::get_singleton();
+        godot::Performance *p = godot::Performance::get_singleton();
         Dictionary d;
-        d["object_count"] = p->get_monitor(Performance::OBJECT_COUNT);
-        d["resource_count"] = p->get_monitor(Performance::OBJECT_RESOURCE_COUNT);
-        d["node_count"] = p->get_monitor(Performance::OBJECT_NODE_COUNT);
-        d["orphan_node_count"] = p->get_monitor(Performance::OBJECT_ORPHAN_NODE_COUNT);
+        d["object_count"] = p->get_monitor(godot::Performance::OBJECT_COUNT);
+        d["resource_count"] = p->get_monitor(godot::Performance::OBJECT_RESOURCE_COUNT);
+        d["node_count"] = p->get_monitor(godot::Performance::OBJECT_NODE_COUNT);
+        d["orphan_node_count"] = p->get_monitor(godot::Performance::OBJECT_ORPHAN_NODE_COUNT);
         return ToolResult::ok(d);
     }
 };

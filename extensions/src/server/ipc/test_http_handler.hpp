@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../built_in/cmd_utils.hpp"
+#include "../../testing/test_engine.hpp"
 
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>

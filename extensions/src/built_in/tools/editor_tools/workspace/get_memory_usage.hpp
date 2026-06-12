@@ -23,11 +23,11 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        Performance *p = Performance::get_singleton();
+        godot::Performance *p = godot::Performance::get_singleton();
         Dictionary d;
-        d["memory_static_mb"] = p->get_monitor(Performance::MEMORY_STATIC) / 1048576.0;
-        d["memory_static_max_mb"] = p->get_monitor(Performance::MEMORY_STATIC_MAX) / 1048576.0;
-        d["message_buffer_max_mb"] = p->get_monitor(Performance::MEMORY_MESSAGE_BUFFER_MAX) / 1048576.0;
+        d["memory_static_mb"] = p->get_monitor(godot::Performance::MEMORY_STATIC) / 1048576.0;
+        d["memory_static_max_mb"] = p->get_monitor(godot::Performance::MEMORY_STATIC_MAX) / 1048576.0;
+        d["message_buffer_max_mb"] = p->get_monitor(godot::Performance::MEMORY_MESSAGE_BUFFER_MAX) / 1048576.0;
         return ToolResult::ok(d);
     }
 };
