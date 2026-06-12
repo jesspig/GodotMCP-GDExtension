@@ -27,7 +27,8 @@ void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
     }
 
     response += "Cache-Control: no-store\r\n";
-    response += "Access-Control-Allow-Origin: *\r\n";
+    response += String("Access-Control-Allow-Origin: ") + get_cors_origin(conn) + String("\r\n");
+    response += "Vary: Origin\r\n";
     response += "Access-Control-Expose-Headers: MCP-Session-Id, Last-Event-ID, MCP-Protocol-Version\r\n";
 
     if (!conn.session_id.is_empty()) {
@@ -90,6 +91,24 @@ bool HttpServer::validate_origin(const Connection &conn) const {
     }
     log_warn("http", String("Blocked origin: ") + origin);
     return false;
+}
+
+String HttpServer::get_cors_origin(const Connection &conn) const {
+    auto it = conn.headers.find("origin");
+    if (it == conn.headers.end()) return "*";
+    const String origin = it->value.strip_edges();
+    if (origin.is_empty()) return "*";
+    const PackedStringArray parts = origin.split("://");
+    String host;
+    if (parts.size() == 2) {
+        host = parts[1].split(":")[0];
+    } else {
+        host = parts[0].split(":")[0];
+    }
+    if (host == "localhost" || host == "127.0.0.1" || host == "::1" || origin == "null") {
+        return origin;
+    }
+    return "null";
 }
 
 } // namespace godot_mcp

@@ -7,6 +7,7 @@
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/json.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
+#include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/core/object.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
@@ -50,6 +51,7 @@ String McpHandler::create_session() {
     Session s;
     s.id = generate_uuid();
     s.created_at = Time::get_singleton()->get_unix_time_from_system();
+    s.last_activity = s.created_at;
     s.log_level = 3; // Warning
     sessions_[s.id] = s;
     return s.id;
@@ -82,6 +84,34 @@ Array McpHandler::get_active_sessions() const {
 McpHandler::Session *McpHandler::find_session(const String &id) {
     auto it = sessions_.find(id);
     return it != sessions_.end() ? &it->value : nullptr;
+}
+
+void McpHandler::cleanup_expired_sessions() {
+    const double now = Time::get_singleton()->get_unix_time_from_system();
+
+    Vector<String> expired;
+    for (const KeyValue<String, Session> &kv : sessions_) {
+        if (now - kv.value.last_activity > kSessionTtl) {
+            expired.push_back(kv.key);
+        }
+    }
+    for (int i = 0; i < expired.size(); ++i) {
+        sessions_.erase(expired[i]);
+    }
+
+    if (sessions_.size() > kMaxSessions) {
+        String oldest_id;
+        double oldest_time = (double)INFINITY;
+        for (const KeyValue<String, Session> &kv : sessions_) {
+            if (kv.value.last_activity < oldest_time) {
+                oldest_time = kv.value.last_activity;
+                oldest_id = kv.key;
+            }
+        }
+        if (!oldest_id.is_empty()) {
+            sessions_.erase(oldest_id);
+        }
+    }
 }
 
 // -------------------------------------------------------------------------
@@ -186,6 +216,8 @@ String McpHandler::negotiate_protocol_version(const String &header_value) {
 // io_session_id is an in/out parameter: if the message creates a session
 // (initialize), the new session ID is written back here.
 Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg, String &io_session_id) {
+    cleanup_expired_sessions();
+
     const Variant id_v = jsonrpc_msg.has("id") ? jsonrpc_msg["id"] : Variant();
 
     const String version = jsonrpc_msg.get("jsonrpc", "");
@@ -206,6 +238,9 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg, String &io_
     Session *session = nullptr;
     if (!io_session_id.is_empty()) {
         session = find_session(io_session_id);
+        if (session) {
+            session->last_activity = Time::get_singleton()->get_unix_time_from_system();
+        }
     }
 
     if (method == "initialize") {

@@ -1,5 +1,6 @@
 #include "http_server.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "logging.hpp"
 
 #include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/classes/stream_peer.hpp>
@@ -15,7 +16,8 @@ void HttpServer::send_sse_headers(int conn_id, Connection &conn) {
                       String("Cache-Control: no-cache\r\n") +
                       String("Connection: keep-alive\r\n") +
                       String("X-Accel-Buffering: no\r\n") +
-                      String("Access-Control-Allow-Origin: *\r\n");
+                      String("Access-Control-Allow-Origin: ") + get_cors_origin(conn) + String("\r\n") +
+                      String("Vary: Origin\r\n");
 
     if (!conn.session_id.is_empty()) {
         response += String("MCP-Session-Id: ") + conn.session_id + String("\r\n");
