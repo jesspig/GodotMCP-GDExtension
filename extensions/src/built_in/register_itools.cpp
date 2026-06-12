@@ -60,6 +60,11 @@
 #include "built_in/tools/editor_tools/animation/add_animation_track.hpp"
 #include "built_in/tools/editor_tools/animation/set_keyframe.hpp"
 #include "built_in/tools/editor_tools/animation/get_animation_info.hpp"
+#include "built_in/tools/editor_tools/animation/create_animation_tree.hpp"
+#include "built_in/tools/editor_tools/animation/get_animation_tree_info.hpp"
+#include "built_in/tools/editor_tools/animation/add_animation_node.hpp"
+#include "built_in/tools/editor_tools/animation/add_transition.hpp"
+#include "built_in/tools/editor_tools/animation/set_transition_condition.hpp"
 
 // ── Control tools ──
 #include "built_in/tools/editor_tools/control/create_control.hpp"
@@ -83,6 +88,8 @@
 // ── Export tools ──
 #include "built_in/tools/editor_tools/export/list_export_presets.hpp"
 #include "built_in/tools/editor_tools/export/export_project.hpp"
+#include "built_in/tools/editor_tools/export/validate_export_presets.hpp"
+#include "built_in/tools/editor_tools/export/get_export_platforms.hpp"
 
 // ── Filesystem tools ──
 #include "built_in/tools/editor_tools/filesystem/create.hpp"
@@ -100,6 +107,9 @@
 
 // ── Input map tools ──
 #include "built_in/tools/editor_tools/inputmap/input_list_actions.hpp"
+#include "built_in/tools/editor_tools/inputmap/add_input_action.hpp"
+#include "built_in/tools/editor_tools/inputmap/remove_input_action.hpp"
+#include "built_in/tools/editor_tools/inputmap/add_input_event_binding.hpp"
 
 // ── Plugin tools ──
 #include "built_in/tools/editor_tools/plugin/list_plugins.hpp"
@@ -133,6 +143,23 @@
 #include "built_in/tools/editor_tools/shader/create_shader.hpp"
 #include "built_in/tools/editor_tools/shader/read_shader.hpp"
 #include "built_in/tools/editor_tools/shader/apply_shader_preset.hpp"
+#include "built_in/tools/editor_tools/shader/get_shader_uniforms.hpp"
+#include "built_in/tools/editor_tools/shader/set_shader_uniform.hpp"
+
+// ── Audio tools ──
+#include "built_in/tools/editor_tools/audio/create_audio_player.hpp"
+#include "built_in/tools/editor_tools/audio/set_audio_stream.hpp"
+#include "built_in/tools/editor_tools/audio/list_audio_buses.hpp"
+
+// ── Navigation tools ──
+#include "built_in/tools/editor_tools/navigation/create_navigation_region.hpp"
+#include "built_in/tools/editor_tools/navigation/create_navigation_agent.hpp"
+#include "built_in/tools/editor_tools/navigation/bake_navigation_mesh.hpp"
+
+// ── 3D Scene tools ──
+#include "built_in/tools/editor_tools/3d_scene/create_mesh_instance_3d.hpp"
+#include "built_in/tools/editor_tools/3d_scene/create_light_3d.hpp"
+#include "built_in/tools/editor_tools/3d_scene/set_world_environment.hpp"
 
 // ── TileMap tools ──
 #include "built_in/tools/editor_tools/tilemap/get_tilemap_info.hpp"
