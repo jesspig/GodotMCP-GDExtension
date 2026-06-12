@@ -23,7 +23,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         ei->set_main_screen_editor("AssetLib");
         Dictionary d;

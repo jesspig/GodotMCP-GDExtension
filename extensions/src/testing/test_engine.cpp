@@ -196,7 +196,7 @@ godot::String TestEngine::execute_chain(const Array &chain) {
         if (result.has("error")) {
             const Variant err = result["error"];
             String err_msg = err.get_type() == Variant::DICTIONARY
-                ? Dictionary(err).get("message", "Unknown error")
+                ? String(Dictionary(err).get("message", "Unknown error"))
                 : String(err);
             return String("before_all step '") + tool_name + String("' failed: ") + err_msg;
         }

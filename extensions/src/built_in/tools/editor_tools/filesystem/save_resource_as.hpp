@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -54,7 +54,7 @@ protected:
         if (!verr.is_empty()) {
             return ToolResult::err(verr["code"], verr["message"]);
         }
-        if (!FileAccess::file_exists(resource_path)) {
+        if (!godot::FileAccess::file_exists(resource_path)) {
             return ToolResult::err("FILE_NOT_FOUND",
                 String("Resource file not found: ") + resource_path);
         }
@@ -76,14 +76,14 @@ protected:
             }
         }
 
-        Ref<Resource> res = ResourceLoader::get_singleton()->load(resource_path);
+        godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(resource_path);
         if (res.is_null()) {
             return ToolResult::err("LOAD_FAILED",
                 String("Failed to load resource: ") + resource_path);
         }
 
-        Error err = ResourceSaver::get_singleton()->save(res, save_path,
-            ResourceSaver::FLAG_CHANGE_PATH);
+        Error err = godot::ResourceSaver::get_singleton()->save(res, save_path,
+            godot::ResourceSaver::FLAG_CHANGE_PATH);
 
         if (err != OK) {
             return ToolResult::err("SAVE_FAILED",

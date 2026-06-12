@@ -95,7 +95,7 @@ protected:
         for (int i = 0; i < script_files.size() && matches.size() < max_results; i++) {
             String file_path = script_files[i];
 
-            Ref<FileAccess> file = FileAccess::open(file_path, FileAccess::READ);
+            godot::Ref<godot::FileAccess> file = godot::FileAccess::open(file_path, godot::FileAccess::READ);
             if (file.is_null()) continue;
 
             String content = file->get_as_text();

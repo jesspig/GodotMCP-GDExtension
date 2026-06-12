@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -76,24 +76,24 @@ protected:
                 String("AnimationPlayer not found: ") + anim_player_path);
         }
 
-        AnimationPlayer *player = Object::cast_to<AnimationPlayer>(node);
+        godot::AnimationPlayer *player = Object::cast_to<godot::AnimationPlayer>(node);
         if (!player) {
             return ToolResult::err("WRONG_TYPE",
                 String("Node is not an AnimationPlayer: ") + anim_player_path);
         }
 
         // Resolve library: auto-find first if empty
-        Ref<AnimationLibrary> library;
+        godot::Ref<godot::AnimationLibrary> library;
         if (library_name.is_empty()) {
-            TypedArray<StringName> libs = player->get_animation_library_list();
+            godot::TypedArray<godot::StringName> libs = player->get_animation_library_list();
             if (libs.size() == 0) {
                 return ToolResult::err("NO_LIBRARY",
                     "AnimationPlayer has no AnimationLibraries; create one first");
             }
             library_name = String(libs[0]);
-            library = player->get_animation_library(StringName(library_name));
+            library = player->get_animation_library(godot::StringName(library_name));
         } else {
-            library = player->get_animation_library(StringName(library_name));
+            library = player->get_animation_library(godot::StringName(library_name));
         }
 
         if (library.is_null()) {
@@ -101,12 +101,12 @@ protected:
                 String("AnimationLibrary not found: ") + library_name);
         }
 
-        if (library->has_animation(StringName(clip_name))) {
+        if (library->has_animation(godot::StringName(clip_name))) {
             return ToolResult::err("CLIP_EXISTS",
                 String("Animation clip already exists: ") + clip_name);
         }
 
-        Ref<Animation> animation;
+        godot::Ref<godot::Animation> animation;
         animation.instantiate();
         if (animation.is_null()) {
             return ToolResult::err("CREATE_FAILED", "Failed to create Animation resource");
@@ -114,17 +114,17 @@ protected:
 
         animation->set_length((float)length);
 
-        EditorUndoRedoManager *ur = get_undo_redo();
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (!ur) {
-            library->add_animation(StringName(clip_name), animation);
+            library->add_animation(godot::StringName(clip_name), animation);
             mark_scene_dirty();
         } else {
             ur->create_action(String("MCP: Create Animation Clip"),
-                              UndoRedo::MERGE_DISABLE, ctx.root);
+                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(library.ptr(), "add_animation",
-                              StringName(clip_name), animation);
+                              godot::StringName(clip_name), animation);
             ur->add_undo_method(library.ptr(), "remove_animation",
-                                StringName(clip_name));
+                                godot::StringName(clip_name));
             ur->commit_action();
         }
 

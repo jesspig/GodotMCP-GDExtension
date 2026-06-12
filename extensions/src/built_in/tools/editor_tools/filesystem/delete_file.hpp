@@ -59,16 +59,16 @@ protected:
                 "Path does not exist: " + path);
         }
 
-        // Capture before deletion â€?is_file() returns false after file is deleted
+        // Capture before deletion ï¿½?is_file() returns false after file is deleted
         bool was_dir = !fs_utils::is_file(path);
 
         Error err;
         if (!was_dir) {
-            err = DirAccess::remove_absolute(path);
+            err = godot::DirAccess::remove_absolute(path);
         } else if (recursive) {
             err = fs_utils::remove_recursive(path);
         } else {
-            err = DirAccess::remove_absolute(path);
+            err = godot::DirAccess::remove_absolute(path);
         }
 
         if (err != Error::OK) {

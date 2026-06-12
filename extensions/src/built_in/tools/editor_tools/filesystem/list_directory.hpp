@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -64,7 +64,7 @@ public:
     }
 
 protected:
-    void collect_dir_efs(EditorFileSystemDirectory *dir,
+    void collect_dir_efs(godot::EditorFileSystemDirectory *dir,
                          bool include_files, bool include_dirs,
                          const Array &extensions,
                          bool recursive,
@@ -100,7 +100,7 @@ protected:
         // Subdirectories
         if (include_dirs) {
             for (int i = 0; i < dir->get_subdir_count(); i++) {
-                EditorFileSystemDirectory *sub = dir->get_subdir(i);
+                godot::EditorFileSystemDirectory *sub = dir->get_subdir(i);
                 Dictionary entry;
                 entry["name"] = sub->get_name();
                 entry["path"] = sub->get_path();
@@ -120,7 +120,7 @@ protected:
                          const Array &extensions,
                          bool recursive,
                          Array &file_list, Array &dir_list) const {
-        Ref<DirAccess> dir = DirAccess::open(dir_path);
+        godot::Ref<godot::DirAccess> dir = godot::DirAccess::open(dir_path);
         if (dir.is_null()) return;
 
         dir->list_dir_begin();
@@ -185,12 +185,12 @@ protected:
         Array dir_list;
 
         // Try EditorFileSystem first for structured data
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         bool efs_used = false;
         if (ei) {
-            EditorFileSystem *efs = ei->get_resource_filesystem();
+            godot::EditorFileSystem *efs = ei->get_resource_filesystem();
             if (efs) {
-                EditorFileSystemDirectory *efs_dir;
+                godot::EditorFileSystemDirectory *efs_dir;
                 if (path == "res://") {
                     efs_dir = efs->get_filesystem();
                 } else {

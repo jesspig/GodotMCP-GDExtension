@@ -46,12 +46,12 @@ protected:
             return ToolResult::err("BAD_EXTENSION",
                 "Path must end with .cs");
         }
-        if (!FileAccess::file_exists(path)) {
+        if (!godot::FileAccess::file_exists(path)) {
             return ToolResult::err("NOT_FOUND",
                 "File does not exist: " + path);
         }
 
-        Ref<FileAccess> file = FileAccess::open(path, FileAccess::READ);
+        godot::Ref<godot::FileAccess> file = godot::FileAccess::open(path, godot::FileAccess::READ);
         if (file.is_null()) {
             return ToolResult::err("READ_FAILED",
                 "Failed to open file: " + path);

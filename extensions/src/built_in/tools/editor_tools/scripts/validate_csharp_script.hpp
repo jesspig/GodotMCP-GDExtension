@@ -48,7 +48,7 @@ protected:
             return ToolResult::err("BAD_EXTENSION",
                 "Path must end with .cs");
         }
-        if (!FileAccess::file_exists(path)) {
+        if (!godot::FileAccess::file_exists(path)) {
             return ToolResult::err("NOT_FOUND",
                 "File does not exist: " + path);
         }
@@ -58,13 +58,13 @@ protected:
                 ".NET is not enabled, cannot validate C# script");
         }
 
-        OS *os = OS::get_singleton();
+        godot::OS *os = godot::OS::get_singleton();
         if (!os) {
             return ToolResult::err("NO_OS",
                 "OS singleton not available");
         }
 
-        ProjectSettings *ps = ProjectSettings::get_singleton();
+        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
         String project_path = ps ? ps->globalize_path("res://") : String(".");
 
         Array args_arr;

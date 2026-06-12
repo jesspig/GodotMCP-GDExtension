@@ -27,7 +27,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
@@ -35,7 +35,7 @@ protected:
         Node *root = ei->get_edited_scene_root();
         if (root) {
             current_scene = root->get_scene_file_path();
-            if (!current_scene.is_empty() && !ResourceLoader::get_singleton()->exists(current_scene)) {
+            if (!current_scene.is_empty() && !godot::ResourceLoader::get_singleton()->exists(current_scene)) {
                 return ToolResult::err("SCENE_FILE_MISSING",
                     "Scene file has been deleted: " + current_scene);
             }

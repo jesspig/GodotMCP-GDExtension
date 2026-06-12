@@ -63,7 +63,7 @@ protected:
                 String("Property does not currently have a value"));
         }
 
-        Resource *res = Object::cast_to<Resource>(obj);
+        godot::Resource *res = Object::cast_to<godot::Resource>(obj);
         if (!res) {
             return ToolResult::err("NOT_A_RESOURCE",
                 String("Property is not a Resource type: ") + obj->get_class());

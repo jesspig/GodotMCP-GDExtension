@@ -64,7 +64,7 @@ protected:
                 "Failed to create target parent directory");
         }
 
-        Error err = DirAccess::rename_absolute(source, destination);
+        Error err = godot::DirAccess::rename_absolute(source, destination);
         if (err != Error::OK) {
             return ToolResult::err("MOVE_FAILED",
                 "Move failed, error code: " + String::num_int64((int64_t)err));

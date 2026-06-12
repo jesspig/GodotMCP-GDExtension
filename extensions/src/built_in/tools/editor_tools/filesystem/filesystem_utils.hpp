@@ -33,22 +33,22 @@ inline String get_file_extension(const String &path) {
 }
 
 inline bool path_exists(const String &res_path) {
-    Ref<DirAccess> dir = DirAccess::open(res_path);
+    godot::Ref<godot::DirAccess> dir = godot::DirAccess::open(res_path);
     if (dir.is_valid()) {
         // If we can open it as a directory, it exists
         dir->list_dir_end(); // clean up if opened
         return true;
     }
     // Check if it's a file
-    return FileAccess::file_exists(res_path);
+    return godot::FileAccess::file_exists(res_path);
 }
 
 inline bool is_file(const String &res_path) {
-    return FileAccess::file_exists(res_path);
+    return godot::FileAccess::file_exists(res_path);
 }
 
 inline bool is_directory(const String &res_path) {
-    Ref<DirAccess> dir = DirAccess::open(res_path);
+    godot::Ref<godot::DirAccess> dir = godot::DirAccess::open(res_path);
     if (dir.is_null()) return false;
     // Successfully opened as directory
     return true;
@@ -79,7 +79,7 @@ inline Dictionary validate_res_path(const String &path) {
         return err;
     }
     // Verify path doesn't escape res://
-    ProjectSettings *ps = ProjectSettings::get_singleton();
+    godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
     if (ps) {
         String global_res = ps->globalize_path("res://");
         String global_target = ps->globalize_path(path);
@@ -99,23 +99,23 @@ inline bool ensure_parent_dir(const String &res_path) {
     int slash = res_path.rfind("/");
     if (slash <= 0) return true;
     String parent = res_path.substr(0, slash);
-    if (DirAccess::dir_exists_absolute(parent)) return true;
-    return DirAccess::make_dir_recursive_absolute(parent) == Error::OK;
+    if (godot::DirAccess::dir_exists_absolute(parent)) return true;
+    return godot::DirAccess::make_dir_recursive_absolute(parent) == Error::OK;
 }
 
 inline void notify_fs_changes() {
-    EditorInterface *ei = EditorInterface::get_singleton();
+    godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
     if (!ei) return;
-    EditorFileSystem *efs = ei->get_resource_filesystem();
+    godot::EditorFileSystem *efs = ei->get_resource_filesystem();
     if (efs) {
         efs->scan();
     }
 }
 
 inline void notify_file_changed(const String &path) {
-    EditorInterface *ei = EditorInterface::get_singleton();
+    godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
     if (!ei) return;
-    EditorFileSystem *efs = ei->get_resource_filesystem();
+    godot::EditorFileSystem *efs = ei->get_resource_filesystem();
     if (efs) {
         efs->update_file(path);
     }
@@ -152,11 +152,11 @@ inline bool match_glob(const String &name, const String &pattern, bool case_sens
 }
 
 inline bool match_regex(const String &name, const String &pattern, bool case_sensitive) {
-    Ref<RegEx> regex;
+    godot::Ref<godot::RegEx> regex;
     if (case_sensitive) {
-        regex = RegEx::create_from_string(pattern);
+        regex = godot::RegEx::create_from_string(pattern);
     } else {
-        regex = RegEx::create_from_string(pattern.to_lower());
+        regex = godot::RegEx::create_from_string(pattern.to_lower());
     }
     if (regex.is_null()) return false;
     return regex->search(name).is_valid();
@@ -176,7 +176,7 @@ inline bool match_fuzzy(const String &name, const String &pattern, bool case_sen
 
 inline Error remove_recursive(const String &res_path) {
     // First delete all children
-    Ref<DirAccess> dir = DirAccess::open(res_path);
+    godot::Ref<godot::DirAccess> dir = godot::DirAccess::open(res_path);
     if (dir.is_null()) return Error::FAILED;
     dir->list_dir_begin();
     while (true) {
@@ -188,18 +188,18 @@ inline Error remove_recursive(const String &res_path) {
             Error err = remove_recursive(full);
             if (err != Error::OK) return err;
         } else {
-            Error err = DirAccess::remove_absolute(full);
+            Error err = godot::DirAccess::remove_absolute(full);
             if (err != Error::OK) return err;
         }
     }
     dir->list_dir_end();
-    return DirAccess::remove_absolute(res_path);
+    return godot::DirAccess::remove_absolute(res_path);
 }
 
 inline Error copy_recursive(const String &src, const String &dst) {
-    Ref<DirAccess> dir = DirAccess::open(src);
+    godot::Ref<godot::DirAccess> dir = godot::DirAccess::open(src);
     if (dir.is_null()) return Error::FAILED;
-    DirAccess::make_dir_recursive_absolute(dst);
+    godot::DirAccess::make_dir_recursive_absolute(dst);
     dir->list_dir_begin();
     while (true) {
         String n = dir->get_next();
@@ -211,7 +211,7 @@ inline Error copy_recursive(const String &src, const String &dst) {
             Error err = copy_recursive(src_full, dst_full);
             if (err != Error::OK) return err;
         } else {
-            Error err = DirAccess::copy_absolute(src_full, dst_full);
+            Error err = godot::DirAccess::copy_absolute(src_full, dst_full);
             if (err != Error::OK) return err;
         }
     }

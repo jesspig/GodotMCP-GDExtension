@@ -22,7 +22,7 @@ public:
     String description() const override {
         return "Packs the specified node and its subtree into a PackedScene and writes it to a res:// path. "
                "After saving, the branch can be re-instantiated using the instance_child_scene tool. "
-               "This tool performs a structural transformation â€?undo does not restore the file (only affects the node structure).";
+               "This tool performs a structural transformation ï¿½?undo does not restore the file (only affects the node structure).";
     }
     Dictionary input_schema() const override {
         Dictionary props;
@@ -78,7 +78,7 @@ protected:
         String old_sfp = node->get_scene_file_path();
         node->set_scene_file_path("");
 
-        Ref<PackedScene> packed = scene_tree_utils::pack_subtree(node);
+        godot::Ref<godot::PackedScene> packed = scene_tree_utils::pack_subtree(node);
         if (packed.is_null()) {
             node->set_scene_file_path(old_sfp);
             return ToolResult::err("PACK_FAILED",

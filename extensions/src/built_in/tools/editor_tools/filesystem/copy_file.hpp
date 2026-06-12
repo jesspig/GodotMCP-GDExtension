@@ -66,7 +66,7 @@ protected:
 
         Error err;
         if (fs_utils::is_file(source)) {
-            err = DirAccess::copy_absolute(source, destination);
+            err = godot::DirAccess::copy_absolute(source, destination);
         } else {
             err = fs_utils::copy_recursive(source, destination);
         }

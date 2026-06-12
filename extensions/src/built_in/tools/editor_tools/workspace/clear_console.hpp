@@ -33,12 +33,12 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         (void)ctx;
 
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
 
-        Control *base = ei->get_base_control();
+        godot::Control *base = ei->get_base_control();
         if (!base) {
             return ToolResult::err("NO_BASE", "Editor base control not available");
         }

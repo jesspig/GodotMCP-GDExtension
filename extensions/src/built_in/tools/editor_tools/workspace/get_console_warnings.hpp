@@ -26,7 +26,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        RichTextLabel *rtl = _find_console_rtl();
+        godot::RichTextLabel *rtl = _find_console_rtl();
         if (!rtl) return ToolResult::err("NO_CONSOLE", "Console not found");
 
         PackedStringArray lines = rtl->get_text().split("\n", false);
@@ -47,10 +47,10 @@ protected:
     }
 
 private:
-    static RichTextLabel *_find_console_rtl() {
-        EditorInterface *ei = EditorInterface::get_singleton();
+    static godot::RichTextLabel *_find_console_rtl() {
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) return nullptr;
-        Control *base = ei->get_base_control();
+        godot::Control *base = ei->get_base_control();
         if (!base) return nullptr;
         Array logs = base->find_children("*", "EditorLog", true, false);
         if (logs.size() == 0) return nullptr;
@@ -58,7 +58,7 @@ private:
         if (!log) return nullptr;
         Array rtls = log->find_children("*", "RichTextLabel", true, false);
         if (rtls.size() == 0) return nullptr;
-        return Object::cast_to<RichTextLabel>(rtls[0]);
+        return Object::cast_to<godot::RichTextLabel>(rtls[0]);
     }
 };
 

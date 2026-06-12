@@ -23,7 +23,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        double fps = Performance::get_singleton()->get_monitor(Performance::TIME_FPS);
+        double fps = godot::Performance::get_singleton()->get_monitor(godot::Performance::TIME_FPS);
         Dictionary d;
         d["fps"] = fps;
         return ToolResult::ok(d);

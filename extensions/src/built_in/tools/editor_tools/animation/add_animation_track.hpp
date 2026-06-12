@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,24 +11,24 @@
 
 namespace godot_mcp {
 
-static Animation::TrackType _parse_track_type(const String &s) {
-    if (s == "value") return Animation::TYPE_VALUE;
-    if (s == "position") return Animation::TYPE_POSITION_3D;
-    if (s == "rotation") return Animation::TYPE_ROTATION_3D;
-    if (s == "scale") return Animation::TYPE_SCALE_3D;
-    if (s == "blend_shape") return Animation::TYPE_BLEND_SHAPE;
-    if (s == "method") return Animation::TYPE_METHOD;
-    if (s == "bezier") return Animation::TYPE_BEZIER;
-    if (s == "audio") return Animation::TYPE_AUDIO;
-    if (s == "animation") return Animation::TYPE_ANIMATION;
-    return Animation::TYPE_VALUE;
+static godot::Animation::TrackType _parse_track_type(const String &s) {
+    if (s == "value") return godot::Animation::TYPE_VALUE;
+    if (s == "position") return godot::Animation::TYPE_POSITION_3D;
+    if (s == "rotation") return godot::Animation::TYPE_ROTATION_3D;
+    if (s == "scale") return godot::Animation::TYPE_SCALE_3D;
+    if (s == "blend_shape") return godot::Animation::TYPE_BLEND_SHAPE;
+    if (s == "method") return godot::Animation::TYPE_METHOD;
+    if (s == "bezier") return godot::Animation::TYPE_BEZIER;
+    if (s == "audio") return godot::Animation::TYPE_AUDIO;
+    if (s == "animation") return godot::Animation::TYPE_ANIMATION;
+    return godot::Animation::TYPE_VALUE;
 }
 
-static Animation::InterpolationType _parse_interpolation(const String &s) {
-    if (s == "nearest") return Animation::INTERPOLATION_NEAREST;
-    if (s == "linear") return Animation::INTERPOLATION_LINEAR;
-    if (s == "cubic") return Animation::INTERPOLATION_CUBIC;
-    return Animation::INTERPOLATION_LINEAR;
+static godot::Animation::InterpolationType _parse_interpolation(const String &s) {
+    if (s == "nearest") return godot::Animation::INTERPOLATION_NEAREST;
+    if (s == "linear") return godot::Animation::INTERPOLATION_LINEAR;
+    if (s == "cubic") return godot::Animation::INTERPOLATION_CUBIC;
+    return godot::Animation::INTERPOLATION_LINEAR;
 }
 
 class AddAnimationTrackTool : public ITool {
@@ -112,23 +112,23 @@ protected:
                 String("AnimationPlayer not found: ") + anim_player_path);
         }
 
-        AnimationPlayer *player = Object::cast_to<AnimationPlayer>(node);
+        godot::AnimationPlayer *player = Object::cast_to<godot::AnimationPlayer>(node);
         if (!player) {
             return ToolResult::err("WRONG_TYPE",
                 String("Node is not an AnimationPlayer: ") + anim_player_path);
         }
 
-        Ref<AnimationLibrary> library;
+        godot::Ref<godot::AnimationLibrary> library;
         if (library_name.is_empty()) {
-            TypedArray<StringName> libs = player->get_animation_library_list();
+            godot::TypedArray<godot::StringName> libs = player->get_animation_library_list();
             if (libs.size() == 0) {
                 return ToolResult::err("NO_LIBRARY",
                     "AnimationPlayer has no AnimationLibraries");
             }
             library_name = String(libs[0]);
-            library = player->get_animation_library(StringName(library_name));
+            library = player->get_animation_library(godot::StringName(library_name));
         } else {
-            library = player->get_animation_library(StringName(library_name));
+            library = player->get_animation_library(godot::StringName(library_name));
         }
 
         if (library.is_null()) {
@@ -136,29 +136,29 @@ protected:
                 String("AnimationLibrary not found: ") + library_name);
         }
 
-        Ref<Animation> animation = library->get_animation(StringName(clip_name));
+        godot::Ref<godot::Animation> animation = library->get_animation(godot::StringName(clip_name));
         if (animation.is_null()) {
             return ToolResult::err("CLIP_NOT_FOUND",
                 String("Animation clip not found: ") + clip_name);
         }
 
-        Animation::TrackType track_type = _parse_track_type(track_type_str);
-        Animation::InterpolationType interp = _parse_interpolation(interp_str);
+        godot::Animation::TrackType track_type = _parse_track_type(track_type_str);
+        godot::Animation::InterpolationType interp = _parse_interpolation(interp_str);
 
         int32_t track_idx = animation->get_track_count();
 
-        EditorUndoRedoManager *ur = get_undo_redo();
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (!ur) {
             animation->add_track(track_type);
-            animation->track_set_path(track_idx, NodePath(target_path));
+            animation->track_set_path(track_idx, godot::NodePath(target_path));
             animation->track_set_interpolation_type(track_idx, interp);
             mark_scene_dirty();
         } else {
             ur->create_action(String("MCP: Add Animation Track"),
-                              UndoRedo::MERGE_DISABLE, ctx.root);
+                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(animation.ptr(), "add_track", track_type);
             ur->add_do_method(animation.ptr(), "track_set_path",
-                              track_idx, NodePath(target_path));
+                              track_idx, godot::NodePath(target_path));
             ur->add_do_method(animation.ptr(), "track_set_interpolation_type",
                               track_idx, interp);
             ur->add_undo_method(animation.ptr(), "remove_track", track_idx);

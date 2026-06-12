@@ -57,7 +57,7 @@ protected:
                 String("Invalid workspace name '") + name + String("', valid values: 2D / 3D / Script / AssetLib"));
         }
 
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }

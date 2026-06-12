@@ -20,9 +20,9 @@ public:
     }
     String description() const override {
         return "Opens the specified file in the Godot editor. Routes to the appropriate editor component based on file extension: "
-               ".tscn â†?scene editor; .gd â†?script editor; "
-               ".gdshader â†?shader editor; .tres/.res â†?resource editor; "
-               "other files â†?selected in the file system panel.";
+               ".tscn ï¿½?scene editor; .gd ï¿½?script editor; "
+               ".gdshader ï¿½?shader editor; .tres/.res ï¿½?resource editor; "
+               "other files ï¿½?selected in the file system panel.";
     }
     Dictionary input_schema() const override {
         Dictionary props;
@@ -54,12 +54,12 @@ protected:
         if (!verr.is_empty()) {
             return ToolResult::err(verr["code"], verr["message"]);
         }
-        if (!FileAccess::file_exists(path)) {
+        if (!godot::FileAccess::file_exists(path)) {
             return ToolResult::err("NOT_FOUND",
                 "File does not exist: " + path);
         }
 
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR",
                 "EditorInterface not available");
@@ -72,19 +72,19 @@ protected:
             ei->open_scene_from_path(path);
             action_desc = "Scene opened";
         } else if (ext == "gd" || ext == "gdshader" || ext == "cs" || ext == "csharp") {
-            Ref<Resource> res = ResourceLoader::get_singleton()->load(path);
+            godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(path);
             if (res.is_null()) {
-                EditorFileSystem *efs = EditorInterface::get_singleton()->get_resource_filesystem();
+                godot::EditorFileSystem *efs = godot::EditorInterface::get_singleton()->get_resource_filesystem();
                 if (efs) {
                     efs->update_file(path);
                 }
-                res = ResourceLoader::get_singleton()->load(path);
+                res = godot::ResourceLoader::get_singleton()->load(path);
             }
             if (res.is_null()) {
                 return ToolResult::err("LOAD_FAILED",
                     "Failed to load file: " + path);
             }
-            Ref<Script> script = res;
+            godot::Ref<godot::Script> script = res;
             if (script.is_valid()) {
                 ei->edit_script(script, (int)line);
             } else {
@@ -92,13 +92,13 @@ protected:
             }
             action_desc = "File opened in script/resource editor";
         } else if (ext == "tres" || ext == "res") {
-            Ref<Resource> res = ResourceLoader::get_singleton()->load(path);
+            godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(path);
             if (res.is_null()) {
-                EditorFileSystem *efs = EditorInterface::get_singleton()->get_resource_filesystem();
+                godot::EditorFileSystem *efs = godot::EditorInterface::get_singleton()->get_resource_filesystem();
                 if (efs) {
                     efs->update_file(path);
                 }
-                res = ResourceLoader::get_singleton()->load(path);
+                res = godot::ResourceLoader::get_singleton()->load(path);
             }
             if (res.is_null()) {
                 return ToolResult::err("LOAD_FAILED",

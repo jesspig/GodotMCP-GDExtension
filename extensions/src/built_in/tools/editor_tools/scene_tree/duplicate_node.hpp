@@ -110,9 +110,9 @@ protected:
         }
 
         // select the new node
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            EditorSelection *sel = ei->get_selection();
+            godot::EditorSelection *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(dup);

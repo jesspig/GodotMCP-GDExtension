@@ -29,7 +29,7 @@ protected:
         Array breakpoints;
         Array bp_data;
 
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             Dictionary data;
             data["breakpoints"] = Array();
@@ -37,14 +37,14 @@ protected:
             return ToolResult::ok(data);
         }
 
-        ScriptEditor *se = ei->get_script_editor();
+        godot::ScriptEditor *se = ei->get_script_editor();
         if (se) {
             breakpoints = se->call("get_breakpoints");
         }
 
         // Fallback: try finding ScriptEditor via scene tree
         if (breakpoints.size() == 0) {
-            Control *base = ei->get_base_control();
+            godot::Control *base = ei->get_base_control();
             if (base) {
                 Array nodes = base->find_children("*", "ScriptEditor", true, false);
                 if (nodes.size() > 0) {

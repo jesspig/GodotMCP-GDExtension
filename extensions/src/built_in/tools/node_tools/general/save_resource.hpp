@@ -68,14 +68,14 @@ protected:
         }
 
         Variant val = node->get(prop_name);
-        Ref<Resource> res = val;
+        godot::Ref<godot::Resource> res = val;
         if (res.is_null()) {
             return ToolResult::err("NOT_A_RESOURCE",
                 String("Property does not currently have a Resource"));
         }
 
         ensure_parent_dir(save_path);
-        Error err = ResourceSaver::get_singleton()->save(res, save_path);
+        Error err = godot::ResourceSaver::get_singleton()->save(res, save_path);
         if (err != OK) {
             return ToolResult::err("SAVE_FAILED",
                 String::utf8("保存失败，错误码: ") + itos(err));

@@ -37,7 +37,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        ProjectSettings *ps = ProjectSettings::get_singleton();
+        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
         Variant val = ps->get_setting(setting_path_);
         Dictionary data;
         data["setting"] = setting_path_;
@@ -66,7 +66,7 @@ public:
         Dictionary vp;
         vp["type"] = "object";
         vp["description"] = String("Value for \"") + setting_path_ +
-            String("\". Use native JSON types (bool, number, string, array, object).");
+            String("\". Use native godot::JSON types (bool, number, string, array, object).");
         p["value"] = vp;
         s["properties"] = p;
         Array r;
@@ -92,7 +92,7 @@ protected:
         if (!ctx.args.has("value")) {
             return ToolResult::err("MISSING_PARAM", "Missing required parameter: value");
         }
-        ProjectSettings *ps = ProjectSettings::get_singleton();
+        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
         Variant new_val = json_to_variant(ctx.args["value"]);
         ps->set_setting(setting_path_, new_val);
         Error err = ps->save();

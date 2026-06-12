@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -71,10 +71,10 @@ protected:
         }
         player_node->set_name(node_name);
 
-        AnimationPlayer *player = Object::cast_to<AnimationPlayer>(player_node);
+        godot::AnimationPlayer *player = Object::cast_to<godot::AnimationPlayer>(player_node);
 
         bool library_created = false;
-        Ref<AnimationLibrary> lib;
+        godot::Ref<godot::AnimationLibrary> lib;
 
         if (!library_name.is_empty()) {
             lib.instantiate();
@@ -85,17 +85,17 @@ protected:
             library_created = true;
         }
 
-        EditorUndoRedoManager *ur = get_undo_redo();
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (!ur) {
             parent->add_child(player_node, true, Node::INTERNAL_MODE_DISABLED);
             player_node->set_owner(ctx.root);
             if (library_created) {
-                player->add_animation_library(StringName(library_name), lib);
+                player->add_animation_library(godot::StringName(library_name), lib);
             }
             mark_scene_dirty();
         } else {
             ur->create_action(String("MCP: Create AnimationPlayer"),
-                              UndoRedo::MERGE_DISABLE, ctx.root);
+                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", player_node, true,
                               (int64_t)Node::INTERNAL_MODE_DISABLED);
             ur->add_undo_method(parent, "remove_child", player_node);
@@ -105,9 +105,9 @@ protected:
 
             if (library_created) {
                 ur->add_do_method(player, "add_animation_library",
-                                  StringName(library_name), lib);
+                                  godot::StringName(library_name), lib);
                 ur->add_undo_method(player, "remove_animation_library",
-                                    StringName(library_name));
+                                    godot::StringName(library_name));
             }
 
             ur->commit_action();

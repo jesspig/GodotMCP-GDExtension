@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -111,7 +111,7 @@ protected:
                 return ToolResult::err("NOT_A_CONTROL", String("Node is not a Control: ") + node_path);
             }
 
-            EditorUndoRedoManager *ur = get_undo_redo();
+            godot::EditorUndoRedoManager *ur = get_undo_redo();
             ur->create_action(String("MCP: Create StyleBox ") + stylebox_name,
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
 

@@ -37,14 +37,14 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String path = args_string(ctx.args, "path");
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
 
         if (path.is_empty()) {
-            // Capture path BEFORE save â€?ei->save_scene() may reload the scene
-            // and invalidate ctx.root (dangling pointer â†?crash).
+            // Capture path BEFORE save ï¿½?ei->save_scene() may reload the scene
+            // and invalidate ctx.root (dangling pointer ï¿½?crash).
             path = ctx.root->get_scene_file_path();
             if (path.is_empty()) {
                 return ToolResult::err("NO_PATH",
@@ -53,7 +53,7 @@ protected:
             // Use save_scene_as(path, false) directly to bypass EditorProgress
             // (_save_scene_with_preview). EditorProgress::step() calls
             // Main::iteration() internally, which triggers a recursive
-            // _process() â†?http_server_.poll() and causes crashes.
+            // _process() ï¿½?http_server_.poll() and causes crashes.
             ei->save_scene_as(path, false);
         } else {
             if (!path.ends_with(".tscn") && !path.ends_with(".scn")) {

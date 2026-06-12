@@ -1,4 +1,4 @@
-﻿
+
 // list_settings.hpp -- List all project settings, supports category filtering and search
 
 #pragma once
@@ -52,7 +52,7 @@ protected:
         if (limit <= 0) limit = 200;
         if (limit > 5000) limit = 5000;
 
-        ProjectSettings *ps = ProjectSettings::get_singleton();
+        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
         Array prop_list = ps->get_property_list();
 
         Array results;

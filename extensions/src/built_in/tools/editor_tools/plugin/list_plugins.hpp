@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -29,7 +29,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        Ref<DirAccess> da = DirAccess::open("res://addons");
+        godot::Ref<godot::DirAccess> da = godot::DirAccess::open("res://addons");
         Array results;
 
         if (da.is_valid()) {
@@ -41,7 +41,7 @@ protected:
                 if (!da->current_is_dir()) continue;
 
                 String plugin_cfg = "res://addons/" + n + "/plugin.cfg";
-                Ref<ConfigFile> cfg;
+                godot::Ref<godot::ConfigFile> cfg;
                 cfg.instantiate();
                 if (cfg->load(plugin_cfg) != OK) continue;
 
@@ -49,7 +49,7 @@ protected:
                 bool enabled = false;
                 {
                     String enabled_path = "res://addons/" + n + "/.enabled";
-                    Ref<DirAccess> check = DirAccess::open(enabled_path);
+                    godot::Ref<godot::DirAccess> check = godot::DirAccess::open(enabled_path);
                     enabled = check.is_valid();
                 }
 

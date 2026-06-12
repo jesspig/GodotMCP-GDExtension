@@ -70,7 +70,7 @@ protected:
         String deleted_type = node->get_class();
         int64_t index = node->get_index();
 
-        EditorUndoRedoManager *ur = get_undo_redo();
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (!ur) {
             parent->remove_child(node);
             memdelete(node);
@@ -91,9 +91,9 @@ protected:
         }
 
         // Clear selection
-        EditorInterface *ei = EditorInterface::get_singleton();
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            EditorSelection *sel = ei->get_selection();
+            godot::EditorSelection *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
             }
