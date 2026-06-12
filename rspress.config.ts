@@ -4,7 +4,7 @@ import mermaid from 'rspress-plugin-mermaid';
 export default defineConfig({
   plugins: [mermaid()],
   root: 'docs',
-  base: '/GodotMCP/',
+  base: '/GodotMCP-GDExtension/',
   lang: 'zh',
   locales: [
     {
