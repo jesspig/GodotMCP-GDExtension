@@ -23,7 +23,7 @@ cmake --build build --target deep-clean # 仅清 addons/bin/ + _deps/
 ## 关键约束
 
 - **版本号**只存在于根 `CMakeLists.txt:22`（`PROJECT_VERSION`）。`plugin.cfg` 与 `.gdextension` 由 CMake 自动生成。
-- **入口符号** `gdext_mcp_init`（`register_types.cpp:56`）。
+- **入口符号** `gdext_mcp_init`（`register_types.cpp:60`）。
 - **`compatibility_minimum = "4.6"`** 与 `GODOTCPP_API_VERSION "4.6"` 必须同步（`extensions/CMakeLists.txt:15`）。
 - **Pinned deps**：`godot-cpp 10.0.0-rc1`、`ryml v0.7.0`（header-only）。升级前必须测试。
 - 源码根 `extensions/src/`（不是仓库根 `src/`）。`register_types.cpp` 用 `MODULE_INITIALIZATION_LEVEL_SCENE`（游戏进程注册 `GameBridgeNode`）+ `LEVEL_EDITOR`（编辑器进程注册 `McpEditorPlugin`）。
@@ -44,11 +44,11 @@ graph LR
 - **端点**：`/mcp`（JSON-RPC 2.0 + SSE），`/run-tests`（YAML 测试引擎）
 - **轮询**：`McpEditorPlugin::_process()` 驱动 `HttpServer::poll()` + `RuntimeBridge::poll()`，非 `_on_process_frame` 信号
 - **运行时桥接**：
-  - `GameBridgeNode`（`game_bridge.cpp`）：游戏进程内 TCP 服务端，`_self_add` 通过 `call_deferred` 加入场景树，7 个命令：`get_scene_tree`/`get_property`/`set_property`/`call_method`/`screenshot`/`simulate_input`/`set_pause`
+  - `GameBridgeNode`（`game_bridge.cpp`）：游戏进程内 TCP 服务端，`_self_add` 通过 `call_deferred` 加入场景树，7 个命令
   - `RuntimeBridge`（`bridge.cpp`）：编辑器侧 TCP 客户端，`send_command()` 发送 JSON 命令，`make_response()` 展平 `{ok,data}` → `{success,data}`
   - 生命周期：`_try_bridge_connect()` 通过 `ei->is_playing_scene()` 感知游戏启停，自动 connect/disconnect
 - **双重注册**：`GDREGISTER` 注册 SDK 类（`McpToolDefinition`/`McpToolRegistry`）+ EditorPlugin；`HandlerRegistry` 管理 `ITool` 主表 + SDK `CommandFn` 旁路表
-- **工具数**：~149（全部通过 X-macro 注册，无 codegen）
+- **工具数**：~157（全部通过 X-macro 注册，无 codegen）
 
 ## 添加内置工具
 
@@ -72,25 +72,15 @@ class MyTool : public ITool {
 
 - **注册步骤**：创建 `.hpp` 文件后，在 `extensions/src/built_in/tools/register/` 下对应分类的 X-macro 注册文件中加一行：
   ```cpp
-  GODOT_MCP_TOOL(MyTool, "my_tool", "editor_tools/my_category", false, false, false)
+  GODOT_MCP_TOOL(MyTool, "my_tool", "editor_tools/my_category", false, false, false, false)
   ```
-  `GODOT_MCP_TOOL` 宏签名：`(cls, name_str, cat, is_meta_val, need_scene_val, need_node_val)` — 定义于 `register_itools.cpp:201`。
+  `GODOT_MCP_TOOL` 宏签名：`(cls, name_str, cat, is_meta_val, need_scene_val, need_node_val, is_destructive_val)` — 定义于 `register_itools.cpp:229`。
 - **同时**需要在 `extensions/src/built_in/register_itools.cpp` 中对应分类区域加 `#include` 指令。
 - **不需要** `// @tool register` 注释，不需要运行 codegen。编译器原生处理注册。
 - **顶级分类**自动发现：`category()` 第一个 `/` 前的段即为顶级分类名，label 自动美化（`editor_tools` → `Editor tools`）。
 - **顶级分类描述**：在该分类任一工具上覆盖 `category_description()` 即可自动填充。
 - **场景树修改**：必须用 `EditorUndoRedoManager`（`ei->get_editor_undo_redo()`），不用裸 `UndoRedo`。
 - **写入文件**：不能直接写 `.tscn`，须经 EditorInterface API 或写后 `notify_file_changed()`。
-
-## YAML 数据库（仅文档用途，不参与构建）
-
-| 类型 | YAML 目录 | 文件数 |
-|------|----------|--------|
-| 节点属性 | `node_props/db/*.yaml` | 283 |
-| 资源属性 | `node_resource/db/*.yaml` | 419 |
-| 项目设置 | `editor_tools/settings/db/*.yaml` | 24 |
-
-YAML 不再生成注册代码。文档数据通过 Layer 3 工具（`get_class_list`、`get_property_doc`、`get_method_doc`、`get_enum_doc`、`get_inheritance_chain`）从 Godot ClassDB 运行时查询。
 
 ## C++ 注意事项
 
@@ -114,6 +104,7 @@ YAML 不再生成注册代码。文档数据通过 Layer 3 工具（`get_class_l
 - **`set_node_property` 的 value 参数 schema 不应声明 `"type": "object"`** — 否则 string 值会被 `ITool::execute()` 的类型检查拒绝。移除 type 约束即可。
 - **`add_node` 的 name 参数**：schema 中参数名为 `node_name`，但客户端可能传 `name`。`execute_impl` 中需 `args_string(ctx.args, "name")` 后备。
 - **`std::sort` 不能用于 `godot::Vector::Iterator`**（非 random-access）。如需排序，用 `std::vector<T>` 替代。
+- **`register_existing.hpp` 与 `register_docs.hpp` 重复注册**：`SearchDocsTool`、`GetClassInfoTool`、`GetBestPracticesTool` 在两个文件中各注册一次。`HandlerRegistry::register_tool()` 按 name 覆盖，不影响运行，但添加新工具时注意不要重复。
 
 ## 测试
 
@@ -151,6 +142,9 @@ extensions/src/           # C++ 源码根（不是仓库根 src/）
   server/                 # HTTP 服务器 + MCP 协议处理
   runtime/                # 运行时桥接（bridge.cpp, game_bridge.cpp）
   sdk/                    # GDScript SDK 类（McpToolDefinition/Registry）
+  lsp/                    # LSP 客户端
+  ui/                     # 编辑器 UI（dock, console, logger）
+  testing/                # C++ 测试引擎
 tests/                    # Python 测试编排器 + YAML 测试用例
 example/                  # Godot 测试项目（addons/ 由构建自动填充）
 docs/                     # Rspress 文档站（zh/ + en/）

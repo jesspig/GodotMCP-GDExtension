@@ -47,13 +47,13 @@ protected:
         String prop_name = args_string(ctx.args, "property_name");
 
         if (prop_name.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("property_name 不能为空"));
+            return ToolResult::err("MISSING_ARG", String("property_name cannot be empty"));
         }
 
         Node *node = resolve_node(ctx.root, path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找�? ") + path);
+                String("Node not found: ") + path);
         }
 
         undoable_set(node, prop_name, Variant(),

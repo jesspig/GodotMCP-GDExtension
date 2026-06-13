@@ -1,0 +1,175 @@
+// =====================================================================
+// mcp_logger.cpp — MCP 日志系统：内存存储 + JSONL 写入 + 自动轮转
+// =====================================================================
+
+#include "mcp_logger.hpp"
+
+#include <godot_cpp/classes/dir_access.hpp>
+#include <godot_cpp/classes/file_access.hpp>
+#include <godot_cpp/classes/json.hpp>
+#include <godot_cpp/classes/time.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
+
+namespace godot_mcp {
+
+// ---------------------------------------------------------------------
+// 属性访问器
+// ---------------------------------------------------------------------
+
+void McpLogger::set_max_entries(int max) {
+    max_entries_ = max > 0 ? max : 500;
+    while (entries_.size() > max_entries_) {
+        entries_.remove_at(0);
+    }
+}
+
+int McpLogger::max_entries() const {
+    return max_entries_;
+}
+
+void McpLogger::set_log_dir(const godot::String &dir) {
+    log_dir_ = dir;
+    current_log_file_ = "";
+}
+
+godot::String McpLogger::log_dir() const {
+    return log_dir_;
+}
+
+void McpLogger::set_log_callback(LogCallback cb) {
+    callback_ = std::move(cb);
+}
+
+// ---------------------------------------------------------------------
+// 核心操作
+// ---------------------------------------------------------------------
+
+void McpLogger::append(const LogEntry &entry) {
+    entries_.push_back(entry);
+    while (entries_.size() > max_entries_) {
+        entries_.remove_at(0);
+    }
+    write_to_jsonl(entry);
+    if (callback_) {
+        callback_(entry);
+    }
+}
+
+const godot::Vector<McpLogger::LogEntry> &McpLogger::entries() const {
+    return entries_;
+}
+
+void McpLogger::clear() {
+    entries_.clear();
+}
+
+// ---------------------------------------------------------------------
+// 目录管理
+// ---------------------------------------------------------------------
+
+void McpLogger::ensure_log_dir() {
+    godot::Ref<godot::DirAccess> da = godot::DirAccess::open(log_dir_);
+    if (da.is_null()) {
+        godot::Error err = godot::DirAccess::make_dir_recursive_absolute(log_dir_);
+        if (err != godot::OK) {
+            godot::UtilityFunctions::push_error("[McpLogger] Failed to create log dir: ", log_dir_);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------
+// JSONL 写入
+// ---------------------------------------------------------------------
+
+void McpLogger::write_to_jsonl(const LogEntry &entry) {
+    ensure_log_dir();
+
+    if (current_log_file_.is_empty()) {
+        godot::Dictionary dt = godot::Time::get_singleton()->get_datetime_dict_from_system();
+        int y = static_cast<int>(dt["year"]);
+        int mo = static_cast<int>(dt["month"]);
+        int d = static_cast<int>(dt["day"]);
+        int h = static_cast<int>(dt["hour"]);
+        int mi = static_cast<int>(dt["minute"]);
+        int s = static_cast<int>(dt["second"]);
+        godot::String filename = godot::String("mcp_")
+            + godot::String::num_int64(y)
+            + (mo < 10 ? "0" : "") + godot::String::num_int64(mo)
+            + (d < 10 ? "0" : "") + godot::String::num_int64(d) + "_"
+            + (h < 10 ? "0" : "") + godot::String::num_int64(h)
+            + (mi < 10 ? "0" : "") + godot::String::num_int64(mi)
+            + (s < 10 ? "0" : "") + godot::String::num_int64(s)
+            + ".jsonl";
+        current_log_file_ = log_dir_.path_join(filename);
+    }
+
+    godot::Dictionary json_entry;
+    json_entry["timestamp"] = entry.timestamp;
+    json_entry["tool"] = entry.tool_name;
+    json_entry["success"] = entry.success;
+    json_entry["args"] = entry.args;
+    json_entry["result"] = entry.result;
+    json_entry["duration_ms"] = entry.duration_ms;
+
+    godot::String line = godot::JSON::stringify(json_entry);
+
+    godot::Ref<godot::FileAccess> f = godot::FileAccess::open(
+        current_log_file_, godot::FileAccess::WRITE);
+    if (f.is_valid()) {
+        f->seek_end();
+        f->store_string(line + "\n");
+        f->close();
+    } else {
+        godot::UtilityFunctions::push_error(
+            "[McpLogger] Failed to open log file: ", current_log_file_);
+    }
+}
+
+// ---------------------------------------------------------------------
+// 日志轮转
+// ---------------------------------------------------------------------
+
+void McpLogger::rotate(int keep_days) {
+    rotate_files(keep_days);
+}
+
+void McpLogger::rotate_files(int keep_days) {
+    godot::Ref<godot::DirAccess> da = godot::DirAccess::open(log_dir_);
+    if (da.is_null()) return;
+
+    godot::Dictionary now_dt = godot::Time::get_singleton()->get_datetime_dict_from_system();
+    int now_year = static_cast<int>(now_dt["year"]);
+    int now_month = static_cast<int>(now_dt["month"]);
+    int now_day = static_cast<int>(now_dt["day"]);
+
+    da->list_dir_begin();
+    while (true) {
+        godot::String name = da->get_next();
+        if (name.is_empty()) break;
+        if (da->current_is_dir()) continue;
+        if (!name.begins_with("mcp_") || !name.ends_with(".jsonl")) continue;
+
+        // 解析 mcp_YYYYMMDD_HHMMSS.jsonl
+        if (name.length() < 24) continue;
+        godot::String date_part = name.substr(4, 8); // YYYYMMDD
+        int year = date_part.substr(0, 4).to_int();
+        int month = date_part.substr(4, 2).to_int();
+        int day = date_part.substr(6, 2).to_int();
+
+        // 简单天数差计算
+        int file_days = year * 365 + month * 30 + day;
+        int now_days = now_year * 365 + now_month * 30 + now_day;
+        int diff = now_days - file_days;
+
+        if (diff > keep_days) {
+            godot::String path = log_dir_.path_join(name);
+            godot::Error err = da->remove(path);
+            if (err == godot::OK) {
+                godot::UtilityFunctions::print("[McpLogger] Rotated old log: ", name);
+            }
+        }
+    }
+    da->list_dir_end();
+}
+
+} // namespace godot_mcp

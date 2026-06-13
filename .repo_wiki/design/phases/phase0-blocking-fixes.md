@@ -1,7 +1,7 @@
 # Phase 0 — P0 阻断性修复
 
 > 预计工期：1-2 天。不修复则产品不可用/不可分发。
-> ADR-016 子决策：决策 1（预编译分发策略）、决策 3（网络绑定安全策略）。
+> ADR-016 子决策：决策 1（预编译分发策略）、决策 2（网络绑定安全策略）。
 
 ## P0-1：修复 Release 流水线
 
@@ -84,36 +84,7 @@ git tag v0.2.0-test && git push origin v0.2.0-test
 # 5. curl http://127.0.0.1:9600/mcp → 返回 MCP 协议响应
 ```
 
----
-
-## P0-2：CI 跨平台编译验证
-
-### 现状问题
-
-`ci.yml` 仅在 `ubuntu-latest` 上构建，PR 不会发现 Windows/macOS 编译错误。
-
-### 修改清单
-
-#### `.github/workflows/ci.yml` — 三平台矩阵
-
-```yaml
-strategy:
-  fail-fast: false
-  matrix:
-    os: [ubuntu-latest, macos-latest, windows-latest]
-
-runs-on: ${{ matrix.os }}
-```
-
-其余步骤与当前 `ci.yml` 的步骤一致（checkout → cache → cmake configure → cmake build）。
-
-### 验证标准
-
-PR 提交后三平台 CI 全绿。
-
----
-
-## P0-3：GameBridge 绑定地址修复
+## P0-2：GameBridge 绑定地址修复
 
 ### 现状问题
 

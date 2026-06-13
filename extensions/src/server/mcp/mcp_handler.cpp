@@ -27,6 +27,24 @@ namespace godot_mcp {
 McpHandler::McpHandler(HandlerRegistry *registry)
     : registry_(registry) {}
 
+void McpHandler::set_log_callback(McpLogCallback cb) {
+    log_callback_ = std::move(cb);
+}
+
+bool McpHandler::has_pending_requests() const {
+    return pending_requests_.size() != 0;
+}
+
+int McpHandler::pending_request_count() const {
+    return pending_requests_.size();
+}
+
+void McpHandler::clear_sessions() {
+    sessions_.clear();
+    pending_requests_.clear();
+    cancelled_requests_.clear();
+}
+
 // -------------------------------------------------------------------------
 // Session management
 // -------------------------------------------------------------------------
@@ -391,21 +409,34 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
                                 ? Dictionary(params["arguments"])
                                 : Dictionary();
 
-    // Check is_destructive — requires confirmation
+    const uint64_t start_msec = Time::get_singleton()->get_ticks_msec();
+
+    // Permission policy check for destructive tools
     if (registry_) {
         const ToolInfo *info = registry_->find_tool_info(tool_name);
         if (info && info->is_destructive) {
-            bool confirmed = args.get("_confirm", false);
-            if (!confirmed) {
-                Dictionary err_data;
-                err_data["destructive"] = true;
-                err_data["tool_name"] = tool_name;
-                err_data["message"] = String("This tool is destructive and requires explicit confirmation. "
-                                              "Set '_confirm' to true to proceed. Tool: ") + tool_name;
+            String permission = OS::get_singleton()->get_environment("GODOT_MCP_PERMISSION");
+            if (permission.is_empty()) permission = "allow_all";
+
+            if (permission == "deny_destructive") {
                 return make_jsonrpc_error(id, kInvalidRequest,
-                    "Confirmation required for destructive tool: " + tool_name,
-                    err_data);
+                    "Destructive tool denied by permission policy: " + tool_name);
             }
+
+            if (permission == "confirm_destructive") {
+                bool confirmed = args.get("_confirm", false);
+                if (!confirmed) {
+                    Dictionary err_data;
+                    err_data["destructive"] = true;
+                    err_data["tool_name"] = tool_name;
+                    err_data["message"] = String("This tool is destructive and requires explicit confirmation. "
+                                                  "Set '_confirm' to true to proceed. Tool: ") + tool_name;
+                    return make_jsonrpc_error(id, kInvalidRequest,
+                        "Confirmation required for destructive tool: " + tool_name,
+                        err_data);
+                }
+            }
+            // "allow_all" → no check needed
         }
     }
 
@@ -469,8 +500,8 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
     pending_requests_.erase(JSON::stringify(id));
 
     // Log result summary
+    bool success = true;
     {
-        bool success = true;
         String summary;
         if (tool_result.has("error")) {
             success = false;
@@ -506,6 +537,18 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
         } else {
             log_warn("mcp", String("  -> FAIL: ") + summary);
         }
+    }
+
+    // Structured log callback
+    if (log_callback_) {
+        ToolCallLog log_entry;
+        log_entry.timestamp = Time::get_singleton()->get_datetime_string_from_system();
+        log_entry.tool_name = tool_name;
+        log_entry.success = success;
+        log_entry.args = args;
+        log_entry.result = tool_result;
+        log_entry.duration_ms = (double)(Time::get_singleton()->get_ticks_msec() - start_msec);
+        log_callback_(log_entry);
     }
 
     // 错误检测：兼容旧格式 {"error": "..."} 和新格式 {"success": false, "error": {"code": "...", "message": "..."}}

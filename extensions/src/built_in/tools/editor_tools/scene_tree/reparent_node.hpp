@@ -89,7 +89,7 @@ protected:
         }
 
         if (new_parent == old_parent) {
-            // Same parent: just reorder. Defer to move_node tool â€?but still
+            // Same parent: just reorder. Defer to move_node tool... but still
             // allow this to function as a no-op-with-reorder for convenience.
             int64_t cur_idx = node->get_index();
             int64_t target = index;

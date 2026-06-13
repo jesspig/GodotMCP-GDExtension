@@ -2,6 +2,17 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-13 — Wiki 数据修复 + 新增模块文档
+
+**全 Wiki 数据一致性修复 + 3 个新模块文档**
+
+- **修复** 17 处过时数据：工具数 `~149` → `~171`、`register_types.cpp:56` → `:60`、`register_itools.cpp:201` → `:229`
+- **修复** `GODOT_MCP_TOOL` 宏签名：补齐第 7 参数 `is_destructive_val`
+- **新增** `modules/sdk-layer.md`：GDScript SDK 层文档（McpToolDefinition + McpToolRegistry + IToolAdapter）
+- **新增** `modules/http-server.md`：HTTP 服务器内部架构（连接管理、速率限制、SSE、路由表）
+- **新增** `modules/ui-components.md`：UI 组件文档（McpLogger、McpDock、McpConsole）
+- **更新** `index.md`：添加 SDK/HTTP/UI 导航链接
+
 ## 2026-06-12 — V2 优化方案 + 竞品深度分析 + ADR-016~022
 
 **竞品深度分析与 V2 优化方案制定**

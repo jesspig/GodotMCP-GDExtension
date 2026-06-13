@@ -5,6 +5,7 @@
 #include "logging.hpp"
 
 #include <godot_cpp/classes/json.hpp>
+#include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
@@ -32,6 +33,11 @@ Error HttpServer::start(uint16_t port, McpHandler *mcp_handler, const String &bi
                               String(" (err=") + String::num_int64((int64_t)err) + String(")"));
         tcp_server_.unref();
         return err;
+    }
+
+    auth_token_ = OS::get_singleton()->get_environment("GODOT_MCP_AUTH_TOKEN");
+    if (!auth_token_.is_empty()) {
+        log_info("http", "Token authentication enabled");
     }
 
     log_info("http",
@@ -226,6 +232,23 @@ void HttpServer::poll() {
 // Request dispatch
 // -------------------------------------------------------------------------
 void HttpServer::dispatch_request(int conn_id, Connection &conn) {
+    // Token authentication
+    if (!auth_token_.is_empty()) {
+        String auth = conn.headers.has("authorization") ? conn.headers["authorization"] : "";
+        if (auth != String("Bearer ") + auth_token_) {
+            send_response(conn_id, conn, 401, "Unauthorized", "application/json",
+                          "{\"error\":\"Missing or invalid Authorization header\"}");
+            return;
+        }
+    }
+
+    // Rate limiting
+    if (!conn.rate_limiter.try_consume()) {
+        send_response(conn_id, conn, 429, "Too Many Requests", "application/json",
+                      "{\"error\":\"Rate limit exceeded (30 req/s)\"}");
+        return;
+    }
+
     if (conn.method == "POST") handle_post(conn_id, conn);
     else if (conn.method == "GET") handle_get(conn_id, conn);
     else if (conn.method == "DELETE") handle_delete(conn_id, conn);

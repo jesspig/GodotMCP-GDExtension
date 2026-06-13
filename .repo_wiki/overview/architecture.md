@@ -15,7 +15,7 @@ flowchart LR
             HTTP["HttpServer<br/>(:9600, SSE)"]
             MCPHandler["McpHandler<br/>(JSON-RPC 2.0)"]
             Registry["HandlerRegistry<br/>(ITool 统一调度)"]
-            Tools["built_in/tools/<br/>~149 工具 (X-macro 注册)"]
+            Tools["built_in/tools/<br/>~171 工具 (X-macro 注册)"]
             RB["RuntimeBridge<br/>(TCP :9601 客户端)"]
         end
         Main["_process() 每帧驱动<br/>poll HTTP + poll Bridge"]
@@ -39,9 +39,9 @@ flowchart LR
 | 进程数 | **1**（C++ GDExtension 加载到 Godot 编辑器内） |
 | 传输 | MCP Streamable HTTP，端口 `:9600` |
 | 工具注册 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
-| 工具总数 | **~149**（无 codegen，无 YAML 数据库生成） |
+| 工具总数 | **~171**（无 codegen，无 YAML 数据库生成） |
 | 线程模型 | **纯主线程**（`McpEditorPlugin::_process()` 驱动） |
-| 入口符号 | `gdext_mcp_init`（`register_types.cpp:56`） |
+| 入口符号 | `gdext_mcp_init`（`register_types.cpp:60`） |
 | 编码规范 | 根 `CMakeLists.txt:43` 已加 `/utf-8 /bigobj`（MSVC） |
 | 构建优化 | sccache/ccache（自动检测）、Unity(jumbo)、lld-link |
 | 持久化 | C++ 侧无独立状态；Godot 编辑器持有数据 |

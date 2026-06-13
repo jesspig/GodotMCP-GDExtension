@@ -17,7 +17,7 @@
 | | Djentinga/godot-mcp | ~15 | **149** | Coding-Solo 极限 fork |
 | **Python + GDScript Plugin** | xulek/godotmcp | ~20 | ~70 | 守卫操作、工作流检查点 |
 | | Rufaty/godot-mcp-enhanced | ~17 | ~40 | 输入模拟、插件检测、性能监控 |
-| **C++ GDExtension（同阵营）** | **本项目 GodotMCP** | — | **~11,790** | **C++ 进程内、纯主线程、Codegen** |
+| **C++ GDExtension（同阵营）** | **本项目 GodotMCP** | — | **~171** | **C++ 进程内、纯主线程、X-macro 注册** |
 | | MeowMeowZi/meow-godot-mcp | 2 | **50** | 架构最接近，有游戏桥接/输入/截图/TileMap/UI/动画 |
 | | nklisch/theatre | 0 | 47 | Rust 实现，spatial snapshot 概念 |
 | **其他** | Sharks820/godot-mcp-ultimate | ~10 | 47+15 子 Agent | 死代码检测/信号流分析/项目健康面板 |
@@ -356,7 +356,7 @@
 ## V2 优化阶段（2026-06-12 规划）
 
 > 基于 20+ 竞品深度分析制定的 V2 优化方案。详见 [v2-optimization-plan.md](v2-optimization-plan.md)。
-> ADR-016 统一记录全部 12 项子决策。
+> ADR-016 统一记录全部 10 项子决策（含 1 项'不做什么'）。
 
 ### Phase 0 (P0) — 阻断性修复（1-2 天）
 
@@ -365,26 +365,24 @@
 | 修复 `release.yml` 打包（缺少 plugin.cfg + .gdextension） | ❌ | 决策 1 |
 | `LICENSE` 替换占位符 + `plugin.cfg` author 字段 | ❌ | 决策 1 |
 | `.gdextension` Apple Silicon 条目 | ❌ | 决策 1 |
-| CI 跨平台编译验证（三平台矩阵） | ❌ | 决策 2 |
-| GameBridge `listen()` 绑定 127.0.0.1 | ❌ | 决策 3 |
+| GameBridge `listen()` 绑定 127.0.0.1 | ❌ | 决策 2 |
 
 ### Phase 1 (P1) — 竞争力提升（2-3 周）
 
 | 任务 | 状态 | ADR-016 子决策 |
 |------|:----:|---------|
-| 编辑器底部面板 UI（McpPanel） | ❌ | 决策 4 |
-| 第一批工具：3D 碰撞 + AnimationTree + Audio（~9 个） | ❌ | 决策 5 |
-| 第二批工具：Navigation + 3D + Shader + Export + InputMap（~13 个） | ❌ | 决策 5 |
-| WSL2 支持（动态绑定地址 + 环境变量 + Bind Mode UI） | ❌ | 决策 6 |
-| CORS 安全加固（反射 Origin）+ Session TTL（1h / 上限 16） | ❌ | 决策 7 |
+| 编辑器底部面板 UI（McpPanel） | ❌ | 决策 3 |
+| 第一批工具：3D 碰撞 + AnimationTree + Audio（~9 个） | ❌ | 决策 4 |
+| 第二批工具：Navigation + 3D + Shader + Export + InputMap（~13 个） | ❌ | 决策 4 |
+| WSL2 支持（动态绑定地址 + 环境变量 + Bind Mode UI） | ❌ | 决策 5 |
+| CORS 安全加固（反射 Origin）+ Session TTL（1h / 上限 16） | ❌ | 决策 6 |
 
 ### Phase 2 (P2) — 差异化优势（1-2 周）
 
 | 任务 | 状态 | ADR-016 子决策 |
 |------|:----:|---------|
-| 宏签名扩展（7 参数 + is_destructive）+ 破坏性工具标记 | ❌ | 决策 8 |
-| 全局权限策略（allow_all / confirm_destructive / deny_destructive） | ❌ | 决策 8 |
-| 可选 Token 认证（GODOT_MCP_AUTH_TOKEN） | ❌ | 决策 8 |
-| 客户端配置模板元工具（generate_client_config） | ❌ | 决策 9 |
-| 请求限流（令牌桶 30 req/s per connection） | ❌ | 决策 10 |
-| CI Smoke Test（Godot headless + YAML smoke.yaml） | ❌ | 决策 11 |
+| 宏签名扩展（7 参数 + is_destructive）+ 破坏性工具标记 | ❌ | 决策 7 |
+| 全局权限策略（allow_all / confirm_destructive / deny_destructive） | ❌ | 决策 7 |
+| 可选 Token 认证（GODOT_MCP_AUTH_TOKEN） | ❌ | 决策 7 |
+| 客户端配置模板元工具（generate_client_config） | ❌ | 决策 8 |
+| 请求限流（令牌桶 30 req/s per connection） | ❌ | 决策 8 |

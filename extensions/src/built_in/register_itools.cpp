@@ -7,6 +7,7 @@
 #include "built_in/tools/meta/get_tool_detail.hpp"
 #include "built_in/tools/meta/find_tool.hpp"
 #include "built_in/tools/meta/call_tool.hpp"
+#include "built_in/tools/meta/generate_client_config.hpp"
 
 // ── Signal tools ──
 #include "built_in/tools/signal/connect_signal.hpp"
@@ -225,9 +226,10 @@ using namespace godot;
 
 namespace godot_mcp {
 
-#define GODOT_MCP_TOOL(cls, name_str, cat, is_meta_val, need_scene_val, need_node_val) \
+#define GODOT_MCP_TOOL(cls, name_str, cat, is_meta_val, need_scene_val, need_node_val, is_destructive_val) \
     { \
         auto tool = std::make_unique<cls>(); \
+        tool->set_is_destructive(is_destructive_val); \
         reg.register_tool(std::move(tool)); \
     }
 

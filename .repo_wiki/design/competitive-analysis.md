@@ -38,7 +38,7 @@ graph TD
 | **xulek/godotmcp** | Python + GDScript | ~70 | WebSocket:49631 | Python 3.11+ | 免费 |
 | **LeanderM99/GodotMCP** | TypeScript + C# Plugin | 45 | WebSocket:6550 | Node.js + .NET | 免费 |
 | **fennaraOfficial/fennara-godot-mcp** | Node.js + GDScript | ~15 | stdio | Node.js + API Key | SaaS |
-| **GodotMCP（本项目）** | **C++ GDExtension** | **~149** | **HTTP:9600** | **无** | **免费** |
+| **GodotMCP（本项目）** | **C++ GDExtension** | **~171** | **HTTP:9600** | **无** | **免费** |
 
 ---
 
@@ -154,7 +154,7 @@ graph TD
 |---------|:------:|:------------:|:--------------:|:----------------:|:-------------:|
 | 运行时依赖 | **零** | Node.js | Node.js | **零** | Python |
 | 实现语言 | **C++ GDExtension** | GDScript + TS | GDScript + JS | GDScript | GDScript + Python |
-| 工具数 | ~149 | 172 | ~12 | 154 | ~70 |
+| 工具数 | ~171 | 172 | ~12 | 154 | ~70 |
 | 渐进式披露 | **唯一有** | 手动模式切换 | 无 | 无 | 无 |
 | SDK 自定义工具 | **唯一有** | 无 | 无 | 无 | 无 |
 | 运行时桥接 | 自动生命周期 | 有 | 有(mcp_watch) | 无 | 有 |
