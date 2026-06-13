@@ -13,7 +13,7 @@ flowchart TB
             MCP["server/mcp/mcp_handler.cpp<br/>McpHandler"]
             REG["server/registry/handler_registry.cpp<br/>HandlerRegistry"]
             BASE["built_in/tool_base.hpp<br/>ITool + ToolResult + ToolContext"]
-            TOOLS["built_in/tools/<br/>~149 个 .hpp (X-macro 注册)"]
+            TOOLS["built_in/tools/<br/>~171 个 .hpp (X-macro 注册)"]
             UTILS["built_in/cmd_utils.hpp<br/>resolve_node / undoable_set / notify_file_changed"]
             SDK["sdk/<br/>McpToolDefinition / McpToolRegistry"]
             LSP["lsp/client.cpp<br/>GDScript 验证"]
@@ -123,7 +123,7 @@ extensions/src/
 2. 定义 `GODOT_MCP_TOOL` 宏，展开为 `reg.register_tool(std::make_unique<cls>())`
 3. 通过 `#include` 展开四个注册文件：
    - `register/register_meta.hpp` — 6 个元工具
-   - `register/register_existing.hpp` — ~120 个功能工具
+   - `register/register_existing.hpp` — ~157 个功能工具
    - `register/register_fallback.hpp` — 2 个后备属性工具
    - `register/register_docs.hpp` — 8 个文档查询工具
 
@@ -132,7 +132,7 @@ extensions/src/
 1. 在 `extensions/src/built_in/tools/<category>/` 创建 `<name>.hpp`，实现 ITool 接口
 2. 在 `extensions/src/built_in/tools/register/` 对应 X-macro 文件加一行：
    ```cpp
-   GODOT_MCP_TOOL(MyTool, "my_tool", "editor_tools/my_category", false, false, false)
+    GODOT_MCP_TOOL(MyTool, "my_tool", "editor_tools/my_category", false, false, false, false)
    ```
 3. 在 `extensions/src/built_in/register_itools.cpp` 对应分类区域加 `#include`
 4. 编译 —— CMake 自动 GLOB `tools/**/*.cpp`（如有）+ X-macro 编译时注册

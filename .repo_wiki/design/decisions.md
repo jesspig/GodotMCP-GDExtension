@@ -886,7 +886,7 @@ godot-cpp 10.0.0-rc1 的 `add_control_to_bottom_panel` 已完整绑定，AGENTS.
 **正面**：
 - 预编译分发使安装体验从"需编译环境"降为"解压即用"
 - 编辑器 UI 消除"只能看日志判断状态"的体验缺陷
-- 工具覆盖面从 ~149 增加到 ~175，3D 游戏开发核心工作流可用
+- 工具覆盖面从 ~171 增加到 ~175，3D 游戏开发核心工作流可用
 - 安全模型达到竞品最高水平（Guarded-action + Token + CORS + Session TTL）
 - WSL2 支持覆盖"Windows Godot + WSL2 AI Client"场景
 - 客户端配置模板消除配置门槛

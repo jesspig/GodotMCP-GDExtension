@@ -8,8 +8,8 @@
 |------|---------|
 | C++ 源码根 | `extensions/src/` |
 | 注册方式 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
-| 工具总数 | **~149**（全部 X-macro 注册，无 codegen） |
-| 工具体系 | **四层体系**：语义专用(~135) + 属性组(~2) + 通用兜底(2) + 文档(8) + 元工具(6) |
+| 工具总数 | **~171**（全部 X-macro 注册，无 codegen） |
+| 工具体系 | **四层体系**：语义专用(~154) + 属性组(~2) + 通用兜底(2) + 文档(8) + 元工具(7) + 运行时(12) |
 | 指令数据源 | **Godot ClassDB 运行时查询**（零维护） |
 | 顶级分类 | 自动发现：`meta_tools`、`editor_tools`、`node_tools`、`runtime_tools` |
 | 场景树工具 | `editor_tools/scene_tree/`（25 工具） |
@@ -44,8 +44,11 @@
 | 分组工具 | [modules/group-tools.md](modules/group-tools.md) |
 | 信号工具 | [modules/signal-tools.md](modules/signal-tools.md) |
 | 资源管理工具 | [modules/resource-tools.md](modules/resource-tools.md) |
-| SDK 层 | `extensions/src/sdk/`（详见源代码） |
+| SDK 层 | [modules/sdk-layer.md](modules/sdk-layer.md) |
+| HTTP 服务器 | [modules/http-server.md](modules/http-server.md) |
+| UI 组件 | [modules/ui-components.md](modules/ui-components.md) |
 | LSP 客户端 | [modules/lsp-client.md](modules/lsp-client.md) |
+| 日志系统 | [modules/logging.md](modules/logging.md) |
 | 输入映射 | [modules/input-map.md](modules/input-map.md) |
 | 构建与打包 | [reference/build-and-package.md](reference/build-and-package.md) |
 | 设计决策（ADR） | [design/decisions.md](design/decisions.md) |
@@ -89,7 +92,7 @@
 
 ## 给 Agent 的提醒
 
-- **入口符号** `gdext_mcp_init`（`register_types.cpp:56`）
+- **入口符号** `gdext_mcp_init`（`register_types.cpp:60`）
 - **不要修改** `extensions/CMakeLists.txt:15` 的 `GODOTCPP_API_VERSION "4.6"` 与根 `CMakeLists.txt` 的 `compatibility_minimum = "4.6"` 之间的绑定
 - **升级 godot-cpp / ryml 前必测** — 二者均为 FetchContent 拉取
 - **不要用 `String::utf8("中文")`** — 全英文化后直接 `String("English")` 即可

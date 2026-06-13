@@ -17,7 +17,7 @@
 | | Djentinga/godot-mcp | ~15 | **149** | Coding-Solo 极限 fork |
 | **Python + GDScript Plugin** | xulek/godotmcp | ~20 | ~70 | 守卫操作、工作流检查点 |
 | | Rufaty/godot-mcp-enhanced | ~17 | ~40 | 输入模拟、插件检测、性能监控 |
-| **C++ GDExtension（同阵营）** | **本项目 GodotMCP** | — | **~11,790** | **C++ 进程内、纯主线程、Codegen** |
+| **C++ GDExtension（同阵营）** | **本项目 GodotMCP** | — | **~171** | **C++ 进程内、纯主线程、X-macro 注册** |
 | | MeowMeowZi/meow-godot-mcp | 2 | **50** | 架构最接近，有游戏桥接/输入/截图/TileMap/UI/动画 |
 | | nklisch/theatre | 0 | 47 | Rust 实现，spatial snapshot 概念 |
 | **其他** | Sharks820/godot-mcp-ultimate | ~10 | 47+15 子 Agent | 死代码检测/信号流分析/项目健康面板 |
