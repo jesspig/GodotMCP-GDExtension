@@ -9,9 +9,9 @@
   ┌─────────────────────────────┐     TCP JSON    ┌──────────────────────────┐
   │  RuntimeBridge (TCP client) │ ←────────────── │  GameBridgeNode (Node)  │
   │  - McpEditorPlugin 持有     │   {"cmd":...,   │  - TCPServer on :9601    │
-  │  - poll() 每帧驱动连接      │    "params":...,│  - 7 个命令 handler      │
-  │  - send_command() 同步调用   │    "id":...}    │  - node_to_dict() 序列化 │
-  │  - make_response() 展平     │                │                         │
+  │  - poll() 每帧驱动连接      │    "params":...,│  - 单客户端              │
+  │  - send_command() 同步调用   │    "id":...}    │  - 7 个命令 handler      │
+  │  - make_response() 由工具调用│                │  - node_to_dict() 序列化 │
   └─────────────────────────────┘                └──────────────────────────┘
 ```
 
@@ -19,14 +19,17 @@
 
 ### GameBridgeNode（游戏进程侧）
 
-- 继承 `Node`，`GDCLASS` 注册
+- 继承 `Node`，`GDCLASS` 注册（`game_bridge.hpp:12`）
 - `register_types.cpp` 在 `LEVEL_SCENE` 阶段实例化，仅**非编辑器进程**
-- 通过 `call_deferred("_self_add")` 加入场景树
-- `_process()` 每帧：`accept_clients()` + `read_clients()` + 响应发送
-- 端口环境变量：`GODOT_MCP_BRIDGE_PORT`（默认 9601）
-- 最大客户端数 4，接收缓冲区 8192 字节
+- 通过 `call_deferred("_self_add")` 加入场景树（`game_bridge.cpp:70-84`），根节点未就绪时延迟重试
+- `_process()` 每帧：`accept_clients()` + `read_clients()`（`game_bridge.cpp:63-68`）
+- 端口环境变量：`GODOT_MCP_BRIDGE_PORT`（默认 9601）（`game_bridge.cpp:40-48`）
+- `start_server()` 监听 `localhost:port_`（`game_bridge.cpp:90-99`）
+- **单客户端**：`client_` 为单个 `Ref<StreamPeerTCP>`，已有连接时拒绝新连接（`game_bridge.cpp:113-128`）
+- 接收缓冲区上限 **65536 字节（64KB）**（`game_bridge.hpp:50`）
+- `read_clients()` 累积数据到 `read_buf_`，尝试 JSON 解析，成功后清空缓冲并分发（`game_bridge.cpp:130-199`）
 
-**7 个命令**：
+**7 个命令**（`game_bridge.cpp:213-226`）：
 
 | 命令 | 功能 | 实现位置 |
 |------|------|----------|
@@ -38,45 +41,70 @@
 | `simulate_input` | 模拟键盘/鼠标/动作输入 | `handle_simulate_input` |
 | `set_pause` | 设置游戏暂停状态 | `handle_set_pause` |
 
-**运行时桥接工具**（`runtime_tools/bridge/*.hpp`）：
+**桥接工具**（`runtime_tools/bridge/*.hpp`，6 个）：
 
-| 工具 | 对应命令 |
-|------|----------|
-| `get_game_scene_tree` | `get_scene_tree` |
-| `get_game_node_property` | `get_property` |
-| `set_game_node_property` | `set_property` |
-| `call_method_in_game` | `call_method` |
-| `capture_game_screenshot` | `screenshot` |
-| `simulate_game_input` | `simulate_input` |
+| 工具 | 对应命令 | 调用方式 |
+|------|----------|----------|
+| `get_game_scene_tree` | `get_scene_tree` | `make_response(send_command(...))` |
+| `get_game_node_property` | `get_property` | `make_response(send_command(...))` |
+| `set_game_node_property` | `set_property` | `make_response(send_command(...))` |
+| `call_method_in_game` | `call_method` | `make_response(send_command(...))` |
+| `capture_game_screenshot` | `screenshot` | `make_response(send_command(...))` |
+| `simulate_game_input` | `simulate_input` | `make_response(send_command(...))` |
+
+> `set_pause` 命令由 `runtime_tools/lifecycle/pause_project` 工具使用，直接返回 `send_command()` 原始 `{ok, data}` 响应，不经 `make_response()` 展平（`pause_project.hpp:49`）。
 
 ### RuntimeBridge（编辑器侧）
 
-- 纯 C++ 类（非 Godot 节点），`McpEditorPlugin` 通过成员变量持有
-- **状态机**：`DISCONNECTED → CONNECTING → CONNECTED`
+- 纯 C++ 类（非 Godot 节点），`McpEditorPlugin` 通过成员变量持有（`editor_plugin.hpp:45`）
+- **状态机**：`DISCONNECTED → CONNECTING → CONNECTED`（`bridge.hpp:12`）
 
 ```mermaid
 stateDiagram-v2
     [*] --> DISCONNECTED
-    DISCONNECTED --> CONNECTING: _try_bridge_connect()<br/>检测 is_playing_scene()
-    CONNECTING --> CONNECTED: TCP 连接成功
-    CONNECTING --> DISCONNECTED: 连接失败/超时
-    CONNECTED --> DISCONNECTED: 游戏停止/连接断开
+    DISCONNECTED --> CONNECTING: connect()<br/>connect_to_host("127.0.0.1", port_)
+    CONNECTING --> CONNECTED: poll() 检测 STATUS_CONNECTED
+    CONNECTING --> DISCONNECTED: STATUS_ERROR
+    CONNECTED --> DISCONNECTED: poll() 检测 STATUS_ERROR / STATUS_NONE
+    DISCONNECTED --> [*]: disconnect()
 ```
 
-- **`send_command(cmd, params, timeout_ms=5000)`**：
+- **`connect()`**（无参数）：创建 `StreamPeerTCP`，连接 `127.0.0.1:port_`（`bridge.cpp:41-55`）。端口由 `set_port()` 设置，主机硬编码为 `127.0.0.1`。
+- **`send_command(cmd, params, timeout_ms=5000)`**（`bridge.cpp:66-94`）：
   1. 构建 JSON 命令：`{"cmd":"...", "params":{...}, "id":<递增>}`
   2. TCP 发送
-  3. 忙等待读取响应（`OS::delay_msec(50)` 轮询，最长 `timeout_ms`）
-  4. `make_response()` 展平：`{ok, data}` → `{success, data}`
-- **`poll()`**：每帧在 `McpEditorPlugin::_process()` 中调用，维护连接状态
+  3. 调用 `read_response()` 忙等待读取响应
+  4. **返回原始 `{ok, data}` 字典**，不做展平
+- **`read_response(timeout_ms)`**（私有，`bridge.cpp:96-132`）：忙等待（`OS::delay_msec(50)` 轮询，最长 `timeout_ms`），累积数据并尝试 JSON 解析
+- **`make_response(raw)`**（静态，`bridge.cpp:134-148`）：将桥接原始响应展平为工具友好信封：
+  - 成功：`{ok:true, data:X}` → `{success:true, data:X}`
+  - 失败：`{ok:false, error:msg}` → `{success:false, error:{code:"BRIDGE_ERROR", message:msg}}`
+  - **由各工具自行调用**（如 `get_game_scene_tree.hpp:50`），非 `send_command()` 内部调用
+- **`poll()`**（`bridge.cpp:15-39`）：在 `McpEditorPlugin::_process()` 中每帧调用，推进 CONNECTING → CONNECTED 状态转换及断线检测
 
 ### 连接生命周期
 
-`McpEditorPlugin::_try_bridge_connect()` 每帧执行：
-1. 检查 `ei->is_playing_scene()`
-2. 游戏启动 → `runtime_bridge_.connect(host, port)`
-3. 游戏停止 → `runtime_bridge_.disconnect()`
-4. 检测到时断开自动重连
+`McpEditorPlugin::_try_bridge_connect()` 每帧执行（`editor_plugin.cpp:223-236`）：
+
+```mermaid
+sequenceDiagram
+    participant P as McpEditorPlugin
+    participant E as EditorInterface
+    participant B as RuntimeBridge
+
+    P->>E: is_playing_scene()
+
+    alt 游戏启动（!game_was_running_）
+        P->>B: connect()
+        Note over B: connect_to_host("127.0.0.1", port_)
+    else 游戏运行中但桥接断开（!is_connected()）
+        P->>B: connect()
+    else 游戏停止（game_was_running_）
+        P->>B: disconnect()
+    end
+
+    P->>P: game_was_running_ = game_running
+```
 
 ## 数据流（工具调用）
 
@@ -84,32 +112,26 @@ stateDiagram-v2
 sequenceDiagram
     participant AI as AI 客户端
     participant H as HttpServer
-    participant M as McpHandler
     participant R as HandlerRegistry
     participant IT as BridgeTool
     participant RB as RuntimeBridge
     participant GB as GameBridgeNode
 
     AI->>H: POST /mcp (tools/call)<br/>{"name":"get_game_scene_tree"}
-    H->>M: handle_message()
-    M->>R: execute("get_game_scene_tree", args)
+    H->>R: execute("get_game_scene_tree", args)
     R->>IT: GetGameSceneTreeTool::execute_impl()
     IT->>RB: send_command("get_scene_tree", {max_depth: -1})
-    RB->>GB: TCP :9601 → JSON command
+    RB->>GB: TCP :9601 → {"cmd":"get_scene_tree","params":{...},"id":N}
     GB->>GB: dispatch() → handle_get_scene_tree()
-    GB-->>RB: TCP response: {"ok":true, "data":{...}}
-    RB->>RB: make_response() → {"success":true, "data":{...}}
-    RB-->>IT: Dictionary result
+    GB-->>RB: TCP response: {"ok":true,"data":{...},"id":N}
+    RB-->>IT: 原始 {ok, data} 字典
+    IT->>IT: make_response(raw) → {success:true, data:{...}}
     IT-->>R: ToolResult::ok({scene_tree: ...})
-    R-->>M: Dictionary
-    M-->>H: MCP response
+    R-->>H: Dictionary
     H-->>AI: 200 OK
 ```
 
-## 已知问题
+## 已知限制
 
-1. **`set_game_node_property` 不生效**：`handle_set_property` 未调 `json_to_variant()` 转换参数值（已于 `feature/runtime` 修复）。
-2. **运行时工具响应嵌套 `data`**：桥接 JSON-RPC 完整响应直接嵌入 MCP 响应，未展平（`make_response()` 已修复）。
-3. **桥接断开**：`stop_project` 需调用 `runtime_bridge_.disconnect()` 断开连接（已修复）。
-4. **id 类型**：`send_command` 的 id 应为 int64，手动构造 JSON 时可能类型不匹配（已修复）。
-5. **同步阻塞**：`send_command()` 忙等待最长 5 秒，多工具串行调用会阻塞 MCP 响应。
+1. **同步阻塞**：`send_command()` 忙等待最长 5 秒（`timeout_ms` 默认 5000），多工具串行调用会阻塞 MCP 响应。
+2. **`pause_project` 响应格式不一致**：该工具直接返回 `send_command()` 原始 `{ok, data}` 响应，未经 `make_response()` 展平为 `{success, data}` 格式（`pause_project.hpp:49`）。

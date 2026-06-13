@@ -25,8 +25,7 @@
 
 | 工具 | 限制 |
 |------|------|
-| `get_variable` / `set_variable` | 仅 `@export` 变量在编辑器模式下可用。非导出成员使用 `PlaceHolderScriptInstance` |
-| `validate_gdscript` | 需要 Editor Settings → Network → Language Server → Enable 为 ON |
-| `csharp_build` | 不能和编辑器同时运行（编辑器持有程序集文件锁） |
-| `rename_scene` | 如果目标已打开但不是活动标签，返回错误 |
-| `add_circle_collision` / `add_rectangle_collision` | 检测现存的 `CollisionShape2D`；响应中的 `mode` 字段指示操作路径 |
+| `get_node_property` / `set_node_property` | 仅 `@export` 变量在编辑器模式下可用。非导出成员使用 `PlaceHolderScriptInstance` |
+| `validate_gd_script` | 需要 Editor Settings → Network → Language Server → Enable 为 ON |
+| `validate_csharp_script` | 需要 .NET SDK 在 PATH 中 |
+| `rename_node` | 如果目标已打开但不是活动标签，可能返回错误 |

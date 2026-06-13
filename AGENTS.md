@@ -48,7 +48,7 @@ graph LR
   - `RuntimeBridge`（`bridge.cpp`）：编辑器侧 TCP 客户端，`send_command()` 发送 JSON 命令，`make_response()` 展平 `{ok,data}` → `{success,data}`
   - 生命周期：`_try_bridge_connect()` 通过 `ei->is_playing_scene()` 感知游戏启停，自动 connect/disconnect
 - **双重注册**：`GDREGISTER` 注册 SDK 类（`McpToolDefinition`/`McpToolRegistry`）+ EditorPlugin；`HandlerRegistry` 管理 `ITool` 主表 + SDK `CommandFn` 旁路表
-- **工具数**：~157（全部通过 X-macro 注册，无 codegen）
+- **工具数**：~170（174 注册行，3 个跨文件重复；全部 X-macro 注册，无 codegen）
 
 ## 添加内置工具
 
@@ -147,5 +147,9 @@ extensions/src/           # C++ 源码根（不是仓库根 src/）
   testing/                # C++ 测试引擎
 tests/                    # Python 测试编排器 + YAML 测试用例
 example/                  # Godot 测试项目（addons/ 由构建自动填充）
-docs/                     # Rspress 文档站（zh/ + en/）
+  docs/                     # Rspress 文档站（zh/ + en/）
 ```
+
+## 项目知识库
+
+- [项目 Wiki](.repo_wiki/index.md)

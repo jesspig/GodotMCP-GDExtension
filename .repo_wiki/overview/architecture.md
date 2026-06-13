@@ -93,30 +93,31 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │       │   ├── register_existing.hpp
 │       │   ├── register_fallback.hpp
 │       │   └── register_docs.hpp
-│       ├── meta/                # 6 个元工具
+│       ├── meta/                # 7 个元工具
 │       ├── signal/              # 4 个信号工具
 │       ├── group/               # 4 个分组工具
 │       ├── node_tools/general/  # 6 个资源管理工具
-│       ├── node_tools/          # NodeResourceGetTool, NodeResourceSetTool
-│       ├── node_props/          # NodePropertyGetTool, NodePropertySetTool
 │       ├── node_properties/     # 2 个通用兜底工具（Layer 0）
 │       ├── editor_tools/
 │       │   ├── scene_tree/      # 24 个场景树 CRUD 工具
-│       │   ├── animation/       # 5 个动画工具
+│       │   ├── animation/       # 10 个动画工具（Player + Tree）
 │       │   ├── control/         # 4 个 UI/Control 工具
 │       │   ├── collision/       # 1 个碰撞形状工具
 │       │   ├── docs/            # 8 个文档查询工具（Layer 3）
-│       │   ├── export/          # 2 个导出工具
+│       │   ├── export/          # 4 个导出工具
 │       │   ├── filesystem/      # 12 个文件系统工具
-│       │   ├── inputmap/        # 1 个输入映射工具
+│       │   ├── inputmap/        # 4 个输入映射工具
 │       │   ├── plugin/          # 3 个插件管理工具
 │       │   ├── scaffold/        # 1 个脚手架工具
 │       │   ├── scripts/         # 12 个脚本工具
-│       │   ├── settings/        # 4 个设置工具 + 2 个通用模板
-│       │   ├── shader/          # 3 个 shader 工具
+│       │   ├── settings/        # 4 个设置工具
+│       │   ├── shader/          # 5 个 shader 工具
+│       │   ├── audio/           # 3 个音频工具
+│       │   ├── navigation/      # 3 个导航工具
+│       │   ├── 3d_scene/        # 3 个 3D 场景工具
 │       │   ├── tilemap/         # 3 个 TileMap 工具
 │       │   ├── visualizer/      # 1 个可视化工具
-│       │   └── workspace/       # 29 个工作区/调试器工具
+│       │   └── workspace/       # 31 个工作区/调试器工具
 │       └── runtime_tools/
 │           ├── bridge/          # 6 个运行时桥接工具
 │           └── lifecycle/       # 6 个游戏生命周期工具

@@ -49,7 +49,7 @@ func execute(args: Dictionary) -> Dictionary:
 ```
 
 - 调用 `register_tool()` 注册到 `McpToolRegistry` 单例
-- `execute()` 通过 `call("execute", args)` 动态分发（`mcp_tool_definition.cpp:73`）
+- `execute()` 通过 `call("execute", args)` 动态分发（`mcp_tool_definition.cpp:49`）
 - 自动添加 `custom_` 前缀避免与内置工具命名冲突
 
 ### Mode B：Callable 注册

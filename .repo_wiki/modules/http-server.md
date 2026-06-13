@@ -68,10 +68,12 @@ stateDiagram-v2
 
 | 属性 | 值 |
 |------|-----|
-| 最大并发连接 | `kMaxConnections = 32` |
-| 最大请求体 | `kMaxBodyLength = 1 MB` |
-| 空闲超时 | 30 秒 |
-| 速率限制 | 30 tokens/s，突发 30 |
+| 最大并发连接 | `kMaxConnections = 32`（`http_server.hpp:35`） |
+| 最大请求体 | `kMaxBodyLength = 1 MB`（`http_server.hpp:36`） |
+| 空闲超时 | 30 秒（`http_server.hpp:120`） |
+| 速率限制 | 30 tokens/s，突发 30（`http_server.hpp:44-47`） |
+| 最大会话数 | `kMaxSessions = 16`（`mcp_handler.hpp:69`） |
+| 会话 TTL | `kSessionTtl = 3600s`（`mcp_handler.hpp:68`） |
 
 ### 速率限制
 

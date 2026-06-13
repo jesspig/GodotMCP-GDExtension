@@ -44,7 +44,7 @@ winget install LLVM
 ## C++ GDExtension 构建流程
 
 1. FetchContent 拉取 `godot-cpp 10.0.0-rc1` + `rapidyaml v0.7.0`
-2. CMake GLOB 收集 `built_in/tools/*.cpp`（如有）
+2. CMake GLOB 收集 `built_in/tools/**/*.cpp`（如有；当前所有工具为 header-only `.hpp`，由 X-macro 编译期注册）
 3. 编译所有源文件（含 X-macro 注册）→ `godot_mcp_gdext.{dll,so,dylib}`
 4. 复制到 `example/addons/godot_mcp/bin/`
 
@@ -57,24 +57,15 @@ cmake --build build --config Debug --target package  # 打包
 cmake --build build --target deep-clean      # 仅清 addons/bin/ + _deps/
 ```
 
-## CI 门禁
-
-`.github/workflows/ci.yml`（在 Ubuntu 上运行）：
-
-```bash
-cmake -B build -S .                           # 1. CMake 配置
-cmake --build build --config Debug            # 2. 构建 gdext
-```
-
-CI 只在 `master` 分支的 push 和 PR 上触发。
-
 ## Release 构建
 
 `.github/workflows/release.yml` 在 tag `v*` 推送时触发：
-- 矩阵构建：ubuntu / macOS / Windows
-- 使用 `cmake --build --config Release`
+- 矩阵构建：ubuntu-latest / macos-latest / windows-2022
+- 使用 `cmake --build --config Release` + sccache + Ninja
 - 分别上传 GDExtension 库到 Release artifacts
-- 在 Ubuntu 上组装跨平台 `addons.zip`（包含三个平台的 dll/so/dylib）
+- 在 ubuntu-latest 上组装跨平台 `addons.zip`（包含三个平台的 dll/so/dylib）
+
+详见 [CI/CD 流水线](ci-cd.md)。
 
 ### Windows 注意事项
 

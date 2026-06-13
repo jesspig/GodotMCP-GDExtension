@@ -23,7 +23,7 @@ flowchart TB
 GodotMCP/
 ├── .opencode/                     # MCP 客户端配置（opencode 预配置 streamable-http）
 ├── .repo_wiki/                    # 项目知识库（Agent 快速上手参考）
-├── .github/workflows/             # CI (ci.yml) + Release
+├── .github/workflows/             # release.yml (构建+发布) + docs.yml (文档部署)
 ├── docs/                          # Rspress 站点（中/英双语，i18n 由 i18n.json 驱动）
 ├── example/                       # Godot 测试项目
 │   ├── project.godot              #   gitignore 仅保留这 3 个文件
@@ -38,6 +38,7 @@ GodotMCP/
 │   └── src/                       # C++ 源码唯一根
 │       ├── register_types.cpp     # GDExtension 入口（gdext_mcp_init）
 │       ├── editor_plugin.cpp/.hpp # McpEditorPlugin 生命周期
+│       ├── client_registry.hpp    # 11 种 AI 客户端配置模板
 │       ├── built_in/              # ITool + cmd_utils + tools/
 │       ├── server/                # ipc/ + mcp/ + registry/
 │       ├── runtime/               # bridge.cpp + game_bridge.cpp
@@ -45,7 +46,6 @@ GodotMCP/
 │       ├── lsp/                   # GDScript LSP 客户端
 │       └── testing/               # C++ TestEngine
 ├── tests/
-│   ├── yaml_tests/                # *.yaml 测试套件
 │   ├── test_orchestrator.py       # Python 编排器（管理 Godot 生命周期）
 │   ├── godot_manager.py           # Godot 进程管理
 │   ├── report.py                  # 报告生成（JSON + Markdown）

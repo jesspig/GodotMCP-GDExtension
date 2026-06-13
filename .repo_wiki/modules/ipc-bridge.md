@@ -46,8 +46,9 @@ sequenceDiagram
 - 会话通过 `initialize` 请求创建，UUID v4 标识
 - 支持协议版本 `"2025-11-25"` 和 `"2025-03-26"`，默认回复 `"2025-03-26"`
 - 每个 session 维护独立的 SSE 事件队列
-- `tools/list` 返回全部工具（无分页实现）
-- 30 秒空闲超时，最大 32 个并发连接
+- `tools/list` 返回 always-on 工具（`is_meta==true`，渐进式披露，当前 8 个）
+- 会话：最大 16 个，TTL 3600 秒（`mcp_handler.hpp:68-69`）
+- 连接：最大 32 个，空闲超时 30 秒（`http_server.hpp:35,120`）
 
 ## SSE 事件推送
 

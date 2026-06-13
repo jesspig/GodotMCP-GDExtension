@@ -1,6 +1,6 @@
 # 文件系统工具
 
-> 与 Godot 编辑器文件系统面板交互的工具集，支持文件/目录 CRUD、脚本创建、资源创建、文件搜索等。14 个工具，位于 `extensions/src/built_in/tools/editor_tools/filesystem/`。
+> 与 Godot 编辑器文件系统面板交互的工具集，支持文件/目录 CRUD、场景/资源/着色器创建、文件搜索等。12 个工具，位于 `extensions/src/built_in/tools/editor_tools/filesystem/`。
 
 ## 工具列表
 
@@ -9,17 +9,15 @@
 | `list_directory` | `list_directory.hpp` | 列出目录内容（支持扩展名过滤、排除 addons） |
 | `create_directory` | `create_directory.hpp` | 创建目录 |
 | `create` | `create.hpp` | 通用文件创建（指定文件名和内容） |
-| `create_gd_script` | `create_gd_script.hpp` | 创建 GDScript 文件 |
-| `create_csharp_script` | `create_csharp_script.hpp` | 创建 C# 脚本文件 |
 | `create_gdshader` | `create_gdshader.hpp` | 创建 GDShader 文件 |
 | `create_scene` | `create_scene.hpp` | 创建场景文件 |
 | `create_resource` | `create_resource.hpp` | 创建资源文件 |
+| `save_resource_as` | `save_resource_as.hpp` | 将资源另存到指定路径 |
 | `open_file` | `open_file.hpp` | 在编辑器中打开文件 |
 | `copy_file` | `copy_file.hpp` | 复制文件/目录 |
 | `move_file` | `move_file.hpp` | 移动文件/目录 |
 | `delete_file` | `delete_file.hpp` | 删除文件/目录 |
 | `search_files` | `search_files.hpp` | 按名称模式搜索文件 |
-| `filesystem_utils.hpp` | （共享头文件） | 路径校验、递归复制、FS 通知 |
 
 ## 依赖关系
 
@@ -31,11 +29,10 @@ flowchart TB
     end
     subgraph Create["创建"]
         CREATE[create]
-        GD[create_gd_script]
-        CS[create_csharp_script]
         SHADER[create_gdshader]
         SCENE[create_scene]
         RES[create_resource]
+        SAVEAS[save_resource_as]
         DIR[create_directory]
     end
     subgraph FileOps["文件操作"]
@@ -47,7 +44,7 @@ flowchart TB
         OPEN[open_file]
     end
     subgraph Utils["共享工具"]
-        UTILS[filesystem_utils.hpp]
+        UTILS[cmd_utils.hpp]
     end
     LIST --> UTILS
     SEARCH --> UTILS

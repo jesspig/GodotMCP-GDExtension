@@ -8,11 +8,11 @@
 |------|---------|
 | C++ 源码根 | `extensions/src/` |
 | 注册方式 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
-| 工具总数 | **~171**（全部 X-macro 注册，无 codegen） |
-| 工具体系 | **四层体系**：语义专用(~154) + 属性组(~2) + 通用兜底(2) + 文档(8) + 元工具(7) + 运行时(12) |
+| 工具总数 | **~170**（174 注册行，3 个跨文件重复；全部 X-macro 注册，无 codegen） |
+| 工具体系 | **四层体系**：语义专用(~145) + 通用兜底(2) + 文档(8) + 元工具(7) + 运行时(12) |
 | 指令数据源 | **Godot ClassDB 运行时查询**（零维护） |
 | 顶级分类 | 自动发现：`meta_tools`、`editor_tools`、`node_tools`、`runtime_tools` |
-| 场景树工具 | `editor_tools/scene_tree/`（25 工具） |
+| 场景树工具 | `editor_tools/scene_tree/`（24 工具） |
 | 运行时桥接工具 | `runtime_tools/bridge/`（6 工具）+ `lifecycle/`（6 工具） |
 | SDK 层 | `extensions/src/sdk/`（`McpToolDefinition` + `McpToolRegistry`） |
 | 测试框架 | C++ `TestEngine`（`/run-tests`）+ Python 编排器 |
@@ -51,30 +51,17 @@
 | 日志系统 | [modules/logging.md](modules/logging.md) |
 | 输入映射 | [modules/input-map.md](modules/input-map.md) |
 | 构建与打包 | [reference/build-and-package.md](reference/build-and-package.md) |
+| CI/CD 流水线 | [reference/ci-cd.md](reference/ci-cd.md) |
+| 客户端配置 | [reference/client-config.md](reference/client-config.md) |
+| 客户端 quirks | [reference/client-quirks.md](reference/client-quirks.md) |
+| MCP 协议规范 | [specification/ipc-protocol.md](specification/ipc-protocol.md) |
+| 项目结构 | [specification/project-structure.md](specification/project-structure.md) |
+| GDExtension 组件图 | [extensions/gdext.md](extensions/gdext.md) |
 | 设计决策（ADR） | [design/decisions.md](design/decisions.md) |
-| **竞品深度分析** | [design/competitive-analysis.md](design/competitive-analysis.md) |
-| **V2 优化方案** | [design/v2-optimization-plan.md](design/v2-optimization-plan.md) |
-| Phase 0 实施指南 | [design/phases/phase0-blocking-fixes.md](design/phases/phase0-blocking-fixes.md) |
-| Phase 1 实施指南 | [design/phases/phase1-competitiveness.md](design/phases/phase1-competitiveness.md) |
-| Phase 2 实施指南 | [design/phases/phase2-differentiation.md](design/phases/phase2-differentiation.md) |
 | 测试框架 | [testing/overview.md](testing/overview.md) |
+| C++ 测试引擎 | [testing/test-engine.md](testing/test-engine.md) |
+| 测试编排器 | [testing/orchestrator.md](testing/orchestrator.md) |
 | 变更日志 | [log.md](log.md) |
-
-## 已清理文档（已从磁盘删除）
-
-| 文档 | 原因 |
-|------|------|
-| `modules/codegen.md` | codegen.py 已删除，X-macro 注册替代 |
-| `modules/project-settings-ext.md` | 设置扩展已合并为 4 个兜底工具 |
-| `modules/csharp-solution.md` | C# 解决方案工具已移除 |
-| `modules/dock-ui.md` | `plugin/` 目录已删除 |
-| `modules/editor-control-gdext.md` | 编辑器控制已合并到 meta_tools |
-| `modules/settings-tools.md` | codegen 1688 工具体系已移除 |
-| `modules/resource-property-tools.md` | codegen 资源属性工具体系已移除 |
-| `reference/tools-catalog.md` | 旧工具快照，已被 X-macro 架构替代 |
-| `testing/phase-system.md` | Python 阶段文件已清理 |
-| `testing/file-verifier.md` | 已被 C++ godot_file_verifier 替代 |
-| `testing/mcp-client.md` | 已删除 |
 
 ## Agent 上手指南
 

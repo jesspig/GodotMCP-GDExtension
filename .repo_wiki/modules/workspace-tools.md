@@ -1,6 +1,6 @@
 # 工作区工具（Editor Workspace Tools）
 
-> `editor_tools/workspace/` 分类下的 24 个工具，覆盖控制台日志读取、调试器状态与控制、性能监视器读取、工作区切换四个子领域。
+> `editor_tools/workspace/` 分类下的 31 个工具，覆盖控制台日志读取、调试器状态与控制、性能监视器读取、视口截图、工作区切换五个子领域。
 
 ## 架构
 
@@ -12,16 +12,25 @@ flowchart LR
         WARNINGS["get_console_warnings"]
         CLEAR["clear_console"]
     end
+    subgraph Capture["截图"]
+        CAPVP["capture_viewport"]
+        CAPGV["capture_game_viewport"]
+    end
     subgraph Debugger["调试器"]
         STATUS["get_debugger_status"]
         ERR["get_debugger_errors"]
         STATE["get_debugger_state"]
         STACK["get_stack_trace"]
+        LOCALS["get_locals"]
         BREAK["debugger_break"]
         CONTINUE["debugger_continue"]
         SO["debugger_step_over"]
         SI["debugger_step_into"]
+        SOUT["debugger_step_out"]
         CTRL["debugger_control"]
+        LISTBP["list_breakpoints"]
+        SETBP["set_breakpoint"]
+        RMBP["remove_breakpoint"]
     end
     subgraph Perf["性能监视器"]
         FPS["get_fps"]
@@ -53,7 +62,7 @@ flowchart LR
 
 **实现细节**：通过场景树 `find_children("*", "EditorLog", true, false)` 定位 `EditorLog` 控件，再调用 `RichTextLabel.get_text()` 获取原始文本。由于 `EditorLog` 是编辑器内部类（不在 godot-cpp 绑定中），全程使用 `call()` 动态调用。
 
-### 调试器（9 个工具）
+### 调试器（14 个工具）
 
 | 名称 | 类型 | 说明 |
 |------|------|------|
@@ -61,11 +70,16 @@ flowchart LR
 | `get_debugger_errors` | 专用 | 错误与警告计数 |
 | `get_debugger_state` | 复合 | 综合状态（错误/警告计数 + 中断/可调试/会话状态 + 栈帧位置） |
 | `get_stack_trace` | 复合 | 栈追踪信息。仅在调试器中断时可用，无活跃会话时返回合理错误 |
+| `get_locals` | 专用 | 获取当前栈帧的局部变量 |
 | `debugger_break` | 专用 | 中断调试器执行 |
 | `debugger_continue` | 专用 | 继续执行 |
 | `debugger_step_over` | 专用 | 单步跳过 |
 | `debugger_step_into` | 专用 | 单步进入 |
+| `debugger_step_out` | 专用 | 单步跳出 |
 | `debugger_control` | 复合 | 统一入口：控制调试器（break/continue/step_over/step_into） |
+| `list_breakpoints` | 专用 | 列出所有断点 |
+| `set_breakpoint` | 专用 | 设置断点（指定源文件和行号） |
+| `remove_breakpoint` | 专用 | 移除断点 |
 
 **实现细节**：通过场景树 `find_children("*", "EditorDebuggerNode", true, false)` 定位 `EditorDebuggerNode`，再 `call("get_current_debugger")` 获取 `ScriptEditorDebugger` 实例。`is_breaked()`、`is_debuggable()`、`is_session_active()`、`debug_break()`、`debug_next()` 等均为 `call()` 动态调用。
 
@@ -81,6 +95,13 @@ flowchart LR
 | `get_performance_monitors` | 复合 | 全量 59 个监视器数据，支持 `name` 参数按名称筛选 |
 
 **实现细节**：使用 Godot 公开 API `Performance::get_singleton()->get_monitor(Monitor)`，通过枚举值 `Performance::MONITOR_MAX`（59）遍历所有监视器。枚举映射在 `get_performance_monitors.hpp:27-92` 中硬编码。
+
+### 截图（2 个工具）
+
+| 名称 | 类型 | 说明 |
+|------|------|------|
+| `capture_viewport` | 专用 | 截取编辑器视口图像，返回 PNG Base64 |
+| `capture_game_viewport` | 专用 | 截取游戏视口图像（需游戏运行中） |
 
 ### 工作区切换（5 个工具）
 

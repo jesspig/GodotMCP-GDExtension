@@ -48,7 +48,7 @@
 | `initialize` | 创建会话，协商协议版本 |
 | `notifications/initialized` | 确认初始化完成 |
 | `ping` | 保活 |
-| `tools/list` | 列出可用工具（返回全部，无分页） |
+| `tools/list` | 列出 always-on 工具（`is_meta==true`，渐进式披露） |
 | `tools/call` | 执行工具 |
 | `resources/list` | 列出 godot:// 资源（scene-tree/project-settings/editor-info） |
 | `resources/read` | 读取指定资源内容 |
@@ -56,13 +56,16 @@
 | `prompts/list` | 列出 5 个内置提示模板 |
 | `prompts/get` | 获取提示内容 |
 | `logging/setLevel` | 设置日志级别 |
+| `completion/complete` | 自动补全（资源 URI / prompt 参数） |
+| `notifications/cancelled` | 客户端取消请求（无响应） |
+| `notifications/progress` | 进度通知（无响应） |
 
 ## SSE 事件
 
 ```
 id: 1
 event: message
-data: {"jsonrpc":"2.0","method":"notifications/message","params":{...}}
+data: {"jsonrpc":"2.0","method":"notifications/tools/list_changed","params":{}}
 ```
 
 ## 协议流程
@@ -75,14 +78,13 @@ data: {"jsonrpc":"2.0","method":"notifications/message","params":{...}}
 
 ## 错误处理
 
-| 情况 | 行为 |
-|------|------|
 | 场景 | 行为 | 错误码 |
 |------|------|--------|
 | 无效 JSON | Godot `JSON::parse` 失败，返回 Parse Error | `kParseError` (-32700) |
 | 无效 method 或缺少字段 | 返回 Invalid Request | `kInvalidRequest` (-32600) |
 | 未知 JSON-RPC method | 返回 Method Not Found | `kMethodNotFound` (-32601) |
-| tools/call 参数错误或未知工具 | 返回 Invalid Params | `kInvalidParams` (-32602) |
+| tools/call 缺少 `name` 参数 | 返回 Invalid Params | `kInvalidParams` (-32602) |
+| 未知工具名 | 工具执行返回 error → Internal Error | `kInternalError` (-32603) |
 | 工具执行抛异常 | 捕获异常，返回 Internal Error | `kInternalError` (-32603) |
 | HTTP Origin 无效 | 拒绝非 `127.0.0.1`/`localhost`/`null` 来源 | HTTP 403 |
-| HTTP 会话无效 | 拒绝非 `127.0.0.1`/`localhost`/`null` 来源 | HTTP 400/401 |
+| HTTP 会话无效或过期 | 会话不存在或已超时 | HTTP 400/401 |
