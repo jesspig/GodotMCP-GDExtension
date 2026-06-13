@@ -54,18 +54,18 @@ protected:
         bool persistent = args_bool(ctx.args, "persistent", false);
 
         if (group_name.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("group_name 不能为空"));
+            return ToolResult::err("MISSING_ARG", String("group_name cannot be empty"));
         }
 
         Node *node = resolve_node(ctx.root, path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找�? ") + path);
+                String("Node not found: ") + path);
         }
 
         if (node->is_in_group(group_name)) {
             return ToolResult::err("ALREADY_IN_GROUP",
-                String::utf8("节点已在分组�? ") + group_name);
+                String("Node already in group: ") + group_name);
         }
 
         node->add_to_group(group_name, persistent);
