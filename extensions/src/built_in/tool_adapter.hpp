@@ -45,6 +45,7 @@ public:
     bool needs_node() const override { return needs_node_; }
     bool supports_undo() const override { return supports_undo_; }
     bool is_destructive() const override { return is_destructive_; }
+    void set_is_destructive(bool v) { is_destructive_ = v; }
     void set_registry(HandlerRegistry *reg) override { reg_ = reg; }
 
 protected:

@@ -2,6 +2,8 @@
 
 #include "../registry/handler_registry.hpp"
 
+#include <functional>
+
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/templates/hash_map.hpp>
@@ -34,6 +36,22 @@ public:
 
     // Notify all initialized sessions that the tool list has changed
     void notify_tools_list_changed();
+
+    // Structured log data for tool calls
+    struct ToolCallLog {
+        String timestamp;    // ISO 8601 "2026-06-13T14:30:00"
+        String tool_name;
+        bool success;
+        Dictionary args;     // 输入参数
+        Dictionary result;   // 响应数据
+        double duration_ms;
+    };
+
+    using McpLogCallback = std::function<void(const ToolCallLog &)>;
+    void set_log_callback(McpLogCallback cb);
+    bool has_pending_requests() const;
+    int pending_request_count() const;
+    void clear_sessions();
 
     // Utility: parse a MCP-Protocol-Version header and return a compatible version.
     static String negotiate_protocol_version(const String &header_value);
@@ -108,6 +126,7 @@ private:
     HashMap<String, Session> sessions_;
     HashMap<String, String> pending_requests_; // request id (as string) -> session id, for cancellation
     HashMap<String, Variant> cancelled_requests_; // session_id -> request ids that are cancelled
+    McpLogCallback log_callback_;
 };
 
 } // namespace godot_mcp

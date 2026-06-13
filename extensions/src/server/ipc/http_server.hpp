@@ -2,8 +2,10 @@
 
 #include "../mcp/mcp_handler.hpp"
 
+#include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/tcp_server.hpp>
 #include <godot_cpp/classes/stream_peer_tcp.hpp>
+#include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/templates/hash_map.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
@@ -28,6 +30,7 @@ public:
     bool is_listening() const;
 
     void set_test_engine(TestEngine *te) { test_engine_ = te; }
+    void set_auth_token(const godot::String &token) { auth_token_ = token; }
 
     static constexpr int kMaxConnections = 32;
     static constexpr int kMaxBodyLength = 1048576; // 1 MB — prevent OOM on oversized payloads
@@ -37,6 +40,28 @@ public:
     Error start(uint16_t port, McpHandler *mcp_handler, const String &bind_address = "127.0.0.1");
 
 private:
+    struct RateLimiter {
+        int tokens = 30;
+        double last_refill_sec = 0.0;
+        static constexpr int kMaxTokens = 30;
+        static constexpr double kRefillRate = 30.0; // tokens/sec
+
+        bool try_consume() {
+            refill();
+            if (tokens > 0) { tokens--; return true; }
+            return false;
+        }
+
+        void refill() {
+            double now = godot::Time::get_singleton()->get_ticks_msec() / 1000.0;
+            double elapsed = now - last_refill_sec;
+            if (elapsed > 0.0) {
+                tokens = MIN(kMaxTokens, tokens + (int)(elapsed * kRefillRate));
+                last_refill_sec = now;
+            }
+        }
+    };
+
     struct Connection {
         godot::Ref<godot::StreamPeerTCP> tcp;
         godot::Vector<uint8_t> read_buf;
@@ -55,6 +80,8 @@ private:
         bool sse_write_errored = false;
         int sse_event_id = 0;
         bool keep_alive = true;
+
+        RateLimiter rate_limiter;
     };
 
     enum ParseResult { NEED_MORE, COMPLETE, ERROR_PARSE };
@@ -92,6 +119,7 @@ private:
     String bind_address_;
     uint64_t timeout_msec_ = 30000;
     bool polling_ = false;
+    godot::String auth_token_;
 
 };
 

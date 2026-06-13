@@ -359,7 +359,7 @@ Dictionary GameBridgeNode::handle_screenshot(const Dictionary &params) {
     }
     PackedByteArray buf;
     if (format == "jpg" || format == "jpeg") {
-        buf = img->save_jpg_to_buffer(0.85);
+        buf = img->save_jpg_to_buffer(0.85f);
     } else {
         buf = img->save_png_to_buffer();
     }

@@ -72,7 +72,8 @@ public:
     virtual bool needs_scene() const { return false; }
     virtual bool needs_node() const { return false; }
     virtual bool supports_undo() const { return false; }
-    virtual bool is_destructive() const { return false; }
+    virtual bool is_destructive() const { return is_destructive_; }
+    void set_is_destructive(bool v) { is_destructive_ = v; }
 
     // ── 依赖注入 ──
     // HandlerRegistry 在注册时调用此方法注入自身指针，meta 工具需要用它回调查询
@@ -85,6 +86,7 @@ public:
 protected:
     // 子类实现业务逻辑，ctx 中 root/node 已保证非空（如果声明了 needs_scene/needs_node）
     virtual godot::Dictionary execute_impl(const ToolContext &ctx) = 0;
+    bool is_destructive_ = false;
 };
 
 } // namespace godot_mcp
