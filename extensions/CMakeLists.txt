@@ -84,7 +84,10 @@ set(GODOT_MCP_SOURCES
     # Testing engine
     src/testing/test_engine.cpp
 
-
+    # UI
+    src/ui/mcp_dock.cpp
+    src/ui/mcp_logger.cpp
+    src/ui/mcp_console.cpp
 )
 
 # ---------------------------------------------------------------------------
