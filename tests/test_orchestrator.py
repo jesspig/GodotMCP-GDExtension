@@ -11,7 +11,6 @@ Usage:
 """
 import asyncio
 import glob
-import json
 import os
 import sys
 import time
@@ -100,7 +99,7 @@ def cleanup_old_reports(cfg: dict, keep_count: int = 10):
     output_dir = cfg.get("output_dir", "")
     if not output_dir or not os.path.isdir(output_dir):
         return
-    pattern = os.path.join(output_dir, "test_report_*.json")
+    pattern = os.path.join(output_dir, "report-*.json")
     files = sorted(glob.glob(pattern), key=os.path.getmtime)
     if len(files) <= keep_count:
         return

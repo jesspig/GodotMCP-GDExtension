@@ -6,7 +6,7 @@ Usage:
     uv run python build.py --release                     # release build + addons.zip
     uv run python build.py --no-zip                      # build only, skip zip
     uv run python build.py --clean                       # wipe build/ (keeps _deps/)
-    uv run python build.py --clean-all                   # same as --clean (keeps _deps/)
+    uv run python build.py --clean-all                   # remove entire build/ (incl. _deps/)
     uv run python build.py --purge-cache                 # also wipe _deps/ (force re-download)
 """
 

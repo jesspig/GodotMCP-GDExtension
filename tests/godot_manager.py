@@ -13,13 +13,12 @@ class GodotManager:
         project_path: str = "example",
         headless: bool = True,
         mcp_port: int = 9600,
-        mcp_url: str = "http://127.0.0.1:9600/mcp",
     ):
         self.godot_path = godot_path
         self.project_path = os.path.abspath(project_path)
         self.headless = headless
         self.mcp_port = mcp_port
-        self.mcp_url = mcp_url
+        self.mcp_url = f"http://127.0.0.1:{mcp_port}/mcp"
         self.process: subprocess.Popen | None = None
         self._started_by_us = False
 
