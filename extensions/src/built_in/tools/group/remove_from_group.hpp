@@ -31,6 +31,13 @@ public:
             p["description"] = String("Group name");
             props["group_name"] = p;
         }
+        {
+            Dictionary p;
+            p["type"] = "boolean";
+            p["description"] = String("Persist across scenes (default: true)");
+            p["default"] = true;
+            props["persistent"] = p;
+        }
         Dictionary s;
         s["type"] = "object";
         s["properties"] = props;
@@ -60,11 +67,13 @@ protected:
                 String("Node not in group: ") + group_name);
         }
 
+        bool persistent = args_bool(ctx.args, "persistent", true);
+
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
             ur->create_action("MCP: Remove from group", godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "remove_from_group", group_name);
-            ur->add_undo_method(node, "add_to_group", group_name, true);
+            ur->add_undo_method(node, "add_to_group", group_name, persistent);
             ur->commit_action();
         } else {
             node->remove_from_group(group_name);

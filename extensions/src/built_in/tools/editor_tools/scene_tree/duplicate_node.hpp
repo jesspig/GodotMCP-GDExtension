@@ -8,6 +8,7 @@
 #include <godot_cpp/classes/editor_selection.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/variant/callable_method_pointer.hpp>
 
 namespace godot_mcp {
 
@@ -90,9 +91,6 @@ protected:
         int64_t new_parent_count = parent->get_child_count() + 1;  // includes the new one
         if (insert_idx > new_parent_count) insert_idx = new_parent_count;
 
-        // set owner recursively so it's saved with the scene
-        scene_tree_utils::assign_owner_recursive(dup, ctx.root);
-
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
             ur->create_action("MCP: Duplicate " + node->get_name(),
@@ -101,6 +99,13 @@ protected:
                               (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
             ur->add_do_method(parent, "move_child", dup, insert_idx);
             ur->add_undo_method(parent, "remove_child", dup);
+            {
+                godot::UndoRedo *undo_redo = ur->get_history_undo_redo(
+                    ur->get_object_history_id(ctx.root));
+                auto assign_callable = callable_mp_static(scene_tree_utils::assign_owner_recursive);
+                undo_redo->add_do_method(assign_callable.bind(dup, ctx.root));
+                undo_redo->add_undo_method(assign_callable.bind(dup, ctx.root));
+            }
             ur->add_do_reference(dup);
             ur->add_undo_reference(dup);
             ur->commit_action();
@@ -108,6 +113,9 @@ protected:
             parent->add_child(dup, true, godot::Node::INTERNAL_MODE_DISABLED);
             parent->move_child(dup, insert_idx);
         }
+
+        // Also set owner outside undo for immediate consistency
+        scene_tree_utils::assign_owner_recursive(dup, ctx.root);
 
         // select the new node
         godot::EditorInterface *ei = godot::EditorInterface::get_singleton();

@@ -456,6 +456,10 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
         pending_requests_.erase(JSON::stringify(id));
         log_warn("mcp", String("tools/call FAILED (exception): ") + tool_name + String(" - ") + String(e.what()));
         return make_jsonrpc_error(id, kInternalError, String(e.what()));
+    } catch (...) {
+        pending_requests_.erase(JSON::stringify(id));
+        log_warn("mcp", String("tools/call FAILED (unknown exception): ") + tool_name);
+        return make_jsonrpc_error(id, kInternalError, "Unknown error");
     }
 
     pending_requests_.erase(JSON::stringify(id));

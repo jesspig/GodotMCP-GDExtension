@@ -104,24 +104,31 @@ protected:
         if (!instance_name.is_empty()) {
             inst->set_name(instance_name);
         }
-        inst->set_scene_file_path(scene_path);
-        inst->set_scene_instance_load_placeholder(load_placeholder);
-        if (editable_children) {
-            inst->set_editable_instance(inst, true);
-        }
-        scene_tree_utils::assign_owner_recursive(inst, ctx.root);
-
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (ur) {
             ur->create_action("MCP: Instance " + scene_path,
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
+            ur->add_do_method(inst, "set_scene_file_path", scene_path);
+            ur->add_do_method(inst, "set_scene_instance_load_placeholder", load_placeholder);
+            if (editable_children) {
+                ur->add_do_method(inst, "set_editable_instance", inst, true);
+            }
             ur->add_do_method(parent, "add_child", inst, true,
                               (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
             ur->add_undo_method(parent, "remove_child", inst);
             ur->add_do_reference(inst);
             ur->add_undo_reference(inst);
             ur->commit_action();
+
+            // Also set owner outside undo for immediate consistency
+            scene_tree_utils::assign_owner_recursive(inst, ctx.root);
         } else {
+            inst->set_scene_file_path(scene_path);
+            inst->set_scene_instance_load_placeholder(load_placeholder);
+            if (editable_children) {
+                inst->set_editable_instance(inst, true);
+            }
+            scene_tree_utils::assign_owner_recursive(inst, ctx.root);
             parent->add_child(inst, true, godot::Node::INTERNAL_MODE_DISABLED);
         }
 

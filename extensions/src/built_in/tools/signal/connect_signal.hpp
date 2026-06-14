@@ -109,10 +109,18 @@ protected:
                 }
             }
         } else {
-            Error err = source->connect(signal_name, callable, (uint32_t)flags);
-            if (err != godot::OK) {
-                String msg = String("Signal connect failed, error: ") + godot::itos((int)err);
-                return ToolResult::err("CONNECT_FAILED", msg);
+            godot::EditorUndoRedoManager *ur = get_undo_redo();
+            if (ur) {
+                ur->create_action("MCP: Connect signal", godot::UndoRedo::MERGE_DISABLE, ctx.root);
+                ur->add_do_method(source, "connect", signal_name, callable, (uint32_t)flags);
+                ur->add_undo_method(source, "disconnect", signal_name, callable);
+                ur->commit_action();
+            } else {
+                Error err = source->connect(signal_name, callable, (uint32_t)flags);
+                if (err != godot::OK) {
+                    String msg = String("Signal connect failed, error: ") + godot::itos((int)err);
+                    return ToolResult::err("CONNECT_FAILED", msg);
+                }
             }
         }
 

@@ -12,7 +12,7 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
     const Vector<uint8_t> &buf = conn.read_buf;
 
     int header_end = -1;
-    for (int i = 0; i < buf.size() - 3; ++i) {
+    for (int i = 0; i + 3 < buf.size(); ++i) {
         if (buf[i] == '\r' && buf[i + 1] == '\n' &&
             buf[i + 2] == '\r' && buf[i + 3] == '\n') {
             header_end = i;

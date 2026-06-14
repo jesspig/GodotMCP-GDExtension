@@ -141,20 +141,12 @@ protected:
             ur->add_undo_reference(new_node);
             ur->add_do_reference(node);
             ur->add_undo_reference(node);
-            ur->commit_action();
-
-            // After replace_by, new_node takes the place of node.
-            // re-set the index (replace_by may or may not preserve order).
-            if (parent->get_child_count() > 0) {
-                // Find new_node in parent
-                int64_t idx = -1;
-                for (int64_t i = 0; i < parent->get_child_count(); i++) {
-                    if (parent->get_child(i) == new_node) { idx = i; break; }
-                }
-                if (idx >= 0 && idx != old_index) {
-                    parent->move_child(new_node, old_index);
-                }
+            // Preserve child index
+            if (old_index >= 0) {
+                ur->add_do_method(parent, "move_child", new_node, (int64_t)old_index);
+                ur->add_undo_method(parent, "move_child", node, (int64_t)old_index);
             }
+            ur->commit_action();
         } else {
             node->replace_by(new_node, true);
             if (parent->get_child_count() > 0) {

@@ -31,14 +31,6 @@ void set_clipboard(const Ref<PackedScene> &scene) {
     s_clipboard = scene;
 }
 
-void clear_clipboard() {
-    s_clipboard.unref();
-}
-
-bool clipboard_has_content() {
-    return s_clipboard.is_valid();
-}
-
 // ── Ownership helpers ──────────────────────────────────────────────
 
 void assign_owner_recursive(Node *root, Node *owner) {
@@ -51,22 +43,6 @@ void assign_owner_recursive(Node *root, Node *owner) {
         if (node != owner) {
             node->set_owner(owner);
         }
-        for (int64_t i = 0; i < node->get_child_count(); i++) {
-            Node *c = Object::cast_to<Node>(node->get_child(i));
-            if (c) stack.append(c);
-        }
-    }
-}
-
-void clear_owner_recursive(Node *root, Node *stop_at) {
-    if (!root) return;
-    TypedArray<Node> stack;
-    stack.append(root);
-    while (stack.size() > 0) {
-        Node *node = Object::cast_to<Node>(stack[stack.size() - 1]);
-        stack.resize(stack.size() - 1);
-        node->set_owner(nullptr);
-        if (node == stop_at) continue;
         for (int64_t i = 0; i < node->get_child_count(); i++) {
             Node *c = Object::cast_to<Node>(node->get_child(i));
             if (c) stack.append(c);
@@ -186,15 +162,5 @@ void collect_node_info(Node *node, Node *root, int64_t max_depth, bool include_s
     }
 }
 
-// ── Reorder ───────────────────────────────────────────────────────
-
-void reorder_in_parent(Node *child, int64_t new_index) {
-    if (!child) return;
-    Node *parent = child->get_parent();
-    if (!parent) return;
-    int64_t cur = child->get_index();
-    if (cur == new_index) return;
-    parent->move_child(child, new_index);
-}
 
 }  // namespace godot_mcp::scene_tree_utils

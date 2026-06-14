@@ -3,13 +3,10 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
+#include "server/registry/handler_registry.hpp"
 
 #include <godot_cpp/classes/dir_access.hpp>
 #include <godot_cpp/classes/file_access.hpp>
-#include <godot_cpp/classes/node.hpp>
-#include <godot_cpp/classes/packed_scene.hpp>
-#include <godot_cpp/classes/resource.hpp>
-#include <godot_cpp/classes/resource_saver.hpp>
 #include <godot_cpp/core/class_db.hpp>
 
 namespace godot_mcp {
@@ -62,6 +59,8 @@ public:
         return s;
     }
 
+    void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
+
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String path = args_string(ctx.args, "path");
@@ -94,42 +93,20 @@ protected:
     }
 
 private:
+    HandlerRegistry *registry_ = nullptr;
+
     Dictionary create_scene(const String &path, const String &root_type) {
-        if (!ClassDB::class_exists(root_type)) {
+        String root_type_s = root_type.is_empty() ? "Node" : root_type;
+        if (!ClassDB::class_exists(root_type_s)) {
             return ToolResult::err("UNKNOWN_CLASS",
-                "Unknown node type: " + root_type);
+                "Unknown node type: " + root_type_s);
         }
 
-        Node *temp_root = Object::cast_to<Node>(ClassDB::instantiate(root_type));
-        if (!temp_root) {
-            return ToolResult::err("CREATE_FAILED",
-                "Failed to create node of type: " + root_type);
-        }
-        temp_root->set_name(root_type);
-
-        godot::Ref<godot::PackedScene> scene;
-        scene.instantiate();
-        Error err = scene->pack(temp_root);
-        memdelete(temp_root);
-
-        if (err != Error::OK) {
-            return ToolResult::err("PACK_FAILED",
-                "Failed to pack scene, error code: " + String::num_int64((int64_t)err));
-        }
-
-        err = godot::ResourceSaver::get_singleton()->save(scene, path, godot::ResourceSaver::FLAG_CHANGE_PATH);
-        if (err != Error::OK) {
-            return ToolResult::err("SAVE_FAILED",
-                "Failed to save scene, error code: " + String::num_int64((int64_t)err));
-        }
-
-        fs_utils::notify_file_changed(path);
-
-        Dictionary data;
-        data["path"] = path;
-        data["name"] = fs_utils::get_file_name(path);
-        data["type"] = "scene";
-        return ToolResult::ok(data);
+        Dictionary args;
+        args["path"] = path;
+        args["root_type"] = root_type_s;
+        Dictionary result = registry_->execute("create_scene", args);
+        return result;
     }
 
     Dictionary create_resource(const String &path, const String &resource_type) {
@@ -138,27 +115,11 @@ private:
                 "Unknown resource type: " + resource_type);
         }
 
-        godot::Resource *res_obj = Object::cast_to<godot::Resource>(ClassDB::instantiate(resource_type));
-        if (!res_obj) {
-            return ToolResult::err("CREATE_FAILED",
-                "Failed to create resource of type: " + resource_type);
-        }
-        godot::Ref<godot::Resource> res;
-        res.reference_ptr(res_obj);
-
-        Error err = godot::ResourceSaver::get_singleton()->save(res, path, godot::ResourceSaver::FLAG_CHANGE_PATH);
-        if (err != Error::OK) {
-            return ToolResult::err("SAVE_FAILED",
-                "Failed to save resource, error code: " + String::num_int64((int64_t)err));
-        }
-
-        fs_utils::notify_file_changed(path);
-
-        Dictionary data;
-        data["path"] = path;
-        data["name"] = fs_utils::get_file_name(path);
-        data["type"] = "resource";
-        return ToolResult::ok(data);
+        Dictionary args;
+        args["path"] = path;
+        args["resource_type"] = resource_type;
+        Dictionary result = registry_->execute("create_resource", args);
+        return result;
     }
 
     Dictionary create_text_file(const String &path, const String &content,

@@ -69,6 +69,7 @@ void GameBridgeNode::_process(double) {
 
 void GameBridgeNode::_self_add() {
     if (Engine::get_singleton()->is_editor_hint()) return;
+    if (is_inside_tree()) return;
 
     Node *root = get_scene_root();
     if (!root) {
@@ -175,7 +176,17 @@ void GameBridgeNode::read_clients() {
         return;
     }
     Variant msg = json->get_data();
-    read_buf_.clear();
+
+    // Calculate consumed bytes and keep any remaining data for next message
+    int consumed = text.utf8().size();
+    if (consumed > 0 && consumed < read_buf_.size()) {
+        PackedByteArray remaining;
+        remaining.resize(read_buf_.size() - consumed);
+        memcpy(remaining.ptrw(), read_buf_.ptr() + consumed, remaining.size());
+        read_buf_ = remaining;
+    } else {
+        read_buf_.clear();
+    }
 
     if (msg.get_type() != Variant::DICTIONARY) {
         Dictionary err;

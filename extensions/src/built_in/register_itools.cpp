@@ -226,9 +226,8 @@ using namespace godot;
 
 namespace godot_mcp {
 
-// name_str, cat, is_meta_val, need_scene_val, need_node_val are documentation-only;
-// the tool's virtual method overrides (name(), category(), etc.) are authoritative.
-#define GODOT_MCP_TOOL(cls, name_str, cat, is_meta_val, need_scene_val, need_node_val, is_destructive_val) \
+// is_destructive_val — the tool's virtual method overrides (name(), category(), etc.) are authoritative.
+#define GODOT_MCP_TOOL(cls, is_destructive_val) \
     { \
         auto tool = std::make_unique<cls>(); \
         tool->set_is_destructive(is_destructive_val); \
@@ -240,6 +239,7 @@ void register_itools(HandlerRegistry &reg) {
     #include "built_in/tools/register/register_existing.hpp"
     #include "built_in/tools/register/register_fallback.hpp"
     #include "built_in/tools/register/register_docs.hpp"
+    reg.finalize_registration();
 }
 
 } // namespace godot_mcp

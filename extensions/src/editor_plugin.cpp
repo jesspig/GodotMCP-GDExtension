@@ -46,10 +46,13 @@ int McpEditorPlugin::read_port_from_env(const String &env_var, int default_port)
 void McpEditorPlugin::load_config() {
     ProjectSettings *ps = ProjectSettings::get_singleton();
 
+    bool any_nil = false;
+
     Variant http_port_v = ps->get_setting("godot_mcp/http_port");
     if (http_port_v.get_type() == Variant::INT) {
         http_port_ = (int)(int64_t)http_port_v;
     } else {
+        any_nil = true;
         http_port_ = read_port_from_env("GODOT_MCP_HTTP_PORT", 9600);
     }
 
@@ -57,6 +60,7 @@ void McpEditorPlugin::load_config() {
     if (http_host_v.get_type() == Variant::STRING) {
         http_host_ = (String)http_host_v;
     } else {
+        any_nil = true;
         http_host_ = OS::get_singleton()->get_environment("GODOT_MCP_HTTP_HOST");
         if (http_host_.is_empty()) http_host_ = "127.0.0.1";
     }
@@ -65,10 +69,11 @@ void McpEditorPlugin::load_config() {
     if (bridge_port_v.get_type() == Variant::INT) {
         bridge_port_ = (int)(int64_t)bridge_port_v;
     } else {
+        any_nil = true;
         bridge_port_ = read_port_from_env("GODOT_MCP_BRIDGE_PORT", 9601);
     }
 
-    if (http_port_v.get_type() == Variant::NIL) {
+    if (any_nil) {
         save_config();
     }
 }
@@ -181,6 +186,17 @@ void McpEditorPlugin::_enter_tree() {
 
 void McpEditorPlugin::_exit_tree() {
     if (!started_) return;
+
+    // Clear log callbacks to prevent dangling lambda captures
+    mcp_handler_.set_log_callback(nullptr);
+    logger_.set_log_callback(nullptr);
+
+    // Disconnect SDK registry from handler to prevent dangling references
+    McpToolRegistry *sdk_registry = McpToolRegistry::get_singleton();
+    if (sdk_registry) {
+        sdk_registry->set_handler_registry(nullptr);
+        sdk_registry->set_mcp_handler(nullptr);
+    }
 
     // Clean up UI
     if (mcp_dock_) {

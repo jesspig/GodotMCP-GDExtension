@@ -52,15 +52,13 @@ using godot::Variant;
 
 Ref<PackedScene> get_clipboard();
 void set_clipboard(const Ref<PackedScene> &scene);
-void clear_clipboard();
-bool clipboard_has_content();
+
 
 // -- Ownership helpers -----------------------------------------------
 // Godot saves a node to the .tscn iff its `owner` is set to the edited
 // scene root. New nodes must be assigned an owner to become persistent.
 
 void assign_owner_recursive(Node *root, Node *owner);
-void clear_owner_recursive(Node *root, Node *stop_at);
 
 // -- Undo/Redo helpers ------------------------------------------------
 // Wrap a typical "add child + assign owner + update selection" sequence.
@@ -102,7 +100,6 @@ void collect_node_info(Node *node, Node *root, int64_t max_depth, bool include_s
 
 // -- Misc utilities --------------------------------------------------
 
-// Move `child` to `new_index` within its parent. No undo wrapping.
-void reorder_in_parent(Node *child, int64_t new_index);
+
 
 }  // namespace godot_mcp::scene_tree_utils

@@ -130,7 +130,6 @@ public:
         pp["description"] = String("Node property name that holds the resource");
         p["property_name"] = pp;
         Dictionary vp;
-        vp["type"] = "object";
         vp["description"] = String("New value for ") + res_type_ + String(".") + prop_name_
             + String(" (complex types use object format, e.g. {x,y} for Vector2)");
         p["value"] = vp;

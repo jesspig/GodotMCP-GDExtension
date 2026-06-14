@@ -7,6 +7,7 @@
 #include <godot_cpp/classes/editor_selection.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/variant/callable_method_pointer.hpp>
 
 namespace godot_mcp {
 
@@ -35,7 +36,7 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("child | sibling | replacement");
+            p["description"] = String("child | sibling | replacement");
             p["default"] = "child";
             p["enum"] = Array::make("child", "sibling", "replacement");
             props["mode"] = p;
@@ -136,16 +137,19 @@ protected:
                 ur->add_do_reference(inst);
                 ur->add_undo_reference(inst);
             }
+            // Set owner as part of undo action
+            {
+                godot::UndoRedo *undo_redo = ur->get_history_undo_redo(
+                    ur->get_object_history_id(ctx.root));
+                auto assign_callable = callable_mp_static(scene_tree_utils::assign_owner_recursive);
+                undo_redo->add_do_method(assign_callable.bind(inst, ctx.root));
+                undo_redo->add_undo_method(assign_callable.bind(inst, ctx.root));
+            }
+
             ur->commit_action();
 
-            // After commit, set_owner
+            // Also set owner outside undo for immediate consistency
             scene_tree_utils::assign_owner_recursive(inst, ctx.root);
-
-            // In replacement mode, also re-set owner on target subtree
-            if (mode == "replacement") {
-                // (inst has now replaced target; ensure all its descendants have owner)
-                scene_tree_utils::assign_owner_recursive(inst, ctx.root);
-            }
         } else {
             if (mode == "replacement") {
                 target->replace_by(inst, true);

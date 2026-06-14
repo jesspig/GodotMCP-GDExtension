@@ -46,7 +46,7 @@ protected:
         bool paused = args_bool(ctx.args, "paused");
         Dictionary params;
         params["paused"] = paused;
-        return bridge->send_command("set_pause", params);
+        return RuntimeBridge::make_response(bridge->send_command("set_pause", params));
     }
 };
 

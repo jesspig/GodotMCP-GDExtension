@@ -104,6 +104,7 @@ Dictionary RuntimeBridge::send_command(const String &cmd, const Dictionary &para
 Dictionary RuntimeBridge::read_response(int timeout_ms) {
     int elapsed = 0;
     const int step = 50;
+    const int max_response_size = 1024 * 1024; // 1MB safety limit
     PackedByteArray buf;
 
     while (elapsed < timeout_ms) {
@@ -113,6 +114,13 @@ Dictionary RuntimeBridge::read_response(int timeout_ms) {
             if ((int)chunk[0] == OK) {
                 PackedByteArray data = chunk[1];
                 buf.append_array(data);
+                if (buf.size() > max_response_size) {
+                    disconnect();
+                    Dictionary r;
+                    r["ok"] = false;
+                    r["error"] = "Runtime bridge response too large";
+                    return r;
+                }
             }
         }
 

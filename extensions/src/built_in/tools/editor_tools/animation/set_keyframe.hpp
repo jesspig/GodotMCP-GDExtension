@@ -89,12 +89,12 @@ protected:
         Node *node = resolve_node(ctx.root, anim_player_path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("AnimationPlayer not found: ") + anim_player_path);
+                String("AnimationPlayer not found: ") + anim_player_path);
         }
         godot::AnimationPlayer *player = Object::cast_to<godot::AnimationPlayer>(node);
         if (!player) {
             return ToolResult::err("WRONG_TYPE",
-                String::utf8("Node is not an AnimationPlayer: ") + anim_player_path);
+                String("Node is not an AnimationPlayer: ") + anim_player_path);
         }
 
         godot::Ref<godot::AnimationLibrary> library;
@@ -110,18 +110,18 @@ protected:
         }
         if (library.is_null()) {
             return ToolResult::err("LIBRARY_NOT_FOUND",
-                String::utf8("Library not found: ") + library_name);
+                String("Library not found: ") + library_name);
         }
 
         godot::Ref<godot::Animation> animation = library->get_animation(godot::StringName(clip_name));
         if (animation.is_null()) {
             return ToolResult::err("CLIP_NOT_FOUND",
-                String::utf8("Animation clip not found: ") + clip_name);
+                String("Animation clip not found: ") + clip_name);
         }
 
         if (track_index < 0 || track_index >= animation->get_track_count()) {
             return ToolResult::err("INVALID_TRACK",
-                String::utf8("Track index out of range: ") +
+                String("Track index out of range: ") +
                 String::num_int64(track_index));
         }
 
@@ -151,7 +151,7 @@ protected:
                 animation->track_insert_key((int32_t)track_index, time, value);
                 mark_scene_dirty();
             } else {
-                ur->create_action(String::utf8("MCP: Insert Keyframe"),
+                ur->create_action(String("MCP: Insert Keyframe"),
                                   godot::UndoRedo::MERGE_DISABLE, ctx.root);
                 ur->add_do_method(animation.ptr(), "track_insert_key",
                                   (int32_t)track_index, time, value);
@@ -164,7 +164,7 @@ protected:
                 (int32_t)track_index, time, godot::Animation::FIND_MODE_APPROX);
             if (key_idx < 0) {
                 return ToolResult::err("KEY_NOT_FOUND",
-                    String::utf8("No key found at time: ") + String::num(time));
+                    String("No key found at time: ") + String::num(time));
             }
             double exact_time = animation->track_get_key_time((int32_t)track_index, key_idx);
             Variant old_value = animation->track_get_key_value((int32_t)track_index, key_idx);
@@ -173,7 +173,7 @@ protected:
                 animation->track_remove_key_at_time((int32_t)track_index, time);
                 mark_scene_dirty();
             } else {
-                ur->create_action(String::utf8("MCP: Delete Keyframe"),
+                ur->create_action(String("MCP: Delete Keyframe"),
                                   godot::UndoRedo::MERGE_DISABLE, ctx.root);
                 ur->add_do_method(animation.ptr(), "track_remove_key_at_time",
                                   (int32_t)track_index, time);
@@ -189,7 +189,7 @@ protected:
                 (int32_t)track_index, time, godot::Animation::FIND_MODE_APPROX);
             if (key_idx < 0) {
                 return ToolResult::err("KEY_NOT_FOUND",
-                    String::utf8("No key found at time: ") + String::num(time));
+                    String("No key found at time: ") + String::num(time));
             }
             Variant old_value = animation->track_get_key_value((int32_t)track_index, key_idx);
 
@@ -197,7 +197,7 @@ protected:
                 animation->track_set_key_value((int32_t)track_index, key_idx, value);
                 mark_scene_dirty();
             } else {
-                ur->create_action(String::utf8("MCP: Set Keyframe Value"),
+                ur->create_action(String("MCP: Set Keyframe Value"),
                                   godot::UndoRedo::MERGE_DISABLE, ctx.root);
                 ur->add_do_method(animation.ptr(), "track_set_key_value",
                                   (int32_t)track_index, key_idx, value);
@@ -207,7 +207,7 @@ protected:
             }
         } else {
             return ToolResult::err("INVALID_OPERATION",
-                String::utf8("Unknown operation: ") + operation +
+                String("Unknown operation: ") + operation +
                 " (expected insert/delete/set_value)");
         }
 
