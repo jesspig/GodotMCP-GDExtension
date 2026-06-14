@@ -1,0 +1,102 @@
+name: shader_animation_resource_fallback_smoke
+description: Smoke tests for shader/read, animation info, resource info, property get/set, fallback tools
+
+before_all:
+  - tool: create_directory
+    args:
+      path: "res://test_mcp_resources"
+  - tool: create
+    args:
+      path: "res://test_mcp_resources/test_shader.gdshader"
+      content: |
+        shader_type canvas_item;
+        render_mode unshaded;
+        void fragment() {
+            COLOR = vec4(1.0, 0.0, 0.0, 1.0);
+        }
+  - tool: write_gd_script
+    args:
+      path: "res://test_mcp_resources/helper.gd"
+      content: "extends Node2D\n\nfunc _ready() -> void:\n\tprint(\"Helper ready\")\n"
+  - tool: new_scene
+    args:
+      root_type: "Node2D"
+      root_name: "TestRoot"
+  - tool: add_node
+    args:
+      class_name: "Sprite2D"
+      node_name: "TestSprite"
+      parent_path: ""
+  - tool: add_node
+    args:
+      class_name: "AnimationPlayer"
+      node_name: "TestAnim"
+      parent_path: ""
+
+tests:
+  - tool: read_shader
+    description: Reads the created .gdshader file
+    args:
+      resource_path: "res://test_mcp_resources/test_shader.gdshader"
+    expect:
+      has_keys: [resource_path, mode, code, uniform_count]
+      field_checks:
+        - key: resource_path
+          value: "res://test_mcp_resources/test_shader.gdshader"
+        - key: code
+          not_empty: true
+
+  - tool: get_animation_info
+    description: Lists animations on the AnimationPlayer (should be empty)
+    args:
+      node_path: "TestRoot/TestAnim"
+    expect:
+      has_keys: [current_animation, is_playing, speed_scale, libraries]
+      field_checks:
+        - key: libraries
+          not_empty: false
+
+  - tool: get_resource_info
+    description: Gets resource info for Sprite2D texture property
+    args:
+      node_path: "TestRoot/TestSprite"
+      property_name: "texture"
+    expect:
+      status: error
+      error_contains: "does not currently have a value"
+
+  - tool: get_node_property
+    description: Gets TestSprite position
+    args:
+      node_path: "TestRoot/TestSprite"
+      property: "position"
+    expect:
+      has_keys: [node_path, property, value]
+
+  - tool: set_node_property
+    description: Sets TestSprite position
+    args:
+      node_path: "TestRoot/TestSprite"
+      property: "position"
+      value:
+        x: 100
+        y: 200
+    expect:
+      has_keys: [node_path, property, value]
+
+  - tool: list_gd_scripts
+    description: Lists scripts in the test resources directory
+    args:
+      path: "res://test_mcp_resources"
+    expect:
+      has_keys: [files, total]
+
+after_all:
+  - tool: new_scene
+    args:
+      root_type: "Node"
+      root_name: "Cleanup"
+  - tool: delete_file
+    args:
+      path: "res://test_mcp_resources"
+      recursive: true

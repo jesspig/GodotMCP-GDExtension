@@ -72,6 +72,15 @@ protected:
             memdelete(new_root);
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
+
+        // add_root_node() requires the current scene tab to have no root.
+        // close_scene() discards the current tab and creates a new empty one
+        // (root = nullptr), matching the editor's new_scene() flow.
+        Node *current_root = ei->get_edited_scene_root();
+        if (current_root) {
+            ei->close_scene();
+        }
+
         ei->add_root_node(new_root);
 
         godot::EditorSelection *sel = ei->get_selection();

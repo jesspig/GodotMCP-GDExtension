@@ -47,7 +47,8 @@ protected:
         static const PackedStringArray valid_names = { "2D", "3D", "Script", "AssetLib" };
         bool valid = false;
         for (int i = 0; i < valid_names.size(); i++) {
-            if (normalized == valid_names[i]) {
+            if (normalized.to_lower() == valid_names[i].to_lower()) {
+                normalized = valid_names[i];
                 valid = true;
                 break;
             }
