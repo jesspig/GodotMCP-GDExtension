@@ -19,7 +19,6 @@ public:
                              "node_path is the node path (e.g. /root/Main/Player), "
                              "method is the method name, args is the method argument array.");
     }
-    bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
     Dictionary input_schema() const override {

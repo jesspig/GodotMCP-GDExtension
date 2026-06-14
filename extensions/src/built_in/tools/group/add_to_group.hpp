@@ -68,7 +68,15 @@ protected:
                 String("Node already in group: ") + group_name);
         }
 
-        node->add_to_group(group_name, persistent);
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        if (ur) {
+            ur->create_action("MCP: Add to group", godot::UndoRedo::MERGE_DISABLE, ctx.root);
+            ur->add_do_method(node, "add_to_group", group_name, persistent);
+            ur->add_undo_method(node, "remove_from_group", group_name);
+            ur->commit_action();
+        } else {
+            node->add_to_group(group_name, persistent);
+        }
 
         Dictionary data;
         data["node"] = relative_path(ctx.root, node);

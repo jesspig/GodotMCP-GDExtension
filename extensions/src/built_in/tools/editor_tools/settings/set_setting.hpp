@@ -32,7 +32,6 @@ public:
         sp["description"] = "Full setting path (e.g. \"application/config/name\")";
         p["setting_path"] = sp;
         Dictionary vp;
-        vp["type"] = "object";
         vp["description"] = "Value for the setting (use native JSON types)";
         p["value"] = vp;
         s["properties"] = p;

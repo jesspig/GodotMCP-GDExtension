@@ -206,6 +206,19 @@ McpDock::McpDock() {
 
 McpDock::~McpDock() = default;
 
+void McpDock::set_plugin(McpEditorPlugin *p) {
+    plugin_ = p;
+    http_port_spin_->set_value(p->http_port());
+    bridge_port_spin_->set_value(p->bridge_port());
+    if (p->http_host() == "0.0.0.0") {
+        bind_mode_->select(1);
+    } else if (p->http_host() != "127.0.0.1") {
+        bind_mode_->select(2);
+        custom_bind_addr_->set_text(p->http_host());
+        custom_bind_addr_->set_visible(true);
+    }
+}
+
 // ---------------------------------------------------------------------
 // _bind_methods
 // ---------------------------------------------------------------------
@@ -283,12 +296,40 @@ void McpDock::_on_copy_pressed() {
 
 void McpDock::_on_apply_restart_pressed() {
     if (!plugin_) return;
+    int http_port = (int)http_port_spin_->get_value();
+    int bridge_port = (int)bridge_port_spin_->get_value();
+    int bind_idx = bind_mode_->get_selected();
+    String host;
+    if (bind_idx == 1) {
+        host = "0.0.0.0";
+    } else if (bind_idx == 2) {
+        host = custom_bind_addr_->get_text();
+    } else {
+        host = "127.0.0.1";
+    }
+    plugin_->set_http_port(http_port);
+    plugin_->set_bridge_port(bridge_port);
+    plugin_->set_http_host(host);
     plugin_->save_config();
     plugin_->restart_server(false);
 }
 
 void McpDock::_on_force_restart_pressed() {
     if (!plugin_) return;
+    int http_port = (int)http_port_spin_->get_value();
+    int bridge_port = (int)bridge_port_spin_->get_value();
+    int bind_idx = bind_mode_->get_selected();
+    String host;
+    if (bind_idx == 1) {
+        host = "0.0.0.0";
+    } else if (bind_idx == 2) {
+        host = custom_bind_addr_->get_text();
+    } else {
+        host = "127.0.0.1";
+    }
+    plugin_->set_http_port(http_port);
+    plugin_->set_bridge_port(bridge_port);
+    plugin_->set_http_host(host);
     plugin_->save_config();
     plugin_->restart_server(true);
 }
@@ -319,6 +360,14 @@ void McpDock::update_status() {
     int builtin = registry_->builtin_tool_count();
     int custom = registry_->custom_tool_count();
     tools_count_->set_text(String("Tools: ") + String::num_int64(builtin + custom));
+
+    if (plugin_ && plugin_->is_started()) {
+        status_icon_->set_text("[ON]");
+        status_icon_->add_theme_color_override("font_color", Color(0.2f, 0.9f, 0.2f));
+    } else {
+        status_icon_->set_text("[OFF]");
+        status_icon_->add_theme_color_override("font_color", Color(0.9f, 0.2f, 0.2f));
+    }
 
     EditorInterface *ei = EditorInterface::get_singleton();
     if (ei && ei->is_playing_scene()) {

@@ -350,7 +350,7 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
         err_resp["jsonrpc"] = "2.0";
         err_resp["id"] = Variant();
         Dictionary err;
-        err["code"] = -32700;
+        err["code"] = McpHandler::kParseError;
         err["message"] = json->get_error_message();
         err_resp["error"] = err;
         send_response(conn_id, conn, 200, "OK", "application/json; charset=utf-8", json_stringify_safe(err_resp));
@@ -462,13 +462,7 @@ void HttpServer::handle_get(int conn_id, Connection &conn) {
         }
     }
 
-    // Handle SSE resumption via Last-Event-ID
-    auto lei_it = conn.headers.find("last-event-id");
-    if (lei_it != conn.headers.end()) {
-        conn.sse_event_id = (int)lei_it->value.to_int();
-    }
-
-    conn.is_sse_stream = true;
+    conn.is_sse_stream = true; // SSE resumption via Last-Event-ID is not supported
     send_sse_headers(conn_id, conn);
 }
 

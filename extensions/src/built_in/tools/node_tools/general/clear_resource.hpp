@@ -57,7 +57,7 @@ protected:
         }
 
         undoable_set(node, prop_name, Variant(),
-            String::utf8("Clear ") + prop_name + String::utf8(" on ") + relative_path(ctx.root, node));
+            String("Clear ") + prop_name + String(" on ") + relative_path(ctx.root, node));
 
         Dictionary data;
         data["node_path"] = relative_path(ctx.root, node);

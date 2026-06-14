@@ -64,7 +64,6 @@ public:
         s["type"] = "object";
         Dictionary p;
         Dictionary vp;
-        vp["type"] = "object";
         vp["description"] = String("Value for \"") + setting_path_ +
             String("\". Use native godot::JSON types (bool, number, string, array, object).");
         p["value"] = vp;
@@ -93,6 +92,7 @@ protected:
             return ToolResult::err("MISSING_PARAM", "Missing required parameter: value");
         }
         godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
+        Variant old_val = ps->get_setting(setting_path_);
         Variant new_val = json_to_variant(ctx.args["value"]);
         ps->set_setting(setting_path_, new_val);
         Error err = ps->save();
@@ -102,7 +102,7 @@ protected:
         }
         Dictionary data;
         data["setting"] = setting_path_;
-        data["previous_value"] = variant_to_json(ps->get_setting(setting_path_));
+        data["previous_value"] = variant_to_json(old_val);
         data["saved"] = true;
         return ToolResult::ok(data);
     }

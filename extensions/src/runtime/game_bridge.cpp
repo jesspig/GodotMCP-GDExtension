@@ -20,7 +20,7 @@
 using namespace godot;
 
 namespace godot_mcp {
-// Forward declaration 鈥?defined in cmd_utils_json.cpp, no editor dependency
+// Forward declaration - defined in cmd_utils_json.cpp, no editor dependency
 Variant json_to_variant(const Variant &jv);
 
 // -----------------------------------------------------------------------
@@ -49,7 +49,7 @@ int GameBridgeNode::read_port() {
 
 void GameBridgeNode::_ready() {
     if (Engine::get_singleton()->is_editor_hint()) {
-        // Should never happen 鈥?only created in game process
+        // Should never happen - only created in game process
         return;
     }
     set_process(true);
@@ -70,15 +70,14 @@ void GameBridgeNode::_process(double) {
 void GameBridgeNode::_self_add() {
     if (Engine::get_singleton()->is_editor_hint()) return;
 
-    SceneTree *st = Object::cast_to<SceneTree>(
-            Engine::get_singleton()->get_main_loop());
-    if (!st || !st->get_root()) {
-        // Root not ready yet 鈥?try again next frame
+    Node *root = get_scene_root();
+    if (!root) {
+        // Root not ready yet - try again next frame
         call_deferred("_self_add");
         return;
     }
 
-    st->get_root()->add_child(this);
+    root->add_child(this);
     log_info("game_bridge", String("GameBridgeNode added to scene tree, port=") +
                                     String::num_int64(port_));
 }
@@ -164,8 +163,7 @@ void GameBridgeNode::read_clients() {
         return;
     }
 
-    // Try to find a complete JSON object terminated by newline
-    // First try: parse the buffer directly as JSON
+    // Parse the buffer directly as JSON (single-pass: accumulate until valid)
     String text = read_buf_.get_string_from_utf8();
     if (text.is_empty()) return; // partial UTF-8, wait for more data
 
@@ -173,7 +171,7 @@ void GameBridgeNode::read_clients() {
     json.instantiate();
     Error parse_err = json->parse(text);
     if (parse_err != OK) {
-        // Incomplete 鈥?wait for more data
+        // Incomplete - wait for more data
         return;
     }
     Variant msg = json->get_data();
@@ -182,7 +180,7 @@ void GameBridgeNode::read_clients() {
     if (msg.get_type() != Variant::DICTIONARY) {
         Dictionary err;
         err["ok"] = false;
-        err["error"] = String("娑堟伅浣撳繀椤讳负 JSON 瀵硅薄");
+        err["error"] = String("Message must be a JSON object");
         send_response(client_, err);
         return;
     }
@@ -203,7 +201,20 @@ void GameBridgeNode::send_response(const Ref<StreamPeerTCP> &client, const Dicti
     String json_str = JSON::stringify(msg);
     PackedByteArray data = json_str.to_utf8_buffer();
     data.push_back('\n');
-    client->put_data(data);
+    Error err = client->put_data(data);
+    if (err != OK) {
+        log_error("game_bridge", String("send_response put_data failed: err=") + String::num_int64(err));
+    }
+}
+
+// -----------------------------------------------------------------------
+// Scene tree helpers
+// -----------------------------------------------------------------------
+
+Node *GameBridgeNode::get_scene_root() {
+    SceneTree *st = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
+    if (!st || !st->get_root()) return nullptr;
+    return st->get_root();
 }
 
 // -----------------------------------------------------------------------
@@ -230,15 +241,15 @@ Dictionary GameBridgeNode::dispatch(const String &cmd, const Dictionary &params)
 // -----------------------------------------------------------------------
 
 Dictionary GameBridgeNode::handle_get_scene_tree(const Dictionary &params) {
-    SceneTree *st = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
-    if (!st || !st->get_root()) {
+    Node *root = get_scene_root();
+    if (!root) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
+        r["error"] = String("Scene tree not available");
         return r;
     }
     int max_depth = params.get("max_depth", -1);
-    Dictionary result = node_to_dict(st->get_root(), max_depth, 0);
+    Dictionary result = node_to_dict(root, max_depth, 0);
     Dictionary r;
     r["ok"] = true;
     r["data"] = result;
@@ -251,23 +262,40 @@ Dictionary GameBridgeNode::handle_get_property(const Dictionary &params) {
     if (node_path.is_empty() || property.is_empty()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍙傛暟 node_path 鍜?property 涓嶈兘涓虹┖");
+        r["error"] = String("Parameters node_path and property must not be empty");
         return r;
     }
-    SceneTree *st = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
-    if (!st || !st->get_root()) {
+    Node *root = get_scene_root();
+    if (!root) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
+        r["error"] = String("Scene tree not available");
         return r;
     }
-    Node *node = st->get_root()->get_node<godot::Node>(NodePath(node_path));
+    Node *node = root->get_node<godot::Node>(NodePath(node_path));
     if (!node) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鑺傜偣鏈壘鍒? ") + node_path;
+        r["error"] = String("Node not found: ") + node_path;
         return r;
     }
+
+    bool has_prop = false;
+    Array prop_list = node->get_property_list();
+    for (int i = 0; i < prop_list.size(); i++) {
+        Dictionary pd = prop_list[i];
+        if (pd.get("name", "") == property) {
+            has_prop = true;
+            break;
+        }
+    }
+    if (!has_prop) {
+        Dictionary r;
+        r["ok"] = false;
+        r["error"] = String("Property not found: ") + property;
+        return r;
+    }
+
     Variant value = node->get(property);
     Dictionary r;
     r["ok"] = true;
@@ -281,21 +309,21 @@ Dictionary GameBridgeNode::handle_set_property(const Dictionary &params) {
     if (node_path.is_empty() || property.is_empty()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍙傛暟 node_path 鍜?property 涓嶈兘涓虹┖");
+        r["error"] = String("Parameters node_path and property must not be empty");
         return r;
     }
-    SceneTree *st = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
-    if (!st || !st->get_root()) {
+    Node *root = get_scene_root();
+    if (!root) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
+        r["error"] = String("Scene tree not available");
         return r;
     }
-    Node *node = st->get_root()->get_node<godot::Node>(NodePath(node_path));
+    Node *node = root->get_node<godot::Node>(NodePath(node_path));
     if (!node) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鑺傜偣鏈壘鍒? ") + node_path;
+        r["error"] = String("Node not found: ") + node_path;
         return r;
     }
     node->set(property, json_to_variant(params.get("value", Variant())));
@@ -311,21 +339,21 @@ Dictionary GameBridgeNode::handle_call_method(const Dictionary &params) {
     if (node_path.is_empty() || method.is_empty()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍙傛暟 node_path 鍜?method 涓嶈兘涓虹┖");
+        r["error"] = String("Parameters node_path and method must not be empty");
         return r;
     }
-    SceneTree *st = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
-    if (!st || !st->get_root()) {
+    Node *root = get_scene_root();
+    if (!root) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
+        r["error"] = String("Scene tree not available");
         return r;
     }
-    Node *node = st->get_root()->get_node<godot::Node>(NodePath(node_path));
+    Node *node = root->get_node<godot::Node>(NodePath(node_path));
     if (!node) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鑺傜偣鏈壘鍒? ") + node_path;
+        r["error"] = String("Node not found: ") + node_path;
         return r;
     }
     Array args = params.get("args", Array());
@@ -334,7 +362,7 @@ Dictionary GameBridgeNode::handle_call_method(const Dictionary &params) {
     for (int i = 0; i < args.size(); i++) {
         converted_args[i] = json_to_variant(args[i]);
     }
-    Variant result = node->call(method, converted_args);
+    Variant result = node->callv(method, converted_args);
     Dictionary r;
     r["ok"] = true;
     r["data"] = result;
@@ -524,7 +552,7 @@ Dictionary GameBridgeNode::handle_set_pause(const Dictionary &params) {
     if (!st) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
+        r["error"] = String("Scene tree not available");
         return r;
     }
     bool paused = params.get("paused", false);
@@ -569,4 +597,3 @@ Dictionary GameBridgeNode::node_to_dict(Node *node, int max_depth, int depth) {
 }
 
 } // namespace godot_mcp
-

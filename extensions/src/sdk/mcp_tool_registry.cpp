@@ -208,6 +208,10 @@ Array McpToolRegistry::get_custom_tools() const {
         d["category"] = kv.value.category;
         d["brief"] = kv.value.brief;
         d["description"] = kv.value.description;
+        d["input_schema"] = kv.value.input_schema;
+        d["is_meta"] = kv.value.is_meta;
+        d["supports_undo"] = kv.value.supports_undo;
+        d["is_destructive"] = kv.value.is_destructive;
         result.push_back(d);
     }
     return result;

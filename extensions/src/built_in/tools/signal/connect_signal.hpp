@@ -21,7 +21,7 @@ public:
                              "Supports flags like CONNECT_DEFERRED(1), CONNECT_ONESHOT(2), etc.");
     }
     String category_description() const override {
-        return "Node property read and modify tools, organized by Godot node type";
+        return "Signal connection tools for connecting, disconnecting, and inspecting node signals";
     }
     Dictionary input_schema() const override {
         Dictionary props;
@@ -74,29 +74,46 @@ protected:
         int flags = (int)args_int(ctx.args, "flags", 0);
 
         if (signal_name.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("signal_name 不能为空"));
+            return ToolResult::err("MISSING_ARG", String("signal_name cannot be empty"));
         }
         if (target_method.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("target_method 不能为空"));
+            return ToolResult::err("MISSING_ARG", String("target_method cannot be empty"));
         }
 
         Node *source = resolve_node(ctx.root, path);
         if (!source) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("源节点未找到: ") + path);
+                String("Source node not found: ") + path);
         }
 
         Node *target = resolve_node(ctx.root, target_path);
         if (!target) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("目标节点未找�? ") + target_path);
+                String("Target node not found: ") + target_path);
         }
 
         Callable callable(target, target_method);
-        Error err = source->connect(signal_name, callable, (uint32_t)flags);
-        if (err != godot::OK) {
-            String msg = String::utf8("连接信号失败，错误码: ") + godot::itos((int)err);
-            return ToolResult::err("CONNECT_FAILED", msg);
+        bool is_persist = (flags & 4) != 0;
+        if (is_persist) {
+            godot::EditorUndoRedoManager *ur = get_undo_redo();
+            if (ur) {
+                ur->create_action("MCP: Connect signal", godot::UndoRedo::MERGE_DISABLE, ctx.root);
+                ur->add_do_method(source, "connect", signal_name, callable, (uint32_t)flags);
+                ur->add_undo_method(source, "disconnect", signal_name, callable);
+                ur->commit_action();
+            } else {
+                Error err = source->connect(signal_name, callable, (uint32_t)flags);
+                if (err != godot::OK) {
+                    String msg = String("Signal connect failed, error: ") + godot::itos((int)err);
+                    return ToolResult::err("CONNECT_FAILED", msg);
+                }
+            }
+        } else {
+            Error err = source->connect(signal_name, callable, (uint32_t)flags);
+            if (err != godot::OK) {
+                String msg = String("Signal connect failed, error: ") + godot::itos((int)err);
+                return ToolResult::err("CONNECT_FAILED", msg);
+            }
         }
 
         Dictionary data;

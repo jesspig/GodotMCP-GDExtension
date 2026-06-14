@@ -70,7 +70,9 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
     if (conn.content_length <= 0 && conn.header_end_pos < conn.read_buf.size()) {
         conn.content_length = conn.read_buf.size() - conn.header_end_pos;
         if (conn.content_length > kMaxBodyLength) {
-            conn.content_length = kMaxBodyLength;
+            log_warn("http", String("Body without Content-Length exceeds max ") +
+                                 String::num_int64(kMaxBodyLength));
+            return ERROR_PARSE;
         }
     }
 

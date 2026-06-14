@@ -39,12 +39,6 @@ int McpHandler::pending_request_count() const {
     return pending_requests_.size();
 }
 
-void McpHandler::clear_sessions() {
-    sessions_.clear();
-    pending_requests_.clear();
-    cancelled_requests_.clear();
-}
-
 // -------------------------------------------------------------------------
 // Session management
 // -------------------------------------------------------------------------
@@ -68,9 +62,7 @@ String McpHandler::generate_uuid() {
 String McpHandler::create_session() {
     Session s;
     s.id = generate_uuid();
-    s.created_at = Time::get_singleton()->get_unix_time_from_system();
-    s.last_activity = s.created_at;
-    s.log_level = 3; // Warning
+    s.last_activity = Time::get_singleton()->get_unix_time_from_system();
     sessions_[s.id] = s;
     return s.id;
 }
@@ -84,19 +76,6 @@ bool McpHandler::destroy_session(const String &session_id) {
 
 bool McpHandler::validate_session(const String &session_id) const {
     return sessions_.has(session_id);
-}
-
-bool McpHandler::is_session_initialized(const String &session_id) const {
-    auto it = sessions_.find(session_id);
-    return it != sessions_.end() && it->value.initialized;
-}
-
-Array McpHandler::get_active_sessions() const {
-    Array ids;
-    for (const KeyValue<String, Session> &kv : sessions_) {
-        ids.push_back(kv.key);
-    }
-    return ids;
 }
 
 McpHandler::Session *McpHandler::find_session(const String &id) {
@@ -307,9 +286,6 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg, String &io_
     }
 
     // Utilities
-    if (method == "logging/setLevel") {
-        return handle_logging_setLevel(io_session_id, params, id_v);
-    }
     if (method == "completion/complete") {
         return handle_completion_complete(params, id_v);
     }
@@ -317,10 +293,6 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg, String &io_
     // Notifications
     if (method == "notifications/cancelled") {
         handle_cancelled(params);
-        return Dictionary();
-    }
-    if (method == "notifications/progress") {
-        handle_progress(params);
         return Dictionary();
     }
 
@@ -342,8 +314,6 @@ Dictionary McpHandler::handle_initialize(String &session_id, const Dictionary &p
     const String client_version = params.get("protocolVersion", "");
     session->protocol_version = negotiate_protocol_version(client_version);
     session->client_info = params.get("clientInfo", Dictionary());
-    session->capabilities = params.get("capabilities", Dictionary());
-
     log_info("mcp", String("Initialize from '") +
                      JSON::stringify(session->client_info) +
                      String("', protocol ") + session->protocol_version);
@@ -463,15 +433,6 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
         log_info("mcp", String("  args: ") + param_log);
     }
 
-    const Variant meta = params.get("_meta", Variant());
-    String progress_token;
-    if (meta.get_type() == Variant::DICTIONARY) {
-        const Variant pt = Dictionary(meta).get("progressToken", Variant());
-        if (pt.get_type() != Variant::NIL) {
-            progress_token = pt;
-        }
-    }
-
     // Track as pending for cancellation support
     pending_requests_[JSON::stringify(id)] = session_id;
 
@@ -480,14 +441,14 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
         auto cancel_it = cancelled_requests_.find(session_id);
         if (cancel_it != cancelled_requests_.end()) {
             const Variant canceled_id = cancel_it->value;
-            if (canceled_id.get_type() == Variant::INT && (int64_t)canceled_id == (int64_t)id) {
+            if (canceled_id == id) {
                 cancelled_requests_.erase(session_id);
                 return make_jsonrpc_error(id, kServerTerminated, "Request cancelled");
             }
         }
     }
 
-    // Execute — 统一调度：先查 ITool 表，再查 CommandFn 表
+    // Execute via ITool dispatch
     Dictionary tool_result;
     try {
         tool_result = registry_->execute(tool_name, args);
@@ -551,46 +512,8 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
         log_callback_(log_entry);
     }
 
-    // 错误检测：兼容旧格式 {"error": "..."} 和新格式 {"success": false, "error": {"code": "...", "message": "..."}}
-    if (tool_result.has("error")) {
-        const Variant err_val = tool_result["error"];
-        String err_msg;
-        if (err_val.get_type() == Variant::DICTIONARY) {
-            const Dictionary err_dict = err_val;
-            err_msg = err_dict.get("message", "Unknown error");
-        } else {
-            err_msg = err_val;
-        }
-        if (tool_result.has("recoverable") && tool_result["recoverable"].operator bool()) {
-            Dictionary error_data;
-            error_data["recoverable"] = true;
-            if (tool_result.has("suggestion")) {
-                error_data["suggestion"] = tool_result["suggestion"];
-            }
-            return make_jsonrpc_error(id, kInternalError, err_msg, error_data);
-        }
-        return make_jsonrpc_error(id, kInternalError, err_msg);
-    }
-    if (tool_result.has("success") && !tool_result["success"].operator bool()) {
-        if (tool_result.has("recoverable") && tool_result["recoverable"].operator bool()) {
-            String err_msg = "Tool execution failed";
-            if (tool_result.has("error")) {
-                Variant err_val = tool_result["error"];
-                if (err_val.get_type() == Variant::DICTIONARY) {
-                    err_msg = Dictionary(err_val).get("message", "Unknown error");
-                } else {
-                    err_msg = err_val;
-                }
-            }
-            Dictionary error_data;
-            error_data["recoverable"] = true;
-            if (tool_result.has("suggestion")) {
-                error_data["suggestion"] = tool_result["suggestion"];
-            }
-            return make_jsonrpc_error(id, kInternalError, err_msg, error_data);
-        }
-        return make_jsonrpc_error(id, kInternalError, "Tool execution failed");
-    }
+    Dictionary error_response = build_tool_error_response(id, tool_result);
+    if (!error_response.is_empty()) return error_response;
 
     Dictionary result;
     result["content"] = tool_result_to_mcp_content(tool_result);
@@ -602,7 +525,6 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
         result["confirm"] = tool_result["confirm"];
     }
 
-    // 透传其他字段（兼容旧行为）
     const Array dict_keys = tool_result.keys();
     for (int i = 0; i < dict_keys.size(); ++i) {
         const String k = dict_keys[i];
@@ -611,7 +533,6 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
         }
     }
 
-    // 展开 data 中的字段到顶层
     if (tool_result.has("data") && tool_result["data"].get_type() == Variant::DICTIONARY) {
         const Dictionary data = tool_result["data"];
         const Array data_keys = data.keys();
@@ -624,6 +545,36 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
     }
 
     return make_jsonrpc_result(id, result);
+}
+
+Dictionary McpHandler::build_tool_error_response(const Variant &id, const Dictionary &tool_result) {
+    String err_msg;
+    bool is_error = false;
+
+    if (tool_result.has("error")) {
+        is_error = true;
+        const Variant err_val = tool_result["error"];
+        if (err_val.get_type() == Variant::DICTIONARY) {
+            err_msg = Dictionary(err_val).get("message", "Unknown error");
+        } else {
+            err_msg = err_val;
+        }
+    } else if (tool_result.has("success") && !tool_result["success"].operator bool()) {
+        is_error = true;
+        err_msg = "Tool execution failed";
+    }
+
+    if (!is_error) return Dictionary();
+
+    if (tool_result.has("recoverable") && tool_result["recoverable"].operator bool()) {
+        Dictionary error_data;
+        error_data["recoverable"] = true;
+        if (tool_result.has("suggestion")) {
+            error_data["suggestion"] = tool_result["suggestion"];
+        }
+        return make_jsonrpc_error(id, kInternalError, err_msg, error_data);
+    }
+    return make_jsonrpc_error(id, kInternalError, err_msg);
 }
 
 // -------------------------------------------------------------------------
@@ -1010,33 +961,6 @@ Dictionary McpHandler::handle_prompts_get(const Dictionary &params, const Varian
 }
 
 // -------------------------------------------------------------------------
-// logging/setLevel
-// -------------------------------------------------------------------------
-Dictionary McpHandler::handle_logging_setLevel(const String &session_id, const Dictionary &params,
-                                                 const Variant &id) {
-    const String level_str = params.get("level", "");
-    // RFC 5424: debug=7, info=6, notice=5, warning=4, error=3, critical=2, alert=1, emergency=0
-    static const HashMap<String, int> level_map = {
-        {"emergency", 0}, {"alert", 1}, {"critical", 2}, {"error", 3},
-        {"warning", 4}, {"notice", 5}, {"info", 6}, {"debug", 7}
-    };
-
-    Session *s = find_session(session_id);
-    if (!s) {
-        return make_jsonrpc_error(id, kInvalidRequest, "Session not found");
-    }
-
-    auto it = level_map.find(level_str);
-    if (it == level_map.end()) {
-        s->log_level = 3; // default to error
-    } else {
-        s->log_level = it->value;
-    }
-
-    return make_jsonrpc_response(id, Dictionary());
-}
-
-// -------------------------------------------------------------------------
 // completion/complete
 // -------------------------------------------------------------------------
 Dictionary McpHandler::handle_completion_complete(const Dictionary &params, const Variant &id) {
@@ -1075,13 +999,6 @@ void McpHandler::handle_cancelled(const Dictionary &params) {
         cancelled_requests_[sid] = req_id;
         pending_requests_.erase(it->key);
     }
-}
-
-// -------------------------------------------------------------------------
-// notifications/progress — MCP progress tracking (reserved for future use)
-// -------------------------------------------------------------------------
-void McpHandler::handle_progress(const Dictionary &params) {
-    (void)params; // notification received, progress tracking TBD
 }
 
 // -------------------------------------------------------------------------

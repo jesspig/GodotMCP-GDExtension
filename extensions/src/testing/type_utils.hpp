@@ -8,11 +8,11 @@ constexpr double kDefaultTolerance = 0.0001;
 
 inline godot::String normalize_type_hint(const godot::String &raw) {
     const godot::String lower = raw.to_lower();
-    if (lower == "list") return "Array";
-    if (lower == "dict") return "Dictionary";
+    if (lower == "list") return "array";
+    if (lower == "dict") return "dictionary";
     if (lower == "number") return "float";
     if (lower == "any") return "";
-    return raw;
+    return lower;
 }
 
 } // namespace godot_mcp

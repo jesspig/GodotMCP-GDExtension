@@ -26,7 +26,7 @@ inline godot::String verify_field(const godot::String &context,
 
     const String th = normalize_type_hint(type_hint);
 
-    if (th == "Vector2") {
+    if (th == "vector2") {
         const Vector2 av = actual;
         const Array ea = expected_val;
         if (ea.size() < 2) return String();
@@ -36,7 +36,7 @@ inline godot::String verify_field(const godot::String &context,
         }
         return String();
     }
-    if (th == "Vector3") {
+    if (th == "vector3") {
         const Vector3 av = actual;
         const Array ea = expected_val;
         if (ea.size() < 3) return String();
@@ -47,7 +47,7 @@ inline godot::String verify_field(const godot::String &context,
         }
         return String();
     }
-    if (th == "Color") {
+    if (th == "color") {
         const Color ac = actual;
         const Array ea = expected_val;
         if (ea.size() < 3) return String();
@@ -59,7 +59,7 @@ inline godot::String verify_field(const godot::String &context,
         }
         return String();
     }
-    if (th == "float" || th == "double" || th == "number") {
+    if (th == "float" || th == "double") {
         const double av = actual;
         const double ev = expected_val;
         if (Math::abs(av - ev) > tolerance) {
@@ -80,7 +80,7 @@ inline godot::String verify_field(const godot::String &context,
         }
         return String();
     }
-    if (th == "String" || th == "string") {
+    if (th == "string") {
         const String actual_s = actual;
         const String expected_s = expected_val;
         if (actual_s != expected_s) {

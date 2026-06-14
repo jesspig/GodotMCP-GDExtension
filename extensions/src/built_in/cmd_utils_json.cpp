@@ -1,5 +1,5 @@
 // =====================================================================
-// commands/cmd_utils_json.cpp �?JSON <-> Variant conversion helpers.
+// commands/cmd_utils_json.cpp -- JSON <-> Variant conversion helpers.
 //
 // Split out from cmd_utils.cpp purely for file-size readability. These
 // functions translate between Godot's structured Variant types and the
@@ -27,11 +27,16 @@ using namespace godot;
 
 namespace godot_mcp {
 
+constexpr int kMaxJsonDepth = 64;
+
 // ---------------------------------------------------------------------
 // variant_to_json
 // ---------------------------------------------------------------------
 
-Variant variant_to_json(const Variant &v) {
+Variant variant_to_json(const Variant &v, int depth) {
+    if (depth > kMaxJsonDepth) {
+        return v.stringify();
+    }
     switch (v.get_type()) {
         case Variant::NIL:
         case Variant::BOOL:
@@ -84,6 +89,15 @@ Variant variant_to_json(const Variant &v) {
             d["w"] = vec.w;
             return d;
         }
+        case Variant::VECTOR4I: {
+            const Vector4i vec = v;
+            Dictionary d;
+            d["x"] = vec.x;
+            d["y"] = vec.y;
+            d["z"] = vec.z;
+            d["w"] = vec.w;
+            return d;
+        }
         case Variant::QUATERNION: {
             const Quaternion q = v;
             Dictionary d;
@@ -105,8 +119,8 @@ Variant variant_to_json(const Variant &v) {
         case Variant::RECT2: {
             const Rect2 r = v;
             Dictionary d;
-            d["position"] = variant_to_json(r.position);
-            d["size"] = variant_to_json(r.size);
+            d["position"] = variant_to_json(r.position, depth + 1);
+            d["size"] = variant_to_json(r.size, depth + 1);
             return d;
         }
         case Variant::DICTIONARY: {
@@ -117,7 +131,7 @@ Variant variant_to_json(const Variant &v) {
                 const Variant key = keys[i];
                 // JSON object keys must be strings.
                 const String key_str = key.stringify();
-                dst[key_str] = variant_to_json(src[key]);
+                dst[key_str] = variant_to_json(src[key], depth + 1);
             }
             return dst;
         }
@@ -126,7 +140,7 @@ Variant variant_to_json(const Variant &v) {
             Array dst;
             dst.resize(src.size());
             for (int i = 0; i < src.size(); ++i) {
-                dst[i] = variant_to_json(src[i]);
+                dst[i] = variant_to_json(src[i], depth + 1);
             }
             return dst;
         }
@@ -183,7 +197,6 @@ Variant dict_to_specific_type(const Dictionary &d) {
         return Vector3((double)d["x"], (double)d["y"], (double)d["z"]);
     }
     if (has_x && has_y && has_z && has_w) {
-        // Prefer Vector4 �?call sites that need Quaternion can convert.
         return Vector4((double)d["x"], (double)d["y"], (double)d["z"], (double)d["w"]);
     }
     if (d.has("r") && d.has("g") && d.has("b")) {
@@ -207,13 +220,21 @@ Variant dict_to_specific_type(const Dictionary &d) {
     if (d.has("resource_path")) {
         const String path = d["resource_path"];
         if (!path.is_empty()) {
-            return ResourceLoader::get_singleton()->load(path);
+            Ref<Resource> res = ResourceLoader::get_singleton()->load(path);
+            if (res.is_valid()) {
+                return res;
+            }
+            return d;
         }
     }
     if (d.has("path") && !d.has("x") && !d.has("r") && !d.has("position")) {
         const String path = d["path"];
         if (!path.is_empty()) {
-            return ResourceLoader::get_singleton()->load(path);
+            Ref<Resource> res = ResourceLoader::get_singleton()->load(path);
+            if (res.is_valid()) {
+                return res;
+            }
+            return d;
         }
     }
     return Variant();  // NIL -> caller keeps the original Dictionary.
@@ -282,7 +303,7 @@ Variant json_to_variant(const Variant &jv) {
 }
 
 // ---------------------------------------------------------------------
-// json_stringify_safe — JSON 序列化
+// json_stringify_safe -- JSON serialization
 // ---------------------------------------------------------------------
 
 String json_stringify_safe(const Variant &v) {

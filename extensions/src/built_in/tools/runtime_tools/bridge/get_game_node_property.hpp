@@ -19,7 +19,6 @@ public:
                              "node_path is the node path (e.g. /root/Main/Player), "
                              "property is the property name (e.g. position, rotation).");
     }
-    bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
     Dictionary input_schema() const override {

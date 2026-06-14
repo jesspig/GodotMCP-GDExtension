@@ -186,7 +186,7 @@ void TestEngine::cleanup(const Array &tracked,
 // Execute a chain of tool calls (before_all, after_all, before_each, after_each)
 // ---------------------------------------------------------------------------
 
-godot::String TestEngine::execute_chain(const Array &chain) {
+godot::String TestEngine::execute_chain(const Array &chain, const char *chain_name) {
     for (int i = 0; i < chain.size(); ++i) {
         const Dictionary step = chain[i];
         const String tool_name = step.get("tool", "");
@@ -198,10 +198,10 @@ godot::String TestEngine::execute_chain(const Array &chain) {
             String err_msg = err.get_type() == Variant::DICTIONARY
                 ? String(Dictionary(err).get("message", "Unknown error"))
                 : String(err);
-            return String("before_all step '") + tool_name + String("' failed: ") + err_msg;
+            return String(chain_name) + String(" step '") + tool_name + String("' failed: ") + err_msg;
         }
         if (result.has("success") && !result["success"].operator bool()) {
-            return String("before_all step '") + tool_name + String("' returned success=false");
+            return String(chain_name) + String(" step '") + tool_name + String("' returned success=false");
         }
     }
     return String();
@@ -274,7 +274,7 @@ Dictionary TestEngine::run(const String &yaml_content) {
     // --- before_all chain ---
     String before_all_error;
     if (config.has("before_all")) {
-        before_all_error = execute_chain(config["before_all"]);
+        before_all_error = execute_chain(config["before_all"], "before_all");
     }
 
     // --- Tests ---
@@ -305,29 +305,41 @@ Dictionary TestEngine::run(const String &yaml_content) {
             const Dictionary test_def = tests[i];
 
             // before_each
+            String before_each_err;
             if (config.has("before_each")) {
-                execute_chain(config["before_each"]);
+                before_each_err = execute_chain(config["before_each"], "before_each");
             }
 
-            // Execute the test
-            Dictionary result = execute_test(test_def);
+            Dictionary result;
+            if (!before_each_err.is_empty()) {
+                result["tool"] = test_def.get("tool", "");
+                result["description"] = test_def.get("description", "");
+                result["passed"] = false;
+                result["error"] = before_each_err;
+            } else {
+                // Execute the test
+                result = execute_test(test_def);
 
-            // Collect tracked paths
-            if (result.has("tracked_paths")) {
-                const Array paths = result["tracked_paths"];
-                if (!suite_result.has("_all_tracked")) {
-                    suite_result["_all_tracked"] = Array();
+                // Collect tracked paths
+                if (result.has("tracked_paths")) {
+                    const Array paths = result["tracked_paths"];
+                    if (!suite_result.has("_all_tracked")) {
+                        suite_result["_all_tracked"] = Array();
+                    }
+                    Array all_tracked = suite_result["_all_tracked"];
+                    for (int p = 0; p < paths.size(); ++p) {
+                        all_tracked.push_back(paths[p]);
+                    }
+                    suite_result["_all_tracked"] = all_tracked;
                 }
-                Array all_tracked = suite_result["_all_tracked"];
-                for (int p = 0; p < paths.size(); ++p) {
-                    all_tracked.push_back(paths[p]);
-                }
-                suite_result["_all_tracked"] = all_tracked;
             }
 
             // after_each
             if (config.has("after_each")) {
-                execute_chain(config["after_each"]);
+                const String after_each_err = execute_chain(config["after_each"], "after_each");
+                if (!after_each_err.is_empty()) {
+                    log_warn("test_engine", after_each_err);
+                }
             }
 
             // Gather result (strip internal fields)
@@ -347,7 +359,10 @@ Dictionary TestEngine::run(const String &yaml_content) {
 
     // --- after_all chain ---
     if (config.has("after_all")) {
-        execute_chain(config["after_all"]);
+        const String after_all_err = execute_chain(config["after_all"], "after_all");
+        if (!after_all_err.is_empty()) {
+            log_warn("test_engine", after_all_err);
+        }
     }
 
     // --- Snapshot after + cleanup ---

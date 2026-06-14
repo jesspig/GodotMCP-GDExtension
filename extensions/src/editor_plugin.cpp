@@ -84,7 +84,6 @@ void McpEditorPlugin::save_config() {
 void McpEditorPlugin::restart_server(bool force) {
     if (!force && mcp_handler_.has_pending_requests()) {
         pending_restart_ = true;
-        force_restart_ = false;
         restart_deadline_ = Time::get_singleton()->get_ticks_msec() / 1000.0 + kRestartTimeoutSec;
         log_info("plugin", String("Waiting for ") + String::num_int64(mcp_handler_.pending_request_count()) + String(" pending requests..."));
         return;
@@ -94,6 +93,7 @@ void McpEditorPlugin::restart_server(bool force) {
     runtime_bridge_.disconnect();
     load_config();
     http_server_.start(http_port_, &mcp_handler_, http_host_);
+    http_server_.set_test_engine(&test_engine_);
     runtime_bridge_.set_port(bridge_port_);
     started_ = true;
     pending_restart_ = false;
@@ -107,15 +107,6 @@ void McpEditorPlugin::_enter_tree() {
     registry_.set_plugin_version(String(GODOT_MCP_PLUGIN_VERSION));
     register_itools(registry_);
 
-    // Inject dependencies into McpToolRegistry singleton (SDK layer)
-    McpToolRegistry *sdk_registry = McpToolRegistry::get_singleton();
-    if (!sdk_registry) {
-        // Create the singleton if it doesn't exist yet
-        sdk_registry = memnew(McpToolRegistry);
-    }
-    sdk_registry->set_handler_registry(&registry_);
-    sdk_registry->set_mcp_handler(&mcp_handler_);
-
     // Wire RuntimeBridge into HandlerRegistry (runtime tools need it)
     registry_.set_runtime_bridge(&runtime_bridge_);
 
@@ -123,9 +114,17 @@ void McpEditorPlugin::_enter_tree() {
     runtime_bridge_.set_port(bridge_port_);
 
     if (http_server_.start(http_port_, &mcp_handler_, http_host_) != OK) {
-        log_error("plugin", "Failed to start HTTP server");
+        log_error("plugin", String("Failed to start HTTP server on ") + http_host_ + String(":") + String::num_int64(http_port_));
         return;
     }
+
+    // Inject dependencies into McpToolRegistry singleton (SDK layer)
+    McpToolRegistry *sdk_registry = McpToolRegistry::get_singleton();
+    if (!sdk_registry) {
+        sdk_registry = memnew(McpToolRegistry);
+    }
+    sdk_registry->set_handler_registry(&registry_);
+    sdk_registry->set_mcp_handler(&mcp_handler_);
 
     // Wire up TestEngine
     http_server_.set_test_engine(&test_engine_);
@@ -208,7 +207,7 @@ void McpEditorPlugin::_process(double delta) {
     // Pending restart polling
     if (pending_restart_) {
         bool timed_out = Time::get_singleton()->get_ticks_msec() / 1000.0 > restart_deadline_;
-        if (force_restart_ || !mcp_handler_.has_pending_requests() || timed_out) {
+        if (!mcp_handler_.has_pending_requests() || timed_out) {
             restart_server(true);
         }
     }

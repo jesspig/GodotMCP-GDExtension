@@ -60,7 +60,15 @@ protected:
                 String("Node not in group: ") + group_name);
         }
 
-        node->remove_from_group(group_name);
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        if (ur) {
+            ur->create_action("MCP: Remove from group", godot::UndoRedo::MERGE_DISABLE, ctx.root);
+            ur->add_do_method(node, "remove_from_group", group_name);
+            ur->add_undo_method(node, "add_to_group", group_name, true);
+            ur->commit_action();
+        } else {
+            node->remove_from_group(group_name);
+        }
 
         Dictionary data;
         data["node"] = relative_path(ctx.root, node);

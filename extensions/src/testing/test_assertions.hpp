@@ -104,7 +104,7 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
             }
 
             // Compare based on type
-            if (type_hint == "Vector2" || type_hint == "Vector2i") {
+            if (type_hint == "vector2" || type_hint == "vector2i") {
                 if (actual.get_type() != Variant::VECTOR2 && actual.get_type() != Variant::VECTOR2I) {
                     return String("Field '") + path + String("' is not Vector2");
                 }
@@ -119,7 +119,7 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
                                String("), got (") + String::num(actual_v.x) + String(", ") + String::num(actual_v.y) + String(")");
                     }
                 }
-            } else if (type_hint == "Vector3" || type_hint == "Vector3i") {
+            } else if (type_hint == "vector3" || type_hint == "vector3i") {
                 if (actual.get_type() != Variant::VECTOR3 && actual.get_type() != Variant::VECTOR3I) {
                     return String("Field '") + path + String("' is not Vector3");
                 }
@@ -133,7 +133,7 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
                         return String("Field '") + path + String("' mismatch");
                     }
                 }
-            } else if (type_hint == "Color") {
+            } else if (type_hint == "color") {
                 if (actual.get_type() != Variant::COLOR) {
                     return String("Field '") + path + String("' is not Color");
                 }
@@ -171,7 +171,7 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
                 if ((bool)actual != (bool)expected_val) {
                     return String("Field '") + path + String("' bool mismatch");
                 }
-            } else if (type_hint == "String" || type_hint == "string") {
+            } else if (type_hint == "string") {
                 const String actual_s = actual;
                 const String expected_s = expected_val;
                 if (actual_s != expected_s) {

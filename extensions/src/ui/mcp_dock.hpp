@@ -26,7 +26,7 @@ public:
     McpDock();
     ~McpDock() override;
 
-    void set_plugin(McpEditorPlugin *p) { plugin_ = p; }
+    void set_plugin(McpEditorPlugin *p);
     void set_registry(HandlerRegistry *r) { registry_ = r; refresh_preview(); }
     void set_logger(McpLogger *l) { logger_ = l; }
     void update_status();

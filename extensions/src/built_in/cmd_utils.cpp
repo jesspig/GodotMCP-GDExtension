@@ -1,5 +1,5 @@
 // =====================================================================
-// commands/cmd_utils.cpp �?Implementation of cmd_utils.hpp helpers.
+// commands/cmd_utils.cpp -- Implementation of cmd_utils.hpp helpers.
 //
 // Every function runs on the main thread (called from EditorPlugin::_process
 // via the WebSocket dispatch loop). No locking or thread-safety required.
@@ -263,43 +263,6 @@ void notify_file_changed(const String &path) {
     if (fs) {
         fs->update_file(path);
     }
-}
-
-// ---------------------------------------------------------------------
-// Scene tool helpers
-// ---------------------------------------------------------------------
-
-void save_version_marker(Node *root) {
-    if (!root) return;
-    EditorInterface *ei = EditorInterface::get_singleton();
-    if (!ei) return;
-    EditorUndoRedoManager *ur = ei->get_editor_undo_redo();
-    if (!ur) return;
-    int64_t hid = ur->get_object_history_id(root);
-    UndoRedo *undo_redo = ur->get_history_undo_redo((uint32_t)hid);
-    if (!undo_redo) return;
-    uint64_t ver = undo_redo->get_version();
-    root->set_meta("__mcp_saved_version", Variant((int64_t)ver));
-}
-
-Array collect_owner_warnings(Node *root) {
-    Array warnings;
-    if (!root) return warnings;
-    TypedArray<Node> stack;
-    stack.append(root);
-    while (stack.size() > 0) {
-        Node *node = Object::cast_to<Node>(stack[stack.size() - 1]);
-        stack.resize(stack.size() - 1);
-        for (int64_t i = 0; i < node->get_child_count(); i++) {
-            Node *c = Object::cast_to<Node>(node->get_child(i));
-            if (!c) continue;
-            if (!c->get_owner() && c != root) {
-                warnings.append(c->get_name() + String(" (") + c->get_class() + String(")"));
-            }
-            stack.append(c);
-        }
-    }
-    return warnings;
 }
 
 }  // namespace godot_mcp

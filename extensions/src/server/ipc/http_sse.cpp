@@ -102,6 +102,7 @@ void HttpServer::flush_sse(int conn_id, Connection &conn) {
             data = json_stringify_safe(event);
         }
 
+        // Event IDs are sent for SSE spec compliance; resumption via Last-Event-ID is not supported
         conn.sse_event_id++;
         send_sse_event(conn_id, conn, "message", data, conn.sse_event_id);
         conn.last_activity_msec = now;

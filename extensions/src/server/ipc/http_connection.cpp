@@ -74,11 +74,7 @@ void HttpServer::check_timeouts() {
     }
 }
 
-bool HttpServer::validate_origin(const Connection &conn) const {
-    auto it = conn.headers.find("origin");
-    if (it == conn.headers.end()) return true;
-    const String origin = it->value.strip_edges();
-    if (origin.is_empty()) return true;
+bool HttpServer::is_local_origin(const String &origin) {
     const PackedStringArray parts = origin.split("://");
     String host;
     if (parts.size() == 2) {
@@ -86,9 +82,15 @@ bool HttpServer::validate_origin(const Connection &conn) const {
     } else {
         host = parts[0].split(":")[0];
     }
-    if (host == "localhost" || host == "127.0.0.1" || host == "::1" || origin == "null") {
-        return true;
-    }
+    return host == "localhost" || host == "127.0.0.1" || host == "::1" || origin == "null";
+}
+
+bool HttpServer::validate_origin(const Connection &conn) const {
+    auto it = conn.headers.find("origin");
+    if (it == conn.headers.end()) return true;
+    const String origin = it->value.strip_edges();
+    if (origin.is_empty()) return true;
+    if (is_local_origin(origin)) return true;
     log_warn("http", String("Blocked origin: ") + origin);
     return false;
 }
@@ -98,17 +100,7 @@ String HttpServer::get_cors_origin(const Connection &conn) const {
     if (it == conn.headers.end()) return "*";
     const String origin = it->value.strip_edges();
     if (origin.is_empty()) return "*";
-    const PackedStringArray parts = origin.split("://");
-    String host;
-    if (parts.size() == 2) {
-        host = parts[1].split(":")[0];
-    } else {
-        host = parts[0].split(":")[0];
-    }
-    if (host == "localhost" || host == "127.0.0.1" || host == "::1" || origin == "null") {
-        return origin;
-    }
-    return "null";
+    return is_local_origin(origin) ? origin : String("null");
 }
 
 } // namespace godot_mcp

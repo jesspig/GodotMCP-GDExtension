@@ -71,7 +71,7 @@ protected:
         }
 
         undoable_set(node, prop_name, dup,
-            String::utf8("Duplicate ") + prop_name + String::utf8(" on ") + relative_path(ctx.root, node));
+            String("Duplicate ") + prop_name + String(" on ") + relative_path(ctx.root, node));
 
         Dictionary data;
         data["node_path"] = relative_path(ctx.root, node);

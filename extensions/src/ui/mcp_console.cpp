@@ -10,6 +10,7 @@
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/editor_settings.hpp>
 #include <godot_cpp/classes/code_highlighter.hpp>
+#include <godot_cpp/classes/input.hpp>
 #include <godot_cpp/classes/h_separator.hpp>
 #include <godot_cpp/classes/json.hpp>
 #include <godot_cpp/core/class_db.hpp>
@@ -76,11 +77,11 @@ McpConsole::McpConsole() {
     drag_area_->set_custom_minimum_size(Vector2(10, 0));
     drag_area_->set_mouse_filter(Control::MOUSE_FILTER_STOP);
     drag_area_->set_default_cursor_shape(Control::CURSOR_HSIZE);
-        VSeparator *divider = memnew(VSeparator);
-        divider->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-        divider->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
-        divider->set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
-        drag_area_->add_child(divider);
+    VSeparator *divider = memnew(VSeparator);
+    divider->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+    divider->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
+    divider->set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
+    drag_area_->add_child(divider);
     header->add_child(drag_area_);
 
     Label *tool_header = memnew(Label);
@@ -293,6 +294,18 @@ void McpConsole::add_tree_entry(const McpLogger::LogEntry &entry, int index) {
     }
 }
 
+void McpConsole::rebuild_metadata_indices() {
+    TreeItem *root = log_tree_->get_root();
+    if (!root) return;
+    TreeItem *child = root->get_first_child();
+    int i = 0;
+    while (child) {
+        child->set_metadata(0, i);
+        child = child->get_next();
+        i++;
+    }
+}
+
 // =====================================================================
 // 重建
 // =====================================================================
@@ -302,12 +315,7 @@ void McpConsole::rebuild_log() {
     for (int i = 0; i < logged_entries_.size(); i++) {
         add_tree_entry(logged_entries_[i], i);
     }
-    int vc = visible_count();
-    count_label_->set_text(String::num_int64(vc) + " entries");
-    bool any = vc > 0;
-    expand_btn_->set_disabled(!any);
-    collapse_btn_->set_disabled(!any);
-    clear_btn_->set_disabled(!any);
+    update_toolbar_state();
     update_detail();
 }
 
@@ -320,14 +328,15 @@ void McpConsole::on_log_appended(const McpLogger::LogEntry &entry) {
     logged_entries_.push_back(entry);
     while (logged_entries_.size() > kMaxVisible) {
         logged_entries_.remove_at(0);
+        TreeItem *root = log_tree_->get_root();
+        if (root) {
+            TreeItem *oldest = root->get_first_child();
+            if (oldest) memdelete(oldest);
+        }
     }
     add_tree_entry(entry, idx);
-    int vc = visible_count();
-    count_label_->set_text(String::num_int64(vc) + " entries");
-    bool any = vc > 0;
-    expand_btn_->set_disabled(!any);
-    collapse_btn_->set_disabled(!any);
-    clear_btn_->set_disabled(!any);
+    rebuild_metadata_indices();
+    update_toolbar_state();
 }
 
 // =====================================================================
@@ -338,6 +347,15 @@ int McpConsole::visible_count() const {
     TreeItem *root = log_tree_->get_root();
     if (!root) return 0;
     return root->get_child_count();
+}
+
+void McpConsole::update_toolbar_state() {
+    int vc = visible_count();
+    count_label_->set_text(String::num_int64(vc) + " entries");
+    bool any = vc > 0;
+    expand_btn_->set_disabled(!any);
+    collapse_btn_->set_disabled(!any);
+    clear_btn_->set_disabled(!any);
 }
 
 // =====================================================================
@@ -381,8 +399,7 @@ void McpConsole::_on_item_selected() {
 void McpConsole::_on_item_activated() {
     TreeItem *selected = log_tree_->get_selected();
     if (!selected) return;
-    TreeItem *ci = selected->get_first_child();
-    if (ci) {
+    if (selected->get_first_child()) {
         selected->set_collapsed(!selected->is_collapsed());
     }
 }
@@ -492,12 +509,8 @@ void McpConsole::_on_auto_scroll_toggled(bool pressed) {
 // =====================================================================
 
 void McpConsole::_on_drag_area_gui_input(const Ref<InputEvent> &event) {
-    Ref<InputEventMouseButton> mb = event;
-    if (mb.is_valid() && mb->get_button_index() == MOUSE_BUTTON_LEFT) {
-        dragging_ = mb->is_pressed();
-    }
     Ref<InputEventMouseMotion> mm = event;
-    if (mm.is_valid() && dragging_) {
+    if (mm.is_valid() && godot::Input::get_singleton()->is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) {
         float w = get_global_mouse_position().x - time_header_->get_global_position().x;
         if (w < 60) w = 60;
         time_header_->set_custom_minimum_size(Vector2(w, 0));

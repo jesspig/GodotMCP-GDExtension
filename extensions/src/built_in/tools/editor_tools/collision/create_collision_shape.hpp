@@ -306,10 +306,10 @@ public:
     String name() const override { return "create_collision_shape"; }
     String category() const override { return "editor_tools/collision"; }
     String brief() const override {
-        return String::utf8("One-step create physics body + collision shape");
+        return String("One-step create physics body + collision shape");
     }
     String description() const override {
-        return String::utf8("Creates a physics body with a CollisionShape child and configurable shape resource. "
+        return String("Creates a physics body with a CollisionShape child and configurable shape resource. "
                             "Supports 2d (StaticBody2D, RigidBody2D, CharacterBody2D, Area2D with CollisionShape2D) "
                             "and 3d (StaticBody3D, RigidBody3D, CharacterBody3D, Area3D with CollisionShape3D). "
                             "2D shapes: rectangle, circle, capsule, convex_polygon, concave_polygon, "
@@ -322,39 +322,39 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("Parent node path");
+            p["description"] = String("Parent node path");
             props["parent_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("Physics dimension: 2d or 3d (default: 2d)");
+            p["description"] = String("Physics dimension: 2d or 3d (default: 2d)");
             p["default"] = "2d";
             props["dimension"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("Body type: static/rigid/character/area");
+            p["description"] = String("Body type: static/rigid/character/area");
             p["default"] = "static";
             props["body_type"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("Shape type (2D: rectangle/circle/capsule/convex_polygon/concave_polygon/world_boundary/separation_ray/segment; 3D: box/sphere/capsule/cylinder/convex_polygon/concave_polygon/height_map/world_boundary/separation_ray)");
+            p["description"] = String("Shape type (2D: rectangle/circle/capsule/convex_polygon/concave_polygon/world_boundary/separation_ray/segment; 3D: box/sphere/capsule/cylinder/convex_polygon/concave_polygon/height_map/world_boundary/separation_ray)");
             props["shape_type"] = p;
         }
         {
             Dictionary p;
             p["type"] = "object";
-            p["description"] = String::utf8("Shape-specific properties (e.g. {size: {x:100, y:100}} for rectangle)");
+            p["description"] = String("Shape-specific properties (e.g. {size: {x:100, y:100}} for rectangle)");
             props["shape_properties"] = p;
         }
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("Node name for the body");
+            p["description"] = String("Node name for the body");
             p["default"] = "CollisionShape2D";
             props["node_name"] = p;
         }
@@ -380,16 +380,16 @@ protected:
         String node_name = args_string(ctx.args, "node_name", default_node_name);
 
         if (dimension != "2d" && dimension != "3d") {
-            return ToolResult::err("UNSUPPORTED_DIMENSION", String::utf8("dimension must be '2d' or '3d', got: ") + dimension);
+            return ToolResult::err("UNSUPPORTED_DIMENSION", String("dimension must be '2d' or '3d', got: ") + dimension);
         }
 
         if (shape_type.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("shape_type is required"));
+            return ToolResult::err("MISSING_ARG", String("shape_type is required"));
         }
 
         Node *parent = resolve_node(ctx.root, parent_path);
         if (!parent) {
-            return ToolResult::err("NODE_NOT_FOUND", String::utf8("Parent node not found: ") + parent_path);
+            return ToolResult::err("NODE_NOT_FOUND", String("Parent node not found: ") + parent_path);
         }
 
         String body_name = node_name;
@@ -402,7 +402,7 @@ protected:
             body = create_body_node(body_type, body_name);
         }
         if (!body) {
-            return ToolResult::err("UNKNOWN_BODY_TYPE", String::utf8("Unknown body type: ") + body_type);
+            return ToolResult::err("UNKNOWN_BODY_TYPE", String("Unknown body type: ") + body_type);
         }
 
         String shape_class = (dimension == "3d") ? "CollisionShape3D" : "CollisionShape2D";
@@ -410,7 +410,7 @@ protected:
         if (shape_node) shape_node->set_name(shape_name);
         if (!shape_node) {
             memdelete(body);
-            return ToolResult::err("CREATE_FAILED", String::utf8("Failed to create ") + shape_class);
+            return ToolResult::err("CREATE_FAILED", String("Failed to create ") + shape_class);
         }
 
         if (dimension == "3d") {
@@ -418,7 +418,7 @@ protected:
             if (shape_res.is_null()) {
                 memdelete(body);
                 memdelete(shape_node);
-                return ToolResult::err("UNKNOWN_SHAPE_TYPE", String::utf8("Unknown 3D shape type: ") + shape_type);
+                return ToolResult::err("UNKNOWN_SHAPE_TYPE", String("Unknown 3D shape type: ") + shape_type);
             }
             godot::CollisionShape3D *cs = godot::Object::cast_to<godot::CollisionShape3D>(shape_node);
             cs->set_shape(shape_res);
@@ -427,7 +427,7 @@ protected:
             if (shape_res.is_null()) {
                 memdelete(body);
                 memdelete(shape_node);
-                return ToolResult::err("UNKNOWN_SHAPE_TYPE", String::utf8("Unknown 2D shape type: ") + shape_type);
+                return ToolResult::err("UNKNOWN_SHAPE_TYPE", String("Unknown 2D shape type: ") + shape_type);
             }
             godot::CollisionShape2D *cs = godot::Object::cast_to<godot::CollisionShape2D>(shape_node);
             cs->set_shape(shape_res);
@@ -436,27 +436,37 @@ protected:
         if (parent->has_node(String("./") + body_name)) {
             memdelete(body);
             memdelete(shape_node);
-            return ToolResult::err("NAME_CONFLICT", String::utf8("A node with the same name already exists: ") + body_name);
+            return ToolResult::err("NAME_CONFLICT", String("A node with the same name already exists: ") + body_name);
         }
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
-        ur->create_action(String::utf8("MCP: Create CollisionShape ") + body_name,
-                          godot::UndoRedo::MERGE_DISABLE, ctx.root);
+        if (!ur) {
+            parent->add_child(body, true, Node::INTERNAL_MODE_DISABLED);
+            body->set_owner(ctx.root);
+            body->add_child(shape_node, true, Node::INTERNAL_MODE_DISABLED);
+            shape_node->set_owner(ctx.root);
+            mark_scene_dirty();
+        } else {
+            ur->create_action(String("MCP: Create CollisionShape ") + body_name,
+                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
 
-        ur->add_do_method(parent, "add_child", body, true, (int64_t)Node::INTERNAL_MODE_DISABLED);
-        ur->add_do_method(body, "set_owner", ctx.root);
-        ur->add_do_reference(body);
+            ur->add_do_method(parent, "add_child", body, true, (int64_t)Node::INTERNAL_MODE_DISABLED);
+            ur->add_do_method(body, "set_owner", ctx.root);
+            ur->add_do_reference(body);
+            ur->add_undo_reference(body);
 
-        ur->add_do_method(body, "add_child", shape_node, true, (int64_t)Node::INTERNAL_MODE_DISABLED);
-        ur->add_do_method(shape_node, "set_owner", ctx.root);
-        ur->add_do_reference(shape_node);
+            ur->add_do_method(body, "add_child", shape_node, true, (int64_t)Node::INTERNAL_MODE_DISABLED);
+            ur->add_do_method(shape_node, "set_owner", ctx.root);
+            ur->add_do_reference(shape_node);
+            ur->add_undo_reference(shape_node);
 
-        ur->add_undo_method(shape_node, "set_owner", Variant());
-        ur->add_undo_method(body, "remove_child", shape_node);
-        ur->add_undo_method(body, "set_owner", Variant());
-        ur->add_undo_method(parent, "remove_child", body);
+            ur->add_undo_method(shape_node, "set_owner", Variant());
+            ur->add_undo_method(body, "remove_child", shape_node);
+            ur->add_undo_method(body, "set_owner", Variant());
+            ur->add_undo_method(parent, "remove_child", body);
 
-        ur->commit_action();
+            ur->commit_action();
+        }
 
         godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
         if (ei) {

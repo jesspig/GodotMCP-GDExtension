@@ -56,26 +56,26 @@ protected:
         String res_path = args_string(ctx.args, "resource_path");
 
         if (prop_name.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("property_name 不能为空"));
+            return ToolResult::err("MISSING_ARG", String("property_name cannot be empty"));
         }
         if (res_path.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("resource_path 不能为空"));
+            return ToolResult::err("MISSING_ARG", String("resource_path cannot be empty"));
         }
 
         Node *node = resolve_node(ctx.root, path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找�? ") + path);
+                String("Node not found: ") + path);
         }
 
         godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(res_path);
         if (res.is_null()) {
             return ToolResult::err("LOAD_FAILED",
-                String::utf8("无法加载资源: ") + res_path);
+                String("Cannot load resource: ") + res_path);
         }
 
         undoable_set(node, prop_name, res,
-            String::utf8("Load ") + res_path + String::utf8(" into ") + prop_name);
+            String("Load ") + res_path + String(" into ") + prop_name);
 
         Dictionary data;
         data["node_path"] = relative_path(ctx.root, node);

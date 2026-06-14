@@ -44,7 +44,8 @@ protected:
         ei->set_movie_maker_enabled(enabled);
         Dictionary data;
         data["action"] = "set_movie_maker_enabled";
-        data["previous"] = !enabled;
+        bool was_enabled = ei->is_movie_maker_enabled();
+        data["previous"] = was_enabled;
         data["current"] = enabled;
         return ToolResult::ok(data);
     }

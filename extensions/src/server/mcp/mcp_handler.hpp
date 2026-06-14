@@ -28,8 +28,6 @@ public:
     String create_session();
     bool destroy_session(const String &session_id);
     bool validate_session(const String &session_id) const;
-    bool is_session_initialized(const String &session_id) const;
-    Array get_active_sessions() const;
 
     bool has_pending_events(const String &session_id) const;
     Dictionary consume_event(const String &session_id);
@@ -51,8 +49,6 @@ public:
     void set_log_callback(McpLogCallback cb);
     bool has_pending_requests() const;
     int pending_request_count() const;
-    void clear_sessions();
-
     // Utility: parse a MCP-Protocol-Version header and return a compatible version.
     static String negotiate_protocol_version(const String &header_value);
 
@@ -72,12 +68,9 @@ private:
     struct Session {
         String id;
         String protocol_version;
-        Dictionary capabilities;
         Dictionary client_info;
         bool initialized = false;
-        double created_at;
         double last_activity = 0.0;
-        int log_level = 3; // RFC 5424: Error=3
         Vector<Dictionary> sse_event_queue;
     };
 
@@ -92,6 +85,7 @@ private:
     static Dictionary make_notification(const String &method, const Variant &params);
 
     static Array tool_result_to_mcp_content(const Dictionary &tool_result);
+    static Dictionary build_tool_error_response(const Variant &id, const Dictionary &tool_result);
 
     void enqueue_event(const String &session_id, const Dictionary &event);
 
@@ -115,12 +109,10 @@ private:
     Dictionary handle_prompts_get(const Dictionary &params, const Variant &id);
 
     // Utilities
-    Dictionary handle_logging_setLevel(const String &session_id, const Dictionary &params, const Variant &id);
     Dictionary handle_completion_complete(const Dictionary &params, const Variant &id);
 
     // Notifications (no return value needed)
     void handle_cancelled(const Dictionary &params);
-    void handle_progress(const Dictionary &params);
 
     HandlerRegistry *registry_;
     HashMap<String, Session> sessions_;

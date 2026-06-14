@@ -22,7 +22,6 @@ public:
                              "- Mouse click: {\"type\": \"mouse_button\", \"button\": \"left\", \"x\": 100, \"y\": 200}\n"
                              "- Action: {\"type\": \"action\", \"action\": \"ui_accept\", \"pressed\": true}");
     }
-    bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
     Dictionary input_schema() const override {

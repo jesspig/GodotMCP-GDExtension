@@ -44,7 +44,7 @@ protected:
             return ToolResult::err("MISSING_PARAM", "Missing required parameter: name");
         }
 
-        const ToolInfo *info = reg_->get_tool_schema(tool_name);
+        const ToolInfo *info = reg_->find_tool_info(tool_name);
         if (!info) {
             return ToolResult::err("TOOL_NOT_FOUND", String("Tool not found: ") + tool_name);
         }

@@ -53,7 +53,7 @@ protected:
 
         Node *node = resolve_node(ctx.root, path);
         if (!node)
-            return ToolResult::err("NODE_NOT_FOUND", String("鑺傜偣鏈壘鍒? ") + path);
+            return ToolResult::err("NODE_NOT_FOUND", String("Node not found: ") + path);
 
         Array connections;
         if (signal_name.is_empty()) {

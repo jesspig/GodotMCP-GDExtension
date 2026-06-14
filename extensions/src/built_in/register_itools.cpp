@@ -226,6 +226,8 @@ using namespace godot;
 
 namespace godot_mcp {
 
+// name_str, cat, is_meta_val, need_scene_val, need_node_val are documentation-only;
+// the tool's virtual method overrides (name(), category(), etc.) are authoritative.
 #define GODOT_MCP_TOOL(cls, name_str, cat, is_meta_val, need_scene_val, need_node_val, is_destructive_val) \
     { \
         auto tool = std::make_unique<cls>(); \

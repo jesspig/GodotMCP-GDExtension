@@ -82,8 +82,6 @@ void McpLogger::ensure_log_dir() {
 // ---------------------------------------------------------------------
 
 void McpLogger::write_to_jsonl(const LogEntry &entry) {
-    ensure_log_dir();
-
     if (current_log_file_.is_empty()) {
         godot::Dictionary dt = godot::Time::get_singleton()->get_datetime_dict_from_system();
         int y = static_cast<int>(dt["year"]);
@@ -113,10 +111,14 @@ void McpLogger::write_to_jsonl(const LogEntry &entry) {
 
     godot::String line = godot::JSON::stringify(json_entry);
 
-    godot::Ref<godot::FileAccess> f = godot::FileAccess::open(
-        current_log_file_, godot::FileAccess::WRITE);
+    godot::Ref<godot::FileAccess> f;
+    if (godot::FileAccess::file_exists(current_log_file_)) {
+        f = godot::FileAccess::open(current_log_file_, godot::FileAccess::READ_WRITE);
+        if (f.is_valid()) f->seek_end();
+    } else {
+        f = godot::FileAccess::open(current_log_file_, godot::FileAccess::WRITE);
+    }
     if (f.is_valid()) {
-        f->seek_end();
         f->store_string(line + "\n");
         f->close();
     } else {
@@ -138,9 +140,7 @@ void McpLogger::rotate_files(int keep_days) {
     if (da.is_null()) return;
 
     godot::Dictionary now_dt = godot::Time::get_singleton()->get_datetime_dict_from_system();
-    int now_year = static_cast<int>(now_dt["year"]);
-    int now_month = static_cast<int>(now_dt["month"]);
-    int now_day = static_cast<int>(now_dt["day"]);
+    int64_t now_unix = godot::Time::get_singleton()->get_unix_time_from_datetime_dict(now_dt);
 
     da->list_dir_begin();
     while (true) {
@@ -156,10 +156,13 @@ void McpLogger::rotate_files(int keep_days) {
         int month = date_part.substr(4, 2).to_int();
         int day = date_part.substr(6, 2).to_int();
 
-        // 简单天数差计算
-        int file_days = year * 365 + month * 30 + day;
-        int now_days = now_year * 365 + now_month * 30 + now_day;
-        int diff = now_days - file_days;
+        godot::Dictionary file_dt;
+        file_dt["year"] = year;
+        file_dt["month"] = month;
+        file_dt["day"] = day;
+        int64_t file_unix = godot::Time::get_singleton()->get_unix_time_from_datetime_dict(file_dt);
+        int64_t diff_seconds = now_unix - file_unix;
+        int diff = static_cast<int>(diff_seconds / 86400);
 
         if (diff > keep_days) {
             godot::String path = log_dir_.path_join(name);

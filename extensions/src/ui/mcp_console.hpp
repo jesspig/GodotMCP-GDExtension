@@ -54,7 +54,6 @@ private:
 
     McpLogger *logger_ = nullptr;
     bool auto_scroll_ = true;
-    bool dragging_ = false;
     static constexpr int kMaxVisible = 500;
 
     godot::Vector<McpLogger::LogEntry> logged_entries_;
@@ -73,6 +72,8 @@ private:
     void rebuild_log();
     void add_tree_entry(const McpLogger::LogEntry &entry, int index);
     void update_detail();
+    void update_toolbar_state();
+    void rebuild_metadata_indices();
     int visible_count() const;
 
     static godot::String fmt_tool(const McpLogger::LogEntry &e);

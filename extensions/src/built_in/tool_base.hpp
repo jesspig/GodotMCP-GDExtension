@@ -57,10 +57,6 @@ public:
     // ── 两轴分类 ──
     // category() 返回分组 key（如 "scene", "node"），用于 list_tool_categories 归类
     virtual godot::String category() const = 0;
-    // category_label() 是分组展示名，默认同 category()，SDK 工具可覆盖
-    virtual godot::String category_label() const { return category(); }
-    // category_description() 返回分类描述，用于 list_tool_categories 的 description 字段
-    // 空字符串表示使用该分类下第一个工具的 brief() 作为后备
     virtual godot::String category_description() const { return {}; }
 
     // is_meta() 控制 tools/list 可见性

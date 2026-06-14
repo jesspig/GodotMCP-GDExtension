@@ -4,10 +4,8 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
-#include <godot_cpp/classes/control.hpp>
-#include <godot_cpp/classes/editor_interface.hpp>
-#include <godot_cpp/classes/rich_text_label.hpp>
-#include <godot_cpp/variant/array.hpp>
+#include "workspace_utils.hpp"
+
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/packed_string_array.hpp>
 #include <godot_cpp/variant/string.hpp>
@@ -67,34 +65,9 @@ protected:
         bool exclude_mcp = args_bool(ctx.args, "exclude_mcp", true);
         int64_t max_lines = args_int(ctx.args, "max_lines", 500);
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
-        if (!ei) {
-            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
-        }
-
-        godot::Control *base = ei->get_base_control();
-        if (!base) {
-            return ToolResult::err("NO_BASE", "Editor base control not available");
-        }
-
-        Array log_nodes = base->find_children("*", "EditorLog", true, false);
-        if (log_nodes.size() == 0) {
-            return ToolResult::err("NO_LOG", "EditorLog node not found");
-        }
-
-        Node *editor_log = Object::cast_to<Node>(log_nodes[0]);
-        if (!editor_log) {
-            return ToolResult::err("INVALID_LOG", "EditorLog node is invalid");
-        }
-
-        Array rtl_nodes = editor_log->find_children("*", "RichTextLabel", true, false);
-        if (rtl_nodes.size() == 0) {
-            return ToolResult::err("NO_RTL", "RichTextLabel child node not found");
-        }
-
-        godot::RichTextLabel *rtl = Object::cast_to<godot::RichTextLabel>(rtl_nodes[0]);
+        godot::RichTextLabel *rtl = find_console_rtl();
         if (!rtl) {
-            return ToolResult::err("INVALID_RTL", "RichTextLabel node is invalid");
+            return ToolResult::err("NO_CONSOLE", "Console not found");
         }
 
         String full_text = rtl->get_text();

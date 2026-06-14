@@ -63,19 +63,43 @@ protected:
 
         Node *source = resolve_node(ctx.root, path);
         if (!source)
-            return ToolResult::err("NODE_NOT_FOUND", String("婧愯妭鐐规湭鎵惧埌: ") + path);
+            return ToolResult::err("NODE_NOT_FOUND", String("Source node not found: ") + path);
 
         Node *target = resolve_node(ctx.root, target_path);
         if (!target)
-            return ToolResult::err("NODE_NOT_FOUND", String("鐩爣鑺傜偣鏈壘鍒? ") + target_path);
+            return ToolResult::err("NODE_NOT_FOUND", String("Target node not found: ") + target_path);
 
         Callable callable(target, target_method);
         if (!source->is_connected(signal_name, callable)) {
             return ToolResult::err("NOT_CONNECTED",
-                String("淇″彿鏈繛鎺? ") + signal_name);
+                String("Signal not connected: ") + signal_name);
         }
 
-        source->disconnect(signal_name, callable);
+        bool is_persist = false;
+        Array conns = source->get_signal_connection_list(signal_name);
+        for (int i = 0; i < conns.size(); i++) {
+            Dictionary c = conns[i];
+            Callable c_callable = c.get("callable", Callable());
+            if (c_callable == callable) {
+                int c_flags = c.get("flags", 0);
+                if (c_flags & 4) is_persist = true;
+                break;
+            }
+        }
+
+        if (is_persist) {
+            godot::EditorUndoRedoManager *ur = get_undo_redo();
+            if (ur) {
+                ur->create_action("MCP: Disconnect signal", godot::UndoRedo::MERGE_DISABLE, ctx.root);
+                ur->add_do_method(source, "disconnect", signal_name, callable);
+                ur->add_undo_method(source, "connect", signal_name, callable, (uint32_t)4);
+                ur->commit_action();
+            } else {
+                source->disconnect(signal_name, callable);
+            }
+        } else {
+            source->disconnect(signal_name, callable);
+        }
 
         Dictionary data;
         data["node"] = relative_path(ctx.root, source);

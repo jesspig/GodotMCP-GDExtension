@@ -1,5 +1,6 @@
 #include "tool_base.hpp"
 #include "cmd_utils.hpp"
+#include "logging.hpp"
 
 using namespace godot;
 
@@ -140,6 +141,9 @@ Dictionary ITool::execute(const Dictionary &args) {
         if (!ctx.root) {
             ctx.root = get_root();
         }
+        if (!ctx.root) {
+            return ToolResult::err("NO_SCENE", "No scene is currently open");
+        }
         ctx.node = resolve_node(ctx.root, node_path);
         if (!ctx.node) {
             return ToolResult::err("NODE_NOT_FOUND",
@@ -152,6 +156,7 @@ Dictionary ITool::execute(const Dictionary &args) {
 
     // ── 安全包裹：确保统一返回信封 ──
     if (!result.has("success")) {
+        log_warn("tool", name() + String(": execute_impl returned dict without 'success' key, auto-wrapping"));
         Dictionary wrapped;
         wrapped["success"] = true;
         wrapped["data"] = result;

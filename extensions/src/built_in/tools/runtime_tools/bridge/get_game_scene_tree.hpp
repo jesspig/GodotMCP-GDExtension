@@ -21,7 +21,6 @@ public:
     String category_description() const override {
         return "Game runtime bridge tools: scene tree queries, property read/write, script execution, input simulation, screenshot, UI discovery, etc.";
     }
-    bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
     Dictionary input_schema() const override {

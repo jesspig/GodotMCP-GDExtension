@@ -4,10 +4,8 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
-#include <godot_cpp/classes/control.hpp>
-#include <godot_cpp/classes/editor_interface.hpp>
-#include <godot_cpp/classes/rich_text_label.hpp>
-#include <godot_cpp/variant/array.hpp>
+#include "workspace_utils.hpp"
+
 #include <godot_cpp/variant/dictionary.hpp>
 
 namespace godot_mcp {
@@ -26,7 +24,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        godot::RichTextLabel *rtl = _find_console_rtl();
+        godot::RichTextLabel *rtl = find_console_rtl();
         if (!rtl) return ToolResult::err("NO_CONSOLE", "Console not found");
 
         PackedStringArray lines = rtl->get_text().split("\n", false);
@@ -46,20 +44,6 @@ protected:
         return ToolResult::ok(d);
     }
 
-private:
-    static godot::RichTextLabel *_find_console_rtl() {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
-        if (!ei) return nullptr;
-        godot::Control *base = ei->get_base_control();
-        if (!base) return nullptr;
-        Array logs = base->find_children("*", "EditorLog", true, false);
-        if (logs.size() == 0) return nullptr;
-        Node *log = Object::cast_to<Node>(logs[0]);
-        if (!log) return nullptr;
-        Array rtls = log->find_children("*", "RichTextLabel", true, false);
-        if (rtls.size() == 0) return nullptr;
-        return Object::cast_to<godot::RichTextLabel>(rtls[0]);
-    }
 };
 
 } // namespace godot_mcp

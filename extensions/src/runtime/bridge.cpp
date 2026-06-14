@@ -3,6 +3,7 @@
 
 #include <godot_cpp/classes/json.hpp>
 #include <godot_cpp/classes/os.hpp>
+#include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
 
 using namespace godot;
@@ -18,11 +19,15 @@ void RuntimeBridge::poll() {
         auto s = tcp_->get_status();
         if (s == StreamPeerTCP::STATUS_CONNECTED) {
             status_ = CONNECTED;
+            connecting_since_ = 0;
             log_info("runtime", String("Runtime bridge connected on :") + String::num_int64(port_));
         } else if (s == StreamPeerTCP::STATUS_ERROR) {
             status_ = DISCONNECTED;
             tcp_.unref();
             log_warn("runtime", "Runtime bridge connection failed");
+        } else if (Time::get_singleton()->get_ticks_msec() - connecting_since_ > CONNECT_TIMEOUT_MS) {
+            disconnect();
+            log_warn("runtime", "Runtime bridge connect timed out");
         }
         return;
     }
@@ -51,6 +56,7 @@ void RuntimeBridge::connect() {
         return;
     }
     status_ = CONNECTING;
+    connecting_since_ = Time::get_singleton()->get_ticks_msec();
     log_info("runtime", String("Connecting to runtime bridge 127.0.0.1:") + String::num_int64(port_));
 }
 
@@ -60,15 +66,17 @@ void RuntimeBridge::disconnect() {
         tcp_.unref();
     }
     status_ = DISCONNECTED;
+    connecting_since_ = 0;
     log_info("runtime", "Runtime bridge disconnected");
 }
 
 Dictionary RuntimeBridge::send_command(const String &cmd, const Dictionary &params, int timeout_ms) {
+    Dictionary raw;
+
     if (status_ != CONNECTED) {
-        Dictionary r;
-        r["ok"] = false;
-        r["error"] = "Game not running";
-        return r;
+        raw["ok"] = false;
+        raw["error"] = "Game not running";
+        return make_response(raw);
     }
 
     int id = next_id_++;
@@ -84,13 +92,13 @@ Dictionary RuntimeBridge::send_command(const String &cmd, const Dictionary &para
     Error err = tcp_->put_data(data);
     if (err != OK) {
         disconnect();
-        Dictionary r;
-        r["ok"] = false;
-        r["error"] = String("妗ユ帴杩炴帴鏂紑");
-        return r;
+        raw["ok"] = false;
+        raw["error"] = "Bridge connection broken";
+        return make_response(raw);
     }
 
-    return read_response(timeout_ms);
+    raw = read_response(timeout_ms);
+    return make_response(raw);
 }
 
 Dictionary RuntimeBridge::read_response(int timeout_ms) {
@@ -125,6 +133,7 @@ Dictionary RuntimeBridge::read_response(int timeout_ms) {
         elapsed += step;
     }
 
+    disconnect();
     Dictionary r;
     r["ok"] = false;
     r["error"] = String("Runtime bridge command timed out (") + String::num_int64(timeout_ms) + String("ms)");
@@ -132,10 +141,14 @@ Dictionary RuntimeBridge::read_response(int timeout_ms) {
 }
 
 Dictionary RuntimeBridge::make_response(const Dictionary &raw) {
+    if (raw.has("success")) {
+        return raw;
+    }
+
     if (!raw.has("ok") || !raw["ok"]) {
         Dictionary error;
         error["code"] = "BRIDGE_ERROR";
-        error["message"] = raw.get("error", String("鍛戒护鎵ц澶辫触"));
+        error["message"] = raw.get("error", String("Command execution failed"));
         Dictionary r;
         r["success"] = false;
         r["error"] = error;
@@ -148,4 +161,3 @@ Dictionary RuntimeBridge::make_response(const Dictionary &raw) {
 }
 
 } // namespace godot_mcp
-

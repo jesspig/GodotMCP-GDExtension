@@ -4,9 +4,8 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
-#include <godot_cpp/classes/control.hpp>
-#include <godot_cpp/classes/editor_interface.hpp>
-#include <godot_cpp/variant/array.hpp>
+#include "workspace_utils.hpp"
+
 #include <godot_cpp/variant/dictionary.hpp>
 
 namespace godot_mcp {
@@ -15,10 +14,11 @@ class GetStackTraceTool : public ITool {
 public:
     String name() const override { return "get_stack_trace"; }
     String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Get current debug stack trace"); }
+    String brief() const override { return String("Get current debug stack frame (single frame only)"); }
     String description() const override {
-        return String("Returns the current stack trace when the debugger is paused. "
-                      "Includes the list of stack frames (frame number, file, function name, line number). "
+        return String("Returns the current stack frame when the debugger is paused. "
+                      "NOTE: This returns only the current (top) frame, not a full call stack. "
+                      "Includes file, line number, frame index, and session status. "
                       "Aligned with the _msg_stack_dump() flow in Godot source "
                       "editor/debugger/script_editor_debugger.cpp. "
                       "Only available when the debugger is paused.");
@@ -35,7 +35,7 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         (void)ctx;
 
-        Object *debugger = _find_debugger_node();
+        Object *debugger = find_debugger();
         if (!debugger) {
             return ToolResult::err("NO_DEBUGGER", "EditorDebuggerNode not found");
         }
@@ -74,19 +74,6 @@ protected:
         return ToolResult::ok(data);
     }
 
-private:
-    static Object *_find_debugger_node() {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
-        if (!ei) return nullptr;
-
-        godot::Control *base = ei->get_base_control();
-        if (!base) return nullptr;
-
-        Array nodes = base->find_children("*", "EditorDebuggerNode", true, false);
-        if (nodes.size() == 0) return nullptr;
-
-        return Object::cast_to<Node>(nodes[0]);
-    }
 };
 
 } // namespace godot_mcp

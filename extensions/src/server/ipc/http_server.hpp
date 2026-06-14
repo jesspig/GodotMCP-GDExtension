@@ -30,7 +30,6 @@ public:
     bool is_listening() const;
 
     void set_test_engine(TestEngine *te) { test_engine_ = te; }
-    void set_auth_token(const godot::String &token) { auth_token_ = token; }
 
     static constexpr int kMaxConnections = 32;
     static constexpr int kMaxBodyLength = 1048576; // 1 MB — prevent OOM on oversized payloads
@@ -109,6 +108,7 @@ private:
     void check_timeouts();
     bool validate_origin(const Connection &conn) const;
     String get_cors_origin(const Connection &conn) const;
+    static bool is_local_origin(const String &origin);
 
     godot::Ref<godot::TCPServer> tcp_server_;
     godot::HashMap<int, Connection> connections_;

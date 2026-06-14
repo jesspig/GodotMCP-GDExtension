@@ -42,6 +42,7 @@ private:
 
     godot::Dictionary node_to_dict(godot::Node *node, int max_depth, int depth);
     static int read_port();
+    godot::Node *get_scene_root();
 
     godot::Ref<godot::TCPServer> server_;
     godot::Ref<godot::StreamPeerTCP> client_;

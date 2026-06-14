@@ -112,22 +112,27 @@ protected:
             }
 
             godot::EditorUndoRedoManager *ur = get_undo_redo();
-            ur->create_action(String("MCP: Create StyleBox ") + stylebox_name,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
-
-            bool had_override = control->has_theme_stylebox_override(stylebox_name);
-            godot::Variant old_sb;
-            if (had_override) {
-                old_sb = control->get_theme_stylebox(stylebox_name);
-            }
-
-            ur->add_do_method(control, "add_theme_stylebox_override", stylebox_name, sb);
-            if (had_override) {
-                ur->add_undo_method(control, "add_theme_stylebox_override", stylebox_name, old_sb);
+            if (!ur) {
+                control->add_theme_stylebox_override(stylebox_name, sb);
+                mark_scene_dirty();
             } else {
-                ur->add_undo_method(control, "remove_theme_stylebox_override", stylebox_name);
+                ur->create_action(String("MCP: Create StyleBox ") + stylebox_name,
+                                  godot::UndoRedo::MERGE_DISABLE, ctx.root);
+
+                bool had_override = control->has_theme_stylebox_override(stylebox_name);
+                godot::Variant old_sb;
+                if (had_override) {
+                    old_sb = control->get_theme_stylebox(stylebox_name);
+                }
+
+                ur->add_do_method(control, "add_theme_stylebox_override", stylebox_name, sb);
+                if (had_override) {
+                    ur->add_undo_method(control, "add_theme_stylebox_override", stylebox_name, old_sb);
+                } else {
+                    ur->add_undo_method(control, "remove_theme_stylebox_override", stylebox_name);
+                }
+                ur->commit_action();
             }
-            ur->commit_action();
         }
 
         Dictionary data;

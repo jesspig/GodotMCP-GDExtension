@@ -54,9 +54,13 @@ Dictionary McpToolDefinition::execute(const Dictionary &args) {
         d["result"] = ret;
         return d;
     }
-    Dictionary d;
-    d["error"] = "execute() not implemented";
-    return d;
+    Dictionary r;
+    r["success"] = false;
+    Dictionary err;
+    err["code"] = "NOT_IMPLEMENTED";
+    err["message"] = "execute() not implemented";
+    r["error"] = err;
+    return r;
 }
 
 // ---------------------------------------------------------------------------

@@ -61,7 +61,7 @@ godot::EditorUndoRedoManager *get_undo_redo();
 // Convert a Godot Variant into a JSON-friendly Variant for stringify().
 // Recursively expands Vector2/3/4, Color, Rect2, Quaternion, Resource paths,
 // Dictionaries and Arrays into plain JSON containers.
-godot::Variant variant_to_json(const godot::Variant &v);
+godot::Variant variant_to_json(const godot::Variant &v, int depth = 0);
 
 // Convert a JSON-parsed Variant back into the most specific Godot type:
 //   {x,y}            -> Vector2
@@ -93,14 +93,6 @@ void mark_scene_dirty();
 // Notify EditorFileSystem that `path` (a res:// or absolute path) changed
 // on disk. Safe to call from any tool that writes script/scene files.
 void notify_file_changed(const godot::String &path);
-
-// Record the current undo-redo version as the "saved" marker on a node.
-// Used by scene tools to track whether a scene is dirty.
-void save_version_marker(godot::Node *root);
-
-// Collect names of nodes under `root` that have no owner (potential issue).
-// Returns an Array of warning strings.
-godot::Array collect_owner_warnings(godot::Node *root);
 
 // ---------------------------------------------------------------------
 // Path helpers

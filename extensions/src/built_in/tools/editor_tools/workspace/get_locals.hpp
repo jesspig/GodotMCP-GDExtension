@@ -4,9 +4,8 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
-#include <godot_cpp/classes/control.hpp>
-#include <godot_cpp/classes/editor_interface.hpp>
-#include <godot_cpp/variant/array.hpp>
+#include "workspace_utils.hpp"
+
 #include <godot_cpp/variant/dictionary.hpp>
 
 namespace godot_mcp {
@@ -38,7 +37,7 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         int64_t frame = args_int(ctx.args, "frame", 0);
 
-        Object *debugger = _find_debugger_node();
+        Object *debugger = find_debugger();
         if (!debugger)
             return ToolResult::err("NO_DEBUGGER", "EditorDebuggerNode not found");
 
@@ -78,16 +77,6 @@ protected:
         return ToolResult::ok(data);
     }
 
-private:
-    static Object *_find_debugger_node() {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
-        if (!ei) return nullptr;
-        godot::Control *base = ei->get_base_control();
-        if (!base) return nullptr;
-        Array nodes = base->find_children("*", "EditorDebuggerNode", true, false);
-        if (nodes.size() == 0) return nullptr;
-        return Object::cast_to<Node>(nodes[0]);
-    }
 };
 
 } // namespace godot_mcp

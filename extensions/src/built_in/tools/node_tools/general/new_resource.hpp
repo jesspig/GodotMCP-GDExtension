@@ -56,16 +56,15 @@ protected:
         String res_type = args_string(ctx.args, "resource_type", "");
 
         if (prop_name.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("property_name 不能为空"));
+            return ToolResult::err("MISSING_ARG", String("property_name cannot be empty"));
         }
 
         Node *node = resolve_node(ctx.root, path);
         if (!node) {
             return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("节点未找�? ") + path);
+                String("Node not found: ") + path);
         }
 
-        // 如果未指定资源类型，从属性定义自动检�?
         if (res_type.is_empty()) {
             Array prop_list = node->get_property_list();
             for (int i = 0; i < prop_list.size(); i++) {
@@ -80,27 +79,27 @@ protected:
 
         if (res_type.is_empty()) {
             return ToolResult::err("UNKNOWN_TYPE",
-                String::utf8("无法确定资源类型，请通过 resource_type 参数指定"));
+                String("Cannot determine resource type, specify via resource_type"));
         }
 
         Object *new_obj = ClassDB::instantiate(res_type);
         if (!new_obj) {
             return ToolResult::err("INSTANTIATE_FAILED",
-                String::utf8("无法实例化资源类�? ") + res_type);
+                String("Cannot instantiate resource type: ") + res_type);
         }
 
         godot::Resource *new_res = Object::cast_to<godot::Resource>(new_obj);
         if (!new_res) {
             memdelete(new_obj);
             return ToolResult::err("NOT_A_RESOURCE",
-                String::utf8("指定类型不是 Resource: ") + res_type);
+                String("Specified type is not a Resource: ") + res_type);
         }
 
         godot::Ref<godot::Resource> ref(new_res);
 
         undoable_set(node, prop_name, ref,
-            String::utf8("New ") + res_type + String(" for ") + prop_name
-            + String::utf8(" on ") + relative_path(ctx.root, node));
+            String("New ") + res_type + String(" for ") + prop_name
+            + String(" on ") + relative_path(ctx.root, node));
 
         Dictionary data;
         data["node_path"] = relative_path(ctx.root, node);

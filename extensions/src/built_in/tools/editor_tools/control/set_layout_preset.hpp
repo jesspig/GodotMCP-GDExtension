@@ -3,31 +3,12 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "control_utils.hpp"
 
 #include <godot_cpp/classes/control.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 
 namespace godot_mcp {
-
-static godot::Control::LayoutPreset resolve_preset_name(const String &name) {
-    if (name == "full_rect") return godot::Control::PRESET_FULL_RECT;
-    if (name == "center") return godot::Control::PRESET_CENTER;
-    if (name == "top_left") return godot::Control::PRESET_TOP_LEFT;
-    if (name == "top_right") return godot::Control::PRESET_TOP_RIGHT;
-    if (name == "bottom_left") return godot::Control::PRESET_BOTTOM_LEFT;
-    if (name == "bottom_right") return godot::Control::PRESET_BOTTOM_RIGHT;
-    if (name == "center_left") return godot::Control::PRESET_CENTER_LEFT;
-    if (name == "center_top") return godot::Control::PRESET_CENTER_TOP;
-    if (name == "center_right") return godot::Control::PRESET_CENTER_RIGHT;
-    if (name == "center_bottom") return godot::Control::PRESET_CENTER_BOTTOM;
-    if (name == "left_wide") return godot::Control::PRESET_LEFT_WIDE;
-    if (name == "top_wide") return godot::Control::PRESET_TOP_WIDE;
-    if (name == "right_wide") return godot::Control::PRESET_RIGHT_WIDE;
-    if (name == "bottom_wide") return godot::Control::PRESET_BOTTOM_WIDE;
-    if (name == "vcenter_wide") return godot::Control::PRESET_VCENTER_WIDE;
-    if (name == "hcenter_wide") return godot::Control::PRESET_HCENTER_WIDE;
-    return godot::Control::PRESET_FULL_RECT;
-}
 
 class SetLayoutPresetTool : public ITool {
 public:
@@ -84,7 +65,7 @@ protected:
             return ToolResult::err("NOT_A_CONTROL", String("Node is not a Control: ") + node_path);
         }
 
-        godot::Control::LayoutPreset preset = resolve_preset_name(preset_name);
+        godot::Control::LayoutPreset preset = resolve_layout_preset(preset_name);
 
         double old_left = control->get_anchor(godot::Side::SIDE_LEFT);
         double old_top = control->get_anchor(godot::Side::SIDE_TOP);
@@ -96,18 +77,23 @@ protected:
         double old_offset_bottom = control->get_offset(godot::Side::SIDE_BOTTOM);
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
-        ur->create_action(String("MCP: Set Layout Preset ") + preset_name,
-                          godot::UndoRedo::MERGE_DISABLE, ctx.root);
-        ur->add_do_method(control, "set_anchors_preset", preset, keep_offsets);
-        ur->add_undo_property(control, "anchor_left", old_left);
-        ur->add_undo_property(control, "anchor_top", old_top);
-        ur->add_undo_property(control, "anchor_right", old_right);
-        ur->add_undo_property(control, "anchor_bottom", old_bottom);
-        ur->add_undo_property(control, "offset_left", old_offset_left);
-        ur->add_undo_property(control, "offset_top", old_offset_top);
-        ur->add_undo_property(control, "offset_right", old_offset_right);
-        ur->add_undo_property(control, "offset_bottom", old_offset_bottom);
-        ur->commit_action();
+        if (!ur) {
+            control->set_anchors_preset(preset, keep_offsets);
+            mark_scene_dirty();
+        } else {
+            ur->create_action(String("MCP: Set Layout Preset ") + preset_name,
+                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
+            ur->add_do_method(control, "set_anchors_preset", preset, keep_offsets);
+            ur->add_undo_property(control, "anchor_left", old_left);
+            ur->add_undo_property(control, "anchor_top", old_top);
+            ur->add_undo_property(control, "anchor_right", old_right);
+            ur->add_undo_property(control, "anchor_bottom", old_bottom);
+            ur->add_undo_property(control, "offset_left", old_offset_left);
+            ur->add_undo_property(control, "offset_top", old_offset_top);
+            ur->add_undo_property(control, "offset_right", old_offset_right);
+            ur->add_undo_property(control, "offset_bottom", old_offset_bottom);
+            ur->commit_action();
+        }
 
         Dictionary data;
         data["preset"] = preset_name;

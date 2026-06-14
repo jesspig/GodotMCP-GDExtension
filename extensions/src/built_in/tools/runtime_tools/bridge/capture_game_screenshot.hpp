@@ -18,7 +18,6 @@ public:
         return String("Captures a screenshot of the running game's viewport and returns base64-encoded image data. "
                              "format can be png (default) or jpg.");
     }
-    bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
     Dictionary input_schema() const override {

@@ -4,7 +4,7 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
-#include <godot_cpp/classes/engine.hpp>
+#include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/performance.hpp>
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
@@ -139,7 +139,7 @@ protected:
 
         data["monitors"] = all_monitors;
 
-        bool is_running = godot::Engine::get_singleton()->is_editor_hint() == false;
+        bool is_running = godot::EditorInterface::get_singleton()->is_playing_scene();
         data["is_running"] = is_running;
 
         return ToolResult::ok(data);

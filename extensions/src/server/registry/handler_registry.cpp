@@ -17,45 +17,12 @@ HandlerRegistry::~HandlerRegistry() = default;
 // Tool registration
 // ---------------------------------------------------------------------------
 
-void HandlerRegistry::register_custom_tool(const String &name, const String &category,
-                                           const String &brief, const String &description,
-                                           const Dictionary &schema, CommandFn fn,
-                                           bool is_meta) {
-    table_[name] = fn;
-
-    // Also register as IToolAdapter in itool_table_ for full capabilities
-    auto adapter = std::make_unique<IToolAdapter>(
-        name, category, brief, description, schema,
-        fn,
-        is_meta, false, false, false, false);
-    adapter->set_registry(this);
-    itool_table_.emplace(name, std::move(adapter));
-
-    ToolInfo info;
-    info.name = name;
-    info.category = category;
-    info.brief = brief;
-    info.description = description;
-    info.category_label = category;         // SDK 工具默认 label = category
-    info.category_description = String();   // SDK 工具无 category_description() 虚函数,显式留空
-    info.input_schema = schema;
-    info.is_meta = is_meta;
-    info.supports_undo = false;
-    info.is_destructive = false;
-    info.is_custom = true;
-    info.enabled = true;
-    tool_info_[name] = info;
-
-    rebuild_search_index();
-}
-
 bool HandlerRegistry::unregister_custom_tool(const String &name) {
     auto it_info = tool_info_.find(name);
     if (it_info == tool_info_.end() || !it_info->value.is_custom) {
         return false;
     }
     tool_info_.erase(name);
-    table_.erase(name);
 
     auto it_tool = itool_table_.find(name);
     if (it_tool != itool_table_.end()) {
@@ -84,7 +51,6 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool, bool is_custom)
     info.category = tool->category();
     info.brief = tool->brief();
     info.description = tool->description();
-    info.category_label = tool->category_label();
     info.category_description = tool->category_description();
     info.input_schema = tool->input_schema();
     info.is_meta = tool->is_meta();
@@ -95,12 +61,14 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool, bool is_custom)
     tool_info_[name] = info;
 
     itool_table_.emplace(name, std::move(tool));
+}
 
+void HandlerRegistry::finalize_registration() {
     rebuild_search_index();
 }
 
 // ---------------------------------------------------------------------------
-// Unified execution: ITool first, then CommandFn fallback
+// Unified execution: ITool dispatch
 // ---------------------------------------------------------------------------
 
 Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args) {
@@ -137,14 +105,6 @@ Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args) 
         return it->second->execute(args);
     }
 
-    // Fall back to CommandFn table
-    auto fn_it = table_.find(name);
-    if (fn_it != table_.end()) {
-        // CommandFn tools currently don't support undo wrapping
-        return fn_it->value(args);
-    }
-
-    // Tool not found
     Dictionary error;
     error["error"] = String("Tool not found: ") + name;
     return error;
@@ -179,36 +139,6 @@ Dictionary HandlerRegistry::make_tool_entry(const ToolInfo &info) const {
     d["supports_undo"] = info.supports_undo;
     d["is_destructive"] = info.is_destructive;
     return d;
-}
-
-Array HandlerRegistry::get_all_tools() const {
-    Array result;
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
-        result.push_back(make_tool_entry(kv.value));
-    }
-    return result;
-}
-
-Array HandlerRegistry::get_enabled_tools() const {
-    Array result;
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
-        if (kv.value.enabled) {
-            result.push_back(make_tool_entry(kv.value));
-        }
-    }
-    return result;
-}
-
-bool HandlerRegistry::is_tool_enabled(const String &name) const {
-    auto it = tool_info_.find(name);
-    return it != tool_info_.end() && it->value.enabled;
-}
-
-void HandlerRegistry::set_tool_enabled(const String &name, bool enabled) {
-    auto it = tool_info_.find(name);
-    if (it != tool_info_.end()) {
-        it->value.enabled = enabled;
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -264,9 +194,8 @@ Array HandlerRegistry::get_categories() const {
     struct CatNode {
         String name;
         String description;
-        String label;       // 顶级可被工具 category_label() 覆盖;非顶级为空,序列化时 prettify
-        int direct = 0;       // 直接挂载数(不含子分类)
-        int total = 0;        // 累加数(含子分类)
+        int direct = 0;
+        int total = 0;
         HashMap<String, CatNode> children;
     };
 
@@ -328,9 +257,7 @@ Array HandlerRegistry::get_categories() const {
                 const Array subs = child.children.is_empty()
                                        ? Array()
                                        : node_to_subs(child, child_path);
-                const String name = child.label.is_empty()
-                                        ? prettify_segment(child.name)
-                                        : child.label;
+                const String name = prettify_segment(child.name);
                 entries.push_back(cat_node_to_dict(
                     child.name, name, child_path,
                     child.direct, child.total,
@@ -358,10 +285,6 @@ Array HandlerRegistry::get_tools_in_category(const String &category) const {
         }
     }
     return result;
-}
-
-const ToolInfo *HandlerRegistry::get_tool_schema(const String &name) const {
-    return find_tool_info(name);
 }
 
 // ---------------------------------------------------------------------------

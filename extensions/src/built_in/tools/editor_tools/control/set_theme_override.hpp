@@ -19,10 +19,10 @@ public:
     String name() const override { return "set_theme_override"; }
     String category() const override { return "editor_tools/control"; }
     String brief() const override {
-        return String::utf8("Batch set theme overrides on a Control node");
+        return String("Batch set theme overrides on a Control node");
     }
     String description() const override {
-        return String::utf8("Sets theme property overrides (color, font, font_size, stylebox, constant, icon) "
+        return String("Sets theme property overrides (color, font, font_size, stylebox, constant, icon) "
                             "on a Control node. Uses begin_bulk_theme_override/end_bulk_theme_override for batch "
                             "application. Undo restores previous values or removes new overrides.");
     }
@@ -31,13 +31,13 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("Control node path");
+            p["description"] = String("Control node path");
             props["node_path"] = p;
         }
         {
             Dictionary p;
             p["type"] = "array";
-            p["description"] = String::utf8("Array of override items: [{type, name, value}, ...]");
+            p["description"] = String("Array of override items: [{type, name, value}, ...]");
             Dictionary items_props;
             {
                 Dictionary tp;
@@ -78,21 +78,19 @@ protected:
 
         Node *node = resolve_node(ctx.root, node_path);
         if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND", String::utf8("Node not found: ") + node_path);
+            return ToolResult::err("NODE_NOT_FOUND", String("Node not found: ") + node_path);
         }
         godot::Control *control = godot::Object::cast_to<godot::Control>(node);
         if (!control) {
-            return ToolResult::err("NOT_A_CONTROL", String::utf8("Node is not a Control: ") + node_path);
+            return ToolResult::err("NOT_A_CONTROL", String("Node is not a Control: ") + node_path);
         }
 
         int64_t count = overrides.size();
         if (count == 0) {
-            return ToolResult::err("EMPTY_OVERRIDES", String::utf8("No overrides provided"));
+            return ToolResult::err("EMPTY_OVERRIDES", String("No overrides provided"));
         }
 
         godot::TypedArray<Dictionary> undo_items;
-
-        control->begin_bulk_theme_override();
 
         for (int64_t i = 0; i < count; i++) {
             Dictionary item = overrides[i];
@@ -111,8 +109,6 @@ protected:
                 } else {
                     undo_item["had_previous"] = false;
                 }
-                godot::Color color = godot::Color::from_string(value, godot::Color());
-                control->add_theme_color_override(override_name, color);
 
             } else if (override_type == "font") {
                 if (control->has_theme_font_override(override_name)) {
@@ -120,16 +116,6 @@ protected:
                     undo_item["old_value"] = control->get_theme_font(override_name);
                 } else {
                     undo_item["had_previous"] = false;
-                }
-                godot::Ref<godot::Resource> font_res;
-                if (value.get_type() == Variant::STRING) {
-                    String s = value;
-                    if (s.begins_with("res://")) {
-                        font_res = godot::ResourceLoader::get_singleton()->load(s);
-                    }
-                }
-                if (font_res.is_valid()) {
-                    control->add_theme_font_override(override_name, godot::Ref<godot::Font>(font_res));
                 }
 
             } else if (override_type == "font_size") {
@@ -139,7 +125,6 @@ protected:
                 } else {
                     undo_item["had_previous"] = false;
                 }
-                control->add_theme_font_size_override(override_name, (int)args_int(item, "value", 14));
 
             } else if (override_type == "stylebox") {
                 if (control->has_theme_stylebox_override(override_name)) {
@@ -147,18 +132,6 @@ protected:
                     undo_item["old_value"] = control->get_theme_stylebox(override_name);
                 } else {
                     undo_item["had_previous"] = false;
-                }
-                if (value.get_type() == Variant::STRING) {
-                    String s = value;
-                    if (s.begins_with("res://")) {
-                        godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(s);
-                        if (res.is_valid()) {
-                            godot::Ref<godot::StyleBox> sb = res;
-                            if (sb.is_valid()) {
-                                control->add_theme_stylebox_override(override_name, sb);
-                            }
-                        }
-                    }
                 }
 
             } else if (override_type == "constant") {
@@ -168,7 +141,6 @@ protected:
                 } else {
                     undo_item["had_previous"] = false;
                 }
-                control->add_theme_constant_override(override_name, (int)args_int(item, "value", 0));
 
             } else if (override_type == "icon") {
                 if (control->has_theme_icon_override(override_name)) {
@@ -177,109 +149,153 @@ protected:
                 } else {
                     undo_item["had_previous"] = false;
                 }
-                if (value.get_type() == Variant::STRING) {
-                    String s = value;
-                    if (s.begins_with("res://")) {
-                        godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(s);
-                        if (res.is_valid()) {
-                            godot::Ref<godot::Texture2D> tex = res;
-                            if (tex.is_valid()) {
-                                control->add_theme_icon_override(override_name, tex);
-                            }
-                        }
-                    }
-                }
             }
 
             undo_items.append(undo_item);
         }
 
-        control->end_bulk_theme_override();
-
         godot::EditorUndoRedoManager *ur = get_undo_redo();
-        ur->create_action(String::utf8("MCP: Set Theme Overrides"),
-                          godot::UndoRedo::MERGE_DISABLE, ctx.root);
+        if (!ur) {
+            control->begin_bulk_theme_override();
+            for (int64_t i = 0; i < count; i++) {
+                Dictionary item = overrides[i];
+                String override_type = args_string(item, "type");
+                String override_name = args_string(item, "name");
+                Variant value = item.has("value") ? item["value"] : Variant();
 
-        ur->add_do_method(control, "begin_bulk_theme_override");
-        for (int64_t i = 0; i < count; i++) {
-            Dictionary item = overrides[i];
-            String override_type = args_string(item, "type");
-            String override_name = args_string(item, "name");
-            Variant value = item.has("value") ? item["value"] : Variant();
-
-            if (override_type == "color") {
-                godot::Color color = godot::Color::from_string(value, godot::Color());
-                ur->add_do_method(control, "add_theme_color_override", override_name, color);
-            } else if (override_type == "font_size") {
-                ur->add_do_method(control, "add_theme_font_size_override", override_name, (int)args_int(item, "value", 14));
-            } else if (override_type == "constant") {
-                ur->add_do_method(control, "add_theme_constant_override", override_name, (int)args_int(item, "value", 0));
-            } else if (override_type == "font") {
-                if (value.get_type() == Variant::STRING) {
-                    String s = value;
-                    if (s.begins_with("res://")) {
-                        godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(s);
-                        if (res.is_valid()) {
-                            ur->add_do_method(control, "add_theme_font_override", override_name, res);
-                        }
-                    }
-                }
-            } else if (override_type == "stylebox") {
-                if (value.get_type() == Variant::STRING) {
-                    String s = value;
-                    if (s.begins_with("res://")) {
-                        godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(s);
-                        if (res.is_valid()) {
-                            ur->add_do_method(control, "add_theme_stylebox_override", override_name, res);
-                        }
-                    }
-                }
-            } else if (override_type == "icon") {
-                if (value.get_type() == Variant::STRING) {
-                    String s = value;
-                    if (s.begins_with("res://")) {
-                        godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(s);
-                        if (res.is_valid()) {
-                            ur->add_do_method(control, "add_theme_icon_override", override_name, res);
-                        }
-                    }
-                }
-            }
-        }
-        ur->add_do_method(control, "end_bulk_theme_override");
-
-        ur->add_undo_method(control, "begin_bulk_theme_override");
-        for (int64_t i = 0; i < undo_items.size(); i++) {
-            Dictionary ui = undo_items[i];
-            String override_type = args_string(ui, "type");
-            String override_name = args_string(ui, "name");
-            bool had_previous = args_bool(ui, "had_previous", false);
-
-            if (!had_previous) {
                 if (override_type == "color") {
-                    ur->add_undo_method(control, "remove_theme_color_override", override_name);
+                    godot::Color color = godot::Color::from_string(value, godot::Color());
+                    control->add_theme_color_override(override_name, color);
                 } else if (override_type == "font") {
-                    ur->add_undo_method(control, "remove_theme_font_override", override_name);
+                    godot::Ref<godot::Resource> font_res;
+                    if (value.get_type() == Variant::STRING) {
+                        String s = value;
+                        if (s.begins_with("res://")) {
+                            font_res = godot::ResourceLoader::get_singleton()->load(s);
+                        }
+                    }
+                    if (font_res.is_valid()) {
+                        control->add_theme_font_override(override_name, godot::Ref<godot::Font>(font_res));
+                    }
                 } else if (override_type == "font_size") {
-                    ur->add_undo_method(control, "remove_theme_font_size_override", override_name);
+                    control->add_theme_font_size_override(override_name, (int)args_int(item, "value", 14));
                 } else if (override_type == "stylebox") {
-                    ur->add_undo_method(control, "remove_theme_stylebox_override", override_name);
+                    if (value.get_type() == Variant::STRING) {
+                        String s = value;
+                        if (s.begins_with("res://")) {
+                            godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(s);
+                            if (res.is_valid()) {
+                                godot::Ref<godot::StyleBox> sb = res;
+                                if (sb.is_valid()) {
+                                    control->add_theme_stylebox_override(override_name, sb);
+                                }
+                            }
+                        }
+                    }
                 } else if (override_type == "constant") {
-                    ur->add_undo_method(control, "remove_theme_constant_override", override_name);
+                    control->add_theme_constant_override(override_name, (int)args_int(item, "value", 0));
                 } else if (override_type == "icon") {
-                    ur->add_undo_method(control, "remove_theme_icon_override", override_name);
-                }
-            } else {
-                Variant old_val = ui["old_value"];
-                if (override_type == "color") {
-                    ur->add_undo_method(control, "add_theme_color_override", override_name, old_val);
-                } else {
-                    ur->add_undo_method(control, "add_theme_" + override_type + "_override", override_name, old_val);
+                    if (value.get_type() == Variant::STRING) {
+                        String s = value;
+                        if (s.begins_with("res://")) {
+                            godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(s);
+                            if (res.is_valid()) {
+                                godot::Ref<godot::Texture2D> tex = res;
+                                if (tex.is_valid()) {
+                                    control->add_theme_icon_override(override_name, tex);
+                                }
+                            }
+                        }
+                    }
                 }
             }
+            control->end_bulk_theme_override();
+            mark_scene_dirty();
+        } else {
+            ur->create_action(String("MCP: Set Theme Overrides"),
+                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
+
+            ur->add_do_method(control, "begin_bulk_theme_override");
+            for (int64_t i = 0; i < count; i++) {
+                Dictionary item = overrides[i];
+                String override_type = args_string(item, "type");
+                String override_name = args_string(item, "name");
+                Variant value = item.has("value") ? item["value"] : Variant();
+
+                if (override_type == "color") {
+                    godot::Color color = godot::Color::from_string(value, godot::Color());
+                    ur->add_do_method(control, "add_theme_color_override", override_name, color);
+                } else if (override_type == "font_size") {
+                    ur->add_do_method(control, "add_theme_font_size_override", override_name, (int)args_int(item, "value", 14));
+                } else if (override_type == "constant") {
+                    ur->add_do_method(control, "add_theme_constant_override", override_name, (int)args_int(item, "value", 0));
+                } else if (override_type == "font") {
+                    if (value.get_type() == Variant::STRING) {
+                        String s = value;
+                        if (s.begins_with("res://")) {
+                            godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(s);
+                            if (res.is_valid()) {
+                                ur->add_do_method(control, "add_theme_font_override", override_name, res);
+                            }
+                        }
+                    }
+                } else if (override_type == "stylebox") {
+                    if (value.get_type() == Variant::STRING) {
+                        String s = value;
+                        if (s.begins_with("res://")) {
+                            godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(s);
+                            if (res.is_valid()) {
+                                ur->add_do_method(control, "add_theme_stylebox_override", override_name, res);
+                            }
+                        }
+                    }
+                } else if (override_type == "icon") {
+                    if (value.get_type() == Variant::STRING) {
+                        String s = value;
+                        if (s.begins_with("res://")) {
+                            godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(s);
+                            if (res.is_valid()) {
+                                ur->add_do_method(control, "add_theme_icon_override", override_name, res);
+                            }
+                        }
+                    }
+                }
+            }
+            ur->add_do_method(control, "end_bulk_theme_override");
+
+            ur->add_undo_method(control, "begin_bulk_theme_override");
+            for (int64_t i = 0; i < undo_items.size(); i++) {
+                Dictionary ui = undo_items[i];
+                String override_type = args_string(ui, "type");
+                String override_name = args_string(ui, "name");
+                bool had_previous = args_bool(ui, "had_previous", false);
+
+                if (!had_previous) {
+                    if (override_type == "color") {
+                        ur->add_undo_method(control, "remove_theme_color_override", override_name);
+                    } else if (override_type == "font") {
+                        ur->add_undo_method(control, "remove_theme_font_override", override_name);
+                    } else if (override_type == "font_size") {
+                        ur->add_undo_method(control, "remove_theme_font_size_override", override_name);
+                    } else if (override_type == "stylebox") {
+                        ur->add_undo_method(control, "remove_theme_stylebox_override", override_name);
+                    } else if (override_type == "constant") {
+                        ur->add_undo_method(control, "remove_theme_constant_override", override_name);
+                    } else if (override_type == "icon") {
+                        ur->add_undo_method(control, "remove_theme_icon_override", override_name);
+                    }
+                } else {
+                    Variant old_val = ui["old_value"];
+                    if (override_type == "color") {
+                        ur->add_undo_method(control, "add_theme_color_override", override_name, old_val);
+                    } else {
+                        ur->add_undo_method(control, "add_theme_" + override_type + "_override", override_name, old_val);
+                    }
+                }
+            }
+            ur->add_undo_method(control, "end_bulk_theme_override");
+            ur->commit_action();
         }
-        ur->add_undo_method(control, "end_bulk_theme_override");
-        ur->commit_action();
 
         Dictionary data;
         data["overrides_applied"] = count;

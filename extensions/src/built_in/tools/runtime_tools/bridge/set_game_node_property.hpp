@@ -19,7 +19,6 @@ public:
                              "node_path is the node path, property is the property name, "
                              "value is the new value to set.");
     }
-    bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
     Dictionary input_schema() const override {
@@ -38,7 +37,6 @@ public:
         }
         {
             Dictionary d;
-            d["type"] = "object";
             d["description"] = String("New value to set");
             p["value"] = d;
         }

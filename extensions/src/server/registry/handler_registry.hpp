@@ -24,7 +24,6 @@ struct ToolInfo {
     godot::String description;
     godot::String brief;
     godot::String category;
-    godot::String category_label;
     godot::String category_description;
     bool is_meta = false;
     bool supports_undo = false;
@@ -39,27 +38,17 @@ public:
     HandlerRegistry();
     ~HandlerRegistry();
 
-    // ── SDK 自定义工具注册（CommandFn）──
-    void register_custom_tool(const godot::String &name, const godot::String &category,
-                              const godot::String &brief, const godot::String &description,
-                              const godot::Dictionary &schema, CommandFn fn,
-                              bool is_meta = false);
     bool unregister_custom_tool(const godot::String &name);
 
-    // ── ITool 注册──
     void register_tool(std::unique_ptr<ITool> tool, bool is_custom = false);
+    void finalize_registration(); // call after all tools are registered
     godot::Dictionary execute(const godot::String &name, const godot::Dictionary &args);
 
     const ToolInfo *find_tool_info(const godot::String &name) const;
-    godot::Array get_all_tools() const;
-    godot::Array get_enabled_tools() const;
-    bool is_tool_enabled(const godot::String &name) const;
-    void set_tool_enabled(const godot::String &name, bool enabled);
 
     // --- Category queries (for progressive disclosure) ---
     godot::Array get_categories() const;
     godot::Array get_tools_in_category(const godot::String &category) const;
-    const ToolInfo *get_tool_schema(const godot::String &name) const;
 
     // --- Always-on tools list ---
     godot::Array get_always_on_tools() const;
@@ -89,7 +78,6 @@ private:
     static godot::PackedStringArray tokenize(const godot::String &text);
     void rebuild_search_index();
 
-    godot::HashMap<godot::String, CommandFn> table_;
     std::map<godot::String, std::unique_ptr<ITool>> itool_table_;
     godot::HashMap<godot::String, ToolInfo> tool_info_;
     godot::HashMap<godot::String, godot::Array> search_index_;
