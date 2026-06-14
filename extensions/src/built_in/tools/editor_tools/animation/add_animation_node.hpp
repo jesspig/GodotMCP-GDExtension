@@ -81,8 +81,8 @@ protected:
         godot::Vector2 position;
         if (ctx.args.has("position") && ctx.args["position"].get_type() == Variant::DICTIONARY) {
             Dictionary pos = ctx.args["position"];
-            position.x = (real_t)args_float(pos, "x", 0.0);
-            position.y = (real_t)args_float(pos, "y", 0.0);
+            position.x = static_cast<real_t>(args_float(pos, "x", 0.0));
+            position.y = static_cast<real_t>(args_float(pos, "y", 0.0));
         }
 
         Node *node = resolve_node(ctx.root, tree_path);

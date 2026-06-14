@@ -162,7 +162,7 @@ protected:
         Dictionary data;
         data["topic"] = topic;
         data["guidelines"] = guidelines;
-        data["count"] = (int64_t)guidelines.size();
+        data["count"] = static_cast<int64_t>(guidelines.size());
         return ToolResult::ok(data);
     }
 };

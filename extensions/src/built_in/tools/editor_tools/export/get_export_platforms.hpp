@@ -50,7 +50,7 @@ protected:
             }
 
             Dictionary info = platforms[platform];
-            info["preset_count"] = (int64_t)info["preset_count"] + 1;
+            info["preset_count"] = static_cast<int64_t>(info["preset_count"]) + 1;
             if (preset.get("runnable", false)) {
                 info["has_runnable"] = true;
             }
@@ -65,7 +65,7 @@ protected:
 
         Dictionary data;
         data["platforms"] = results;
-        data["count"] = (int64_t)results.size();
+        data["count"] = static_cast<int64_t>(results.size());
         return ToolResult::ok(data);
     }
 };

@@ -105,7 +105,7 @@ protected:
 
         Dictionary data;
         data["files"] = matched;
-        data["total"] = (int64_t)matched.size();
+        data["total"] = static_cast<int64_t>(matched.size());
         data["truncated"] = truncated;
         data["pattern"] = pattern;
         return ToolResult::ok(data);

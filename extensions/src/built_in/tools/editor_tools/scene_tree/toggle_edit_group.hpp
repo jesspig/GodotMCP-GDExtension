@@ -57,7 +57,7 @@ protected:
         bool current = node->has_meta("_edit_group_");
         bool enable;
         if (ctx.args.has("enable")) {
-            enable = (bool)ctx.args["enable"];
+            enable = static_cast<bool>(ctx.args["enable"]);
         } else {
             enable = !current;
         }

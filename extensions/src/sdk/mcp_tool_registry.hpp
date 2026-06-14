@@ -38,7 +38,9 @@ public:
         const godot::String &description,
         const godot::Dictionary &input_schema,
         const godot::Callable &handler,
-        bool is_meta = false);
+        bool is_meta = false,
+        bool supports_undo = false,
+        bool is_destructive = false);
     bool unregister_tool(const godot::String &name);
 
     // --- Query ---

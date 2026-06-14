@@ -30,7 +30,7 @@ Error HttpServer::start(uint16_t port, McpHandler *mcp_handler, const String &bi
     if (err != OK) {
         log_error("http", String("Failed to listen on ") + bind_address_ +
                               String(":") + String::num_int64(port) +
-                              String(" (err=") + String::num_int64((int64_t)err) + String(")"));
+                              String(" (err=") + String::num_int64(static_cast<int64_t>(err)) + String(")"));
         tcp_server_.unref();
         return err;
     }
@@ -69,8 +69,14 @@ bool HttpServer::is_listening() const {
 // -------------------------------------------------------------------------
 void HttpServer::poll() {
     if (!tcp_server_.is_valid() || !tcp_server_->is_listening()) return;
-    if (polling_) return; // Re-entrancy guard (EditorProgress → Main::iteration → _process → poll)
+    if (polling_) return; // Re-entrancy guard (EditorProgress �?Main::iteration �?_process �?poll)
+    struct PollGuard {
+        HttpServer &server;
+        ~PollGuard() { server.polling_ = false; }
+    } guard{*this};
     polling_ = true;
+
+    const uint64_t now = Time::get_singleton()->get_ticks_msec();
 
     check_timeouts();
 
@@ -104,6 +110,10 @@ void HttpServer::poll() {
 
         // SSE stream: flush events
         if (conn.is_sse_stream) {
+            if (now - conn.sse_last_event_msec > 300000) {
+                dead.push_back(conn_id);
+                continue;
+            }
             if (conn.sse_write_errored) {
                 dead.push_back(conn_id);
                 continue;
@@ -128,8 +138,8 @@ void HttpServer::poll() {
             conn.last_activity_msec = Time::get_singleton()->get_ticks_msec();
 
             if (!conn.headers_done) {
-                const Array read_result = conn.tcp->get_data((int)avail);
-                if ((Error)(int)read_result[0] != OK) {
+                const Array read_result = conn.tcp->get_data(static_cast<int>(avail));
+                if (static_cast<Error>(static_cast<int>(read_result[0])) != OK) {
                     dead.push_back(conn_id); continue;
                 }
                 const PackedByteArray chunk = read_result[1];
@@ -162,11 +172,11 @@ void HttpServer::poll() {
                 if (conn.content_length > 0 && conn.body.size() < conn.content_length) {
                     const int remaining = conn.content_length - conn.body.size();
                     const int max_read = kMaxBodyLength - conn.body.size();
-                    int to_read = (int)avail < remaining ? (int)avail : remaining;
+                    int to_read = static_cast<int>(avail) < remaining ? static_cast<int>(avail) : remaining;
                     if (to_read > max_read) to_read = max_read;
                     if (to_read <= 0) { dead.push_back(conn_id); continue; }
                     const Array read_result = conn.tcp->get_data(to_read);
-                    if ((Error)(int)read_result[0] != OK) {
+                    if (static_cast<Error>(static_cast<int>(read_result[0])) != OK) {
                         dead.push_back(conn_id); continue;
                     }
                     const PackedByteArray read_chunk = read_result[1];
@@ -210,7 +220,7 @@ void HttpServer::poll() {
             try_read_body(conn);
         }
 
-        // Body complete → dispatch
+        // Body complete �?dispatch
         if (conn.headers_done && (conn.content_length <= 0 || conn.body.size() >= conn.content_length)) {
             // Non-SSE connections close after each request (poll architecture can't
             // reliably handle rapid-fire keepalive due to frame timing).
@@ -225,7 +235,6 @@ void HttpServer::poll() {
     }
 
     for (int i = 0; i < dead.size(); ++i) close_connection(dead[i]);
-    polling_ = false;
 }
 
 // -------------------------------------------------------------------------
@@ -392,7 +401,7 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
 
     const Dictionary msg = root;
 
-    // Notification or response (no `id` field or has `result`/`error`) → 202
+    // Notification or response (no `id` field or has `result`/`error`) �?202
     const bool has_result_or_error = msg.has("result") || msg.has("error");
     const bool is_notification_or_response = !msg.has("id") || has_result_or_error;
 
@@ -419,7 +428,7 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
 }
 
 // -------------------------------------------------------------------------
-// GET /mcp — SSE stream
+// GET /mcp �?SSE stream
 // -------------------------------------------------------------------------
 void HttpServer::handle_get(int conn_id, Connection &conn) {
     if (conn.path != "/mcp") {
@@ -463,11 +472,12 @@ void HttpServer::handle_get(int conn_id, Connection &conn) {
     }
 
     conn.is_sse_stream = true; // SSE resumption via Last-Event-ID is not supported
+    conn.sse_last_event_msec = Time::get_singleton()->get_ticks_msec();
     send_sse_headers(conn_id, conn);
 }
 
 // -------------------------------------------------------------------------
-// DELETE /mcp — session termination
+// DELETE /mcp �?session termination
 // -------------------------------------------------------------------------
 void HttpServer::handle_delete(int conn_id, Connection &conn) {
     if (conn.path != "/mcp") {

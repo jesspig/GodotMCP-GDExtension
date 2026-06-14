@@ -191,17 +191,17 @@ Variant dict_to_specific_type(const Dictionary &d) {
     const bool has_w = d.has("w");
 
     if (has_x && has_y && !has_z && !has_w) {
-        return Vector2((double)d["x"], (double)d["y"]);
+        return Vector2(static_cast<double>(d["x"]), static_cast<double>(d["y"]));
     }
     if (has_x && has_y && has_z && !has_w) {
-        return Vector3((double)d["x"], (double)d["y"], (double)d["z"]);
+        return Vector3(static_cast<double>(d["x"]), static_cast<double>(d["y"]), static_cast<double>(d["z"]));
     }
     if (has_x && has_y && has_z && has_w) {
-        return Vector4((double)d["x"], (double)d["y"], (double)d["z"], (double)d["w"]);
+        return Vector4(static_cast<double>(d["x"]), static_cast<double>(d["y"]), static_cast<double>(d["z"]), static_cast<double>(d["w"]));
     }
     if (d.has("r") && d.has("g") && d.has("b")) {
-        const double a = d.has("a") ? (double)d["a"] : 1.0;
-        return Color((double)d["r"], (double)d["g"], (double)d["b"], a);
+        const double a = d.has("a") ? static_cast<double>(d["a"] ): 1.0;
+        return Color(static_cast<double>(d["r"]), static_cast<double>(d["g"]), static_cast<double>(d["b"]), a);
     }
     if (d.has("position") && d.has("size")) {
         const Variant pos_v = d["position"];
@@ -214,7 +214,7 @@ Variant dict_to_specific_type(const Dictionary &d) {
                                  ? dict_to_specific_type(size_v)
                                  : size_v;
         if (pos.get_type() == Variant::VECTOR2 && size.get_type() == Variant::VECTOR2) {
-            return Rect2((Vector2)pos, (Vector2)size);
+            return Rect2(static_cast<Vector2>(pos), static_cast<Vector2>(size));
         }
     }
     if (d.has("resource_path")) {
@@ -281,13 +281,13 @@ Variant json_to_variant(const Variant &jv) {
             }
             if (all_numeric) {
                 if (src.size() == 2) {
-                    return Vector2((double)src[0], (double)src[1]);
+                    return Vector2(static_cast<double>(src[0]), static_cast<double>(src[1]));
                 }
                 if (src.size() == 3) {
-                    return Vector3((double)src[0], (double)src[1], (double)src[2]);
+                    return Vector3(static_cast<double>(src[0]), static_cast<double>(src[1]), static_cast<double>(src[2]));
                 }
                 if (src.size() == 4) {
-                    return Color((double)src[0], (double)src[1], (double)src[2], (double)src[3]);
+                    return Color(static_cast<double>(src[0]), static_cast<double>(src[1]), static_cast<double>(src[2]), static_cast<double>(src[3]));
                 }
             }
             Array out;

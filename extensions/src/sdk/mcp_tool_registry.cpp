@@ -109,7 +109,6 @@ void McpToolRegistry::register_definition(McpToolDefinition *tool_def) {
     }
 
     log_info("sdk", String("Registered custom tool: ") + resolved);
-    emit_signal("tool_registered", resolved);
     notify_tools_changed();
 }
 
@@ -129,7 +128,9 @@ void McpToolRegistry::register_tool(
     const String &description,
     const Dictionary &input_schema,
     const Callable &handler,
-    bool is_meta) {
+    bool is_meta,
+    bool supports_undo,
+    bool is_destructive) {
 
     if (name.is_empty()) {
         log_warn("sdk", "register_tool called with empty name, skipping");
@@ -153,8 +154,8 @@ void McpToolRegistry::register_tool(
     ct.description = description;
     ct.input_schema = input_schema;
     ct.is_meta = is_meta;
-    ct.supports_undo = false;
-    ct.is_destructive = false;
+    ct.supports_undo = supports_undo;
+    ct.is_destructive = is_destructive;
     tools_[resolved] = ct;
 
     // Register via IToolAdapter
@@ -162,12 +163,11 @@ void McpToolRegistry::register_tool(
         Callable captured_handler = handler;
         auto adapter = std::make_unique<IToolAdapter>(
             resolved, category, brief, description, input_schema,
-            captured_handler, is_meta);
+            captured_handler, is_meta, false, false, supports_undo, is_destructive);
         handler_registry_->register_tool(std::move(adapter), true);
     }
 
     log_info("sdk", String("Registered custom tool: ") + resolved);
-    emit_signal("tool_registered", resolved);
     notify_tools_changed();
 }
 
@@ -185,7 +185,6 @@ bool McpToolRegistry::unregister_tool(const String &name) {
     }
 
     log_info("sdk", String("Unregistered custom tool: ") + resolved);
-    emit_signal("tool_unregistered", resolved);
     notify_tools_changed();
     return true;
 }
@@ -250,8 +249,8 @@ void McpToolRegistry::_bind_methods() {
     // Mode B
     ClassDB::bind_method(D_METHOD("register_tool", "name", "category", "brief",
                                   "description", "input_schema", "handler",
-                                  "is_meta"),
-                         &McpToolRegistry::register_tool, DEFVAL(false));
+                                  "is_meta", "supports_undo", "is_destructive"),
+                         &McpToolRegistry::register_tool, DEFVAL(false), DEFVAL(false), DEFVAL(false));
     ClassDB::bind_method(D_METHOD("unregister_tool", "name"),
                          &McpToolRegistry::unregister_tool);
 
@@ -263,11 +262,7 @@ void McpToolRegistry::_bind_methods() {
     ClassDB::bind_method(D_METHOD("get_custom_tool_count"),
                          &McpToolRegistry::get_custom_tool_count);
 
-    // Signals
-    ADD_SIGNAL(MethodInfo("tool_registered",
-                          PropertyInfo(Variant::STRING, "name")));
-    ADD_SIGNAL(MethodInfo("tool_unregistered",
-                          PropertyInfo(Variant::STRING, "name")));
+    // Signals (currently unused, removed to avoid dead code)
 }
 
 } // namespace godot_mcp

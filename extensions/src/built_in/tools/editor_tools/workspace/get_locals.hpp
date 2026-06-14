@@ -50,7 +50,7 @@ protected:
             return ToolResult::ok(data);
         }
 
-        bool is_breaked = (bool)active_dbg->call("is_breaked");
+        bool is_breaked = static_cast<bool>(active_dbg->call("is_breaked"));
         if (!is_breaked) {
             Dictionary data;
             data["breaked"] = false;
@@ -60,7 +60,7 @@ protected:
         }
 
         Array locals;
-        int64_t var_count = (int64_t)active_dbg->call("get_stack_variable_count", frame);
+        int64_t var_count = static_cast<int64_t>(active_dbg->call("get_stack_variable_count", frame));
         for (int64_t i = 0; i < var_count; i++) {
             Dictionary var_info = active_dbg->call("get_stack_variable", frame, i);
             Dictionary entry;

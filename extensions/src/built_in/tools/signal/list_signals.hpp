@@ -67,7 +67,7 @@ protected:
             out["args"] = args_out;
 
             Array default_args = sig.get("default_args", Array());
-            out["default_arg_count"] = (int64_t)default_args.size();
+            out["default_arg_count"] = static_cast<int64_t>(default_args.size());
 
             result.push_back(out);
         }
@@ -75,7 +75,7 @@ protected:
         Dictionary data;
         data["node"] = relative_path(ctx.root, node);
         data["signals"] = result;
-        data["count"] = (int64_t)result.size();
+        data["count"] = static_cast<int64_t>(result.size());
 
         return ToolResult::ok(data);
     }

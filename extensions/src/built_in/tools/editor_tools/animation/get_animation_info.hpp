@@ -84,7 +84,7 @@ protected:
             lib_dict["name"] = String(lib_name);
 
             godot::TypedArray<godot::StringName> anim_names = lib->get_animation_list();
-            lib_dict["animation_count"] = (int64_t)anim_names.size();
+            lib_dict["animation_count"] = static_cast<int64_t>(anim_names.size());
 
             Array anims_arr;
             for (int64_t j = 0; j < anim_names.size(); j++) {
@@ -94,9 +94,9 @@ protected:
 
                 Dictionary anim_dict;
                 anim_dict["name"] = String(anim_name);
-                anim_dict["length"] = (double)anim->get_length();
+                anim_dict["length"] = static_cast<double>(anim->get_length());
 
-                int32_t loop = (int32_t)anim->get_loop_mode();
+                int32_t loop = static_cast<int32_t>(anim->get_loop_mode());
                 String loop_str;
                 if (loop == godot::Animation::LOOP_NONE) loop_str = "none";
                 else if (loop == godot::Animation::LOOP_LINEAR) loop_str = "linear";
@@ -109,10 +109,10 @@ protected:
                 Array tracks_arr;
                 for (int32_t k = 0; k < track_count; k++) {
                     Dictionary track_dict;
-                    track_dict["index"] = (int64_t)k;
-                    track_dict["type"] = String::num_int64((int64_t)anim->track_get_type(k));
+                    track_dict["index"] = static_cast<int64_t>(k);
+                    track_dict["type"] = String::num_int64(static_cast<int64_t>(anim->track_get_type(k)));
                     track_dict["path"] = String(anim->track_get_path(k));
-                    track_dict["key_count"] = (int64_t)anim->track_get_key_count(k);
+                    track_dict["key_count"] = static_cast<int64_t>(anim->track_get_key_count(k));
                     tracks_arr.append(track_dict);
                 }
                 anim_dict["tracks"] = tracks_arr;

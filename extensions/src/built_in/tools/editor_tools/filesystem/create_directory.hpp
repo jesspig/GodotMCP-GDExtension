@@ -51,7 +51,7 @@ protected:
         Error err = godot::DirAccess::make_dir_recursive_absolute(path);
         if (err != Error::OK) {
             return ToolResult::err("MKDIR_FAILED",
-                "Failed to create directory, error code: " + String::num_int64((int64_t)err));
+                "Failed to create directory, error code: " + String::num_int64(static_cast<int64_t>(err)));
         }
 
         fs_utils::notify_fs_changes();

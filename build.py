@@ -90,7 +90,7 @@ def detect_vctargetspath() -> str | None:
         if result.returncode == 0 and result.stdout.strip():
             vs_path = Path(result.stdout.strip())
             # Try v180 (VS 2026), v170 (VS 2022), v160 (VS 2019)
-            for ver in ("v180", "v170", "v160"):
+            for ver in ("v170", "v160"):
                 vc_path = vs_path / "MSBuild" / "Microsoft" / "VC" / ver
                 if vc_path.exists():
                     return str(vc_path) + "\\"

@@ -65,7 +65,7 @@ protected:
         if (search_result.get_type() == Variant::DICTIONARY) {
             Dictionary sr = search_result;
             Array items = sr.get("results", Array());
-            for (int i = 0; i < items.size() && (int64_t)results.size() < max_results; i++) {
+            for (int i = 0; i < items.size() && static_cast<int64_t>(results.size()) < max_results; i++) {
                 Dictionary item = items[i];
                 Dictionary entry;
                 entry["class_name"] = item.get("class_name", "");
@@ -92,7 +92,7 @@ protected:
 
         Dictionary data;
         data["results"] = results;
-        data["count"] = (int64_t)results.size();
+        data["count"] = static_cast<int64_t>(results.size());
         data["query"] = query;
         return ToolResult::ok(data);
     }

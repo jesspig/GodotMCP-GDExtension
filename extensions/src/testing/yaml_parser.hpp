@@ -36,7 +36,7 @@ inline godot::Variant parse_scalar(const c4::csubstr &val) {
 
     char *end = nullptr;
     const long long int_val = std::strtoll(s.c_str(), &end, 0);
-    if (end != s.c_str() && *end == '\0') return (int64_t)int_val;
+    if (end != s.c_str() && *end == '\0') return static_cast<int64_t>(int_val);
 
     end = nullptr;
     const double float_val = std::strtod(s.c_str(), &end);

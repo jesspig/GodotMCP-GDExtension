@@ -40,7 +40,7 @@ endif()
 
 # MSVC: treat source files & execution charset as UTF-8 (fixes CJK in string literals)
 if(MSVC)
-    add_compile_options(/utf-8 /bigobj /D_CRT_SECURE_NO_WARNINGS)
+    add_compile_options(/utf-8 /bigobj)
     # Embed debug info in .obj files (/Z7) to avoid C1041 PDB conflicts with sccache + /MP.
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded)
 endif()
@@ -55,9 +55,6 @@ set(_gdext_bin_dir "${_addon_dir}/bin")
 file(MAKE_DIRECTORY "${_addon_dir}")
 file(MAKE_DIRECTORY "${_gdext_bin_dir}")
 
-# ---------------------------------------------------------------------------
-# Generate addon config files (plugin.cfg, .gdextension)
-# ---------------------------------------------------------------------------
 file(WRITE "${_addon_dir}/plugin.cfg"
     "[plugin]\n"
     "name=\"Godot MCP\"\n"

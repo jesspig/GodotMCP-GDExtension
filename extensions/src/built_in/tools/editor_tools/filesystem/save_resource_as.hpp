@@ -88,7 +88,7 @@ protected:
         if (err != godot::OK) {
             return ToolResult::err("SAVE_FAILED",
                 String("Failed to save resource (error ") +
-                String::num_int64((int64_t)err) + String("): ") + save_path);
+                String::num_int64(static_cast<int64_t>(err)) + String("): ") + save_path);
         }
 
         fs_utils::notify_file_changed(save_path);

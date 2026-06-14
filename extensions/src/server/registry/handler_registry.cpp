@@ -60,7 +60,7 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool, bool is_custom)
     info.enabled = true;
     tool_info_[name] = info;
 
-    itool_table_.emplace(name, std::move(tool));
+    itool_table_[name] = std::move(tool);  // operator[] 与 tool_info_ 保持一致（覆盖）
 }
 
 void HandlerRegistry::finalize_registration() {
@@ -157,9 +157,21 @@ namespace {
 
 String prettify_segment(const String &seg) {
     if (seg.is_empty()) return seg;
-    // Replace underscores with spaces, then capitalize first letter
     String result = seg.replace("_", " ");
-    return result.substr(0, 1).to_upper() + result.substr(1);
+    // 查找首字母位置（跳过开头的数字，如 "3d" → "3D", "2d" → "2D"）
+    int first_letter = -1;
+    for (int i = 0; i < result.length(); i++) {
+        char32_t c = result[i];
+        if ((c >= U'a' && c <= U'z') || (c >= U'A' && c <= U'Z')) {
+            first_letter = i;
+            break;
+        }
+    }
+    if (first_letter >= 0) {
+        String upper = result.substr(first_letter, 1).to_upper();
+        result = result.substr(0, first_letter) + upper + result.substr(first_letter + 1);
+    }
+    return result;
 }
 
 }  // namespace
@@ -368,45 +380,39 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
     const String q = query.to_lower().strip_edges();
     HashMap<String, int> best_weight;
 
-    // Phase 1: Exact match (weight 1000)
+    // Single pass: evaluate all matching strategies for each tool (权重降序检查)
     for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
         if (!category.is_empty() && !kv.value.category.begins_with(category)) continue;
-        if (kv.value.name.to_lower() == q) {
+
+        const String name_lower = kv.value.name.to_lower();
+
+        // Exact match (weight 1000)
+        if (name_lower == q) {
             best_weight[kv.key] = 1000;
+            continue;
         }
-    }
 
-    // Phase 2: Prefix match (weight 500)
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
-        if (!category.is_empty() && !kv.value.category.begins_with(category)) continue;
-        if (kv.value.name.to_lower().begins_with(q)) {
-            if (!best_weight.has(kv.key) || best_weight[kv.key] < 500) {
-                best_weight[kv.key] = 500;
-            }
+        // Prefix match (weight 500)
+        if (name_lower.begins_with(q)) {
+            best_weight[kv.key] = 500;
+            continue;
         }
-    }
 
-    // Phase 3: Token fuzzy — any token contains query (weight 200)
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
-        if (!category.is_empty() && !kv.value.category.begins_with(category)) continue;
+        // Token fuzzy — any token contains query (weight 200)
         PackedStringArray tokens = tokenize(kv.value.name + String(" ") + kv.value.brief + String(" ") + kv.value.description);
+        bool token_matched = false;
         for (int i = 0; i < tokens.size(); ++i) {
             if (tokens[i].find(q) >= 0) {
-                if (!best_weight.has(kv.key) || best_weight[kv.key] < 200) {
-                    best_weight[kv.key] = 200;
-                }
+                best_weight[kv.key] = 200;
+                token_matched = true;
                 break;
             }
         }
-    }
+        if (token_matched) continue;
 
-    // Phase 4: Fulltext description substring (weight 50)
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
-        if (!category.is_empty() && !kv.value.category.begins_with(category)) continue;
+        // Fulltext description substring (weight 50)
         if (kv.value.description.to_lower().find(q) >= 0) {
-            if (!best_weight.has(kv.key) || best_weight[kv.key] < 50) {
-                best_weight[kv.key] = 50;
-            }
+            best_weight[kv.key] = 50;
         }
     }
 
@@ -434,7 +440,7 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
 
     // Build output
     Array result;
-    for (int i = 0; i < (int)scored.size() && i < limit; ++i) {
+    for (int i = 0; i < static_cast<int>(scored.size()) && i < limit; ++i) {
         Dictionary entry;
         entry["name"] = scored[i].name;
         const ToolInfo *info = find_tool_info(scored[i].name);

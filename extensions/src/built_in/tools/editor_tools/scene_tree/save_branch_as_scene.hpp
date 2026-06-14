@@ -89,14 +89,14 @@ protected:
         node->set_scene_file_path(old_sfp);
         if (err != godot::OK) {
             return ToolResult::err("SAVE_FAILED",
-                "Save failed, error code: " + String::num_int64((int64_t)err));
+                "Save failed, error code: " + String::num_int64(static_cast<int64_t>(err)));
         }
         notify_file_changed(path);
 
         Dictionary data;
         data["path"] = path;
         data["node"] = relative_path(ctx.root, node);
-        data["child_count"] = (int64_t)node->get_child_count();
+        data["child_count"] = static_cast<int64_t>(node->get_child_count());
         return ToolResult::ok(data);
     }
 };

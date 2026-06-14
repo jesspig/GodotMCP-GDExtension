@@ -81,8 +81,8 @@ protected:
             entry["valid"] = errors.size() == 0;
             entry["warnings"] = warnings;
             entry["errors"] = errors;
-            entry["warning_count"] = (int64_t)warnings.size();
-            entry["error_count"] = (int64_t)errors.size();
+            entry["warning_count"] = static_cast<int64_t>(warnings.size());
+            entry["error_count"] = static_cast<int64_t>(errors.size());
             results.append(entry);
         }
 
@@ -95,15 +95,15 @@ protected:
         int total_warnings = 0;
         for (int i = 0; i < results.size(); i++) {
             Dictionary r = results[i];
-            total_errors += (int)r["error_count"];
-            total_warnings += (int)r["warning_count"];
+            total_errors += static_cast<int>(r["error_count"]);
+            total_warnings += static_cast<int>(r["warning_count"]);
         }
 
         Dictionary data;
         data["presets"] = results;
-        data["preset_count"] = (int64_t)results.size();
-        data["total_errors"] = (int64_t)total_errors;
-        data["total_warnings"] = (int64_t)total_warnings;
+        data["preset_count"] = static_cast<int64_t>(results.size());
+        data["total_errors"] = static_cast<int64_t>(total_errors);
+        data["total_warnings"] = static_cast<int64_t>(total_warnings);
         data["all_valid"] = total_errors == 0;
         return ToolResult::ok(data);
     }

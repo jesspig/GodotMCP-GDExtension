@@ -77,7 +77,7 @@ protected:
         data["path"] = path;
         data["name"] = fs_utils::get_file_name(path);
         data["language"] = String("csharp");
-        data["size"] = (int64_t)content.length();
+        data["size"] = static_cast<int64_t>(content.length());
         return ToolResult::ok(data);
     }
 };

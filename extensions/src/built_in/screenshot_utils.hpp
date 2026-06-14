@@ -19,12 +19,12 @@ namespace godot_mcp {
 inline String generate_screenshot_path(const String &viewport_type, const String &format = "png") {
     godot::Time *t = godot::Time::get_singleton();
     Dictionary dt = t->get_datetime_dict_from_system();
-    String ts = String::num_int64((int64_t)dt["year"]) +
-                String::num_int64((int64_t)dt["month"]).pad_zeros(2) +
-                String::num_int64((int64_t)dt["day"]).pad_zeros(2) + String("_") +
-                String::num_int64((int64_t)dt["hour"]).pad_zeros(2) +
-                String::num_int64((int64_t)dt["minute"]).pad_zeros(2) +
-                String::num_int64((int64_t)dt["second"]).pad_zeros(2);
+    String ts = String::num_int64(static_cast<int64_t>(dt["year"])) +
+                String::num_int64(static_cast<int64_t>(dt["month"])).pad_zeros(2) +
+                String::num_int64(static_cast<int64_t>(dt["day"])).pad_zeros(2) + String("_") +
+                String::num_int64(static_cast<int64_t>(dt["hour"])).pad_zeros(2) +
+                String::num_int64(static_cast<int64_t>(dt["minute"])).pad_zeros(2) +
+                String::num_int64(static_cast<int64_t>(dt["second"])).pad_zeros(2);
     String ext = (format == "jpg" || format == "jpeg") ? "jpg" : "png";
     return String("res://screenshots/") + ts + String("_") + viewport_type + String(".") + ext;
 }

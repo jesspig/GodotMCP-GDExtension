@@ -68,11 +68,11 @@ protected:
             }
         }
 
-        im->add_action(action_sn, (real_t)deadzone);
+        im->add_action(action_sn, static_cast<real_t>(deadzone));
 
         Dictionary data;
         data["action"] = action;
-        data["deadzone"] = (real_t)deadzone;
+        data["deadzone"] = static_cast<real_t>(deadzone);
         data["created"] = true;
         return ToolResult::ok(data);
     }

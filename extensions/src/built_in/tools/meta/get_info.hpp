@@ -78,7 +78,7 @@ protected:
         if (reg_) {
             RuntimeBridge *rb = reg_->get_runtime_bridge();
             if (rb) {
-                bridge["status"] = (int)rb->status();
+                bridge["status"] = static_cast<int>(rb->status());
                 bridge["port"] = rb->port();
                 bridge["connected"] = rb->is_connected();
             }

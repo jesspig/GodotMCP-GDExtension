@@ -72,7 +72,7 @@ protected:
         if (top.size() < 2) {
             return ToolResult::err("INSUFFICIENT_SELECTION",
                 "Need at least 2 top-level selected nodes (current: " +
-                String::num_int64((int64_t)top.size()) + String(")"));
+                String::num_int64(static_cast<int64_t>(top.size())) + String(")"));
         }
         // Validate all share the same parent
         Node *common_parent = nullptr;
@@ -116,7 +116,7 @@ protected:
             Node *n = godot::Object::cast_to<godot::Node>(top[i]);
             if (!n) continue;
             nodes_arr.append(n);
-            indices_arr.append((int64_t)n->get_index());
+            indices_arr.append(static_cast<int64_t>(n->get_index()));
         }
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
@@ -125,27 +125,27 @@ protected:
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
 
             // do: add wrapper at the smallest index among selected
-            int64_t min_idx = (int64_t)indices_arr[0];
+            int64_t min_idx = static_cast<int64_t>(indices_arr[0]);
             for (int i = 1; i < indices_arr.size(); i++) {
-                if ((int64_t)indices_arr[i] < min_idx) min_idx = (int64_t)indices_arr[i];
+                if (static_cast<int64_t>(indices_arr[i]) < min_idx) min_idx = static_cast<int64_t>(indices_arr[i]);
             }
             ur->add_do_method(common_parent, "add_child", wrapper, true,
-                              (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(common_parent, "move_child", wrapper, min_idx);
 
             // do: move each selected into wrapper
             for (int i = 0; i < nodes_arr.size(); i++) {
                 Node *n = godot::Object::cast_to<godot::Node>(nodes_arr[i]);
-                int64_t old_idx = (int64_t)indices_arr[i];
+                int64_t old_idx = static_cast<int64_t>(indices_arr[i]);
                 ur->add_do_method(common_parent, "remove_child", n);
                 ur->add_do_method(wrapper, "add_child", n, true,
-                                  (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                                  static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
                 ur->add_do_reference(n);
                 ur->add_undo_reference(n);
                 // undo: move back
                 ur->add_undo_method(wrapper, "remove_child", n);
                 ur->add_undo_method(common_parent, "add_child", n, true,
-                                    (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                                    static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
                 ur->add_undo_method(common_parent, "move_child", n, old_idx);
             }
 
@@ -153,9 +153,9 @@ protected:
             ur->add_undo_reference(wrapper);
             ur->commit_action();
         } else {
-            int64_t min_idx = (int64_t)indices_arr[0];
+            int64_t min_idx = static_cast<int64_t>(indices_arr[0]);
             for (int i = 1; i < indices_arr.size(); i++) {
-                if ((int64_t)indices_arr[i] < min_idx) min_idx = (int64_t)indices_arr[i];
+                if (static_cast<int64_t>(indices_arr[i]) < min_idx) min_idx = static_cast<int64_t>(indices_arr[i]);
             }
             common_parent->add_child(wrapper, true, godot::Node::INTERNAL_MODE_DISABLED);
             common_parent->move_child(wrapper, min_idx);
@@ -169,7 +169,7 @@ protected:
         Dictionary data;
         data["wrapper"] = relative_path(ctx.root, wrapper);
         data["wrapper_type"] = wrapper->get_class();
-        data["grouped"] = (int64_t)nodes_arr.size();
+        data["grouped"] = static_cast<int64_t>(nodes_arr.size());
         return ToolResult::ok(data);
     }
 };

@@ -78,6 +78,7 @@ private:
     static godot::PackedStringArray tokenize(const godot::String &text);
     void rebuild_search_index();
 
+    // 使用 std::map 而非 godot::HashMap，因为 unique_ptr 不可复制（HashMap 要求 value 可复制）
     std::map<godot::String, std::unique_ptr<ITool>> itool_table_;
     godot::HashMap<godot::String, ToolInfo> tool_info_;
     godot::HashMap<godot::String, godot::Array> search_index_;

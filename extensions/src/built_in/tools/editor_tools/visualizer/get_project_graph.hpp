@@ -97,7 +97,7 @@ protected:
         Dictionary data;
         data["nodes"] = nodes;
         data["edges"] = edges;
-        data["scene_count"] = (int64_t)scene_files.size();
+        data["scene_count"] = static_cast<int64_t>(scene_files.size());
         data["current_scene"] = current_scene;
         return ToolResult::ok(data);
     }

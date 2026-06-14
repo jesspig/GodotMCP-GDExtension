@@ -73,7 +73,7 @@ protected:
 
         if (err != Error::OK) {
             return ToolResult::err("DELETE_FAILED",
-                "Delete failed, error code: " + String::num_int64((int64_t)err));
+                "Delete failed, error code: " + String::num_int64(static_cast<int64_t>(err)));
         }
 
         // Re-scan after file/dir deletion

@@ -67,7 +67,7 @@ protected:
             for (int64_t i = 0; i < source_count; i++) {
                 int src_id = tile_set->get_source_id(i);
                 Dictionary src_info;
-                src_info["source_id"] = (int64_t)src_id;
+                src_info["source_id"] = static_cast<int64_t>(src_id);
                 godot::Ref<godot::TileSetSource> src = tile_set->get_source(src_id);
                 src_info["type"] = src.is_valid() ? src->get_class() : String("unknown");
                 sources.append(src_info);
@@ -81,12 +81,12 @@ protected:
 
         // Used cells
         godot::TypedArray<godot::Vector2i> used_cells = tilemap->get_used_cells();
-        data["used_cells_count"] = (int64_t)used_cells.size();
+        data["used_cells_count"] = static_cast<int64_t>(used_cells.size());
 
         godot::Array used_cells_json;
         for (int64_t i = 0; i < used_cells.size(); i++) {
             godot::Vector2i cell = used_cells[i];
-            used_cells_json.append(godot::Array::make((int64_t)cell.x, (int64_t)cell.y));
+            used_cells_json.append(godot::Array::make(static_cast<int64_t>(cell.x), static_cast<int64_t>(cell.y)));
         }
         data["used_cells"] = used_cells_json;
 
@@ -94,20 +94,20 @@ protected:
         godot::Rect2i rect = tilemap->get_used_rect();
         Dictionary rect_data;
         Dictionary pos_data;
-        pos_data["x"] = (int64_t)rect.position.x;
-        pos_data["y"] = (int64_t)rect.position.y;
+        pos_data["x"] = static_cast<int64_t>(rect.position.x);
+        pos_data["y"] = static_cast<int64_t>(rect.position.y);
         rect_data["position"] = pos_data;
         Dictionary size_data;
-        size_data["w"] = (int64_t)rect.size.x;
-        size_data["h"] = (int64_t)rect.size.y;
+        size_data["w"] = static_cast<int64_t>(rect.size.x);
+        size_data["h"] = static_cast<int64_t>(rect.size.y);
         rect_data["size"] = size_data;
         data["used_rect"] = rect_data;
 
         // Other properties
         data["collision_enabled"] = tilemap->is_collision_enabled();
         data["navigation_enabled"] = tilemap->is_navigation_enabled();
-        data["y_sort_origin"] = (int64_t)tilemap->get_y_sort_origin();
-        data["rendering_quadrant_size"] = (int64_t)tilemap->get_rendering_quadrant_size();
+        data["y_sort_origin"] = static_cast<int64_t>(tilemap->get_y_sort_origin());
+        data["rendering_quadrant_size"] = static_cast<int64_t>(tilemap->get_rendering_quadrant_size());
 
         return ToolResult::ok(data);
     }

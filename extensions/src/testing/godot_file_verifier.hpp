@@ -22,78 +22,9 @@ inline godot::String verify_field(const godot::String &context,
                                    const godot::Variant &expected_val,
                                    const godot::String &type_hint,
                                    double tolerance) {
-    using namespace godot;
-
-    const String th = normalize_type_hint(type_hint);
-
-    if (th == "vector2") {
-        const Vector2 av = actual;
-        const Array ea = expected_val;
-        if (ea.size() < 2) return String();
-        if (Math::abs(av.x - (double)ea[0]) > tolerance ||
-            Math::abs(av.y - (double)ea[1]) > tolerance) {
-            return context + String(" Vector2 mismatch");
-        }
-        return String();
-    }
-    if (th == "vector3") {
-        const Vector3 av = actual;
-        const Array ea = expected_val;
-        if (ea.size() < 3) return String();
-        if (Math::abs(av.x - (double)ea[0]) > tolerance ||
-            Math::abs(av.y - (double)ea[1]) > tolerance ||
-            Math::abs(av.z - (double)ea[2]) > tolerance) {
-            return context + String(" Vector3 mismatch");
-        }
-        return String();
-    }
-    if (th == "color") {
-        const Color ac = actual;
-        const Array ea = expected_val;
-        if (ea.size() < 3) return String();
-        const double er = ea[0], eg = ea[1], eb = ea[2];
-        const double ea_alpha = ea.size() > 3 ? (double)ea[3] : 1.0;
-        if (Math::abs(ac.r - er) > tolerance || Math::abs(ac.g - eg) > tolerance ||
-            Math::abs(ac.b - eb) > tolerance || Math::abs(ac.a - ea_alpha) > tolerance) {
-            return context + String(" Color mismatch");
-        }
-        return String();
-    }
-    if (th == "float" || th == "double") {
-        const double av = actual;
-        const double ev = expected_val;
-        if (Math::abs(av - ev) > tolerance) {
-            return context + String(" float mismatch: expected ") + String::num(ev) +
-                   String(", got ") + String::num(av);
-        }
-        return String();
-    }
-    if (th == "int" || th == "integer") {
-        if ((int64_t)actual != (int64_t)expected_val) {
-            return context + String(" int mismatch");
-        }
-        return String();
-    }
-    if (th == "bool") {
-        if ((bool)actual != (bool)expected_val) {
-            return context + String(" bool mismatch");
-        }
-        return String();
-    }
-    if (th == "string") {
-        const String actual_s = actual;
-        const String expected_s = expected_val;
-        if (actual_s != expected_s) {
-            return context + String(" string mismatch");
-        }
-        return String();
-    }
-    // Fallback: direct equality
-    if (actual != expected_val) {
-        return context + String(" value mismatch: expected ") +
-               JSON::stringify(expected_val) + String(", got ") + JSON::stringify(actual);
-    }
-    return String();
+    const String err = compare_variant_fields(actual, expected_val, type_hint, tolerance);
+    if (err.is_empty()) return String();
+    return context + String(" ") + err;
 }
 
 // Load a .tscn file and verify its node tree structure and properties.
@@ -160,7 +91,7 @@ inline godot::Array verify_scene_file(const godot::String &scene_path,
                             Dictionary d = curr;
                             curr = d.get(parts[pp], Variant());
                         } else if (curr.get_type() == Variant::OBJECT) {
-                            Object *obj = Object::cast_to<Object>(curr);
+                            Object *obj = Object::cast_to<Object>(curr.operator Object*());
                             if (obj) {
                                 curr = obj->get(StringName(String(parts[pp])));
                             } else {

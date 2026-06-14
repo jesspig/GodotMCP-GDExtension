@@ -92,13 +92,13 @@ protected:
 
         if (err != Error::OK) {
             return ToolResult::err("PACK_FAILED",
-                "Failed to pack scene, error code: " + String::num_int64((int64_t)err));
+                "Failed to pack scene, error code: " + String::num_int64(static_cast<int64_t>(err)));
         }
 
         err = godot::ResourceSaver::get_singleton()->save(scene, path, godot::ResourceSaver::FLAG_CHANGE_PATH);
         if (err != Error::OK) {
             return ToolResult::err("SAVE_FAILED",
-                "Failed to save scene, error code: " + String::num_int64((int64_t)err));
+                "Failed to save scene, error code: " + String::num_int64(static_cast<int64_t>(err)));
         }
 
         fs_utils::notify_file_changed(path);

@@ -89,9 +89,9 @@ protected:
                 td["from"] = String(sm->get_transition_from(i));
                 td["to"] = String(sm->get_transition_to(i));
                 td["xfade_time"] = trans.is_valid() ? trans->get_xfade_time() : 0.0;
-                td["switch_mode"] = trans.is_valid() ? (int64_t)trans->get_switch_mode() : (int64_t)0;
+                td["switch_mode"] = trans.is_valid() ? static_cast<int64_t>(trans->get_switch_mode()) : (int64_t)0;
                 td["advance_condition"] = trans.is_valid() ? String(trans->get_advance_condition()) : "";
-                td["advance_mode"] = trans.is_valid() ? (int64_t)trans->get_advance_mode() : (int64_t)0;
+                td["advance_mode"] = trans.is_valid() ? static_cast<int64_t>(trans->get_advance_mode()) : (int64_t)0;
                 transitions.append(td);
             }
         }
@@ -104,9 +104,9 @@ protected:
         Dictionary data;
         data["tree_root_type"] = root_type;
         data["states"] = states;
-        data["state_count"] = (int64_t)states.size();
+        data["state_count"] = static_cast<int64_t>(states.size());
         data["transitions"] = transitions;
-        data["transition_count"] = (int64_t)transitions.size();
+        data["transition_count"] = static_cast<int64_t>(transitions.size());
         data["parameters"] = param_list;
         data["animation_player"] = String(tree->get_animation_player());
         return ToolResult::ok(data);

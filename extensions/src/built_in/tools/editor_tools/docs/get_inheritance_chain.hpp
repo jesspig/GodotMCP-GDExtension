@@ -60,7 +60,7 @@ protected:
         Dictionary data;
         data["class_name"] = class_name;
         data["chain"] = chain;
-        data["depth"] = (int64_t)chain.size();
+        data["depth"] = static_cast<int64_t>(chain.size());
         return ToolResult::ok(data);
     }
 };

@@ -30,9 +30,9 @@ protected:
         Dictionary d;
         if (active) {
             d["is_active"] = true;
-            d["is_breaked"] = (bool)active->call("is_breaked");
-            d["is_debuggable"] = (bool)active->call("is_debuggable");
-            d["is_session_active"] = (bool)active->call("is_session_active");
+            d["is_breaked"] = static_cast<bool>(active->call("is_breaked"));
+            d["is_debuggable"] = static_cast<bool>(active->call("is_debuggable"));
+            d["is_session_active"] = static_cast<bool>(active->call("is_session_active"));
         } else {
             d["is_active"] = false;
         }

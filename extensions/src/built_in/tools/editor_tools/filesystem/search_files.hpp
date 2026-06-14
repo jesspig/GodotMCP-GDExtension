@@ -140,7 +140,7 @@ protected:
         String root_path = args_string(ctx.args, "root", "res://");
         String mode = args_string(ctx.args, "mode", "substring");
         Array extensions = ctx.args.has("extensions")
-            ? (Array)ctx.args["extensions"] : Array();
+            ? static_cast<Array>(ctx.args["extensions"] ): Array();
         bool include_addons = args_bool(ctx.args, "include_addons", false);
         bool case_sensitive = args_bool(ctx.args, "case_sensitive", false);
         int64_t max_results = args_int(ctx.args, "max_results", 200);
@@ -215,7 +215,7 @@ protected:
 
         Dictionary data;
         data["files"] = results;
-        data["total"] = (int64_t)results.size();
+        data["total"] = static_cast<int64_t>(results.size());
         data["truncated"] = truncated;
         data["mode"] = mode;
         return ToolResult::ok(data);

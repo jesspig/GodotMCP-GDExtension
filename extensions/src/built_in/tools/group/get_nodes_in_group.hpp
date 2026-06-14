@@ -63,7 +63,7 @@ protected:
         Dictionary data;
         data["group"] = group_name;
         data["nodes"] = result;
-        data["count"] = (int64_t)result.size();
+        data["count"] = static_cast<int64_t>(result.size());
         return ToolResult::ok(data);
     }
 };

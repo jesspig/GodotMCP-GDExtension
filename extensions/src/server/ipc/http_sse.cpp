@@ -30,13 +30,23 @@ void HttpServer::send_sse_headers(int conn_id, Connection &conn) {
         conn.tcp->poll();
         const Error err = tcp_send(conn.tcp, out);
         if (err != OK) {
-            log_warn("http", String("SSE header send failed (err=") + String::num_int64((int64_t)err) + String(")"));
+            log_warn("http", String("SSE header send failed (err=") + String::num_int64(static_cast<int64_t>(err)) + String(")"));
             conn.sse_write_errored = true;
             return;
         }
     }
 
-    send_sse_comment(conn_id, conn, "retry:5000");
+    const String retry_line = String("retry: 5000\r\n");
+    const PackedByteArray retry_out = retry_line.to_utf8_buffer();
+    if (conn.tcp.is_valid()) {
+        conn.tcp->poll();
+        const Error err = tcp_send(conn.tcp, retry_out);
+        if (err != OK) {
+            log_warn("http", String("SSE retry send failed (err=") + String::num_int64(static_cast<int64_t>(err)) + String(")"));
+            conn.sse_write_errored = true;
+            return;
+        }
+    }
 }
 
 void HttpServer::send_sse_event(int conn_id, Connection &conn,
@@ -52,7 +62,7 @@ void HttpServer::send_sse_event(int conn_id, Connection &conn,
         conn.tcp->poll();
         const Error err = tcp_send(conn.tcp, out);
         if (err != OK) {
-            log_warn("http", String("SSE send event failed (err=") + String::num_int64((int64_t)err) + String(")"));
+            log_warn("http", String("SSE send event failed (err=") + String::num_int64(static_cast<int64_t>(err)) + String(")"));
             conn.sse_write_errored = true;
         }
     }
@@ -65,7 +75,7 @@ void HttpServer::send_sse_comment(int conn_id, Connection &conn, const String &c
         conn.tcp->poll();
         const Error err = tcp_send(conn.tcp, out);
         if (err != OK) {
-            log_warn("http", String("SSE send comment failed (err=") + String::num_int64((int64_t)err) + String(")"));
+            log_warn("http", String("SSE send comment failed (err=") + String::num_int64(static_cast<int64_t>(err)) + String(")"));
             conn.sse_write_errored = true;
         }
     }
@@ -106,6 +116,7 @@ void HttpServer::flush_sse(int conn_id, Connection &conn) {
         conn.sse_event_id++;
         send_sse_event(conn_id, conn, "message", data, conn.sse_event_id);
         conn.last_activity_msec = now;
+        conn.sse_last_event_msec = now;
     }
 }
 

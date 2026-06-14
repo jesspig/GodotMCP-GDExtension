@@ -121,9 +121,9 @@ int64_t args_int(const Dictionary &args, const String &key, int64_t default_valu
     }
     const Variant v = args[key];
     switch (v.get_type()) {
-        case Variant::INT:   return (int64_t)v;
-        case Variant::FLOAT: return (int64_t)(double)v;
-        case Variant::BOOL:  return (bool)v ? 1 : 0;
+        case Variant::INT:   return static_cast<int64_t>(v);
+        case Variant::FLOAT: return static_cast<int64_t>(static_cast<double>(v));
+        case Variant::BOOL:  return static_cast<bool>(v) ? 1 : 0;
         default:             return default_value;
     }
 }
@@ -134,8 +134,8 @@ double args_float(const Dictionary &args, const String &key, double default_valu
     }
     const Variant v = args[key];
     switch (v.get_type()) {
-        case Variant::FLOAT: return (double)v;
-        case Variant::INT:   return (double)(int64_t)v;
+        case Variant::FLOAT: return static_cast<double>(v);
+        case Variant::INT:   return static_cast<double>(static_cast<int64_t>(v));
         default:             return default_value;
     }
 }
@@ -146,10 +146,10 @@ bool args_bool(const Dictionary &args, const String &key, bool default_value) {
     }
     const Variant v = args[key];
     if (v.get_type() == Variant::BOOL) {
-        return (bool)v;
+        return static_cast<bool>(v);
     }
     if (v.get_type() == Variant::INT) {
-        return (int64_t)v != 0;
+        return static_cast<int64_t>(v) != 0;
     }
     return default_value;
 }

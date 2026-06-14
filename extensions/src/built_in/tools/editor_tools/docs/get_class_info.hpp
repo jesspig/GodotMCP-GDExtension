@@ -80,7 +80,7 @@ protected:
             entry["return_type"] = ret.get_type() != Variant::NIL
                 ? String(Dictionary(ret).get("type", "")) : String("void");
             entry["args"] = m.get("args", Array());
-            entry["flags"] = (int64_t)m.get("flags", 0);
+            entry["flags"] = static_cast<int64_t>(m.get("flags", 0));
             methods_json.append(entry);
         }
 
@@ -89,9 +89,9 @@ protected:
             Dictionary p = property_list[i];
             Dictionary entry;
             entry["name"] = p.get("name", "");
-            entry["type"] = (int64_t)p.get("type", 0);
+            entry["type"] = static_cast<int64_t>(p.get("type", 0));
             entry["class_name"] = p.get("class_name", "");
-            entry["usage"] = (int64_t)p.get("usage", 0);
+            entry["usage"] = static_cast<int64_t>(p.get("usage", 0));
             properties_json.append(entry);
         }
 
@@ -110,9 +110,9 @@ protected:
         data["class_name"] = actual_class;
         data["inherits"] = inherits;
         data["inheritance_chain"] = inheritance_chain;
-        data["method_count"] = (int64_t)methods_json.size();
-        data["property_count"] = (int64_t)properties_json.size();
-        data["signal_count"] = (int64_t)signals_json.size();
+        data["method_count"] = static_cast<int64_t>(methods_json.size());
+        data["property_count"] = static_cast<int64_t>(properties_json.size());
+        data["signal_count"] = static_cast<int64_t>(signals_json.size());
         data["methods"] = methods_json;
         data["properties"] = properties_json;
         data["signals"] = signals_json;

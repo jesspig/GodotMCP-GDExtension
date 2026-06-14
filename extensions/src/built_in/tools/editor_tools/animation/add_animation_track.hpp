@@ -166,7 +166,7 @@ protected:
         }
 
         Dictionary data;
-        data["track_index"] = (int64_t)track_idx;
+        data["track_index"] = static_cast<int64_t>(track_idx);
         data["track_type"] = track_type_str;
         data["target_path"] = target_path;
         data["interpolation"] = interp_str;

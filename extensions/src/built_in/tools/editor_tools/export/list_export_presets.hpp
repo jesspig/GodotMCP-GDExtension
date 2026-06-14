@@ -50,7 +50,7 @@ protected:
 
         Dictionary data;
         data["presets"] = results;
-        data["count"] = (int64_t)results.size();
+        data["count"] = static_cast<int64_t>(results.size());
         return ToolResult::ok(data);
     }
 };

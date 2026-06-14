@@ -97,8 +97,8 @@ protected:
         sb.instantiate();
         sb->set_bg_color(bg);
         sb->set_border_color(border);
-        sb->set_border_width_all((int)border_width);
-        sb->set_corner_radius_all((int)corner_radius);
+        sb->set_border_width_all(static_cast<int>(border_width));
+        sb->set_corner_radius_all(static_cast<int>(corner_radius));
 
         godot::Control *control = nullptr;
         if (apply_to_node && !node_path.is_empty()) {

@@ -45,7 +45,7 @@ protected:
             return ToolResult::err("NO_ACTIVE_DEBUGGER", "No active debugger session");
         }
 
-        bool is_breaked = (bool)active_dbg->call("is_breaked");
+        bool is_breaked = static_cast<bool>(active_dbg->call("is_breaked"));
         if (!is_breaked) {
             Dictionary data;
             data["breaked"] = false;
@@ -54,8 +54,8 @@ protected:
         }
 
         String stack_file = active_dbg->call("get_stack_script_file");
-        int64_t stack_line = (int64_t)active_dbg->call("get_stack_script_line");
-        int64_t stack_frame = (int64_t)active_dbg->call("get_stack_script_frame");
+        int64_t stack_line = static_cast<int64_t>(active_dbg->call("get_stack_script_line"));
+        int64_t stack_frame = static_cast<int64_t>(active_dbg->call("get_stack_script_frame"));
 
         Array stack_frames;
         Dictionary frame;
@@ -67,9 +67,9 @@ protected:
         Dictionary data;
         data["breaked"] = true;
         data["frames"] = stack_frames;
-        data["frame_count"] = (int64_t)stack_frames.size();
-        data["is_debuggable"] = (bool)active_dbg->call("is_debuggable");
-        data["is_session_active"] = (bool)active_dbg->call("is_session_active");
+        data["frame_count"] = static_cast<int64_t>(stack_frames.size());
+        data["is_debuggable"] = static_cast<bool>(active_dbg->call("is_debuggable"));
+        data["is_session_active"] = static_cast<bool>(active_dbg->call("is_session_active"));
 
         return ToolResult::ok(data);
     }

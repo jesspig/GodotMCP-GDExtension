@@ -48,7 +48,7 @@ void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
         conn.tcp->poll();
         const Error send_err = tcp_send(conn.tcp, out);
         if (send_err != OK) {
-            log_warn("http", String("Send failed (err=") + String::num_int64((int64_t)send_err) + String(")"));
+            log_warn("http", String("Send failed (err=") + String::num_int64(static_cast<int64_t>(send_err)) + String(")"));
         }
     }
 }
@@ -100,7 +100,7 @@ String HttpServer::get_cors_origin(const Connection &conn) const {
     if (it == conn.headers.end()) return "*";
     const String origin = it->value.strip_edges();
     if (origin.is_empty()) return "*";
-    return is_local_origin(origin) ? origin : String("null");
+    return is_local_origin(origin) ? origin : String("");
 }
 
 } // namespace godot_mcp

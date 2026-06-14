@@ -49,7 +49,10 @@ void McpLogger::append(const LogEntry &entry) {
     while (entries_.size() > max_entries_) {
         entries_.remove_at(0);
     }
-    write_to_jsonl(entry);
+    pending_entries_.push_back(entry);
+    if (pending_entries_.size() >= kBatchSize) {
+        flush();
+    }
     if (callback_) {
         callback_(entry);
     }
@@ -82,6 +85,7 @@ void McpLogger::ensure_log_dir() {
 // ---------------------------------------------------------------------
 
 void McpLogger::write_to_jsonl(const LogEntry &entry) {
+    ensure_log_dir();
     if (current_log_file_.is_empty()) {
         godot::Dictionary dt = godot::Time::get_singleton()->get_datetime_dict_from_system();
         int y = static_cast<int>(dt["year"]);
@@ -128,10 +132,68 @@ void McpLogger::write_to_jsonl(const LogEntry &entry) {
 }
 
 // ---------------------------------------------------------------------
+// 批量 flush
+// ---------------------------------------------------------------------
+
+void McpLogger::flush() {
+    if (pending_entries_.is_empty()) return;
+
+    if (current_log_file_.is_empty()) {
+        godot::Dictionary dt = godot::Time::get_singleton()->get_datetime_dict_from_system();
+        int y = static_cast<int>(dt["year"]);
+        int mo = static_cast<int>(dt["month"]);
+        int d = static_cast<int>(dt["day"]);
+        int h = static_cast<int>(dt["hour"]);
+        int mi = static_cast<int>(dt["minute"]);
+        int s = static_cast<int>(dt["second"]);
+        godot::String filename = godot::String("mcp_")
+            + godot::String::num_int64(y)
+            + (mo < 10 ? "0" : "") + godot::String::num_int64(mo)
+            + (d < 10 ? "0" : "") + godot::String::num_int64(d) + "_"
+            + (h < 10 ? "0" : "") + godot::String::num_int64(h)
+            + (mi < 10 ? "0" : "") + godot::String::num_int64(mi)
+            + (s < 10 ? "0" : "") + godot::String::num_int64(s)
+            + ".jsonl";
+        current_log_file_ = log_dir_.path_join(filename);
+    }
+
+    ensure_log_dir();
+
+    godot::Ref<godot::FileAccess> f;
+    if (godot::FileAccess::file_exists(current_log_file_)) {
+        f = godot::FileAccess::open(current_log_file_, godot::FileAccess::READ_WRITE);
+        if (f.is_valid()) f->seek_end();
+    } else {
+        f = godot::FileAccess::open(current_log_file_, godot::FileAccess::WRITE);
+    }
+
+    if (f.is_valid()) {
+        for (const LogEntry &entry : pending_entries_) {
+            godot::Dictionary json_entry;
+            json_entry["timestamp"] = entry.timestamp;
+            json_entry["tool"] = entry.tool_name;
+            json_entry["success"] = entry.success;
+            json_entry["args"] = entry.args;
+            json_entry["result"] = entry.result;
+            json_entry["duration_ms"] = entry.duration_ms;
+            godot::String line = godot::JSON::stringify(json_entry);
+            f->store_string(line + "\n");
+        }
+        f->close();
+    } else {
+        godot::UtilityFunctions::push_error(
+            "[McpLogger] Failed to open log file during flush: ", current_log_file_);
+    }
+
+    pending_entries_.clear();
+}
+
+// ---------------------------------------------------------------------
 // 日志轮转
 // ---------------------------------------------------------------------
 
 void McpLogger::rotate(int keep_days) {
+    flush();
     rotate_files(keep_days);
 }
 

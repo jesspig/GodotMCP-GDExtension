@@ -95,7 +95,7 @@ protected:
             ur->create_action(String("MCP: Create AnimationPlayer"),
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", player, true,
-                              (int64_t)Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_undo_method(parent, "remove_child", player);
             ur->add_do_method(player, "set_owner", ctx.root);
             ur->add_do_reference(player);

@@ -37,6 +37,8 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
     const int sp2 = status_line.find(" ", sp1 + 1);
     if (sp2 < 0) return ERROR_PARSE;
     conn.path = status_line.substr(sp1 + 1, sp2 - sp1 - 1);
+    int qpos = conn.path.find("?");
+    if (qpos != -1) conn.path = conn.path.substr(0, qpos);
 
     int line_start = first_lf + 2;
     int header_count = 0;
@@ -59,7 +61,7 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
 
     auto cl_it = conn.headers.find("content-length");
     if (cl_it != conn.headers.end()) {
-        conn.content_length = (int)cl_it->value.to_int();
+        conn.content_length = static_cast<int>(cl_it->value.to_int());
         if (conn.content_length > kMaxBodyLength) {
             log_warn("http", String("Content-Length ") + String::num_int64(conn.content_length) +
                                  String(" exceeds max ") + String::num_int64(kMaxBodyLength));
@@ -102,12 +104,12 @@ void HttpServer::try_read_body(Connection &conn) {
     if (avail <= 0) return;
 
     const int max_read = kMaxBodyLength - conn.body.size();
-    const int to_read = (int)avail < remaining ? (int)avail : remaining;
+    const int to_read = static_cast<int>(avail) < remaining ? static_cast<int>(avail) : remaining;
     const int safe_read = to_read < max_read ? to_read : max_read;
     if (safe_read <= 0) return;
 
     const Array read_result = conn.tcp->get_data(safe_read);
-    if ((Error)(int)read_result[0] != OK) return;
+    if (static_cast<Error>(static_cast<int>(read_result[0])) != OK) return;
 
     const PackedByteArray chunk = read_result[1];
     for (int i = 0; i < chunk.size(); ++i) conn.body.push_back(chunk[i]);

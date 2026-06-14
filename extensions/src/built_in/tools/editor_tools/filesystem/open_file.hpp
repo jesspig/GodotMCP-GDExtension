@@ -86,7 +86,7 @@ protected:
             }
             godot::Ref<godot::Script> script = res;
             if (script.is_valid()) {
-                ei->edit_script(script, (int)line);
+                ei->edit_script(script, static_cast<int>(line));
             } else {
                 ei->edit_resource(res);
             }

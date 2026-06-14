@@ -84,7 +84,7 @@ protected:
         Dictionary data;
         data["node"] = relative_path(ctx.root, node);
         data["connections"] = connections;
-        data["count"] = (int64_t)connections.size();
+        data["count"] = static_cast<int64_t>(connections.size());
         return ToolResult::ok(data);
     }
 

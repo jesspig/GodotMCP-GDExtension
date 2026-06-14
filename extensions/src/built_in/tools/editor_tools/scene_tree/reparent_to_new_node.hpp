@@ -95,19 +95,19 @@ protected:
 
             // do: add wrapper at source's position, move source under wrapper
             ur->add_do_method(old_parent, "add_child", wrapper, true,
-                              (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(old_parent, "move_child", wrapper, old_index);
             ur->add_do_method(wrapper, "set_owner", ctx.root);
             ur->add_do_method(old_parent, "remove_child", node);
             ur->add_do_method(wrapper, "add_child", node, true,
-                              (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_do_reference(wrapper);
             ur->add_do_reference(node);
 
             // undo: reverse
             ur->add_undo_method(wrapper, "remove_child", node);
             ur->add_undo_method(old_parent, "add_child", node, true,
-                                (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                                static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_undo_method(old_parent, "move_child", node, old_index);
             ur->add_undo_method(old_parent, "remove_child", wrapper);
             ur->add_undo_reference(wrapper);

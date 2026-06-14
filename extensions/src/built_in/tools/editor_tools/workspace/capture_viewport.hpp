@@ -33,7 +33,7 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String vp_type = args_string(ctx.args, "viewport_type", "2d");
-        int vp_index = (int)args_int(ctx.args, "viewport_index", 0);
+        int vp_index = static_cast<int>(args_int(ctx.args, "viewport_index", 0));
         String format = args_string(ctx.args, "format", "png");
         String save_path = args_string(ctx.args, "save_path", "");
         return capture_editor_viewport(vp_type, vp_index, format, save_path);

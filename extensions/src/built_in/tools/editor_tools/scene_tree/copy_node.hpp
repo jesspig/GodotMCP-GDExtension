@@ -59,7 +59,7 @@ protected:
         Dictionary data;
         data["copied"] = relative_path(ctx.root, node);
         data["type"] = node->get_class();
-        data["node_count"] = (int64_t)node->get_child_count() + 1;
+        data["node_count"] = static_cast<int64_t>(node->get_child_count()) + 1;
         return ToolResult::ok(data);
     }
 };

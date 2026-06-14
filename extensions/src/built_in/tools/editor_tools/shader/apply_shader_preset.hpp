@@ -112,7 +112,7 @@ protected:
         data["node_path"] = node_path_str;
         data["shader_path"] = shader_path;
         data["material_created"] = material_created;
-        data["parameters"] = (int64_t)param_count;
+        data["parameters"] = static_cast<int64_t>(param_count);
         return ToolResult::ok(data);
     }
 };

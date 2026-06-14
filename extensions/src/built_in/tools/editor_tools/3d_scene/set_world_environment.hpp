@@ -145,7 +145,7 @@ protected:
                 ur->create_action("MCP: Create WorldEnvironment",
                                   godot::UndoRedo::MERGE_DISABLE, ctx.root);
                 ur->add_do_method(parent, "add_child", world_env, true,
-                                  (int64_t)Node::INTERNAL_MODE_DISABLED);
+                                  static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
                 ur->add_do_method(world_env, "set_owner", ctx.root);
                 ur->add_undo_method(parent, "remove_child", world_env);
                 ur->add_do_reference(world_env);
@@ -161,15 +161,15 @@ protected:
 
         if (ctx.args.has("ambient_color") && ctx.args["ambient_color"].get_type() == Variant::DICTIONARY) {
             Dictionary cd = ctx.args["ambient_color"];
-            real_t r = (real_t)args_float(cd, "r", 0.5);
-            real_t g = (real_t)args_float(cd, "g", 0.5);
-            real_t b = (real_t)args_float(cd, "b", 0.5);
+            real_t r = static_cast<real_t>(args_float(cd, "r", 0.5));
+            real_t g = static_cast<real_t>(args_float(cd, "g", 0.5));
+            real_t b = static_cast<real_t>(args_float(cd, "b", 0.5));
             env->set_ambient_light_color(godot::Color(r, g, b));
         }
 
         double ambient_energy = args_float(ctx.args, "ambient_energy", 0.0);
         if (ambient_energy > 0.0) {
-            env->set_ambient_light_energy((real_t)ambient_energy);
+            env->set_ambient_light_energy(static_cast<real_t>(ambient_energy));
         }
 
         if (sky_enabled) {
@@ -187,9 +187,9 @@ protected:
 
             if (ctx.args.has("sky_color") && ctx.args["sky_color"].get_type() == Variant::DICTIONARY) {
                 Dictionary cd = ctx.args["sky_color"];
-                real_t r = (real_t)args_float(cd, "r", 0.4);
-                real_t g = (real_t)args_float(cd, "g", 0.6);
-                real_t b = (real_t)args_float(cd, "b", 0.9);
+                real_t r = static_cast<real_t>(args_float(cd, "r", 0.4));
+                real_t g = static_cast<real_t>(args_float(cd, "g", 0.6));
+                real_t b = static_cast<real_t>(args_float(cd, "b", 0.9));
                 godot::Ref<godot::ProceduralSkyMaterial> sky_mat = sky->get_material();
                 if (sky_mat.is_valid()) {
                     sky_mat->set_sky_top_color(godot::Color(r, g, b));
@@ -203,19 +203,19 @@ protected:
         if (fog_enabled) {
             if (ctx.args.has("fog_color") && ctx.args["fog_color"].get_type() == Variant::DICTIONARY) {
                 Dictionary cd = ctx.args["fog_color"];
-                real_t r = (real_t)args_float(cd, "r", 0.5);
-                real_t g = (real_t)args_float(cd, "g", 0.5);
-                real_t b = (real_t)args_float(cd, "b", 0.5);
+                real_t r = static_cast<real_t>(args_float(cd, "r", 0.5));
+                real_t g = static_cast<real_t>(args_float(cd, "g", 0.5));
+                real_t b = static_cast<real_t>(args_float(cd, "b", 0.5));
                 env->set_fog_light_color(godot::Color(r, g, b));
             }
 
             double fog_depth_begin = args_float(ctx.args, "fog_depth_begin", 0.0);
             if (fog_depth_begin > 0.0) {
-                env->set_fog_depth_begin((real_t)fog_depth_begin);
+                env->set_fog_depth_begin(static_cast<real_t>(fog_depth_begin));
             }
             double fog_depth_end = args_float(ctx.args, "fog_depth_end", 0.0);
             if (fog_depth_end > 0.0) {
-                env->set_fog_depth_end((real_t)fog_depth_end);
+                env->set_fog_depth_end(static_cast<real_t>(fog_depth_end));
             }
         }
 

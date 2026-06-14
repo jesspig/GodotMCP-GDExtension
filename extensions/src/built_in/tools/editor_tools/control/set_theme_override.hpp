@@ -178,7 +178,7 @@ protected:
                         control->add_theme_font_override(override_name, godot::Ref<godot::Font>(font_res));
                     }
                 } else if (override_type == "font_size") {
-                    control->add_theme_font_size_override(override_name, (int)args_int(item, "value", 14));
+                    control->add_theme_font_size_override(override_name, static_cast<int>(args_int(item, "value", 14)));
                 } else if (override_type == "stylebox") {
                     if (value.get_type() == Variant::STRING) {
                         String s = value;
@@ -193,7 +193,7 @@ protected:
                         }
                     }
                 } else if (override_type == "constant") {
-                    control->add_theme_constant_override(override_name, (int)args_int(item, "value", 0));
+                    control->add_theme_constant_override(override_name, static_cast<int>(args_int(item, "value", 0)));
                 } else if (override_type == "icon") {
                     if (value.get_type() == Variant::STRING) {
                         String s = value;
@@ -226,9 +226,9 @@ protected:
                     godot::Color color = godot::Color::from_string(value, godot::Color());
                     ur->add_do_method(control, "add_theme_color_override", override_name, color);
                 } else if (override_type == "font_size") {
-                    ur->add_do_method(control, "add_theme_font_size_override", override_name, (int)args_int(item, "value", 14));
+                    ur->add_do_method(control, "add_theme_font_size_override", override_name, static_cast<int>(args_int(item, "value", 14)));
                 } else if (override_type == "constant") {
-                    ur->add_do_method(control, "add_theme_constant_override", override_name, (int)args_int(item, "value", 0));
+                    ur->add_do_method(control, "add_theme_constant_override", override_name, static_cast<int>(args_int(item, "value", 0)));
                 } else if (override_type == "font") {
                     if (value.get_type() == Variant::STRING) {
                         String s = value;

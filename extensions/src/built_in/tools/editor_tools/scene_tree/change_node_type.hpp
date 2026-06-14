@@ -143,8 +143,8 @@ protected:
             ur->add_undo_reference(node);
             // Preserve child index
             if (old_index >= 0) {
-                ur->add_do_method(parent, "move_child", new_node, (int64_t)old_index);
-                ur->add_undo_method(parent, "move_child", node, (int64_t)old_index);
+                ur->add_do_method(parent, "move_child", new_node, static_cast<int64_t>(old_index));
+                ur->add_undo_method(parent, "move_child", node, static_cast<int64_t>(old_index));
             }
             ur->commit_action();
         } else {

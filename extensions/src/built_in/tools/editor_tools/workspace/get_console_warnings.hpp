@@ -39,7 +39,7 @@ protected:
             }
         }
         Dictionary d;
-        d["count"] = (int64_t)warnings.size();
+        d["count"] = static_cast<int64_t>(warnings.size());
         d["warnings"] = warnings;
         return ToolResult::ok(d);
     }

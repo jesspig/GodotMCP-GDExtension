@@ -144,19 +144,19 @@ protected:
             if (stream.is_valid()) p->set_stream(stream);
             p->set_bus(godot::StringName(bus));
             p->set_autoplay(autoplay);
-            p->set_volume_db((float)volume_db);
+            p->set_volume_db(static_cast<float>(volume_db));
         } else if (player_type == "2d") {
             godot::AudioStreamPlayer2D *p = Object::cast_to<godot::AudioStreamPlayer2D>(player_node);
             if (stream.is_valid()) p->set_stream(stream);
             p->set_bus(godot::StringName(bus));
             p->set_autoplay(autoplay);
-            p->set_volume_db((float)volume_db);
+            p->set_volume_db(static_cast<float>(volume_db));
         } else {
             godot::AudioStreamPlayer3D *p = Object::cast_to<godot::AudioStreamPlayer3D>(player_node);
             if (stream.is_valid()) p->set_stream(stream);
             p->set_bus(godot::StringName(bus));
             p->set_autoplay(autoplay);
-            p->set_volume_db((float)volume_db);
+            p->set_volume_db(static_cast<float>(volume_db));
         }
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
@@ -168,7 +168,7 @@ protected:
             ur->create_action(String("MCP: Create AudioPlayer ") + class_name,
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", player_node, true,
-                              (int64_t)Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(player_node, "set_owner", ctx.root);
             ur->add_do_reference(player_node);
             ur->add_undo_method(player_node, "set_owner", Variant());

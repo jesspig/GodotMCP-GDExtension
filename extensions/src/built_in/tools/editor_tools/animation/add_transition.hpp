@@ -123,7 +123,7 @@ protected:
             return ToolResult::err("CREATE_FAILED",
                 "Failed to create AnimationNodeStateMachineTransition");
         }
-        trans->set_xfade_time((float)xfade_time);
+        trans->set_xfade_time(static_cast<float>(xfade_time));
         trans->set_switch_mode(switch_mode);
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();

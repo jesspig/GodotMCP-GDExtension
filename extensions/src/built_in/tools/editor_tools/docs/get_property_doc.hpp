@@ -72,11 +72,11 @@ protected:
         Dictionary data;
         data["class_name"] = class_name;
         data["property"] = property;
-        data["type"] = (int64_t)found.get("type", 0);
+        data["type"] = static_cast<int64_t>(found.get("type", 0));
         data["class_name_hint"] = found.get("class_name", "");
-        data["hint"] = (int64_t)found.get("hint", 0);
+        data["hint"] = static_cast<int64_t>(found.get("hint", 0));
         data["hint_string"] = found.get("hint_string", "");
-        data["usage"] = (int64_t)found.get("usage", 0);
+        data["usage"] = static_cast<int64_t>(found.get("usage", 0));
         data["getter"] = String(ClassDB::class_get_property_getter(class_name, property));
         data["setter"] = String(ClassDB::class_get_property_setter(class_name, property));
 

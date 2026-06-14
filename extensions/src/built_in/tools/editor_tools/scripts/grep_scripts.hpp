@@ -110,7 +110,7 @@ protected:
                 if (match_line.find(search_pattern) >= 0) {
                     Dictionary entry;
                     entry["path"] = file_path;
-                    entry["line"] = (int64_t)(ln + 1);
+                    entry["line"] = static_cast<int64_t>((ln + 1));
                     entry["content"] = line;
                     entry["language"] = file_lang;
                     matches.append(entry);
@@ -122,7 +122,7 @@ protected:
 
         Dictionary data;
         data["matches"] = matches;
-        data["total"] = (int64_t)matches.size();
+        data["total"] = static_cast<int64_t>(matches.size());
         data["truncated"] = truncated;
         data["pattern"] = pattern;
         return ToolResult::ok(data);

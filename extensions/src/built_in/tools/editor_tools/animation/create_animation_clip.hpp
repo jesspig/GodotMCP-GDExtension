@@ -112,7 +112,7 @@ protected:
             return ToolResult::err("CREATE_FAILED", "Failed to create Animation resource");
         }
 
-        animation->set_length((float)length);
+        animation->set_length(static_cast<float>(length));
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
         if (!ur) {

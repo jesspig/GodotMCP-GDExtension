@@ -41,8 +41,8 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         Array requested = ctx.args.has("monitors")
-            ? (Array)ctx.args["monitors"]
-            : Array();
+            ? static_cast<Array>(ctx.args["monitors"]
+)            : Array();
 
         godot::Performance *perf = godot::Performance::get_singleton();
         if (!perf) {

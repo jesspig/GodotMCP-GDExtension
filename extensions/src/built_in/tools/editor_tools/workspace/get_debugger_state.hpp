@@ -45,16 +45,16 @@ protected:
 
         Object *active_dbg = debugger->call("get_current_debugger");
         if (active_dbg) {
-            data["error_count"] = (int64_t)active_dbg->call("get_error_count");
-            data["warning_count"] = (int64_t)active_dbg->call("get_warning_count");
-            data["is_breaked"] = (bool)active_dbg->call("is_breaked");
-            data["is_debuggable"] = (bool)active_dbg->call("is_debuggable");
-            data["is_session_active"] = (bool)active_dbg->call("is_session_active");
+            data["error_count"] = static_cast<int64_t>(active_dbg->call("get_error_count"));
+            data["warning_count"] = static_cast<int64_t>(active_dbg->call("get_warning_count"));
+            data["is_breaked"] = static_cast<bool>(active_dbg->call("is_breaked"));
+            data["is_debuggable"] = static_cast<bool>(active_dbg->call("is_debuggable"));
+            data["is_session_active"] = static_cast<bool>(active_dbg->call("is_session_active"));
 
             String stack_file = active_dbg->call("get_stack_script_file");
             data["stack_script_file"] = stack_file;
-            data["stack_script_line"] = (int64_t)active_dbg->call("get_stack_script_line");
-            data["stack_script_frame"] = (int64_t)active_dbg->call("get_stack_script_frame");
+            data["stack_script_line"] = static_cast<int64_t>(active_dbg->call("get_stack_script_line"));
+            data["stack_script_frame"] = static_cast<int64_t>(active_dbg->call("get_stack_script_frame"));
         } else {
             data["error_count"] = (int64_t)0;
             data["warning_count"] = (int64_t)0;
@@ -65,7 +65,7 @@ protected:
 
         Object *default_dbg = debugger->call("get_default_debugger");
         if (default_dbg) {
-            data["default_session_active"] = (bool)default_dbg->call("is_session_active");
+            data["default_session_active"] = static_cast<bool>(default_dbg->call("is_session_active"));
         }
 
         return ToolResult::ok(data);

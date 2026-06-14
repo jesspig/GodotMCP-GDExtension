@@ -133,7 +133,7 @@ protected:
             }
         }
         {
-            godot::Animation::TrackType ttype = animation->track_get_type((int32_t)track_index);
+            godot::Animation::TrackType ttype = animation->track_get_type(static_cast<int32_t>(track_index));
             if ((ttype == godot::Animation::TYPE_POSITION_3D || ttype == godot::Animation::TYPE_ROTATION_3D || ttype == godot::Animation::TYPE_SCALE_3D) &&
                 value.get_type() == Variant::VECTOR2) {
                 godot::Vector2 v2 = value;
@@ -148,37 +148,37 @@ protected:
                 return ToolResult::err("MISSING_ARG", "value is required for insert operation");
             }
             if (!ur) {
-                animation->track_insert_key((int32_t)track_index, time, value);
+                animation->track_insert_key(static_cast<int32_t>(track_index), time, value);
                 mark_scene_dirty();
             } else {
                 ur->create_action(String("MCP: Insert Keyframe"),
                                   godot::UndoRedo::MERGE_DISABLE, ctx.root);
                 ur->add_do_method(animation.ptr(), "track_insert_key",
-                                  (int32_t)track_index, time, value);
+                                  static_cast<int32_t>(track_index), time, value);
                 ur->add_undo_method(animation.ptr(), "track_remove_key_at_time",
-                                    (int32_t)track_index, time);
+                                    static_cast<int32_t>(track_index), time);
                 ur->commit_action();
             }
         } else if (operation == "delete") {
             int32_t key_idx = animation->track_find_key(
-                (int32_t)track_index, time, godot::Animation::FIND_MODE_APPROX);
+                static_cast<int32_t>(track_index), time, godot::Animation::FIND_MODE_APPROX);
             if (key_idx < 0) {
                 return ToolResult::err("KEY_NOT_FOUND",
                     String("No key found at time: ") + String::num(time));
             }
-            double exact_time = animation->track_get_key_time((int32_t)track_index, key_idx);
-            Variant old_value = animation->track_get_key_value((int32_t)track_index, key_idx);
+            double exact_time = animation->track_get_key_time(static_cast<int32_t>(track_index), key_idx);
+            Variant old_value = animation->track_get_key_value(static_cast<int32_t>(track_index), key_idx);
 
             if (!ur) {
-                animation->track_remove_key_at_time((int32_t)track_index, time);
+                animation->track_remove_key_at_time(static_cast<int32_t>(track_index), time);
                 mark_scene_dirty();
             } else {
                 ur->create_action(String("MCP: Delete Keyframe"),
                                   godot::UndoRedo::MERGE_DISABLE, ctx.root);
                 ur->add_do_method(animation.ptr(), "track_remove_key_at_time",
-                                  (int32_t)track_index, time);
+                                  static_cast<int32_t>(track_index), time);
                 ur->add_undo_method(animation.ptr(), "track_insert_key",
-                                    (int32_t)track_index, exact_time, old_value);
+                                    static_cast<int32_t>(track_index), exact_time, old_value);
                 ur->commit_action();
             }
         } else if (operation == "set_value") {
@@ -186,23 +186,23 @@ protected:
                 return ToolResult::err("MISSING_ARG", "value is required for set_value operation");
             }
             int32_t key_idx = animation->track_find_key(
-                (int32_t)track_index, time, godot::Animation::FIND_MODE_APPROX);
+                static_cast<int32_t>(track_index), time, godot::Animation::FIND_MODE_APPROX);
             if (key_idx < 0) {
                 return ToolResult::err("KEY_NOT_FOUND",
                     String("No key found at time: ") + String::num(time));
             }
-            Variant old_value = animation->track_get_key_value((int32_t)track_index, key_idx);
+            Variant old_value = animation->track_get_key_value(static_cast<int32_t>(track_index), key_idx);
 
             if (!ur) {
-                animation->track_set_key_value((int32_t)track_index, key_idx, value);
+                animation->track_set_key_value(static_cast<int32_t>(track_index), key_idx, value);
                 mark_scene_dirty();
             } else {
                 ur->create_action(String("MCP: Set Keyframe Value"),
                                   godot::UndoRedo::MERGE_DISABLE, ctx.root);
                 ur->add_do_method(animation.ptr(), "track_set_key_value",
-                                  (int32_t)track_index, key_idx, value);
+                                  static_cast<int32_t>(track_index), key_idx, value);
                 ur->add_undo_method(animation.ptr(), "track_set_key_value",
-                                    (int32_t)track_index, key_idx, old_value);
+                                    static_cast<int32_t>(track_index), key_idx, old_value);
                 ur->commit_action();
             }
         } else {
@@ -211,13 +211,13 @@ protected:
                 " (expected insert/delete/set_value)");
         }
 
-        int32_t key_count = animation->track_get_key_count((int32_t)track_index);
+        int32_t key_count = animation->track_get_key_count(static_cast<int32_t>(track_index));
 
         Dictionary data;
         data["operation"] = operation;
-        data["track_index"] = (int64_t)track_index;
+        data["track_index"] = static_cast<int64_t>(track_index);
         data["time"] = time;
-        data["key_count"] = (int64_t)key_count;
+        data["key_count"] = static_cast<int64_t>(key_count);
         return ToolResult::ok(data);
     }
 };

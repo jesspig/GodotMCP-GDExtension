@@ -68,7 +68,7 @@ protected:
 
         Dictionary data;
         data["plugins"] = results;
-        data["count"] = (int64_t)results.size();
+        data["count"] = static_cast<int64_t>(results.size());
         return ToolResult::ok(data);
     }
 };

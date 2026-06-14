@@ -296,8 +296,8 @@ void McpDock::_on_copy_pressed() {
 
 void McpDock::_on_apply_restart_pressed() {
     if (!plugin_) return;
-    int http_port = (int)http_port_spin_->get_value();
-    int bridge_port = (int)bridge_port_spin_->get_value();
+    int http_port = static_cast<int>(http_port_spin_->get_value());
+    int bridge_port = static_cast<int>(bridge_port_spin_->get_value());
     int bind_idx = bind_mode_->get_selected();
     String host;
     if (bind_idx == 1) {
@@ -316,8 +316,8 @@ void McpDock::_on_apply_restart_pressed() {
 
 void McpDock::_on_force_restart_pressed() {
     if (!plugin_) return;
-    int http_port = (int)http_port_spin_->get_value();
-    int bridge_port = (int)bridge_port_spin_->get_value();
+    int http_port = static_cast<int>(http_port_spin_->get_value());
+    int bridge_port = static_cast<int>(bridge_port_spin_->get_value());
     int bind_idx = bind_mode_->get_selected();
     String host;
     if (bind_idx == 1) {

@@ -92,7 +92,7 @@ protected:
         data["resource_path"] = resource_path;
         data["mode"] = mode;
         data["code"] = code;
-        data["uniform_count"] = (int64_t)uniform_count;
+        data["uniform_count"] = static_cast<int64_t>(uniform_count);
         return ToolResult::ok(data);
     }
 };

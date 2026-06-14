@@ -102,10 +102,10 @@ protected:
         agent_node->set_name(node_name);
 
         if (target_dist > 0.0) {
-            agent_node->set("target_desired_distance", (real_t)target_dist);
+            agent_node->set("target_desired_distance", static_cast<real_t>(target_dist));
         }
         if (path_dist > 0.0) {
-            agent_node->set("path_desired_distance", (real_t)path_dist);
+            agent_node->set("path_desired_distance", static_cast<real_t>(path_dist));
         }
         if (avoidance) {
             agent_node->set("avoidance_enabled", true);
@@ -120,7 +120,7 @@ protected:
             ur->create_action(String("MCP: Create ") + class_name,
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", agent_node, true,
-                              (int64_t)Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(agent_node, "set_owner", ctx.root);
             ur->add_undo_method(parent, "remove_child", agent_node);
             ur->add_do_reference(agent_node);

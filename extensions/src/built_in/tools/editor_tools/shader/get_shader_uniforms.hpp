@@ -60,18 +60,18 @@ protected:
             Dictionary entry;
             entry["name"] = u.get("name", "");
 
-            int type_int = (int)u.get("type", 0);
+            int type_int = static_cast<int>(u.get("type", 0));
             String type_str;
             switch (type_int) {
-                case (int)Variant::BOOL: type_str = "bool"; break;
-                case (int)Variant::INT: type_str = "int"; break;
-                case (int)Variant::FLOAT: type_str = "float"; break;
-                case (int)Variant::STRING: type_str = "String"; break;
-                case (int)Variant::VECTOR2: type_str = "Vector2"; break;
-                case (int)Variant::VECTOR3: type_str = "Vector3"; break;
-                case (int)Variant::VECTOR4: type_str = "Vector4"; break;
-                case (int)Variant::COLOR: type_str = "Color"; break;
-                case (int)Variant::ARRAY: type_str = "Array"; break;
+                case static_cast<int>(Variant::BOOL): type_str = "bool"; break;
+                case static_cast<int>(Variant::INT): type_str = "int"; break;
+                case static_cast<int>(Variant::FLOAT): type_str = "float"; break;
+                case static_cast<int>(Variant::STRING): type_str = "String"; break;
+                case static_cast<int>(Variant::VECTOR2): type_str = "Vector2"; break;
+                case static_cast<int>(Variant::VECTOR3): type_str = "Vector3"; break;
+                case static_cast<int>(Variant::VECTOR4): type_str = "Vector4"; break;
+                case static_cast<int>(Variant::COLOR): type_str = "Color"; break;
+                case static_cast<int>(Variant::ARRAY): type_str = "Array"; break;
                 default: type_str = String::num(type_int); break;
             }
             entry["type"] = type_str;
@@ -94,7 +94,7 @@ protected:
         Dictionary data;
         data["shader_path"] = shader_path;
         data["uniforms"] = results;
-        data["count"] = (int64_t)results.size();
+        data["count"] = static_cast<int64_t>(results.size());
         return ToolResult::ok(data);
     }
 };

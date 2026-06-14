@@ -67,7 +67,7 @@ protected:
         if (ps) {
             Variant port_v = ps->get_setting("godot_mcp/http_port");
             if (port_v.get_type() == Variant::INT) {
-                port = (int)(int64_t)port_v;
+                port = static_cast<int>(static_cast<int64_t>(port_v));
             }
         }
         String url = String("http://127.0.0.1:") + String::num_int64(port) + String("/mcp");

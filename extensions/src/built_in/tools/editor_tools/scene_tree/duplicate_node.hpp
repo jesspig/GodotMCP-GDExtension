@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -43,7 +43,7 @@ public:
             Dictionary p;
             p["type"] = "integer";
             p["description"] = "Insert position (-1 = after original node)";
-            p["default"] = (int64_t)-1;
+            p["default"] = static_cast<int64_t>(-1);
             props["index"] = p;
         }
         Dictionary s;
@@ -96,7 +96,7 @@ protected:
             ur->create_action("MCP: Duplicate " + node->get_name(),
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", dup, true,
-                              (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(parent, "move_child", dup, insert_idx);
             ur->add_undo_method(parent, "remove_child", dup);
             {
@@ -131,7 +131,7 @@ protected:
         data["source"] = relative_path(ctx.root, node);
         data["new_node"] = relative_path(ctx.root, dup);
         data["new_name"] = dup->get_name();
-        data["index"] = (int64_t)insert_idx;
+        data["index"] = static_cast<int64_t>(insert_idx);
         return ToolResult::ok(data);
     }
 };

@@ -73,7 +73,7 @@ protected:
 
         Dictionary data;
         data["files"] = result_files;
-        data["total"] = (int64_t)result_files.size();
+        data["total"] = static_cast<int64_t>(result_files.size());
         data["truncated"] = truncated;
         return ToolResult::ok(data);
     }

@@ -37,7 +37,7 @@ public:
             Dictionary p;
             p["type"] = "integer";
             p["description"] = "Insert position in the new parent (-1 = end)";
-            p["default"] = (int64_t)-1;
+            p["default"] = static_cast<int64_t>(-1);
             props["index"] = p;
         }
         Dictionary s;
@@ -112,8 +112,8 @@ protected:
             }
             Dictionary data;
             data["node"] = relative_path(ctx.root, node);
-            data["old_index"] = (int64_t)cur_idx;
-            data["new_index"] = (int64_t)target;
+            data["old_index"] = static_cast<int64_t>(cur_idx);
+            data["new_index"] = static_cast<int64_t>(target);
             data["changed"] = true;
             return ToolResult::ok(data);
         }
@@ -129,11 +129,11 @@ protected:
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(old_parent, "remove_child", node);
             ur->add_do_method(new_parent, "add_child", node, true,
-                              (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(new_parent, "move_child", node, target);
             ur->add_undo_method(new_parent, "remove_child", node);
             ur->add_undo_method(old_parent, "add_child", node, true,
-                                (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                                static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_undo_method(old_parent, "move_child", node, old_index);
             ur->add_do_reference(node);
             ur->add_undo_reference(node);
@@ -148,8 +148,8 @@ protected:
         data["node"] = relative_path(ctx.root, node);
         data["old_parent"] = relative_path(ctx.root, old_parent);
         data["new_parent"] = relative_path(ctx.root, new_parent);
-        data["old_index"] = (int64_t)old_index;
-        data["new_index"] = (int64_t)target;
+        data["old_index"] = static_cast<int64_t>(old_index);
+        data["new_index"] = static_cast<int64_t>(target);
         data["changed"] = true;
         return ToolResult::ok(data);
     }

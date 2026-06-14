@@ -113,13 +113,13 @@ protected:
                 return ToolResult::err("CREATE_FAILED", "Failed to create NavigationMesh resource");
             }
             if (cell_size > 0.0) {
-                nav_mesh->set_cell_size((real_t)cell_size);
+                nav_mesh->set_cell_size(static_cast<real_t>(cell_size));
             }
             if (agent_radius > 0.0) {
-                nav_mesh->set_agent_radius((real_t)agent_radius);
+                nav_mesh->set_agent_radius(static_cast<real_t>(agent_radius));
             }
             if (agent_height > 0.0) {
-                nav_mesh->set_agent_height((real_t)agent_height);
+                nav_mesh->set_agent_height(static_cast<real_t>(agent_height));
             }
             godot::NavigationRegion3D *region = Object::cast_to<godot::NavigationRegion3D>(region_node);
             if (region) {
@@ -133,10 +133,10 @@ protected:
                 return ToolResult::err("CREATE_FAILED", "Failed to create NavigationPolygon resource");
             }
             if (cell_size > 0.0) {
-                nav_poly->set_cell_size((real_t)cell_size);
+                nav_poly->set_cell_size(static_cast<real_t>(cell_size));
             }
             if (agent_radius > 0.0) {
-                nav_poly->set_agent_radius((real_t)agent_radius);
+                nav_poly->set_agent_radius(static_cast<real_t>(agent_radius));
             }
             godot::NavigationRegion2D *region = Object::cast_to<godot::NavigationRegion2D>(region_node);
             if (region) {
@@ -153,7 +153,7 @@ protected:
             ur->create_action(String("MCP: Create ") + class_name,
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", region_node, true,
-                              (int64_t)Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(region_node, "set_owner", ctx.root);
             ur->add_undo_method(parent, "remove_child", region_node);
             ur->add_undo_reference(region_node);

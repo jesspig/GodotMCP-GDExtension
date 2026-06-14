@@ -72,10 +72,10 @@ protected:
         Dictionary data;
         data["class_name"] = class_name;
         data["method"] = method;
-        data["arg_count"] = (int64_t)ClassDB::class_get_method_argument_count(class_name, method, false);
+        data["arg_count"] = static_cast<int64_t>(ClassDB::class_get_method_argument_count(class_name, method, false));
 
         if (!found.is_empty()) {
-            data["flags"] = (int64_t)found.get("flags", 0);
+            data["flags"] = static_cast<int64_t>(found.get("flags", 0));
             Variant ret = found.get("return", Variant());
             if (ret.get_type() == Variant::DICTIONARY) {
                 Dictionary ret_dict = ret;

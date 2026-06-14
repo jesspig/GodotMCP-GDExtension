@@ -55,7 +55,7 @@ protected:
 
         Dictionary data;
         data["classes"] = result;
-        data["count"] = (int64_t)result.size();
+        data["count"] = static_cast<int64_t>(result.size());
         data["filter"] = inherit_filter.is_empty() ? Variant() : Variant(inherit_filter);
         return ToolResult::ok(data);
     }

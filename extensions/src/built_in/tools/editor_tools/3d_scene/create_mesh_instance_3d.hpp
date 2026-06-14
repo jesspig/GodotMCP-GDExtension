@@ -139,7 +139,7 @@ protected:
                 ur->create_action("MCP: Instance scene",
                                   godot::UndoRedo::MERGE_DISABLE, ctx.root);
                 ur->add_do_method(parent, "add_child", instance, true,
-                                  (int64_t)Node::INTERNAL_MODE_DISABLED);
+                                  static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
                 ur->add_do_method(instance, "set_owner", ctx.root);
                 ur->add_undo_method(parent, "remove_child", instance);
                 ur->add_do_reference(instance);
@@ -182,9 +182,9 @@ protected:
             godot::Ref<godot::BoxMesh> m;
             m.instantiate();
             if (!size_dict.is_empty()) {
-                real_t w = (real_t)args_float(size_dict, "width", 2.0);
-                real_t h = (real_t)args_float(size_dict, "height", 2.0);
-                real_t d = (real_t)args_float(size_dict, "depth", 2.0);
+                real_t w = static_cast<real_t>(args_float(size_dict, "width", 2.0));
+                real_t h = static_cast<real_t>(args_float(size_dict, "height", 2.0));
+                real_t d = static_cast<real_t>(args_float(size_dict, "depth", 2.0));
                 m->set_size(godot::Vector3(w, h, d));
             }
             mesh = m;
@@ -192,16 +192,16 @@ protected:
             godot::Ref<godot::SphereMesh> m;
             m.instantiate();
             if (!size_dict.is_empty() && size_dict.has("radius")) {
-                m->set_radius((real_t)args_float(size_dict, "radius", 0.5));
-                m->set_height((real_t)args_float(size_dict, "radius", 0.5) * 2.0);
+                m->set_radius(static_cast<real_t>(args_float(size_dict, "radius", 0.5)));
+                m->set_height(static_cast<real_t>(args_float(size_dict, "radius", 0.5)) * 2.0);
             }
             mesh = m;
         } else if (mesh_type == "cylinder") {
             godot::Ref<godot::CylinderMesh> m;
             m.instantiate();
             if (!size_dict.is_empty()) {
-                real_t r = (real_t)args_float(size_dict, "radius", 0.5);
-                real_t h = (real_t)args_float(size_dict, "height", 2.0);
+                real_t r = static_cast<real_t>(args_float(size_dict, "radius", 0.5));
+                real_t h = static_cast<real_t>(args_float(size_dict, "height", 2.0));
                 m->set_top_radius(r);
                 m->set_bottom_radius(r);
                 m->set_height(h);
@@ -211,8 +211,8 @@ protected:
             godot::Ref<godot::CapsuleMesh> m;
             m.instantiate();
             if (!size_dict.is_empty()) {
-                real_t r = (real_t)args_float(size_dict, "radius", 0.3);
-                real_t h = (real_t)args_float(size_dict, "height", 1.0);
+                real_t r = static_cast<real_t>(args_float(size_dict, "radius", 0.3));
+                real_t h = static_cast<real_t>(args_float(size_dict, "height", 1.0));
                 m->set_radius(r);
                 m->set_height(h);
             }
@@ -225,8 +225,8 @@ protected:
                 if (sv.get_type() == Variant::DICTIONARY) {
                     Dictionary sd = sv;
                     m->set_size(godot::Vector2(
-                        (real_t)args_float(sd, "width", 2.0),
-                        (real_t)args_float(sd, "height", 2.0)));
+                        static_cast<real_t>(args_float(sd, "width", 2.0)),
+                        static_cast<real_t>(args_float(sd, "height", 2.0))));
                 }
             }
             mesh = m;
@@ -265,7 +265,7 @@ protected:
             ur->create_action("MCP: Create MeshInstance3D",
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", mesh_inst, true,
-                              (int64_t)Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(mesh_inst, "set_owner", ctx.root);
             ur->add_undo_method(parent, "remove_child", mesh_inst);
             ur->add_do_reference(mesh_inst);

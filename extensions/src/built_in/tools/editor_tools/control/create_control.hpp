@@ -118,8 +118,8 @@ protected:
         }
         if (!size_dict.is_empty() && size_dict.has("width") && size_dict.has("height")) {
             control->set_size(godot::Vector2(
-                (real_t)args_float(size_dict, "width", 0.0),
-                (real_t)args_float(size_dict, "height", 0.0)
+                static_cast<real_t>(args_float(size_dict, "width", 0.0)),
+                static_cast<real_t>(args_float(size_dict, "height", 0.0))
             ));
         }
 
@@ -131,7 +131,7 @@ protected:
         } else {
             ur->create_action(String("MCP: Create Control ") + class_name,
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
-            ur->add_do_method(parent, "add_child", child, true, (int64_t)Node::INTERNAL_MODE_DISABLED);
+            ur->add_do_method(parent, "add_child", child, true, static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(child, "set_owner", ctx.root);
             ur->add_undo_method(parent, "remove_child", child);
             ur->add_undo_method(child, "set_owner", Variant());

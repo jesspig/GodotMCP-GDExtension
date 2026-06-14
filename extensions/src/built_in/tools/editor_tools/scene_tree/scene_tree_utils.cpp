@@ -64,10 +64,10 @@ void do_add_child(EditorUndoRedoManager *ur,
 
     if (index < 0 || index >= parent->get_child_count()) {
         ur->add_do_method(parent, "add_child", child, true,
-                          (int64_t)Node::INTERNAL_MODE_DISABLED);
+                          static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
     } else {
         ur->add_do_method(parent, "add_child", child, true,
-                          (int64_t)Node::INTERNAL_MODE_DISABLED);
+                          static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
         ur->add_do_method(parent, "move_child", child, index);
     }
     ur->add_do_method(child, "set_owner", scene_root);
@@ -129,7 +129,7 @@ void collect_node_info(Node *node, Node *root, int64_t max_depth, bool include_s
     d["name"] = node->get_name();
     d["type"] = node->get_class();
     d["path"] = relative_path(root, node);
-    d["child_count"] = (int64_t)node->get_child_count();
+    d["child_count"] = static_cast<int64_t>(node->get_child_count());
     d["has_owner"] = node->get_owner() != nullptr;
     if (include_scripts) {
         Ref<Script> s = node->get_script();
@@ -151,7 +151,7 @@ void collect_node_info(Node *node, Node *root, int64_t max_depth, bool include_s
                 leaf["name"] = c->get_name();
                 leaf["type"] = c->get_class();
                 leaf["path"] = relative_path(root, c);
-                leaf["child_count"] = (int64_t)c->get_child_count();
+                leaf["child_count"] = static_cast<int64_t>(c->get_child_count());
                 leaf["has_owner"] = c->get_owner() != nullptr;
                 leaf["truncated"] = true;
                 out[leaf["path"]] = leaf;

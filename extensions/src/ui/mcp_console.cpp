@@ -324,7 +324,6 @@ void McpConsole::rebuild_log() {
 // =====================================================================
 
 void McpConsole::on_log_appended(const McpLogger::LogEntry &entry) {
-    int idx = logged_entries_.size();
     logged_entries_.push_back(entry);
     while (logged_entries_.size() > kMaxVisible) {
         logged_entries_.remove_at(0);
@@ -334,8 +333,7 @@ void McpConsole::on_log_appended(const McpLogger::LogEntry &entry) {
             if (oldest) memdelete(oldest);
         }
     }
-    add_tree_entry(entry, idx);
-    rebuild_metadata_indices();
+    add_tree_entry(entry, logged_entries_.size() - 1);
     update_toolbar_state();
 }
 

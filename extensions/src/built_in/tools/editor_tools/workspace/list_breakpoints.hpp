@@ -70,7 +70,7 @@ protected:
 
         Dictionary data;
         data["breakpoints"] = bp_data;
-        data["count"] = (int64_t)bp_data.size();
+        data["count"] = static_cast<int64_t>(bp_data.size());
         return ToolResult::ok(data);
     }
 };

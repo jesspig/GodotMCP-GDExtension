@@ -40,7 +40,7 @@ int McpEditorPlugin::read_port_from_env(const String &env_var, int default_port)
         log_warn("plugin", String("Ignoring invalid ") + env_var + String("=") + raw);
         return default_port;
     }
-    return (int)parsed;
+    return static_cast<int>(parsed);
 }
 
 void McpEditorPlugin::load_config() {
@@ -50,7 +50,7 @@ void McpEditorPlugin::load_config() {
 
     Variant http_port_v = ps->get_setting("godot_mcp/http_port");
     if (http_port_v.get_type() == Variant::INT) {
-        http_port_ = (int)(int64_t)http_port_v;
+        http_port_ = static_cast<int>(static_cast<int64_t>(http_port_v));
     } else {
         any_nil = true;
         http_port_ = read_port_from_env("GODOT_MCP_HTTP_PORT", 9600);
@@ -58,7 +58,7 @@ void McpEditorPlugin::load_config() {
 
     Variant http_host_v = ps->get_setting("godot_mcp/http_host");
     if (http_host_v.get_type() == Variant::STRING) {
-        http_host_ = (String)http_host_v;
+        http_host_ = static_cast<String>(http_host_v);
     } else {
         any_nil = true;
         http_host_ = OS::get_singleton()->get_environment("GODOT_MCP_HTTP_HOST");
@@ -67,7 +67,7 @@ void McpEditorPlugin::load_config() {
 
     Variant bridge_port_v = ps->get_setting("godot_mcp/bridge_port");
     if (bridge_port_v.get_type() == Variant::INT) {
-        bridge_port_ = (int)(int64_t)bridge_port_v;
+        bridge_port_ = static_cast<int>(static_cast<int64_t>(bridge_port_v));
     } else {
         any_nil = true;
         bridge_port_ = read_port_from_env("GODOT_MCP_BRIDGE_PORT", 9601);
@@ -134,17 +134,15 @@ void McpEditorPlugin::_enter_tree() {
     // Wire up TestEngine
     http_server_.set_test_engine(&test_engine_);
 
-    started_ = true;
-
     // Initialize MCP Logger
     ProjectSettings *ps = ProjectSettings::get_singleton();
     Variant ps_log_dir = ps->get_setting("godot_mcp/log_dir");
     if (ps_log_dir.get_type() == Variant::STRING) {
-        logger_.set_log_dir((String)ps_log_dir);
+        logger_.set_log_dir(static_cast<String>(ps_log_dir));
     }
     Variant ps_max = ps->get_setting("godot_mcp/max_log_entries");
     if (ps_max.get_type() == Variant::INT) {
-        logger_.set_max_entries((int)(int64_t)ps_max);
+        logger_.set_max_entries(static_cast<int>(static_cast<int64_t>(ps_max)));
     }
     logger_.rotate();
 
@@ -177,6 +175,8 @@ void McpEditorPlugin::_enter_tree() {
     });
     mcp_console_->refresh();
     add_control_to_bottom_panel(mcp_console_, "MCP Console");
+
+    started_ = true;
 
     log_info("plugin", String("Godot MCP v") + String(GODOT_MCP_PLUGIN_VERSION) +
                            String(" ready on HTTP :") + String::num_int64(http_port_) +

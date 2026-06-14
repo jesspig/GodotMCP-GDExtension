@@ -135,14 +135,14 @@ protected:
 
         if (ctx.args.has("color") && ctx.args["color"].get_type() == Variant::DICTIONARY) {
             Dictionary cd = ctx.args["color"];
-            real_t r = (real_t)args_float(cd, "r", 1.0);
-            real_t g = (real_t)args_float(cd, "g", 1.0);
-            real_t b = (real_t)args_float(cd, "b", 1.0);
+            real_t r = static_cast<real_t>(args_float(cd, "r", 1.0));
+            real_t g = static_cast<real_t>(args_float(cd, "g", 1.0));
+            real_t b = static_cast<real_t>(args_float(cd, "b", 1.0));
             light->set_color(godot::Color(r, g, b));
         }
 
         if (energy > 0.0) {
-            light->set_param(godot::Light3D::PARAM_ENERGY, (real_t)energy);
+            light->set_param(godot::Light3D::PARAM_ENERGY, static_cast<real_t>(energy));
         }
 
         if (shadow) {
@@ -150,11 +150,11 @@ protected:
         }
 
         if (range > 0.0 && light_type != "directional") {
-            light->set_param(godot::Light3D::PARAM_RANGE, (real_t)range);
+            light->set_param(godot::Light3D::PARAM_RANGE, static_cast<real_t>(range));
         }
 
         if (spot_angle > 0.0 && light_type == "spot") {
-            light->set_param(godot::Light3D::PARAM_SPOT_ANGLE, (real_t)spot_angle);
+            light->set_param(godot::Light3D::PARAM_SPOT_ANGLE, static_cast<real_t>(spot_angle));
         }
 
         godot::EditorUndoRedoManager *ur = get_undo_redo();
@@ -166,7 +166,7 @@ protected:
             ur->create_action(String("MCP: Create ") + class_name,
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", light_node, true,
-                              (int64_t)Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(light_node, "set_owner", ctx.root);
             ur->add_undo_method(parent, "remove_child", light_node);
             ur->add_do_reference(light_node);

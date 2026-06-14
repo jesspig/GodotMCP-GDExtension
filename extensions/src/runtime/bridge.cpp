@@ -1,4 +1,4 @@
-﻿#include "bridge.hpp"
+#include "bridge.hpp"
 #include "logging.hpp"
 
 #include <godot_cpp/classes/json.hpp>
@@ -98,6 +98,13 @@ Dictionary RuntimeBridge::send_command(const String &cmd, const Dictionary &para
     }
 
     raw = read_response(timeout_ms);
+    if (raw.has("id") && static_cast<int>(static_cast<int64_t>(raw["id"])) != id) {
+        disconnect();
+        Dictionary err;
+        err["ok"] = false;
+        err["error"] = String("Response ID mismatch: expected ") + String::num_int64(id) + String(", got ") + String::num_int64(static_cast<int>(static_cast<int64_t>(raw["id"])));
+        return make_response(err);
+    }
     return make_response(raw);
 }
 
@@ -111,7 +118,7 @@ Dictionary RuntimeBridge::read_response(int timeout_ms) {
         tcp_->poll();
         if (tcp_->get_available_bytes() > 0) {
             Array chunk = tcp_->get_partial_data(tcp_->get_available_bytes());
-            if ((int)chunk[0] == OK) {
+            if (static_cast<int>(chunk[0]) == static_cast<int>(Error::OK)) {
                 PackedByteArray data = chunk[1];
                 buf.append_array(data);
                 if (buf.size() > max_response_size) {
@@ -150,6 +157,15 @@ Dictionary RuntimeBridge::read_response(int timeout_ms) {
 
 Dictionary RuntimeBridge::make_response(const Dictionary &raw) {
     if (raw.has("success")) {
+        if (!raw["success"] && !raw.has("error")) {
+            Dictionary error;
+            error["code"] = -1;
+            error["message"] = "Unknown error";
+            Dictionary r;
+            r["success"] = false;
+            r["error"] = error;
+            return r;
+        }
         return raw;
     }
 

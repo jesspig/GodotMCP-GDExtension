@@ -120,7 +120,7 @@ protected:
                 if (!keycode_str.is_empty()) {
                     if (keycode_str.begins_with("KEY_")) {
                         Variant v = godot::Variant(godot::String("Key.") + keycode_str.substr(4, -1).capitalize().replace("_", ""));
-                        keycode = (int64_t)v;
+                        keycode = static_cast<int64_t>(v);
                     }
                     if (keycode == 0) {
                         keycode = keycode_str.to_int();
@@ -161,7 +161,7 @@ protected:
             int64_t axis = args_int(ctx.args, "axis", 0);
             double axis_sign = args_float(ctx.args, "axis_sign", 1.0);
             ev->set_axis(static_cast<godot::JoyAxis>(axis));
-            ev->set_axis_value((real_t)axis_sign);
+            ev->set_axis_value(static_cast<real_t>(axis_sign));
             event = godot::Ref<godot::InputEvent>(ev);
 
         } else {

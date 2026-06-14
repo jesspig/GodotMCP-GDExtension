@@ -30,8 +30,8 @@ protected:
         Object *active = dbg->call("get_current_debugger");
         Dictionary d;
         if (active) {
-            d["error_count"] = (int64_t)active->call("get_error_count");
-            d["warning_count"] = (int64_t)active->call("get_warning_count");
+            d["error_count"] = static_cast<int64_t>(active->call("get_error_count"));
+            d["warning_count"] = static_cast<int64_t>(active->call("get_warning_count"));
         } else {
             d["error_count"] = (int64_t)0;
             d["warning_count"] = (int64_t)0;

@@ -130,7 +130,7 @@ protected:
             ur->create_action(String("MCP: Create AnimationTree"),
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", tree_node, true,
-                              (int64_t)Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(tree_node, "set_owner", ctx.root);
             ur->add_do_reference(tree_node);
             ur->add_undo_method(tree_node, "set_owner", Variant());

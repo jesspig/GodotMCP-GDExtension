@@ -69,17 +69,17 @@ protected:
                 for (int j = 0; j < constants.size(); j++) {
                     Dictionary c;
                     c["name"] = constants[j];
-                    c["value"] = (int64_t)ClassDB::class_get_integer_constant(class_name, constants[j]);
+                    c["value"] = static_cast<int64_t>(ClassDB::class_get_integer_constant(class_name, constants[j]));
                     const_list.append(c);
                 }
                 entry["constants"] = const_list;
-                entry["constant_count"] = (int64_t)const_list.size();
+                entry["constant_count"] = static_cast<int64_t>(const_list.size());
                 result.append(entry);
             }
             Dictionary data;
             data["class_name"] = class_name;
             data["enums"] = result;
-            data["count"] = (int64_t)result.size();
+            data["count"] = static_cast<int64_t>(result.size());
             return ToolResult::ok(data);
         }
 
@@ -94,7 +94,7 @@ protected:
         for (int i = 0; i < constants.size(); i++) {
             Dictionary c;
             c["name"] = constants[i];
-            c["value"] = (int64_t)ClassDB::class_get_integer_constant(class_name, constants[i]);
+            c["value"] = static_cast<int64_t>(ClassDB::class_get_integer_constant(class_name, constants[i]));
             const_list.append(c);
         }
 
@@ -103,7 +103,7 @@ protected:
         data["enum_name"] = enum_name;
         data["is_bitfield"] = ClassDB::is_class_enum_bitfield(class_name, enum_name, false);
         data["constants"] = const_list;
-        data["constant_count"] = (int64_t)const_list.size();
+        data["constant_count"] = static_cast<int64_t>(const_list.size());
         return ToolResult::ok(data);
     }
 };

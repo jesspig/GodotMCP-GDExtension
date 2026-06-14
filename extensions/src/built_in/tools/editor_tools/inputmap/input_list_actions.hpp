@@ -44,7 +44,7 @@ protected:
             Dictionary entry;
             entry["name"] = action;
             entry["deadzone"] = im->action_get_deadzone(action);
-            entry["event_count"] = (int64_t)events.size();
+            entry["event_count"] = static_cast<int64_t>(events.size());
 
             Array event_list;
             for (int e = 0; e < events.size(); e++) {
@@ -75,7 +75,7 @@ protected:
 
         Dictionary data;
         data["actions"] = results;
-        data["count"] = (int64_t)results.size();
+        data["count"] = static_cast<int64_t>(results.size());
         return ToolResult::ok(data);
     }
 };

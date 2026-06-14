@@ -113,6 +113,10 @@ target_compile_definitions(godot_mcp_gdext PRIVATE
     GODOT_MCP_PLUGIN_VERSION="${GODOT_MCP_PLUGIN_VERSION}"
 )
 
+if(MSVC)
+    target_compile_definitions(godot_mcp_gdext PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+
 # ---------------------------------------------------------------------------
 # Build optimization options (user-configurable via -D or env)
 # ---------------------------------------------------------------------------
@@ -141,7 +145,6 @@ set_target_properties(godot_mcp_gdext PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
-    POSITION_INDEPENDENT_CODE ON
     UNITY_BUILD ${GODOTMCP_UNITY_BUILD}
     UNITY_BUILD_BATCH_SIZE ${_unity_batch}
     PREFIX ""
@@ -165,7 +168,7 @@ endif()
 
 # Suppress noisy warnings from godot-cpp generated code on MSVC.
 if(MSVC)
-    target_compile_options(godot_mcp_gdext PRIVATE /utf-8 /bigobj /W3 /wd4244 /wd4267)
+    target_compile_options(godot_mcp_gdext PRIVATE /W3 /wd4244 /wd4267)
 else()
     target_compile_options(godot_mcp_gdext PRIVATE -Wall -Wno-unused-parameter)
 endif()

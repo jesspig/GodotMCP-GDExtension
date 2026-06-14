@@ -13,6 +13,7 @@
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include <charconv>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <random>
@@ -46,15 +47,16 @@ String McpHandler::generate_uuid() {
     static std::mt19937_64 rng(std::random_device{}());
     static std::uniform_int_distribution<uint64_t> dist;
 
-    char buf[37];
+    constexpr int kUuidBufSize = 37;
+    char buf[kUuidBufSize];
     const uint64_t hi = dist(rng);
     const uint64_t lo = dist(rng);
     // RFC 4122 version 4
-    std::sprintf(buf, "%08x-%04x-4%03x-%04x-%012llx",
-                 (unsigned)(hi >> 32),
-                 (unsigned)(hi >> 16) & 0xffff,
-                 (unsigned)(hi & 0x0fff),
-                 ((unsigned)(lo >> 48) & 0x3fff) | 0x8000,
+    std::snprintf(buf, sizeof(buf), "%08x-%04x-4%03x-%04x-%012llx",
+                 static_cast<unsigned>((hi >> 32)),
+                 static_cast<unsigned>((hi >> 16)) & 0xffff,
+                 static_cast<unsigned>((hi & 0x0fff)),
+                 (static_cast<unsigned>((lo >> 48)) & 0x3fff) | 0x8000,
                  (unsigned long long)(lo & 0x0000ffffffffffffULL));
     return String(buf);
 }
@@ -98,7 +100,7 @@ void McpHandler::cleanup_expired_sessions() {
 
     if (sessions_.size() > kMaxSessions) {
         String oldest_id;
-        double oldest_time = (double)INFINITY;
+        double oldest_time = static_cast<double>(INFINITY);
         for (const KeyValue<String, Session> &kv : sessions_) {
             if (kv.value.last_activity < oldest_time) {
                 oldest_time = kv.value.last_activity;
@@ -512,7 +514,7 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
         log_entry.success = success;
         log_entry.args = args;
         log_entry.result = tool_result;
-        log_entry.duration_ms = (double)(Time::get_singleton()->get_ticks_msec() - start_msec);
+        log_entry.duration_ms = static_cast<double>((Time::get_singleton()->get_ticks_msec() - start_msec));
         log_callback_(log_entry);
     }
 

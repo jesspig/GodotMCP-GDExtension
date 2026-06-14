@@ -60,7 +60,7 @@ protected:
         bool current = node->is_editable_instance(node);
         bool enable;
         if (ctx.args.has("enable")) {
-            enable = (bool)ctx.args["enable"];
+            enable = static_cast<bool>(ctx.args["enable"]);
         } else {
             enable = !current;
         }

@@ -169,7 +169,7 @@ protected:
         bool include_files = args_bool(ctx.args, "include_files", true);
         bool include_dirs = args_bool(ctx.args, "include_dirs", true);
         Array extensions = ctx.args.has("extensions")
-            ? (Array)ctx.args["extensions"] : Array();
+            ? static_cast<Array>(ctx.args["extensions"] ): Array();
         bool recursive = args_bool(ctx.args, "recursive", false);
 
         Dictionary verr = fs_utils::validate_res_path(path);
@@ -214,8 +214,8 @@ protected:
         data["path"] = path;
         data["files"] = file_list;
         data["directories"] = dir_list;
-        data["total_files"] = (int64_t)file_list.size();
-        data["total_dirs"] = (int64_t)dir_list.size();
+        data["total_files"] = static_cast<int64_t>(file_list.size());
+        data["total_dirs"] = static_cast<int64_t>(dir_list.size());
         return ToolResult::ok(data);
     }
 };

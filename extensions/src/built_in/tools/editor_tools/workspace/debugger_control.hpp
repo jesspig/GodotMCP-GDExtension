@@ -63,8 +63,8 @@ protected:
         data["action"] = action;
         data["performed"] = true;
         if (active_dbg) {
-            data["is_breaked"] = (bool)active_dbg->call("is_breaked");
-            data["is_session_active"] = (bool)active_dbg->call("is_session_active");
+            data["is_breaked"] = static_cast<bool>(active_dbg->call("is_breaked"));
+            data["is_session_active"] = static_cast<bool>(active_dbg->call("is_session_active"));
         }
 
         return ToolResult::ok(data);

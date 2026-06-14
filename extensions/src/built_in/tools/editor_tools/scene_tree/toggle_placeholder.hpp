@@ -59,7 +59,7 @@ protected:
         bool current = node->get_scene_instance_load_placeholder();
         bool enable;
         if (ctx.args.has("enable")) {
-            enable = (bool)ctx.args["enable"];
+            enable = static_cast<bool>(ctx.args["enable"]);
         } else {
             enable = !current;
         }

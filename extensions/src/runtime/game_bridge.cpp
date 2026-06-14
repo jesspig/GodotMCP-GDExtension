@@ -1,4 +1,4 @@
-﻿#include "game_bridge.hpp"
+#include "game_bridge.hpp"
 #include "logging.hpp"
 
 #include <godot_cpp/classes/engine.hpp>
@@ -44,7 +44,7 @@ int GameBridgeNode::read_port() {
     if (raw.is_empty()) return 9601;
     int64_t parsed = raw.to_int();
     if (parsed < 1 || parsed > 65535) return 9601;
-    return (int)parsed;
+    return static_cast<int>(parsed);
 }
 
 void GameBridgeNode::_ready() {
@@ -143,7 +143,7 @@ void GameBridgeNode::read_clients() {
     if (avail <= 0) return;
 
     Array chunk = client_->get_partial_data(avail);
-    if ((int)chunk[0] != OK) {
+    if (static_cast<int>(chunk[0]) != OK) {
         client_->disconnect_from_host();
         client_.unref();
         read_buf_.clear();
@@ -200,7 +200,7 @@ void GameBridgeNode::read_clients() {
     String cmd = msg_dict.get("cmd", "");
     Dictionary params = msg_dict.get("params", Dictionary());
     Variant id_v = msg_dict.get("id", Variant());
-    int id = (int)(id_v.get_type() == Variant::FLOAT ? (double)id_v : (int64_t)id_v);
+    int id = static_cast<int>((id_v.get_type() == Variant::FLOAT ? static_cast<double>(id_v ): static_cast<int64_t>(id_v)));
 
     Dictionary result = dispatch(cmd, params);
     result["id"] = id;
@@ -422,8 +422,8 @@ static Key key_from_string(const String &name) {
     // Single letter A-Z
     if (upper.length() == 1) {
         char32_t c = upper[0];
-        if (c >= 'A' && c <= 'Z') return (Key)(KEY_A + (c - 'A'));
-        if (c >= '0' && c <= '9') return (Key)(KEY_0 + (c - '0'));
+        if (c >= 'A' && c <= 'Z') return static_cast<Key>((KEY_A + (c - 'A')));
+        if (c >= '0' && c <= '9') return static_cast<Key>((KEY_0 + (c - '0')));
     }
 
     // Named keys
@@ -469,7 +469,7 @@ static MouseButton mouse_button_from_string(const String &name) {
     if (upper == "MIDDLE")     return MOUSE_BUTTON_MIDDLE;
     if (upper == "WHEEL_UP")   return MOUSE_BUTTON_WHEEL_UP;
     if (upper == "WHEEL_DOWN") return MOUSE_BUTTON_WHEEL_DOWN;
-    return MOUSE_BUTTON_LEFT;
+    return MOUSE_BUTTON_NONE;
 }
 
 Dictionary GameBridgeNode::handle_simulate_input(const Dictionary &params) {
@@ -508,8 +508,8 @@ Dictionary GameBridgeNode::handle_simulate_input(const Dictionary &params) {
             ev->set_pressed(act.get("pressed", true));
             ev->set_button_index(mouse_button_from_string(act.get("button", "left")));
             ev->set_position(Vector2(
-                (float)act.get("x", 0),
-                (float)act.get("y", 0)));
+                static_cast<float>(act.get("x", 0)),
+                static_cast<float>(act.get("y", 0))));
             ev->set_global_position(ev->get_position());
             input->parse_input_event(ev);
             success_count++;
@@ -518,12 +518,12 @@ Dictionary GameBridgeNode::handle_simulate_input(const Dictionary &params) {
             Ref<InputEventMouseMotion> ev;
             ev.instantiate();
             ev->set_position(Vector2(
-                (float)act.get("x", 0),
-                (float)act.get("y", 0)));
+                static_cast<float>(act.get("x", 0)),
+                static_cast<float>(act.get("y", 0))));
             ev->set_global_position(ev->get_position());
             ev->set_relative(Vector2(
-                (float)act.get("dx", 0),
-                (float)act.get("dy", 0)));
+                static_cast<float>(act.get("dx", 0)),
+                static_cast<float>(act.get("dy", 0))));
             input->parse_input_event(ev);
             success_count++;
 
@@ -532,7 +532,7 @@ Dictionary GameBridgeNode::handle_simulate_input(const Dictionary &params) {
             ev.instantiate();
             ev->set_action(act.get("action", ""));
             ev->set_pressed(act.get("pressed", true));
-            ev->set_strength((float)act.get("strength", 1.0));
+            ev->set_strength(static_cast<float>(act.get("strength", 1.0)));
             if (ev->get_action() == StringName()) {
                 fail_count++;
                 continue;

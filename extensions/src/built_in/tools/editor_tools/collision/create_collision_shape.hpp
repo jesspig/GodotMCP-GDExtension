@@ -72,8 +72,8 @@ static godot::Ref<godot::Shape2D> create_shape_resource(const String &shape_type
         shape.instantiate();
         if (!props.is_empty() && props.has("size")) {
             Dictionary s = props["size"];
-            real_t w = (real_t)args_float(s, "x", 100.0);
-            real_t h = (real_t)args_float(s, "y", 100.0);
+            real_t w = static_cast<real_t>(args_float(s, "x", 100.0));
+            real_t h = static_cast<real_t>(args_float(s, "y", 100.0));
             shape->set_size(godot::Vector2(w, h));
         }
         return shape;
@@ -83,7 +83,7 @@ static godot::Ref<godot::Shape2D> create_shape_resource(const String &shape_type
         godot::Ref<godot::CircleShape2D> shape;
         shape.instantiate();
         if (!props.is_empty() && props.has("radius")) {
-            shape->set_radius((real_t)args_float(props, "radius", 50.0));
+            shape->set_radius(static_cast<real_t>(args_float(props, "radius", 50.0)));
         }
         return shape;
     }
@@ -93,9 +93,9 @@ static godot::Ref<godot::Shape2D> create_shape_resource(const String &shape_type
         shape.instantiate();
         if (!props.is_empty()) {
             if (props.has("radius"))
-                shape->set_radius((real_t)args_float(props, "radius", 20.0));
+                shape->set_radius(static_cast<real_t>(args_float(props, "radius", 20.0)));
             if (props.has("height"))
-                shape->set_height((real_t)args_float(props, "height", 40.0));
+                shape->set_height(static_cast<real_t>(args_float(props, "height", 40.0)));
         }
         return shape;
     }
@@ -108,7 +108,7 @@ static godot::Ref<godot::Shape2D> create_shape_resource(const String &shape_type
             godot::PackedVector2Array points;
             for (int64_t i = 0; i < pts.size(); i++) {
                 godot::Array p = pts[i];
-                points.append(godot::Vector2((real_t)(double)p[0], (real_t)(double)p[1]));
+                points.append(godot::Vector2(static_cast<real_t>(static_cast<double>(p[0])), static_cast<real_t>(static_cast<double>(p[1]))));
             }
             shape->set_points(points);
         }
@@ -123,7 +123,7 @@ static godot::Ref<godot::Shape2D> create_shape_resource(const String &shape_type
             godot::PackedVector2Array points;
             for (int64_t i = 0; i < segs.size(); i++) {
                 godot::Array s = segs[i];
-                points.append(godot::Vector2((real_t)(double)s[0], (real_t)(double)s[1]));
+                points.append(godot::Vector2(static_cast<real_t>(static_cast<double>(s[0])), static_cast<real_t>(static_cast<double>(s[1]))));
             }
             shape->set_segments(points);
         }
@@ -136,10 +136,10 @@ static godot::Ref<godot::Shape2D> create_shape_resource(const String &shape_type
         if (!props.is_empty()) {
             if (props.has("normal")) {
                 godot::Array n = props["normal"];
-                shape->set_normal(godot::Vector2((real_t)(double)n[0], (real_t)(double)n[1]));
+                shape->set_normal(godot::Vector2(static_cast<real_t>(static_cast<double>(n[0])), static_cast<real_t>(static_cast<double>(n[1]))));
             }
             if (props.has("distance"))
-                shape->set_distance((real_t)args_float(props, "distance", 0.0));
+                shape->set_distance(static_cast<real_t>(args_float(props, "distance", 0.0)));
         }
         return shape;
     }
@@ -149,7 +149,7 @@ static godot::Ref<godot::Shape2D> create_shape_resource(const String &shape_type
         shape.instantiate();
         if (!props.is_empty()) {
             if (props.has("length"))
-                shape->set_length((real_t)args_float(props, "length", 20.0));
+                shape->set_length(static_cast<real_t>(args_float(props, "length", 20.0)));
             if (props.has("slide_on_slope"))
                 shape->set_slide_on_slope(args_bool(props, "slide_on_slope", false));
         }
@@ -162,11 +162,11 @@ static godot::Ref<godot::Shape2D> create_shape_resource(const String &shape_type
         if (!props.is_empty()) {
             if (props.has("a")) {
                 godot::Array a = props["a"];
-                shape->set_a(godot::Vector2((real_t)(double)a[0], (real_t)(double)a[1]));
+                shape->set_a(godot::Vector2(static_cast<real_t>(static_cast<double>(a[0])), static_cast<real_t>(static_cast<double>(a[1]))));
             }
             if (props.has("b")) {
                 godot::Array b = props["b"];
-                shape->set_b(godot::Vector2((real_t)(double)b[0], (real_t)(double)b[1]));
+                shape->set_b(godot::Vector2(static_cast<real_t>(static_cast<double>(b[0])), static_cast<real_t>(static_cast<double>(b[1]))));
             }
         }
         return shape;
@@ -181,9 +181,9 @@ static godot::Ref<godot::Shape3D> create_shape_resource_3d(const String &shape_t
         shape.instantiate();
         if (!props.is_empty() && props.has("size")) {
             Dictionary s = props["size"];
-            real_t x = (real_t)args_float(s, "x", 1.0);
-            real_t y = (real_t)args_float(s, "y", 1.0);
-            real_t z = (real_t)args_float(s, "z", 1.0);
+            real_t x = static_cast<real_t>(args_float(s, "x", 1.0));
+            real_t y = static_cast<real_t>(args_float(s, "y", 1.0));
+            real_t z = static_cast<real_t>(args_float(s, "z", 1.0));
             shape->set_size(godot::Vector3(x, y, z));
         }
         return shape;
@@ -193,7 +193,7 @@ static godot::Ref<godot::Shape3D> create_shape_resource_3d(const String &shape_t
         godot::Ref<godot::SphereShape3D> shape;
         shape.instantiate();
         if (!props.is_empty() && props.has("radius")) {
-            shape->set_radius((real_t)args_float(props, "radius", 0.5));
+            shape->set_radius(static_cast<real_t>(args_float(props, "radius", 0.5)));
         }
         return shape;
     }
@@ -203,9 +203,9 @@ static godot::Ref<godot::Shape3D> create_shape_resource_3d(const String &shape_t
         shape.instantiate();
         if (!props.is_empty()) {
             if (props.has("radius"))
-                shape->set_radius((real_t)args_float(props, "radius", 0.5));
+                shape->set_radius(static_cast<real_t>(args_float(props, "radius", 0.5)));
             if (props.has("height"))
-                shape->set_height((real_t)args_float(props, "height", 1.0));
+                shape->set_height(static_cast<real_t>(args_float(props, "height", 1.0)));
         }
         return shape;
     }
@@ -215,9 +215,9 @@ static godot::Ref<godot::Shape3D> create_shape_resource_3d(const String &shape_t
         shape.instantiate();
         if (!props.is_empty()) {
             if (props.has("radius"))
-                shape->set_radius((real_t)args_float(props, "radius", 0.5));
+                shape->set_radius(static_cast<real_t>(args_float(props, "radius", 0.5)));
             if (props.has("height"))
-                shape->set_height((real_t)args_float(props, "height", 1.0));
+                shape->set_height(static_cast<real_t>(args_float(props, "height", 1.0)));
         }
         return shape;
     }
@@ -230,7 +230,7 @@ static godot::Ref<godot::Shape3D> create_shape_resource_3d(const String &shape_t
             godot::PackedVector3Array points;
             for (int64_t i = 0; i < pts.size(); i++) {
                 godot::Array p = pts[i];
-                points.append(godot::Vector3((real_t)(double)p[0], (real_t)(double)p[1], (real_t)(double)p[2]));
+                points.append(godot::Vector3(static_cast<real_t>(static_cast<double>(p[0])), static_cast<real_t>(static_cast<double>(p[1])), static_cast<real_t>(static_cast<double>(p[2]))));
             }
             shape->set_points(points);
         }
@@ -245,7 +245,7 @@ static godot::Ref<godot::Shape3D> create_shape_resource_3d(const String &shape_t
             godot::PackedVector3Array faces;
             for (int64_t i = 0; i < fs.size(); i++) {
                 godot::Array f = fs[i];
-                faces.append(godot::Vector3((real_t)(double)f[0], (real_t)(double)f[1], (real_t)(double)f[2]));
+                faces.append(godot::Vector3(static_cast<real_t>(static_cast<double>(f[0])), static_cast<real_t>(static_cast<double>(f[1])), static_cast<real_t>(static_cast<double>(f[2]))));
             }
             shape->set_faces(faces);
         }
@@ -257,14 +257,14 @@ static godot::Ref<godot::Shape3D> create_shape_resource_3d(const String &shape_t
         shape.instantiate();
         if (!props.is_empty()) {
             if (props.has("map_width"))
-                shape->set_map_width((int32_t)args_int(props, "map_width", 2));
+                shape->set_map_width(static_cast<int32_t>(args_int(props, "map_width", 2)));
             if (props.has("map_depth"))
-                shape->set_map_depth((int32_t)args_int(props, "map_depth", 2));
+                shape->set_map_depth(static_cast<int32_t>(args_int(props, "map_depth", 2)));
             if (props.has("map_data")) {
                 godot::Array data = props["map_data"];
                 godot::PackedFloat32Array map_data;
                 for (int64_t i = 0; i < data.size(); i++) {
-                    map_data.append((float)(double)data[i]);
+                    map_data.append(static_cast<float>(static_cast<double>(data[i])));
                 }
                 shape->set_map_data(map_data);
             }
@@ -279,8 +279,8 @@ static godot::Ref<godot::Shape3D> create_shape_resource_3d(const String &shape_t
             godot::Array pl = props["plane"];
             if (pl.size() >= 4) {
                 shape->set_plane(godot::Plane(
-                    (real_t)(double)pl[0], (real_t)(double)pl[1],
-                    (real_t)(double)pl[2], (real_t)(double)pl[3]));
+                    static_cast<real_t>(static_cast<double>(pl[0])), static_cast<real_t>(static_cast<double>(pl[1])),
+                    static_cast<real_t>(static_cast<double>(pl[2])), static_cast<real_t>(static_cast<double>(pl[3]))));
             }
         }
         return shape;
@@ -291,7 +291,7 @@ static godot::Ref<godot::Shape3D> create_shape_resource_3d(const String &shape_t
         shape.instantiate();
         if (!props.is_empty()) {
             if (props.has("length"))
-                shape->set_length((real_t)args_float(props, "length", 1.0));
+                shape->set_length(static_cast<real_t>(args_float(props, "length", 1.0)));
             if (props.has("slide_on_slope"))
                 shape->set_slide_on_slope(args_bool(props, "slide_on_slope", false));
         }
@@ -450,12 +450,12 @@ protected:
             ur->create_action(String("MCP: Create CollisionShape ") + body_name,
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
 
-            ur->add_do_method(parent, "add_child", body, true, (int64_t)Node::INTERNAL_MODE_DISABLED);
+            ur->add_do_method(parent, "add_child", body, true, static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(body, "set_owner", ctx.root);
             ur->add_do_reference(body);
             ur->add_undo_reference(body);
 
-            ur->add_do_method(body, "add_child", shape_node, true, (int64_t)Node::INTERNAL_MODE_DISABLED);
+            ur->add_do_method(body, "add_child", shape_node, true, static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(shape_node, "set_owner", ctx.root);
             ur->add_do_reference(shape_node);
             ur->add_undo_reference(shape_node);

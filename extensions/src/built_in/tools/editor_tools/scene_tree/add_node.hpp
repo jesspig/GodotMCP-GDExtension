@@ -53,7 +53,7 @@ public:
             Dictionary p;
             p["type"] = "integer";
             p["description"] = "Insert position (-1 = append at end)";
-            p["default"] = (int64_t)-1;
+            p["default"] = static_cast<int64_t>(-1);
             props["index"] = p;
         }
         Dictionary s;

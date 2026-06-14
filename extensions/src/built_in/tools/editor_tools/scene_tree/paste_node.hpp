@@ -129,7 +129,7 @@ protected:
                 ur->add_undo_reference(target);
             } else {
                 ur->add_do_method(parent, "add_child", inst, true,
-                                  (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                                  static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
                 if (target_index >= 0) {
                     ur->add_do_method(parent, "move_child", inst, target_index);
                 }

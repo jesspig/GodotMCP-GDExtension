@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -80,7 +80,7 @@ protected:
 
             ur->add_do_method(parent, "remove_child", node);
             ur->add_undo_method(parent, "add_child", node, true,
-                                (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                                static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_undo_method(parent, "move_child", node, index);
             ur->add_undo_method(node, "set_owner", ctx.root);
 

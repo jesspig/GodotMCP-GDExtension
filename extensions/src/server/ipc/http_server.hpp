@@ -3,6 +3,7 @@
 #include "../mcp/mcp_handler.hpp"
 
 #include <godot_cpp/classes/os.hpp>
+#include <algorithm>
 #include <godot_cpp/classes/tcp_server.hpp>
 #include <godot_cpp/classes/stream_peer_tcp.hpp>
 #include <godot_cpp/classes/time.hpp>
@@ -55,7 +56,7 @@ private:
             double now = godot::Time::get_singleton()->get_ticks_msec() / 1000.0;
             double elapsed = now - last_refill_sec;
             if (elapsed > 0.0) {
-                tokens = MIN(kMaxTokens, tokens + (int)(elapsed * kRefillRate));
+                tokens = std::min(kMaxTokens, tokens + static_cast<int>(elapsed * kRefillRate));
                 last_refill_sec = now;
             }
         }
@@ -78,6 +79,7 @@ private:
         bool is_sse_stream = false;
         bool sse_write_errored = false;
         int sse_event_id = 0;
+        uint64_t sse_last_event_msec = 0;
         bool keep_alive = true;
 
         RateLimiter rate_limiter;

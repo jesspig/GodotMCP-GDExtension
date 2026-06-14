@@ -81,7 +81,7 @@ protected:
         Array editable;
         for (int i = 0; i < prop_list.size(); i++) {
             Dictionary p = prop_list[i];
-            int usage = (int)p.get("usage", 0);
+            int usage = static_cast<int>(p.get("usage", 0));
             String pname = p.get("name", "");
 
             if (pname.is_empty()) continue;
@@ -92,7 +92,7 @@ protected:
 
             Dictionary entry;
             entry["name"] = pname;
-            entry["type"] = Variant::get_type_name((Variant::Type)(int)p.get("type", 0));
+            entry["type"] = Variant::get_type_name(static_cast<Variant::Type>(static_cast<int>(p.get("type", 0))));
             entry["value"] = variant_to_json(obj->get(pname));
             editable.push_back(entry);
         }

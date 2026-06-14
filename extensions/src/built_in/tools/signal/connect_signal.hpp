@@ -71,7 +71,7 @@ protected:
         String signal_name = args_string(ctx.args, "signal_name");
         String target_path = args_string(ctx.args, "target_path");
         String target_method = args_string(ctx.args, "target_method");
-        int flags = (int)args_int(ctx.args, "flags", 0);
+        int flags = static_cast<int>(args_int(ctx.args, "flags", 0));
 
         if (signal_name.is_empty()) {
             return ToolResult::err("MISSING_ARG", String("signal_name cannot be empty"));
@@ -93,34 +93,17 @@ protected:
         }
 
         Callable callable(target, target_method);
-        bool is_persist = (flags & 4) != 0;
-        if (is_persist) {
-            godot::EditorUndoRedoManager *ur = get_undo_redo();
-            if (ur) {
-                ur->create_action("MCP: Connect signal", godot::UndoRedo::MERGE_DISABLE, ctx.root);
-                ur->add_do_method(source, "connect", signal_name, callable, (uint32_t)flags);
-                ur->add_undo_method(source, "disconnect", signal_name, callable);
-                ur->commit_action();
-            } else {
-                Error err = source->connect(signal_name, callable, (uint32_t)flags);
-                if (err != godot::OK) {
-                    String msg = String("Signal connect failed, error: ") + godot::itos((int)err);
-                    return ToolResult::err("CONNECT_FAILED", msg);
-                }
-            }
+        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        if (ur) {
+            ur->create_action("MCP: Connect signal", godot::UndoRedo::MERGE_DISABLE, ctx.root);
+            ur->add_do_method(source, "connect", signal_name, callable, static_cast<uint32_t>(flags));
+            ur->add_undo_method(source, "disconnect", signal_name, callable);
+            ur->commit_action();
         } else {
-            godot::EditorUndoRedoManager *ur = get_undo_redo();
-            if (ur) {
-                ur->create_action("MCP: Connect signal", godot::UndoRedo::MERGE_DISABLE, ctx.root);
-                ur->add_do_method(source, "connect", signal_name, callable, (uint32_t)flags);
-                ur->add_undo_method(source, "disconnect", signal_name, callable);
-                ur->commit_action();
-            } else {
-                Error err = source->connect(signal_name, callable, (uint32_t)flags);
-                if (err != godot::OK) {
-                    String msg = String("Signal connect failed, error: ") + godot::itos((int)err);
-                    return ToolResult::err("CONNECT_FAILED", msg);
-                }
+            Error err = source->connect(signal_name, callable, static_cast<uint32_t>(flags));
+            if (err != godot::OK) {
+                String msg = String("Signal connect failed, error: ") + godot::itos(static_cast<int>(err));
+                return ToolResult::err("CONNECT_FAILED", msg);
             }
         }
 

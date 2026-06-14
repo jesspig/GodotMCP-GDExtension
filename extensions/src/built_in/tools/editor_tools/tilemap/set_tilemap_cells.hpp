@@ -74,7 +74,7 @@ protected:
             if (d.has(key) && d[key].get_type() == Variant::ARRAY) {
                 godot::Array a = d[key];
                 if (a.size() >= 2) {
-                    return godot::Vector2i((int)(int64_t)a[0], (int)(int64_t)a[1]);
+                    return godot::Vector2i(static_cast<int>(static_cast<int64_t>(a[0])), static_cast<int>(static_cast<int64_t>(a[1])));
                 }
             }
             return godot::Vector2i();
@@ -92,17 +92,17 @@ protected:
             int64_t alternative_tile = args_int(cell, "alternative_tile", 0);
 
             Dictionary old_cell_data;
-            godot::Array arr = godot::Array::make((int64_t)coords.x, (int64_t)coords.y);
+            godot::Array arr = godot::Array::make(static_cast<int64_t>(coords.x), static_cast<int64_t>(coords.y));
             old_cell_data["coords"] = arr;
 
-            int64_t old_src = (int64_t)tilemap->get_cell_source_id(coords);
+            int64_t old_src = static_cast<int64_t>(tilemap->get_cell_source_id(coords));
             bool has_old = old_src != -1;
             old_cell_data["has_cell"] = has_old;
             if (has_old) {
                 old_cell_data["source_id"] = old_src;
                 godot::Vector2i old_ac = tilemap->get_cell_atlas_coords(coords);
-                old_cell_data["atlas_coords"] = godot::Array::make((int64_t)old_ac.x, (int64_t)old_ac.y);
-                old_cell_data["alternative_tile"] = (int64_t)tilemap->get_cell_alternative_tile(coords);
+                old_cell_data["atlas_coords"] = godot::Array::make(static_cast<int64_t>(old_ac.x), static_cast<int64_t>(old_ac.y));
+                old_cell_data["alternative_tile"] = static_cast<int64_t>(tilemap->get_cell_alternative_tile(coords));
             }
             old_cells.append(old_cell_data);
         }
@@ -118,7 +118,7 @@ protected:
                     atlas_coords = godot::Vector2i(-1, -1);
                 }
                 int64_t alternative_tile = args_int(cell, "alternative_tile", 0);
-                tilemap->set_cell(coords, (int)source_id, atlas_coords, (int)alternative_tile);
+                tilemap->set_cell(coords, static_cast<int>(source_id), atlas_coords, static_cast<int>(alternative_tile));
             }
             mark_scene_dirty();
         } else {
@@ -134,7 +134,7 @@ protected:
                     atlas_coords = godot::Vector2i(-1, -1);
                 }
                 int64_t alternative_tile = args_int(cell, "alternative_tile", 0);
-                ur->add_do_method(tilemap, "set_cell", coords, (int)source_id, atlas_coords, (int)alternative_tile);
+                ur->add_do_method(tilemap, "set_cell", coords, static_cast<int>(source_id), atlas_coords, static_cast<int>(alternative_tile));
             }
 
             for (int64_t i = 0; i < count; i++) {
@@ -146,7 +146,7 @@ protected:
                     int64_t old_sid = args_int(oc, "source_id", -1);
                     godot::Vector2i old_ac = read_coords(oc, "atlas_coords");
                     int64_t old_alt = args_int(oc, "alternative_tile", 0);
-                    ur->add_undo_method(tilemap, "set_cell", coords, (int)old_sid, old_ac, (int)old_alt);
+                    ur->add_undo_method(tilemap, "set_cell", coords, static_cast<int>(old_sid), old_ac, static_cast<int>(old_alt));
                 } else {
                     ur->add_undo_method(tilemap, "erase_cell", coords);
                 }

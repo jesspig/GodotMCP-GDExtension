@@ -27,7 +27,7 @@ public:
             Dictionary p;
             p["type"] = "integer";
             p["description"] = "Maximum recursion depth (-1 = infinite, 0 = root only, 1 = root + children)";
-            p["default"] = (int64_t)-1;
+            p["default"] = static_cast<int64_t>(-1);
             props["max_depth"] = p;
         }
         {
@@ -59,7 +59,7 @@ protected:
         data["root_name"] = ctx.root->get_name();
         data["scene_path"] = ctx.root->get_scene_file_path();
         data["nodes"] = tree;
-        data["count"] = (int64_t)tree.size();
+        data["count"] = static_cast<int64_t>(tree.size());
         return ToolResult::ok(data);
     }
 };

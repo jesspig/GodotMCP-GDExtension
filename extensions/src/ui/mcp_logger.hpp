@@ -39,8 +39,11 @@ private:
     godot::String log_dir_ = "res://.mcp_logs";
     godot::String current_log_file_;
     LogCallback callback_;
+    godot::Vector<LogEntry> pending_entries_;
+    static constexpr int kBatchSize = 10;
 
     void write_to_jsonl(const LogEntry &entry);
+    void flush();
     void rotate_files(int keep_days);
 };
 

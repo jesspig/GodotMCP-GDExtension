@@ -129,7 +129,7 @@ protected:
         data["path"] = path;
         data["replacements_made"] = replacements;
         data["old_size"] = old_size;
-        data["new_size"] = (int64_t)content.length();
+        data["new_size"] = static_cast<int64_t>(content.length());
         data["language"] = String("csharp");
         return ToolResult::ok(data);
     }

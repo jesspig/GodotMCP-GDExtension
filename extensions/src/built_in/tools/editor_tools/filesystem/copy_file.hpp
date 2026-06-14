@@ -73,7 +73,7 @@ protected:
 
         if (err != Error::OK) {
             return ToolResult::err("COPY_FAILED",
-                "Copy failed, error code: " + String::num_int64((int64_t)err));
+                "Copy failed, error code: " + String::num_int64(static_cast<int64_t>(err)));
         }
 
         fs_utils::notify_fs_changes();

@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -95,7 +95,7 @@ protected:
                 return ToolResult::err("BAD_POSITION",
                     "position must be up/down/first/last or an integer: " + position);
             }
-            target = (int64_t)position.to_int();
+            target = static_cast<int64_t>(position.to_int());
         }
         // clamp
         int64_t max_idx = (new_parent == old_parent ? new_parent_count - 1 : new_parent_count);
@@ -105,7 +105,7 @@ protected:
         if (new_parent == old_parent && target == cur) {
             Dictionary data;
             data["node"] = relative_path(ctx.root, node);
-            data["index"] = (int64_t)cur;
+            data["index"] = static_cast<int64_t>(cur);
             data["changed"] = false;
             return ToolResult::ok(data);
         }
@@ -118,10 +118,10 @@ protected:
             if (new_parent != old_parent) {
                 ur->add_do_method(old_parent, "remove_child", node);
                 ur->add_do_method(new_parent, "add_child", node, true,
-                                  (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                                  static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
                 ur->add_undo_method(new_parent, "remove_child", node);
                 ur->add_undo_method(old_parent, "add_child", node, true,
-                                    (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                                    static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
                 ur->add_undo_method(old_parent, "move_child", node, old_index);
                 ur->add_do_reference(node);
                 ur->add_undo_reference(node);
@@ -139,8 +139,8 @@ protected:
 
         Dictionary data;
         data["node"] = relative_path(ctx.root, node);
-        data["old_index"] = (int64_t)old_index;
-        data["new_index"] = (int64_t)target;
+        data["old_index"] = static_cast<int64_t>(old_index);
+        data["new_index"] = static_cast<int64_t>(target);
         data["new_parent"] = relative_path(ctx.root, new_parent);
         data["changed"] = true;
         return ToolResult::ok(data);

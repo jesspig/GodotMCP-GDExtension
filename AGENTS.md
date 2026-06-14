@@ -72,9 +72,10 @@ class MyTool : public ITool {
 
 - **注册步骤**：创建 `.hpp` 文件后，在 `extensions/src/built_in/tools/register/` 下对应分类的 X-macro 注册文件中加一行：
   ```cpp
-  GODOT_MCP_TOOL(MyTool, "my_tool", "editor_tools/my_category", false, false, false, false)
+  GODOT_MCP_TOOL(MyTool, false)
   ```
-  `GODOT_MCP_TOOL` 宏签名：`(cls, name_str, cat, is_meta_val, need_scene_val, need_node_val, is_destructive_val)` — 定义于 `register_itools.cpp:229`。
+  `GODOT_MCP_TOOL` 宏签名：`(cls, is_destructive_val)` — 定义于 `register_itools.cpp:229`。
+  `name()`、`category()`、`is_meta()`、`needs_scene()`、`needs_node()` 等其他属性通过类上的虚方法重写提供。
 - **同时**需要在 `extensions/src/built_in/register_itools.cpp` 中对应分类区域加 `#include` 指令。
 - **不需要** `// @tool register` 注释，不需要运行 codegen。编译器原生处理注册。
 - **顶级分类**自动发现：`category()` 第一个 `/` 前的段即为顶级分类名，label 自动美化（`editor_tools` → `Editor tools`）。

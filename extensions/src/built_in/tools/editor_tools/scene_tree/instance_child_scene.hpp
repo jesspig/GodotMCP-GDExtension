@@ -114,7 +114,7 @@ protected:
                 ur->add_do_method(inst, "set_editable_instance", inst, true);
             }
             ur->add_do_method(parent, "add_child", inst, true,
-                              (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_undo_method(parent, "remove_child", inst);
             ur->add_do_reference(inst);
             ur->add_undo_reference(inst);
