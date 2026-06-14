@@ -65,11 +65,6 @@ GODOT_MCP_TOOL(SetThemeOverrideTool,        "set_theme_override",       "editor_
 // 鈹€鈹€ Collision tools 鈹€鈹€
 GODOT_MCP_TOOL(CreateCollisionShapeTool,    "create_collision_shape",   "editor_tools/collision", false, true, false, false)
 
-// 鈹€鈹€ Docs tools 鈹€鈹€
-GODOT_MCP_TOOL(SearchDocsTool,              "search_docs",              "editor_tools/docs", false, false, false, false)
-GODOT_MCP_TOOL(GetClassInfoTool,            "get_class_info",           "editor_tools/docs", false, false, false, false)
-GODOT_MCP_TOOL(GetBestPracticesTool,        "get_best_practices",       "editor_tools/docs", false, false, false, false)
-
 // 鈹€鈹€ Export tools 鈹€鈹€
 GODOT_MCP_TOOL(ListExportPresetsTool,       "list_export_presets",      "editor_tools/export", false, false, false, false)
 GODOT_MCP_TOOL(ExportProjectTool,           "export_project",           "editor_tools/export", false, false, false, true)

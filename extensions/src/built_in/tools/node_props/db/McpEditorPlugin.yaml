@@ -1,5 +1,0 @@
-class: McpEditorPlugin
-inherits: EditorPlugin
-properties: []
-description: ''
-aliases: []

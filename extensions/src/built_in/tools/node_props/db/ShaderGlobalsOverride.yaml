@@ -1,5 +1,0 @@
-class: ShaderGlobalsOverride
-inherits: Node
-properties: []
-description: A node that overrides shader global parameters for a subtree.
-aliases: []

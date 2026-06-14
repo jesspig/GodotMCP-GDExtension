@@ -1,5 +1,0 @@
-class: CompressedTexture2DArray
-inherits: CompressedTextureLayered
-properties: []
-description: ''
-aliases: []

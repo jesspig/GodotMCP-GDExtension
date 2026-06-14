@@ -1,5 +1,0 @@
-class: VisualShaderNodeVaryingSetter
-inherits: VisualShaderNodeVarying
-properties: []
-description: ''
-aliases: []

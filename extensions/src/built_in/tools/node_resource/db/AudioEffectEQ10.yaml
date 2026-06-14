@@ -1,5 +1,0 @@
-class: AudioEffectEQ10
-inherits: AudioEffectEQ
-properties: []
-description: ''
-aliases: []

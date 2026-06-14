@@ -1,5 +1,0 @@
-class: AudioEffectHighPassFilter
-inherits: AudioEffectFilter
-properties: []
-description: ''
-aliases: []

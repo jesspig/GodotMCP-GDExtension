@@ -1,5 +1,0 @@
-class: AudioStreamMicrophone
-inherits: AudioStream
-properties: []
-description: ''
-aliases: []

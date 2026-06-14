@@ -1,8 +1,0 @@
-class: JSON
-inherits: Resource
-properties:
-- name: data
-  type: 0
-  type_name: NIL
-description: ''
-aliases: []

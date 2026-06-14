@@ -1,8 +1,0 @@
-class: Compositor
-inherits: Resource
-properties:
-- name: compositor_effects
-  type: 28
-  type_name: Array
-description: ''
-aliases: []

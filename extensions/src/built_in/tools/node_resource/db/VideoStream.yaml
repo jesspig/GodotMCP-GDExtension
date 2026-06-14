@@ -1,8 +1,0 @@
-class: VideoStream
-inherits: Resource
-properties:
-- name: file
-  type: 4
-  type_name: String
-description: ''
-aliases: []

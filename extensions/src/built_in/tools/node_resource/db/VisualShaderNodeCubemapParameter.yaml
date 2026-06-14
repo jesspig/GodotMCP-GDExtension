@@ -1,5 +1,0 @@
-class: VisualShaderNodeCubemapParameter
-inherits: VisualShaderNodeTextureParameter
-properties: []
-description: ''
-aliases: []

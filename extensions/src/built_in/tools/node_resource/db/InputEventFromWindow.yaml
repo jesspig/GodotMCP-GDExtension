@@ -1,8 +1,0 @@
-class: InputEventFromWindow
-inherits: InputEvent
-properties:
-- name: window_id
-  type: 2
-  type_name: int
-description: ''
-aliases: []

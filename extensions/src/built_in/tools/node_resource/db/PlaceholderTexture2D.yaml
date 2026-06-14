@@ -1,8 +1,0 @@
-class: PlaceholderTexture2D
-inherits: Texture2D
-properties:
-- name: size
-  type: 5
-  type_name: Vector2
-description: ''
-aliases: []

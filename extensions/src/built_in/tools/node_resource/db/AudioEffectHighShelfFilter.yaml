@@ -1,5 +1,0 @@
-class: AudioEffectHighShelfFilter
-inherits: AudioEffectFilter
-properties: []
-description: ''
-aliases: []

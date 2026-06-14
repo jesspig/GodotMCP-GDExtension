@@ -1,5 +1,0 @@
-class: AudioEffectNotchFilter
-inherits: AudioEffectFilter
-properties: []
-description: ''
-aliases: []

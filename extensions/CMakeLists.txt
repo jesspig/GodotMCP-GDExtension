@@ -78,9 +78,6 @@ set(GODOT_MCP_SOURCES
     src/runtime/bridge.cpp
     src/runtime/game_bridge.cpp
 
-    # LSP
-    src/lsp/client.cpp
-
     # Testing engine
     src/testing/test_engine.cpp
 
@@ -93,7 +90,7 @@ set(GODOT_MCP_SOURCES
 # ---------------------------------------------------------------------------
 # GLOB for ITool-based tool source files (P2+ migration)
 # ---------------------------------------------------------------------------
-file(GLOB_RECURSE TOOL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.cpp")
+file(GLOB_RECURSE TOOL_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.cpp")
 list(APPEND GODOT_MCP_SOURCES ${TOOL_SOURCES})
 
 

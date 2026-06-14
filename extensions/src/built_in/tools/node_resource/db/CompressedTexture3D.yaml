@@ -1,8 +1,0 @@
-class: CompressedTexture3D
-inherits: Texture3D
-properties:
-- name: load_path
-  type: 4
-  type_name: String
-description: ''
-aliases: []

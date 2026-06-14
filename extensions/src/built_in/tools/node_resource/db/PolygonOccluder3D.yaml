@@ -1,8 +1,0 @@
-class: PolygonOccluder3D
-inherits: Occluder3D
-properties:
-- name: polygon
-  type: 35
-  type_name: PackedVector2Array
-description: ''
-aliases: []

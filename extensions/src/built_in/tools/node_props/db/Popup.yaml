@@ -1,7 +1,0 @@
-class: Popup
-inherits: Window
-properties: []
-description: A window that displays a popup.
-aliases:
-- PopupMenu
-- PopupPanel

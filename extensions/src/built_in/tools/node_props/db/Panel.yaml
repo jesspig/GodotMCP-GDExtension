@@ -1,5 +1,0 @@
-class: Panel
-inherits: Control
-properties: []
-description: A control that displays a decorative panel.
-aliases: []

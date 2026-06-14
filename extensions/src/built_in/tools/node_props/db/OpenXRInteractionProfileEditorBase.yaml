@@ -1,5 +1,0 @@
-class: OpenXRInteractionProfileEditorBase
-inherits: HBoxContainer
-properties: []
-description: ''
-aliases: []

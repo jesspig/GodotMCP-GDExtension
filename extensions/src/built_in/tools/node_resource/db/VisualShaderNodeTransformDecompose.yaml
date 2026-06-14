@@ -1,5 +1,0 @@
-class: VisualShaderNodeTransformDecompose
-inherits: VisualShaderNode
-properties: []
-description: ''
-aliases: []
