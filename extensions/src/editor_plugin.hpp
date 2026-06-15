@@ -34,6 +34,7 @@ public:
     int bridge_port() const { return bridge_port_; }
     const godot::String &http_host() const { return http_host_; }
     bool is_started() const { return started_; }
+    bool is_bridge_connected() const { return runtime_bridge_.is_connected(); }
 
     void save_config();
     void restart_server(bool force = false);

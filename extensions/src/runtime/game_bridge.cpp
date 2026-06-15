@@ -428,39 +428,31 @@ static Key key_from_string(const String &name) {
         if (c >= '0' && c <= '9') return static_cast<Key>((KEY_0 + (c - '0')));
     }
 
-    // Named keys
-    if (upper == "ENTER" || upper == "RETURN")    return KEY_ENTER;
-    if (upper == "SPACE")                          return KEY_SPACE;
-    if (upper == "ESCAPE" || upper == "ESC")       return KEY_ESCAPE;
-    if (upper == "TAB")                            return KEY_TAB;
-    if (upper == "BACKSPACE")                      return KEY_BACKSPACE;
-    if (upper == "SHIFT")                          return KEY_SHIFT;
-    if (upper == "CONTROL" || upper == "CTRL")     return KEY_CTRL;
-    if (upper == "ALT")                            return KEY_ALT;
-    if (upper == "META" || upper == "COMMAND")     return KEY_META;
-    if (upper == "UP")                             return KEY_UP;
-    if (upper == "DOWN")                           return KEY_DOWN;
-    if (upper == "LEFT")                           return KEY_LEFT;
-    if (upper == "RIGHT")                          return KEY_RIGHT;
-    if (upper == "DELETE")                         return KEY_DELETE;
-    if (upper == "HOME")                           return KEY_HOME;
-    if (upper == "END")                            return KEY_END;
-    if (upper == "PAGEUP" || upper == "PAGE_UP")   return KEY_PAGEUP;
-    if (upper == "PAGEDOWN" || upper == "PAGE_DOWN") return KEY_PAGEDOWN;
-    if (upper == "INSERT" || upper == "INS")       return KEY_INSERT;
-    if (upper == "F1")                             return KEY_F1;
-    if (upper == "F2")                             return KEY_F2;
-    if (upper == "F3")                             return KEY_F3;
-    if (upper == "F4")                             return KEY_F4;
-    if (upper == "F5")                             return KEY_F5;
-    if (upper == "F6")                             return KEY_F6;
-    if (upper == "F7")                             return KEY_F7;
-    if (upper == "F8")                             return KEY_F8;
-    if (upper == "F9")                             return KEY_F9;
-    if (upper == "F10")                            return KEY_F10;
-    if (upper == "F11")                            return KEY_F11;
-    if (upper == "F12")                            return KEY_F12;
+    // Named keys via constexpr lookup table
+    struct KeyEntry { const char *name; Key key; };
+    static constexpr KeyEntry kEntries[] = {
+        {"ENTER", KEY_ENTER}, {"RETURN", KEY_ENTER},
+        {"SPACE", KEY_SPACE},
+        {"ESCAPE", KEY_ESCAPE}, {"ESC", KEY_ESCAPE},
+        {"TAB", KEY_TAB},
+        {"BACKSPACE", KEY_BACKSPACE},
+        {"SHIFT", KEY_SHIFT},
+        {"CONTROL", KEY_CTRL}, {"CTRL", KEY_CTRL},
+        {"ALT", KEY_ALT},
+        {"META", KEY_META}, {"COMMAND", KEY_META},
+        {"UP", KEY_UP}, {"DOWN", KEY_DOWN}, {"LEFT", KEY_LEFT}, {"RIGHT", KEY_RIGHT},
+        {"DELETE", KEY_DELETE}, {"HOME", KEY_HOME}, {"END", KEY_END},
+        {"PAGEUP", KEY_PAGEUP}, {"PAGE_UP", KEY_PAGEUP},
+        {"PAGEDOWN", KEY_PAGEDOWN}, {"PAGE_DOWN", KEY_PAGEDOWN},
+        {"INSERT", KEY_INSERT}, {"INS", KEY_INSERT},
+        {"F1", KEY_F1}, {"F2", KEY_F2}, {"F3", KEY_F3}, {"F4", KEY_F4},
+        {"F5", KEY_F5}, {"F6", KEY_F6}, {"F7", KEY_F7}, {"F8", KEY_F8},
+        {"F9", KEY_F9}, {"F10", KEY_F10}, {"F11", KEY_F11}, {"F12", KEY_F12},
+    };
 
+    for (const auto &entry : kEntries) {
+        if (upper == String(entry.name)) return entry.key;
+    }
     return KEY_NONE;
 }
 

@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <array>
 #include <random>
 
 using namespace godot;
@@ -44,7 +45,15 @@ int McpHandler::pending_request_count() const {
 // Session management
 // -------------------------------------------------------------------------
 String McpHandler::generate_uuid() {
-    static std::mt19937_64 rng(std::random_device{}());
+    static std::mt19937_64 rng = []() -> std::mt19937_64 {
+        try {
+            return std::mt19937_64(std::random_device{}());
+        } catch (...) {
+            // Fallback: use time-based seed if random_device fails
+            uint64_t seed = static_cast<uint64_t>(Time::get_singleton()->get_ticks_usec());
+            return std::mt19937_64(seed);
+        }
+    }();
     static std::uniform_int_distribution<uint64_t> dist;
 
     constexpr int kUuidBufSize = 37;
@@ -201,15 +210,15 @@ inline String pending_key(const String &session_id, const Variant &id) {
 // Protocol version negotiation
 // -------------------------------------------------------------------------
 String McpHandler::negotiate_protocol_version(const String &header_value) {
-    static const Vector<String> kSupported = {
+    static constexpr std::array<const char*, 2> kSupported = {
         "2025-11-25",
         "2025-03-26"
     };
     if (header_value.is_empty()) {
         return "2025-03-26";
     }
-    for (int i = 0; i < kSupported.size(); ++i) {
-        if (header_value == kSupported[i]) {
+    for (const auto &ver : kSupported) {
+        if (header_value == String(ver)) {
             return header_value;
         }
     }
@@ -488,7 +497,7 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
             } else {
                 summary = String("error=") + String(err_val);
             }
-        } else if (tool_result.has("success") && !tool_result["success"].operator bool()) {
+        } else if (tool_result.has("success") && tool_result["success"].get_type() == Variant::BOOL && !static_cast<bool>(tool_result["success"])) {
             success = false;
             summary = String("success=false");
         } else if (tool_result.has("data") && tool_result["data"].get_type() == Variant::DICTIONARY) {
@@ -574,14 +583,14 @@ Dictionary McpHandler::build_tool_error_response(const Variant &id, const Dictio
         } else {
             err_msg = err_val;
         }
-    } else if (tool_result.has("success") && !tool_result["success"].operator bool()) {
+    } else if (tool_result.has("success") && tool_result["success"].get_type() == Variant::BOOL && !static_cast<bool>(tool_result["success"])) {
         is_error = true;
         err_msg = "Tool execution failed";
     }
 
     if (!is_error) return Dictionary();
 
-    if (tool_result.has("recoverable") && tool_result["recoverable"].operator bool()) {
+    if (tool_result.has("recoverable") && tool_result["recoverable"].get_type() == Variant::BOOL && static_cast<bool>(tool_result["recoverable"])) {
         Dictionary error_data;
         error_data["recoverable"] = true;
         if (tool_result.has("suggestion")) {

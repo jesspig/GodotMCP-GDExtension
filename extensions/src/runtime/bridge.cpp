@@ -1,6 +1,7 @@
 #include "bridge.hpp"
 #include "logging.hpp"
 
+#include <chrono>
 #include <godot_cpp/classes/json.hpp>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/time.hpp>
@@ -79,7 +80,7 @@ Dictionary RuntimeBridge::send_command(const String &cmd, const Dictionary &para
         return make_response(raw);
     }
 
-    int id = next_id_++;
+    int64_t id = next_id_++;
 
     Dictionary msg;
     msg["cmd"] = cmd;
@@ -98,23 +99,57 @@ Dictionary RuntimeBridge::send_command(const String &cmd, const Dictionary &para
     }
 
     raw = read_response(timeout_ms);
-    if (raw.has("id") && static_cast<int>(static_cast<int64_t>(raw["id"])) != id) {
+    if (raw.has("id") && static_cast<int64_t>(raw["id"]) != id) {
         disconnect();
-        Dictionary err;
-        err["ok"] = false;
-        err["error"] = String("Response ID mismatch: expected ") + String::num_int64(id) + String(", got ") + String::num_int64(static_cast<int>(static_cast<int64_t>(raw["id"])));
-        return make_response(err);
+        Dictionary err_dict;
+        err_dict["ok"] = false;
+        err_dict["error"] = String("Response ID mismatch: expected ") + String::num_int64(id) + String(", got ") + String::num_int64(static_cast<int64_t>(raw["id"]));
+        return make_response(err_dict);
     }
     return make_response(raw);
 }
 
 Dictionary RuntimeBridge::read_response(int timeout_ms) {
-    int elapsed = 0;
     const int step = 50;
-    const int max_response_size = 1024 * 1024; // 1MB safety limit
+    const int max_response_size = 1024 * 1024;
     PackedByteArray buf;
 
-    while (elapsed < timeout_ms) {
+    auto try_parse_line = [&]() -> Dictionary {
+        String text = buf.get_string_from_utf8();
+        if (text.is_empty()) return Dictionary();
+
+        int newline_idx = text.find("\n");
+        if (newline_idx == -1) return Dictionary();
+
+        String line = text.substr(0, newline_idx);
+        Ref<JSON> json;
+        json.instantiate();
+        Error parse_err = json->parse(line);
+        if (parse_err != OK) return Dictionary();
+
+        Variant result = json->get_data();
+        if (result.get_type() != Variant::DICTIONARY) return Dictionary();
+
+        // Remove parsed line from buffer
+        int consumed = line.utf8().size() + 1; // +1 for \n
+        if (consumed >= buf.size()) {
+            buf.clear();
+        } else {
+            PackedByteArray remaining;
+            remaining.resize(buf.size() - consumed);
+            memcpy(remaining.ptrw(), buf.ptr() + consumed, remaining.size());
+            buf = remaining;
+        }
+        return result;
+    };
+
+    auto start = std::chrono::steady_clock::now();
+
+    while (true) {
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start).count();
+        if (elapsed >= timeout_ms) break;
+
         tcp_->poll();
         if (tcp_->get_available_bytes() > 0) {
             Array chunk = tcp_->get_partial_data(tcp_->get_available_bytes());
@@ -131,21 +166,12 @@ Dictionary RuntimeBridge::read_response(int timeout_ms) {
             }
         }
 
-        if (buf.size() > 0) {
-            String text = buf.get_string_from_utf8();
-            Ref<JSON> json;
-            json.instantiate();
-            Error parse_err = json->parse(text);
-            if (parse_err == OK) {
-                Variant result = json->get_data();
-                if (result.get_type() == Variant::DICTIONARY) {
-                    return result;
-                }
-            }
+        Dictionary parsed = try_parse_line();
+        if (!parsed.is_empty()) {
+            return parsed;
         }
 
         OS::get_singleton()->delay_msec(step);
-        elapsed += step;
     }
 
     disconnect();

@@ -119,7 +119,7 @@ private:
     TestEngine *test_engine_ = nullptr;
     int port_ = 0;
     String bind_address_;
-    uint64_t timeout_msec_ = 30000;
+    static constexpr uint64_t kTimeoutMsec = 30000;
     bool polling_ = false;
     godot::String auth_token_;
 

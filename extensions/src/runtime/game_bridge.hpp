@@ -48,7 +48,7 @@ private:
     godot::Ref<godot::StreamPeerTCP> client_;
     godot::PackedByteArray read_buf_;
     int port_ = 9601;
-    static const int BUFFER_LIMIT = 65536;
+    static constexpr int BUFFER_LIMIT = 65536;
 };
 
 } // namespace godot_mcp

@@ -69,7 +69,7 @@ void HttpServer::send_sse_event(int conn_id, Connection &conn,
 }
 
 void HttpServer::send_sse_comment(int conn_id, Connection &conn, const String &comment) {
-    const String msg = String(": ") + comment + String("\r\n\r\n");
+    const String msg = String(": ") + comment + String("\r\n");
     const PackedByteArray out = msg.to_utf8_buffer();
     if (conn.tcp.is_valid()) {
         conn.tcp->poll();

@@ -65,7 +65,7 @@ void HttpServer::check_timeouts() {
     const uint64_t now = Time::get_singleton()->get_ticks_msec();
     Vector<int> timed_out;
     for (KeyValue<int, Connection> &kv : connections_) {
-        if (now - kv.value.last_activity_msec > timeout_msec_) {
+        if (now - kv.value.last_activity_msec > kTimeoutMsec) {
             timed_out.push_back(kv.key);
         }
     }

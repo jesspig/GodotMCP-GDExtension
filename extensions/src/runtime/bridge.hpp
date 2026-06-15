@@ -36,7 +36,7 @@ private:
     Status status_ = DISCONNECTED;
     godot::Ref<godot::StreamPeerTCP> tcp_;
     int port_ = 9601;
-    int next_id_ = 1;
+    int64_t next_id_ = 1;
     unsigned long long connecting_since_ = 0;
 };
 

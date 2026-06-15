@@ -4,6 +4,8 @@
 #include "built_in/cmd_utils.hpp"
 #include "logging.hpp"
 
+#include <cstring>
+
 #include <godot_cpp/classes/json.hpp>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/time.hpp>
@@ -69,12 +71,12 @@ bool HttpServer::is_listening() const {
 // -------------------------------------------------------------------------
 void HttpServer::poll() {
     if (!tcp_server_.is_valid() || !tcp_server_->is_listening()) return;
-    if (polling_) return; // Re-entrancy guard (EditorProgress �?Main::iteration �?_process �?poll)
+    if (polling_) return; // Re-entrancy guard (EditorProgress → Main::iteration → _process → poll)
     struct PollGuard {
         HttpServer &server;
+        PollGuard(HttpServer &s) : server(s) { server.polling_ = true; }
         ~PollGuard() { server.polling_ = false; }
     } guard{*this};
-    polling_ = true;
 
     const uint64_t now = Time::get_singleton()->get_ticks_msec();
 
@@ -163,9 +165,10 @@ void HttpServer::poll() {
 
                 // Headers complete: copy any body bytes that arrived with headers
                 if (conn.content_length > 0 && conn.header_end_pos < conn.read_buf.size()) {
-                    for (int i = conn.header_end_pos; i < conn.read_buf.size(); ++i) {
-                        conn.body.push_back(conn.read_buf[i]);
-                    }
+                    const int remaining = conn.read_buf.size() - conn.header_end_pos;
+                    const int old_size = conn.body.size();
+                    conn.body.resize(old_size + remaining);
+                    memcpy(conn.body.ptrw() + old_size, conn.read_buf.ptr() + conn.header_end_pos, remaining);
                 }
             } else {
                 // Headers already done: read body data directly from socket
@@ -196,9 +199,10 @@ void HttpServer::poll() {
             }
             if (pr == COMPLETE) {
                 if (conn.content_length > 0 && conn.header_end_pos < conn.read_buf.size()) {
-                    for (int i = conn.header_end_pos; i < conn.read_buf.size(); ++i) {
-                        conn.body.push_back(conn.read_buf[i]);
-                    }
+                    const int remaining = conn.read_buf.size() - conn.header_end_pos;
+                    const int old_size = conn.body.size();
+                    conn.body.resize(old_size + remaining);
+                    memcpy(conn.body.ptrw() + old_size, conn.read_buf.ptr() + conn.header_end_pos, remaining);
                 }
             } else {
                 continue;

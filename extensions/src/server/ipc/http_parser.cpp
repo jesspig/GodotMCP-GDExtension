@@ -27,7 +27,12 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
     conn.header_end_pos = header_end + 4;
 
     String header_section;
-    header_section.parse_utf8((const char *)buf.ptr(), header_end);
+    {
+        Error utf8_err = header_section.parse_utf8((const char *)buf.ptr(), header_end);
+        if (utf8_err != OK) {
+            return ERROR_PARSE;
+        }
+    }
 
     const int first_lf = header_section.find("\r\n");
     if (first_lf < 0) return ERROR_PARSE;
@@ -80,6 +85,7 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
         conn.content_length = static_cast<int>(cl_value);
     }
 
+    // Infer body length from remaining buffer (RFC 7230 non-compliant but works for single-request scenarios)
     if (conn.content_length <= 0 && conn.header_end_pos < conn.read_buf.size()) {
         conn.content_length = conn.read_buf.size() - conn.header_end_pos;
         if (conn.content_length > kMaxBodyLength) {
@@ -124,6 +130,7 @@ void HttpServer::try_read_body(Connection &conn) {
 
     const PackedByteArray chunk = read_result[1];
     for (int i = 0; i < chunk.size(); ++i) conn.body.push_back(chunk[i]);
+    conn.read_buf.clear();
     conn.last_activity_msec = Time::get_singleton()->get_ticks_msec();
 }
 
