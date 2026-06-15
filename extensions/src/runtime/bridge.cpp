@@ -119,7 +119,7 @@ Dictionary RuntimeBridge::read_response(int timeout_ms) {
         String text = buf.get_string_from_utf8();
         if (text.is_empty()) return Dictionary();
 
-        int newline_idx = text.find("\n");
+        int newline_idx = static_cast<int>(text.find("\n"));
         if (newline_idx == -1) return Dictionary();
 
         String line = text.substr(0, newline_idx);
@@ -132,7 +132,7 @@ Dictionary RuntimeBridge::read_response(int timeout_ms) {
         if (result.get_type() != Variant::DICTIONARY) return Dictionary();
 
         // Remove parsed line from buffer
-        int consumed = line.utf8().size() + 1; // +1 for \n
+        int consumed = static_cast<int>(line.utf8().size()) + 1; // +1 for \n
         if (consumed >= buf.size()) {
             buf.clear();
         } else {

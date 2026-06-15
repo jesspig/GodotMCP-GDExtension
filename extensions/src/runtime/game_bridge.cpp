@@ -1,4 +1,5 @@
 #include "game_bridge.hpp"
+#include "built_in/cmd_utils.hpp"
 #include "logging.hpp"
 
 #include <algorithm>
@@ -26,6 +27,13 @@ namespace godot_mcp {
 // the header; redeclaring the default here would be an ODR violation, so omit it).
 Variant json_to_variant(const Variant &jv, int depth);
 
+static Dictionary make_error(const String &msg) {
+    Dictionary r;
+    r["ok"] = false;
+    r["error"] = msg;
+    return r;
+}
+
 // -----------------------------------------------------------------------
 // Lifecycle
 // -----------------------------------------------------------------------
@@ -41,13 +49,7 @@ void GameBridgeNode::_bind_methods() {
 }
 
 int GameBridgeNode::read_port() {
-    OS *os = OS::get_singleton();
-    if (!os) return 9601;
-    const String raw = os->get_environment("GODOT_MCP_BRIDGE_PORT");
-    if (raw.is_empty()) return 9601;
-    const int64_t parsed = raw.to_int();
-    if (parsed < 1 || parsed > 65535) return 9601;
-    return static_cast<int>(parsed);
+    return read_port_from_env("GODOT_MCP_BRIDGE_PORT", 9601);
 }
 
 void GameBridgeNode::_ready() {
@@ -157,9 +159,7 @@ void GameBridgeNode::read_clients() {
 
     if (read_buf_.size() > BUFFER_LIMIT) {
         // Sanity: drop connection if buffer overflows
-        Dictionary err;
-        err["ok"] = false;
-        err["error"] = String("Message body too large");
+        Dictionary err = make_error("Message body too large");
         send_response(client_, err);
         client_->disconnect_from_host();
         client_.unref();
@@ -181,7 +181,7 @@ void GameBridgeNode::read_clients() {
     Variant msg = json->get_data();
 
     // Calculate consumed bytes and keep any remaining data for next message
-    int consumed = text.utf8().size();
+    int consumed = static_cast<int>(text.utf8().size());
     if (consumed > 0 && consumed < read_buf_.size()) {
         PackedByteArray remaining;
         remaining.resize(read_buf_.size() - consumed);
@@ -202,10 +202,7 @@ void GameBridgeNode::read_clients() {
     Dictionary msg_dict = msg;
     String cmd = msg_dict.get("cmd", "");
     Dictionary params = msg_dict.get("params", Dictionary());
-    Variant id_v = msg_dict.get("id", Variant());
-    int64_t id = (id_v.get_type() == Variant::FLOAT
-        ? static_cast<int64_t>(static_cast<double>(id_v))
-        : static_cast<int64_t>(id_v));
+    Variant id = msg_dict.get("id", Variant());
 
     Dictionary result = dispatch(cmd, params);
     result["id"] = id;
