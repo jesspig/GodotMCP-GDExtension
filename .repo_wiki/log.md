@@ -2,6 +2,12 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-15 — 新增 tool-base.md + cmd-utils.md 模块文档
+
+- **新增** `modules/tool-base.md`：ITool 基类体系完整文档，含 ToolResult/ToolContext/ITool 类图、`execute()` 模板方法流程图、类型验证映射表
+- **新增** `modules/cmd-utils.md`：共享工具函数文档，含场景辅助、JSON↔Variant 转换序列图、undoable_set 流程、树遍历流程图
+- **更新** `index.md`：新增两个模块的导航链接
+
 ## 2026-06-14 — Wiki 全面校正 + ADR 压缩 + 废弃文档清理
 
 ### 源码深度验证（5 路并行子代理审计，修复 23 个文件）
