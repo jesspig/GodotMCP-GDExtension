@@ -41,6 +41,15 @@ public:
         bool is_meta = false,
         bool supports_undo = false,
         bool is_destructive = false);
+
+    // Simplified overload for C# / scripting: omits description & flags
+    void register_tool_simple(
+        const godot::String &name,
+        const godot::String &category,
+        const godot::String &brief,
+        const godot::Dictionary &input_schema,
+        const godot::Callable &handler);
+
     bool unregister_tool(const godot::String &name);
 
     // --- Query ---

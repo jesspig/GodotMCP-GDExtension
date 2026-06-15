@@ -2,6 +2,7 @@
 
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/core/gdvirtual.gen.inc>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
 
@@ -39,9 +40,9 @@ public:
     bool get_is_destructive() const;
     void set_is_destructive(bool v);
 
-    // --- Core virtual (GDScript overrides this) ---
-    // func execute(args: Dictionary) -> Dictionary
-    virtual godot::Dictionary execute(const godot::Dictionary &args);
+    // --- Core virtual (GDScript / C# overrides this via GDVIRTUAL) ---
+    godot::Dictionary execute(const godot::Dictionary &args);
+    GDVIRTUAL1R(godot::Dictionary, execute, godot::Dictionary)
 
     // --- Registration ---
     void register_tool();

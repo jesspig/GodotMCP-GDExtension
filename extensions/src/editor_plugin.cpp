@@ -131,6 +131,9 @@ void McpEditorPlugin::_enter_tree() {
     sdk_registry->set_handler_registry(&registry_);
     sdk_registry->set_mcp_handler(&mcp_handler_);
 
+    // Register as Engine singleton so C# can access via Engine.GetSingleton("McpToolRegistry")
+    Engine::get_singleton()->register_singleton("McpToolRegistry", sdk_registry);
+
     // Wire up TestEngine
     http_server_.set_test_engine(&test_engine_);
 
@@ -214,8 +217,9 @@ void McpEditorPlugin::_exit_tree() {
 
     http_server_.stop();
 
-    // Clean up SDK registry singleton
+    // Unregister and clean up SDK registry singleton
     if (sdk_registry) {
+        Engine::get_singleton()->unregister_singleton("McpToolRegistry");
         memdelete(sdk_registry);
         sdk_registry = nullptr;
     }

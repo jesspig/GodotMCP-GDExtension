@@ -171,6 +171,20 @@ void McpToolRegistry::register_tool(
     notify_tools_changed();
 }
 
+// ---------------------------------------------------------------------------
+// Mode B (simplified): Register with Callable — no description / flags
+// ---------------------------------------------------------------------------
+
+void McpToolRegistry::register_tool_simple(
+    const String &name,
+    const String &category,
+    const String &brief,
+    const Dictionary &input_schema,
+    const Callable &handler) {
+    register_tool(name, category, brief, String(), input_schema, handler,
+                  false, false, false);
+}
+
 bool McpToolRegistry::unregister_tool(const String &name) {
     const String resolved = resolve_name(name);
 
@@ -251,6 +265,9 @@ void McpToolRegistry::_bind_methods() {
                                   "description", "input_schema", "handler",
                                   "is_meta", "supports_undo", "is_destructive"),
                          &McpToolRegistry::register_tool, DEFVAL(false), DEFVAL(false), DEFVAL(false));
+    ClassDB::bind_method(D_METHOD("register_tool_simple", "name", "category",
+                                  "brief", "input_schema", "handler"),
+                         &McpToolRegistry::register_tool_simple);
     ClassDB::bind_method(D_METHOD("unregister_tool", "name"),
                          &McpToolRegistry::unregister_tool);
 
