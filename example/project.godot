@@ -10,7 +10,6 @@ config_version=5
 
 [application]
 
-config/name="Example"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
@@ -21,6 +20,12 @@ project/assembly_name="Example"
 [editor_plugins]
 
 enabled=PackedStringArray()
+
+[godot_mcp]
+
+http_port=9600
+http_host="127.0.0.1"
+bridge_port=9601
 
 [rendering]
 

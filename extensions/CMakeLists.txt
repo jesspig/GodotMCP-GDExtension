@@ -63,7 +63,10 @@ set(GODOT_MCP_SOURCES
     src/server/ipc/http_connection.cpp
     src/server/ipc/http_sse.cpp
     src/server/mcp/mcp_handler.cpp
+    src/server/mcp/tool_executor.cpp
+    src/server/mcp/prompt_provider.cpp
     src/server/registry/handler_registry.cpp
+    src/server/registry/search_engine.cpp
 
     # Tool infrastructure (ITool)
     src/built_in/tool_base.cpp
@@ -173,7 +176,35 @@ if(MSVC)
 endif()
 
 if(MSVC)
-    target_compile_options(godot_mcp_gdext PRIVATE /W3 /wd4244 /wd4267)
+    target_compile_options(godot_mcp_gdext PRIVATE /utf-8 /bigobj /W3)
 else()
     target_compile_options(godot_mcp_gdext PRIVATE -Wall -Wno-unused-parameter)
+endif()
+
+# ---------------------------------------------------------------------------
+# PGO (Profile-Guided Optimization) — only for Release + GODOTMCP_PGO
+# Usage:
+#   1. cmake -B build -DCMAKE_BUILD_TYPE=Release -DGODOTMCP_PGO=GEN
+#   2. cmake --build build
+#   3. Load godot_mcp_gdext.dll into Godot, exercise workflows
+#   4. cmake -B build -DCMAKE_BUILD_TYPE=Release -DGODOTMCP_PGO=USE
+#   5. cmake --build build
+# ---------------------------------------------------------------------------
+if(MSVC AND RELEASE AND GODOTMCP_PGO STREQUAL "GEN")
+    target_compile_options(godot_mcp_gdext PRIVATE /GL)
+    target_link_options(godot_mcp_gdext PRIVATE /LTCG /GENPROFILE)
+    message(STATUS "PGO: instrumentation build (GEN)")
+elseif(MSVC AND RELEASE AND GODOTMCP_PGO STREQUAL "USE")
+    target_compile_options(godot_mcp_gdext PRIVATE /GL)
+    target_link_options(godot_mcp_gdext PRIVATE /LTCG /USEPROFILE)
+    message(STATUS "PGO: optimization build (USE)")
+endif()
+
+# Unity build: third-party headers are included in our unity batch,
+# so warnings from godot-cpp/ryml headers cannot be suppressed per-target.
+# /wd4244 is noisy in godot-cpp (template metaprogramming), but we want it
+# for our own code. /wd4267 similarly.
+# TODO: Gradually fix C4244/C4267 in our own code, then re-enable for our target.
+if(MSVC)
+    add_compile_options(/wd4244 /wd4267)
 endif()

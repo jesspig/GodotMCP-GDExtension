@@ -307,7 +307,7 @@ Dictionary TestEngine::run(const String &yaml_content) {
         // before_all failed — report error and skip all tests
         if (config.has("tests")) {
             const Array tests = config["tests"];
-            total = tests.size();
+            total = static_cast<int>(tests.size());
             failed = total;
             for (int i = 0; i < tests.size(); ++i) {
                 const Dictionary test_def = tests[i];
@@ -321,7 +321,7 @@ Dictionary TestEngine::run(const String &yaml_content) {
         }
     } else if (config.has("tests")) {
         const Array tests = config["tests"];
-        total = tests.size();
+        total = static_cast<int>(tests.size());
 
         for (int i = 0; i < tests.size(); ++i) {
             const Dictionary test_def = tests[i];
@@ -349,7 +349,7 @@ Dictionary TestEngine::run(const String &yaml_content) {
                         suite_result["_all_tracked"] = Array();
                     }
                     Array all_tracked = suite_result["_all_tracked"];
-                    const int old_size = all_tracked.size();
+                    const int old_size = static_cast<int>(all_tracked.size());
                     all_tracked.resize(old_size + paths.size());
                     for (int p = 0; p < paths.size(); ++p) {
                         all_tracked[old_size + p] = paths[p];

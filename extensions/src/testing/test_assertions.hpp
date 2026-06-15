@@ -73,7 +73,7 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
                         return String("Field path '") + path + String("' cannot be traversed at '") + remaining + String("'");
                     }
                     Dictionary d = actual;
-                    int dot = remaining.find(".");
+                    int dot = static_cast<int>(remaining.find("."));
                     if (dot != -1) {
                         String key = remaining.substr(0, dot);
                         remaining = remaining.substr(dot + 1);

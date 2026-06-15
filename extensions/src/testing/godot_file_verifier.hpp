@@ -44,6 +44,7 @@ inline godot::Array verify_scene_file(const godot::String &scene_path,
         errors.push_back(String("Cannot instantiate scene: ") + scene_path);
         return errors;
     }
+    struct NodeGuard { Node *n; ~NodeGuard() { if (n) memdelete(n); } } node_guard{instance};
 
     for (int i = 0; i < node_specs.size(); ++i) {
         const Dictionary spec = node_specs[i];
@@ -117,7 +118,6 @@ inline godot::Array verify_scene_file(const godot::String &scene_path,
         }
     }
 
-    memdelete(instance);
     return errors;
 }
 

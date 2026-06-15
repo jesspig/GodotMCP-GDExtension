@@ -64,23 +64,25 @@ tests:
           value: "mcp_test_action"
 
 # -- plugin (self-disable protection) --
-  - tool: enable_plugin
-    description: Attempts to enable self, expects SELF_ENABLE error
+  - tool: set_plugin_enabled
+    description: Attempts to enable self, expects SELF_MODIFY error
     args:
       plugin_name: "GodotMCP"
       plugin_path: "res://addons/godot_mcp"
+      enabled: true
     expect:
       status: error
-      error_contains: "SELF_ENABLE"
+      error_contains: "SELF_MODIFY"
 
-  - tool: disable_plugin
-    description: Attempts to disable self, expects SELF_DISABLE error
+  - tool: set_plugin_enabled
+    description: Attempts to disable self, expects SELF_MODIFY error
     args:
       plugin_name: "GodotMCP"
       plugin_path: "res://addons/godot_mcp"
+      enabled: false
     expect:
       status: error
-      error_contains: "SELF_DISABLE"
+      error_contains: "SELF_MODIFY"
 
 # -- shader --
   - tool: create_shader

@@ -40,9 +40,19 @@ endif()
 
 # MSVC: treat source files & execution charset as UTF-8 (fixes CJK in string literals)
 if(MSVC)
-    add_compile_options(/utf-8 /bigobj)
-    # Embed debug info in .obj files (/Z7) to avoid C1041 PDB conflicts with sccache + /MP.
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded)
+endif()
+
+# ---------------------------------------------------------------------------
+# LTO (Link-Time Optimization) — only for Release builds
+# ---------------------------------------------------------------------------
+include(CheckIPOSupported)
+check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
+if(ipo_supported)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+    message(STATUS "LTO enabled for Release builds")
+else()
+    message(STATUS "LTO not supported: ${ipo_error}")
 endif()
 
 add_subdirectory(extensions)

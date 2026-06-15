@@ -9,6 +9,7 @@
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/variant.hpp>
 
+#include <charconv>
 #include <stdexcept>
 #include <string>
 
@@ -40,13 +41,13 @@ inline godot::Variant parse_scalar(const c4::csubstr &val) {
     if (val == "true" || val == "yes" || val == "on") return true;
     if (val == "false" || val == "no" || val == "off") return false;
 
-    char *end = nullptr;
-    const long long int_val = std::strtoll(s.c_str(), &end, 0);
-    if (end != s.c_str() && *end == '\0') return static_cast<int64_t>(int_val);
+    int64_t int_val = 0;
+    auto [int_ptr, int_ec] = std::from_chars(s.data(), s.data() + s.size(), int_val);
+    if (int_ec == std::errc() && int_ptr == s.data() + s.size()) return int_val;
 
-    end = nullptr;
-    const double float_val = std::strtod(s.c_str(), &end);
-    if (end != s.c_str() && *end == '\0') return float_val;
+    double float_val = 0.0;
+    auto [float_ptr, float_ec] = std::from_chars(s.data(), s.data() + s.size(), float_val);
+    if (float_ec == std::errc() && float_ptr == s.data() + s.size()) return float_val;
 
     return String(s.c_str());
 }
@@ -127,6 +128,9 @@ inline godot::Variant parse_yaml(const godot::String &yaml_text) {
         Dictionary err;
         err["error"] = String(e.what());
         result = err;
+    } catch (...) {
+        ryml::set_callbacks(prev);
+        throw;
     }
 
     ryml::set_callbacks(prev);
