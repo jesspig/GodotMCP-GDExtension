@@ -6,6 +6,7 @@
 
 #include "workspace_utils.hpp"
 
+#include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/packed_string_array.hpp>
 #include <godot_cpp/variant/string.hpp>
@@ -70,7 +71,9 @@ protected:
             return ToolResult::err("NO_CONSOLE", "Console not found");
         }
 
-        String full_text = rtl->get_text();
+        static ConsoleCache cache;
+        uint64_t now = Time::get_singleton()->get_ticks_msec();
+        String full_text = cache.get_text(rtl, now);
 
         PackedStringArray lines = full_text.split("\n", false);
 
@@ -111,6 +114,22 @@ protected:
     }
 
 private:
+    struct ConsoleCache {
+        String cached_text;
+        uint64_t last_read_msec = 0;
+        bool dirty = true;
+
+        String get_text(godot::RichTextLabel *rtl, uint64_t now_msec) {
+            if (dirty || (now_msec - last_read_msec) > 1000) {
+                cached_text = rtl->get_text();
+                last_read_msec = now_msec;
+                dirty = false;
+            }
+            return cached_text;
+        }
+
+        void mark_dirty() { dirty = true; }
+    };
     static bool _is_mcp_line(const String &line) {
         return line.contains("MCP") || line.contains("mcp") || line.contains("godot_mcp");
     }

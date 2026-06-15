@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
 #include "filesystem_utils.hpp"
 
 #include <godot_cpp/classes/dir_access.hpp>
@@ -168,8 +169,7 @@ protected:
         String path = args_string(ctx.args, "path", "res://");
         bool include_files = args_bool(ctx.args, "include_files", true);
         bool include_dirs = args_bool(ctx.args, "include_dirs", true);
-        Array extensions = ctx.args.has("extensions")
-            ? static_cast<Array>(ctx.args["extensions"] ): Array();
+        Array extensions = args_get_typed<Array>(ctx.args, "extensions", Array());
         bool recursive = args_bool(ctx.args, "recursive", false);
 
         Dictionary verr = fs_utils::validate_res_path(path);

@@ -15,7 +15,6 @@ public:
     String name() const noexcept override { return "set_breakpoint"; }
     String category() const noexcept override { return "editor_tools/workspace"; }
     String brief() const noexcept override { return String("Set breakpoint on script line"); }
-    String description() const override { return brief(); }
 
     Dictionary build_input_schema() const override {
         Dictionary props;

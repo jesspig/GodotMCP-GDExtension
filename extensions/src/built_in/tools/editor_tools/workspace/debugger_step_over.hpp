@@ -15,7 +15,6 @@ public:
     String name() const noexcept override { return "debugger_step_over"; }
     String category() const noexcept override { return "editor_tools/workspace"; }
     String brief() const noexcept override { return String("Debugger step over"); }
-    String description() const override { return brief(); }
 
     Dictionary build_input_schema() const override {
         Dictionary s; s["type"] = "object"; s["properties"] = Dictionary();

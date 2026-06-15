@@ -2,6 +2,8 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
+#include "built_in/cmd_utils/dispatch_map.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 
@@ -51,13 +53,18 @@ static constexpr auto kDefaultCapsuleHeight = 40.0f;
 
 template<bool Is3D>
 static godot::Node *create_body_node_impl(const String &body_type, const String &name) {
+    static const auto kBodyClasses = godot_mcp::make_dispatch_map<godot::String, godot::String>(
+        std::pair{godot::String("static"),    godot::String("StaticBody")},
+        std::pair{godot::String("rigid"),     godot::String("RigidBody")},
+        std::pair{godot::String("character"), godot::String("CharacterBody")},
+        std::pair{godot::String("area"),      godot::String("Area")}
+    );
+    assert(kBodyClasses.validate() && "Duplicate key");
+
     const String suffix = Is3D ? "3D" : "2D";
-    String class_name;
-    if (body_type == "static") class_name = "StaticBody" + suffix;
-    else if (body_type == "rigid") class_name = "RigidBody" + suffix;
-    else if (body_type == "character") class_name = "CharacterBody" + suffix;
-    else if (body_type == "area") class_name = "Area" + suffix;
-    else return nullptr;
+    const godot::String* base = kBodyClasses.find(godot::String(body_type));
+    if (!base) return nullptr;
+    String class_name = *base + suffix;
     Node *node = godot::Object::cast_to<godot::Node>(godot::ClassDB::instantiate(class_name));
     if (node) node->set_name(name);
     return node;
@@ -381,10 +388,7 @@ protected:
         String dimension = args_string(ctx.args, "dimension", "2d");
         String body_type = args_string(ctx.args, "body_type", "static");
         String shape_type = args_string(ctx.args, "shape_type");
-        Dictionary shape_props;
-        if (ctx.args.has("shape_properties")) {
-            shape_props = ctx.args["shape_properties"];
-        }
+        Dictionary shape_props = args_get_typed<Dictionary>(ctx.args, "shape_properties", Dictionary());
         String default_node_name = (dimension == "3d") ? "CollisionShape3D" : "CollisionShape2D";
         String node_name = args_string(ctx.args, "node_name", default_node_name);
 

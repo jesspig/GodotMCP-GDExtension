@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation_node_state_machine.hpp>
@@ -126,13 +127,7 @@ protected:
             tree_node->set_owner(ctx.root);
             mark_scene_dirty();
         } else {
-            ur->add_do_method(parent, "add_child", tree_node, true,
-                              static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
-            ur->add_do_method(tree_node, "set_owner", ctx.root);
-            ur->add_do_reference(tree_node);
-            ur->add_undo_method(tree_node, "set_owner", Variant());
-            ur->add_undo_method(parent, "remove_child", tree_node);
-            commit_undo_action(ur);
+            commit_add_child_undo(ur, "MCP: Create AnimationTree", parent, tree_node, ctx.root);
         }
 
         auto *ei = godot::EditorInterface::get_singleton();

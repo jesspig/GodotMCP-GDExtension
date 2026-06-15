@@ -3,6 +3,8 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 #include "control_utils.hpp"
 
@@ -113,10 +115,7 @@ protected:
             control->set_anchors_preset(resolve_layout_preset(layout_preset));
         }
 
-        Dictionary size_dict;
-        if (ctx.args.has("size") && ctx.args["size"].get_type() == Variant::DICTIONARY) {
-            size_dict = ctx.args["size"];
-        }
+        Dictionary size_dict = args_get_typed<Dictionary>(ctx.args, "size", Dictionary());
         if (!size_dict.is_empty() && size_dict.has("width") && size_dict.has("height")) {
             control->set_size(godot::Vector2(
                 static_cast<real_t>(args_float(size_dict, "width", 0.0)),
@@ -130,12 +129,7 @@ protected:
             child->set_owner(ctx.root);
             mark_scene_dirty();
         } else {
-            ur->add_do_method(parent, "add_child", child, true, static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
-            ur->add_do_method(child, "set_owner", ctx.root);
-            ur->add_undo_method(parent, "remove_child", child);
-            ur->add_undo_method(child, "set_owner", Variant());
-            ur->add_do_reference(child);
-            commit_undo_action(ur);
+            commit_add_child_undo(ur, "MCP: Create Control " + class_name, parent, child, ctx.root);
         }
 
         auto *ei = godot::EditorInterface::get_singleton();

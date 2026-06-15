@@ -3,6 +3,7 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "scene_tree_utils.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
@@ -103,33 +104,19 @@ protected:
         if (!instance_name.is_empty()) {
             inst->set_name(instance_name);
         }
-        auto *ur = begin_undo_action("MCP: Instance " + scene_path);
-        if (ur) {
-            ur->add_do_method(inst, "set_scene_file_path", scene_path);
-            ur->add_do_method(inst, "set_scene_instance_load_placeholder", load_placeholder);
-            ur->add_do_method(parent, "add_child", inst, true,
-                              static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
-            if (editable_children) {
-                ur->add_do_method(parent, "set_editable_instance", inst, true);
-            }
-            ur->add_undo_method(parent, "remove_child", inst);
-            ur->add_do_reference(inst);
-            ur->add_undo_reference(inst);
-            commit_undo_action(ur);
+        auto *ur = get_undo_redo();
 
-            // Also set owner outside undo for immediate consistency
-            scene_tree_utils::assign_owner_recursive(inst, ctx.root);
-        } else {
-            inst->set_scene_file_path(scene_path);
-            inst->set_scene_instance_load_placeholder(load_placeholder);
-            scene_tree_utils::assign_owner_recursive(inst, ctx.root);
-            parent->add_child(inst, true, godot::Node::INTERNAL_MODE_DISABLED);
-            // set_editable_instance(child, flag) is called on the PARENT; the
-            // old `inst->set_editable_instance(inst, true)` was a no-op.
-            if (editable_children) {
-                parent->set_editable_instance(inst, true);
-            }
+        inst->set_scene_file_path(scene_path);
+        inst->set_scene_instance_load_placeholder(load_placeholder);
+
+        commit_add_child_undo(ur, "MCP: Instance " + scene_path, parent, inst, ctx.root, -1, false);
+
+        if (editable_children) {
+            parent->set_editable_instance(inst, true);
         }
+
+        // Also set owner outside undo for immediate consistency
+        scene_tree_utils::assign_owner_recursive(inst, ctx.root);
 
         Dictionary data;
         data["instance_path"] = relative_path(ctx.root, inst);

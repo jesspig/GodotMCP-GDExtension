@@ -3,6 +3,8 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
+#include "built_in/cmd_utils/dispatch_map.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
@@ -92,9 +94,20 @@ protected:
             return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
-        bool is_3d = (dimension != "2d");
-        String class_name = is_3d ? "NavigationRegion3D" : "NavigationRegion2D";
-        String default_name = is_3d ? "NavigationRegion3D" : "NavigationRegion2D";
+        static const auto kNavRegionClasses = godot_mcp::make_dispatch_map<godot::String, godot::String>(
+            std::pair{godot::String("2d"), godot::String("NavigationRegion2D")},
+            std::pair{godot::String("3d"), godot::String("NavigationRegion3D")}
+        );
+        assert(kNavRegionClasses.validate() && "Duplicate key");
+
+        const godot::String* matched = kNavRegionClasses.find(godot::String(dimension));
+        if (!matched) {
+            return ToolResult::err("INVALID_DIMENSION",
+                String("Unknown dimension: ") + dimension + " (expected 2d/3d)");
+        }
+        godot::String class_name = *matched;
+        godot::String default_name = class_name;
+        bool is_3d = (dimension == "3d");
 
         Node *region_node = Object::cast_to<Node>(ClassDB::instantiate(class_name));
         if (!region_node) {
@@ -151,12 +164,7 @@ protected:
             region_node->set_owner(ctx.root);
             mark_scene_dirty();
         } else {
-            ur->add_do_method(parent, "add_child", region_node, true,
-                              static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
-            ur->add_do_method(region_node, "set_owner", ctx.root);
-            ur->add_undo_method(parent, "remove_child", region_node);
-            ur->add_undo_reference(region_node);
-            commit_undo_action(ur);
+            commit_add_child_undo(ur, "MCP: Create " + class_name, parent, region_node, ctx.root);
         }
 
         auto *ei = godot::EditorInterface::get_singleton();

@@ -3,6 +3,8 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
+#include "built_in/cmd_utils/dispatch_map.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/audio_stream.hpp>
@@ -98,14 +100,19 @@ protected:
         bool autoplay = args_bool(ctx.args, "autoplay", false);
         double volume_db = args_float(ctx.args, "volume_db", 0.0);
 
-        String class_name;
-        if (player_type == "standard") class_name = "AudioStreamPlayer";
-        else if (player_type == "2d") class_name = "AudioStreamPlayer2D";
-        else if (player_type == "3d") class_name = "AudioStreamPlayer3D";
-        else {
+        static const auto kPlayerClasses = godot_mcp::make_dispatch_map<godot::String, godot::String>(
+            std::pair{godot::String("standard"), godot::String("AudioStreamPlayer")},
+            std::pair{godot::String("2d"),       godot::String("AudioStreamPlayer2D")},
+            std::pair{godot::String("3d"),       godot::String("AudioStreamPlayer3D")}
+        );
+        assert(kPlayerClasses.validate() && "Duplicate key");
+
+        const godot::String* matched = kPlayerClasses.find(godot::String(player_type));
+        if (!matched) {
             return ToolResult::err("INVALID_PLAYER_TYPE",
                 String("Unknown player_type: ") + player_type + " (expected standard/2d/3d)");
         }
+        godot::String class_name = *matched;
 
         Node *parent = nullptr;
         if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
@@ -165,13 +172,7 @@ protected:
             player_node->set_owner(ctx.root);
             mark_scene_dirty();
         } else {
-            ur->add_do_method(parent, "add_child", player_node, true,
-                              static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
-            ur->add_do_method(player_node, "set_owner", ctx.root);
-            ur->add_do_reference(player_node);
-            ur->add_undo_method(player_node, "set_owner", Variant());
-            ur->add_undo_method(parent, "remove_child", player_node);
-            commit_undo_action(ur);
+            commit_add_child_undo(ur, "MCP: Create AudioPlayer " + class_name, parent, player_node, ctx.root);
         }
 
         auto *ei = godot::EditorInterface::get_singleton();

@@ -4,6 +4,8 @@
 #endif
 
 #include "server/registry/handler_registry.hpp"
+#include "built_in/cmd_utils/dispatch_map.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
 
 // ── Meta tools ──
 #include "built_in/tools/meta/get_info.hpp"

@@ -35,6 +35,7 @@ public:
             Dictionary p;
             p["type"] = "string";
             p["description"] = "Parent node path (empty = scene root)";
+            p["x-mcp-header"] = true;
             props["parent_path"] = p;
         }
         {

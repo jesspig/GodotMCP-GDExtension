@@ -25,6 +25,7 @@ public:
             Dictionary p;
             p["type"] = "string";
             p["description"] = "Search text pattern";
+            p["x-mcp-header"] = true;
             props["pattern"] = p;
         }
         {

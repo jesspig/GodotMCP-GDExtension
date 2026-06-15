@@ -132,6 +132,9 @@ void McpToolRegistry::register_definition(McpToolDefinition *tool_def) {
     if (tools_.has(resolved)) {
         log_warn("sdk", String("Custom tool '") + resolved +
                          String("' already registered — overwriting"));
+        if (handler_registry_) {
+            handler_registry_->unregister_custom_tool(resolved);
+        }
     }
 
     // Store custom tool metadata
@@ -191,6 +194,9 @@ void McpToolRegistry::register_tool(
     if (tools_.has(resolved)) {
         log_warn("sdk", String("Custom tool '") + resolved +
                          String("' already registered — overwriting"));
+        if (handler_registry_) {
+            handler_registry_->unregister_custom_tool(resolved);
+        }
     }
 
     // Store metadata

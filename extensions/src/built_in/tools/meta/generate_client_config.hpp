@@ -1,7 +1,7 @@
 #pragma once
 
 #include "built_in/tool_base.hpp"
-#include "client_registry.hpp"
+#include "client_config_registry.hpp"
 #include <godot_cpp/classes/dir_access.hpp>
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/project_settings.hpp>

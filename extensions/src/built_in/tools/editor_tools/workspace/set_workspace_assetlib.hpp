@@ -14,7 +14,6 @@ public:
     String name() const noexcept override { return "set_workspace_assetlib"; }
     String category() const noexcept override { return "editor_tools/workspace"; }
     String brief() const noexcept override { return String("Switch to Asset Library workspace"); }
-    String description() const override { return brief(); }
 
     Dictionary build_input_schema() const override {
         Dictionary s; s["type"] = "object"; s["properties"] = Dictionary();

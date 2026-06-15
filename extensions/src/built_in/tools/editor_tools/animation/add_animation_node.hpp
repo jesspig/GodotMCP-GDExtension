@@ -2,6 +2,8 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
+#include "built_in/cmd_utils/dispatch_map.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation_node.hpp>
@@ -95,8 +97,8 @@ protected:
         String animation_name = args_string(ctx.args, "animation_name", "");
 
         godot::Vector2 position;
-        if (ctx.args.has("position") && ctx.args["position"].get_type() == Variant::DICTIONARY) {
-            Dictionary pos = ctx.args["position"];
+        Dictionary pos = args_get_typed<Dictionary>(ctx.args, "position", Dictionary());
+        if (!pos.is_empty()) {
             position.x = static_cast<real_t>(args_float(pos, "x", 0.0));
             position.y = static_cast<real_t>(args_float(pos, "y", 0.0));
         }
@@ -128,18 +130,23 @@ protected:
                 String("State already exists: ") + node_name);
         }
 
-        String class_name;
-        if (node_type == "animation") class_name = "AnimationNodeAnimation";
-        else if (node_type == "blend2") class_name = "AnimationNodeBlend2";
-        else if (node_type == "blend3") class_name = "AnimationNodeBlend3";
-        else if (node_type == "blend_tree") class_name = "AnimationNodeBlendTree";
-        else if (node_type == "one_shot") class_name = "AnimationNodeOneShot";
-        else if (node_type == "time_seek") class_name = "AnimationNodeTimeSeek";
-        else if (node_type == "transition") class_name = "AnimationNodeTransition";
-        else {
+        static const auto kAnimationNodeClasses = godot_mcp::make_dispatch_map<godot::String, godot::String>(
+            std::pair{godot::String("animation"),  godot::String("AnimationNodeAnimation")},
+            std::pair{godot::String("blend2"),     godot::String("AnimationNodeBlend2")},
+            std::pair{godot::String("blend3"),     godot::String("AnimationNodeBlend3")},
+            std::pair{godot::String("blend_tree"), godot::String("AnimationNodeBlendTree")},
+            std::pair{godot::String("one_shot"),   godot::String("AnimationNodeOneShot")},
+            std::pair{godot::String("time_seek"),  godot::String("AnimationNodeTimeSeek")},
+            std::pair{godot::String("transition"), godot::String("AnimationNodeTransition")}
+        );
+        assert(kAnimationNodeClasses.validate() && "Duplicate key");
+
+        const godot::String* matched = kAnimationNodeClasses.find(godot::String(node_type));
+        if (!matched) {
             return ToolResult::err("INVALID_NODE_TYPE",
                 String("Unknown node_type: ") + node_type);
         }
+        godot::String class_name = *matched;
 
         godot::Ref<godot::AnimationNode> anim_node =
             Object::cast_to<godot::AnimationNode>(

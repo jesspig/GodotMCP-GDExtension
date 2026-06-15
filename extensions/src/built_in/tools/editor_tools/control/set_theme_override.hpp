@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/control.hpp>
@@ -72,10 +73,7 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String node_path = args_string(ctx.args, "node_path");
-        godot::Array overrides;
-        if (ctx.args.has("overrides") && ctx.args["overrides"].get_type() == Variant::ARRAY) {
-            overrides = ctx.args["overrides"];
-        }
+        godot::Array overrides = args_get_typed<Array>(ctx.args, "overrides", Array());
 
         Node *node = nullptr;
         if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {

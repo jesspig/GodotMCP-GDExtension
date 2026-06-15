@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
 
 namespace godot_mcp {
 
@@ -78,7 +79,7 @@ public:
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }
-    // execute_impl ÄÚ²¿ÒÑÍ¨¹ý undoable_set() ×ÔÐÐ´¦Àí undo£¬±ÜÃâÍâ²ã¿Õ Undo action
+    // execute_impl ï¿½Ú²ï¿½ï¿½ï¿½Í¨ï¿½ï¿½ undoable_set() ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ undoï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Undo action
     bool supports_undo() const override { return false; }
     Dictionary build_input_schema() const override {
         Dictionary s;

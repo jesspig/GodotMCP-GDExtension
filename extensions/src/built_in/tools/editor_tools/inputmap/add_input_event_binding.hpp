@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
 
 #include <godot_cpp/classes/input_map.hpp>
 #include <godot_cpp/classes/input_event_key.hpp>
@@ -131,8 +132,8 @@ protected:
                 ev->set_keycode(static_cast<godot::Key>(keycode));
             }
 
-            if (ctx.args.has("modifiers") && ctx.args["modifiers"].get_type() == Variant::DICTIONARY) {
-                Dictionary mods = ctx.args["modifiers"];
+            Dictionary mods = args_get_typed<Dictionary>(ctx.args, "modifiers", Dictionary());
+            if (!mods.is_empty()) {
                 if (args_bool(mods, "ctrl", false)) ev->set_ctrl_pressed(true);
                 if (args_bool(mods, "shift", false)) ev->set_shift_pressed(true);
                 if (args_bool(mods, "alt", false)) ev->set_alt_pressed(true);

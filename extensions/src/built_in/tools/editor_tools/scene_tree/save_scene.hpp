@@ -25,6 +25,7 @@ public:
             Dictionary p;
             p["type"] = "string";
             p["description"] = "res:// path (empty = save to original path, must end with .tscn/.scn)";
+            p["x-mcp-header"] = true;
             props["path"] = p;
         }
         Dictionary s;

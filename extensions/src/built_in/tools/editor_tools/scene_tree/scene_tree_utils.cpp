@@ -5,6 +5,7 @@
 #include "scene_tree_utils.hpp"
 
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/node.hpp>
@@ -58,29 +59,8 @@ void do_add_child(EditorUndoRedoManager *ur,
                   Node *scene_root,
                   int64_t index,
                   const String &action_name) {
-    if (!ur || !parent || !child || !scene_root) return;
-
-    ur->create_action(action_name, UndoRedo::MERGE_DISABLE, scene_root);
-
-    if (index < 0 || index >= parent->get_child_count()) {
-        ur->add_do_method(parent, "add_child", child, true,
-                          static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
-    } else {
-        ur->add_do_method(parent, "add_child", child, true,
-                          static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
-        ur->add_do_method(parent, "move_child", child, index);
-    }
-    ur->add_do_method(child, "set_owner", scene_root);
-
-    // Undo: detach + clear owner
-    ur->add_undo_method(parent, "remove_child", child);
-    ur->add_undo_method(child, "set_owner", Variant());
-
-    // References
-    ur->add_do_reference(child);
-    ur->add_undo_reference(child);
-
-    ur->commit_action();
+    if (!parent || !child || !scene_root) return;
+    commit_add_child_undo(ur, action_name, parent, child, scene_root, index);
 }
 
 // ── Scene serialization ────────────────────────────────────────────

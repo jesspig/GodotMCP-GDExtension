@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
@@ -118,12 +119,7 @@ protected:
             agent_node->set_owner(ctx.root);
             mark_scene_dirty();
         } else {
-            ur->add_do_method(parent, "add_child", agent_node, true,
-                              static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
-            ur->add_do_method(agent_node, "set_owner", ctx.root);
-            ur->add_undo_method(parent, "remove_child", agent_node);
-            ur->add_do_reference(agent_node);
-            commit_undo_action(ur);
+            commit_add_child_undo(ur, "MCP: Create " + class_name, parent, agent_node, ctx.root);
         }
 
         auto *ei = godot::EditorInterface::get_singleton();

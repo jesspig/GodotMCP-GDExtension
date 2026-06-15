@@ -3,6 +3,7 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "scene_tree_utils.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
 
 #include <godot_cpp/classes/editor_selection.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
@@ -114,49 +115,24 @@ protected:
         }
         // owner wired post-add_child (use a do_method so it captures in undo)
 
-        auto *ur = begin_undo_action("MCP: Paste " + inst->get_name());
-        if (ur) {
-            if (mode == "replacement") {
+        auto *ur = get_undo_redo();
+        if (mode == "replacement") {
+            if (ur) {
+                ur->create_action("MCP: Paste " + inst->get_name());
                 ur->add_do_method(target, "replace_by", inst, true);
                 ur->add_undo_method(inst, "replace_by", target, true);
                 ur->add_do_reference(inst);
                 ur->add_undo_reference(inst);
                 ur->add_do_reference(target);
                 ur->add_undo_reference(target);
+                commit_undo_action(ur);
             } else {
-                ur->add_do_method(parent, "add_child", inst, true,
-                                  static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
-                if (target_index >= 0) {
-                    ur->add_do_method(parent, "move_child", inst, target_index);
-                }
-                ur->add_undo_method(parent, "remove_child", inst);
-                ur->add_do_reference(inst);
-                ur->add_undo_reference(inst);
-            }
-            // Set owner as part of undo action
-            {
-                auto *undo_redo = ur->get_history_undo_redo(
-                    ur->get_object_history_id(ctx.root));
-                auto assign_callable = callable_mp_static(scene_tree_utils::assign_owner_recursive);
-                undo_redo->add_do_method(assign_callable.bind(inst, ctx.root));
-                undo_redo->add_undo_method(assign_callable.bind(inst, ctx.root));
-            }
-
-            commit_undo_action(ur);
-
-            // Also set owner outside undo for immediate consistency
-            scene_tree_utils::assign_owner_recursive(inst, ctx.root);
-        } else {
-            if (mode == "replacement") {
                 target->replace_by(inst, true);
-            } else {
-                parent->add_child(inst, true, godot::Node::INTERNAL_MODE_DISABLED);
-                if (target_index >= 0) {
-                    parent->move_child(inst, target_index);
-                }
             }
-            scene_tree_utils::assign_owner_recursive(inst, ctx.root);
+        } else {
+            commit_add_child_undo(ur, "MCP: Paste " + inst->get_name(), parent, inst, ctx.root, target_index);
         }
+        scene_tree_utils::assign_owner_recursive(inst, ctx.root);
 
         // select new node
         auto *ei = godot::EditorInterface::get_singleton();

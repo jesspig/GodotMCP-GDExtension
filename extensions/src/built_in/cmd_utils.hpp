@@ -17,11 +17,14 @@
 
 #pragma once
 
+#include <filesystem>
 #include <functional>
 #include <cstdint>
+#include <type_traits>
 #include <godot_cpp/classes/dir_access.hpp>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
+#include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
@@ -202,24 +205,64 @@ inline void collect_nodes_by(godot::Node *node,
 inline void walk_project_dir(const godot::String &dir, const godot::Array &extensions,
                                bool include_addons, int64_t max_results, godot::Array &out) {
     if (out.size() >= max_results) return;
-    godot::Ref<godot::DirAccess> d = godot::DirAccess::open(dir);
-    if (d.is_null()) return;
-    d->list_dir_begin();
-    while (true) {
-        godot::String n = d->get_next();
-        if (n.is_empty()) break;
-        if (n == "." || n == "..") continue;
-        godot::String full = dir == "res://" ? godot::String("res://") + n : dir + godot::String("/") + n;
-        if (d->current_is_dir()) {
-            if (!include_addons && (n == "addons" || n == ".godot" || n == ".import")) continue;
-            walk_project_dir(full, extensions, include_addons, max_results, out);
-        } else {
-            bool match = extensions.size() == 0;
-            for (int64_t i = 0; i < extensions.size() && !match; i++) {
-                if (n.ends_with(godot::String(extensions[i]))) match = true;
+    namespace fs = std::filesystem;
+    godot::String abs = godot::ProjectSettings::get_singleton()->globalize_path(dir);
+    fs::path root(abs.utf8().get_data());
+    if (!fs::exists(root)) return;
+
+    for (auto &entry : fs::recursive_directory_iterator(root, fs::directory_options::skip_permission_denied)) {
+        if (out.size() >= max_results) break;
+        if (!entry.is_regular_file()) continue;
+
+        fs::path rel = fs::relative(entry.path(), root);
+        godot::String p = godot::String("res://") + godot::String::utf8(rel.generic_string().c_str());
+
+        if (!include_addons) {
+            if (p.begins_with("res://addons/") ||
+                p.begins_with("res://.godot/") ||
+                p.begins_with("res://.import/")) {
+                continue;
             }
-            if (match && out.size() < max_results) out.append(full);
         }
+
+        bool match = extensions.size() == 0;
+        for (int64_t i = 0; i < extensions.size() && !match; i++) {
+            if (p.ends_with(godot::String(extensions[i]))) match = true;
+        }
+        if (match) out.append(p);
+    }
+}
+
+// ---------------------------------------------------------------------
+// args_get — single-lookup type-safe arg extraction
+// ---------------------------------------------------------------------
+
+template<typename T>
+struct always_false_args : std::false_type {};
+
+template<typename T>
+T args_get(const godot::Dictionary &args, const godot::String &key, const T &default_value) {
+    if (!args.has(key)) return default_value;
+    const godot::Variant v = args[key];
+    if constexpr (std::is_same_v<T, godot::String>) {
+        return v.get_type() == godot::Variant::STRING ? godot::String(v) : default_value;
+    } else if constexpr (std::is_same_v<T, godot::Dictionary>) {
+        return v.get_type() == godot::Variant::DICTIONARY ? godot::Dictionary(v) : default_value;
+    } else if constexpr (std::is_same_v<T, godot::Array>) {
+        return v.get_type() == godot::Variant::ARRAY ? godot::Array(v) : default_value;
+    } else if constexpr (std::is_same_v<T, bool>) {
+        return v.get_type() == godot::Variant::BOOL ? static_cast<bool>(v) : default_value;
+    } else if constexpr (std::is_integral_v<T>) {
+        if (v.get_type() == godot::Variant::INT) return static_cast<T>(static_cast<int64_t>(v));
+        if (v.get_type() == godot::Variant::FLOAT) return static_cast<T>(static_cast<double>(v));
+        return default_value;
+    } else if constexpr (std::is_floating_point_v<T>) {
+        if (v.get_type() == godot::Variant::FLOAT) return static_cast<T>(static_cast<double>(v));
+        if (v.get_type() == godot::Variant::INT) return static_cast<T>(static_cast<int64_t>(v));
+        return default_value;
+    } else {
+        static_assert(always_false_args<T>::value, "args_get: unsupported type T");
+        return default_value;
     }
 }
 

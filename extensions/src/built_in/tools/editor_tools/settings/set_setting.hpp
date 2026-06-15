@@ -5,6 +5,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
 
 #include <godot_cpp/classes/project_settings.hpp>
 

@@ -14,7 +14,6 @@ public:
     String name() const noexcept override { return "get_fps"; }
     String category() const noexcept override { return "editor_tools/workspace"; }
     String brief() const noexcept override { return String("Get current FPS"); }
-    String description() const override { return brief(); }
 
     Dictionary build_input_schema() const override {
         Dictionary s; s["type"] = "object"; s["properties"] = Dictionary();

@@ -3,6 +3,9 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
+#include "built_in/cmd_utils/dispatch_map.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
@@ -103,10 +106,7 @@ protected:
             return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
-        Dictionary size_dict;
-        if (ctx.args.has("size") && ctx.args["size"].get_type() == Variant::DICTIONARY) {
-            size_dict = ctx.args["size"];
-        }
+        Dictionary size_dict = args_get_typed<Dictionary>(ctx.args, "size", Dictionary());
 
         static const char *scene_exts[] = {".glb", ".gltf", ".obj", ".tscn", ".scn"};
         bool is_scene_file = false;
@@ -137,12 +137,7 @@ protected:
                 instance->set_owner(ctx.root);
                 mark_scene_dirty();
             } else {
-                ur->add_do_method(parent, "add_child", instance, true,
-                                  static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
-                ur->add_do_method(instance, "set_owner", ctx.root);
-                ur->add_undo_method(parent, "remove_child", instance);
-                ur->add_do_reference(instance);
-                commit_undo_action(ur);
+                commit_add_child_undo(ur, "MCP: Instance scene", parent, instance, ctx.root);
             }
 
             select_node(instance);
@@ -177,65 +172,79 @@ protected:
                 memdelete(mesh_inst);
                 return ToolResult::err("WRONG_TYPE", "Resource is not a Mesh: " + custom_path);
             }
-        } else if (mesh_type == "box") {
-            godot::Ref<godot::BoxMesh> m;
-            m.instantiate();
-            if (!size_dict.is_empty()) {
-                real_t w = static_cast<real_t>(args_float(size_dict, "width", 2.0));
-                real_t h = static_cast<real_t>(args_float(size_dict, "height", 2.0));
-                real_t d = static_cast<real_t>(args_float(size_dict, "depth", 2.0));
-                m->set_size(godot::Vector3(w, h, d));
+        } else {
+            static const auto kMeshClasses = godot_mcp::make_dispatch_map<godot::String, godot::String>(
+                std::pair{godot::String("box"),     godot::String("BoxMesh")},
+                std::pair{godot::String("sphere"),  godot::String("SphereMesh")},
+                std::pair{godot::String("cylinder"),godot::String("CylinderMesh")},
+                std::pair{godot::String("capsule"), godot::String("CapsuleMesh")},
+                std::pair{godot::String("plane"),   godot::String("PlaneMesh")},
+                std::pair{godot::String("torus"),   godot::String("TorusMesh")}
+            );
+            assert(kMeshClasses.validate() && "Duplicate key");
+
+            const godot::String* matched = kMeshClasses.find(godot::String(mesh_type));
+            if (!matched) {
+                memdelete(mesh_inst);
+                return ToolResult::err("UNKNOWN_TYPE", "Unknown mesh_type: " + mesh_type);
             }
-            mesh = m;
-        } else if (mesh_type == "sphere") {
-            godot::Ref<godot::SphereMesh> m;
-            m.instantiate();
-            if (!size_dict.is_empty() && size_dict.has("radius")) {
-                m->set_radius(static_cast<real_t>(args_float(size_dict, "radius", 0.5)));
-                m->set_height(static_cast<real_t>(args_float(size_dict, "radius", 0.5)) * 2.0);
+
+            godot::String class_name = *matched;
+            Object *mesh_obj = ClassDB::instantiate(class_name);
+            if (!mesh_obj) {
+                memdelete(mesh_inst);
+                return ToolResult::err("CREATE_FAILED", "Failed to create " + class_name);
             }
-            mesh = m;
-        } else if (mesh_type == "cylinder") {
-            godot::Ref<godot::CylinderMesh> m;
-            m.instantiate();
-            if (!size_dict.is_empty()) {
-                real_t r = static_cast<real_t>(args_float(size_dict, "radius", 0.5));
-                real_t h = static_cast<real_t>(args_float(size_dict, "height", 2.0));
-                m->set_top_radius(r);
-                m->set_bottom_radius(r);
-                m->set_height(h);
+            mesh = godot::Ref<godot::Mesh>(Object::cast_to<godot::Mesh>(mesh_obj));
+            if (mesh.is_null()) {
+                memdelete(mesh_inst);
+                return ToolResult::err("CREATE_FAILED", "Failed to create " + class_name);
             }
-            mesh = m;
-        } else if (mesh_type == "capsule") {
-            godot::Ref<godot::CapsuleMesh> m;
-            m.instantiate();
-            if (!size_dict.is_empty()) {
-                real_t r = static_cast<real_t>(args_float(size_dict, "radius", 0.3));
-                real_t h = static_cast<real_t>(args_float(size_dict, "height", 1.0));
-                m->set_radius(r);
-                m->set_height(h);
-            }
-            mesh = m;
-        } else if (mesh_type == "plane") {
-            godot::Ref<godot::PlaneMesh> m;
-            m.instantiate();
-            if (!size_dict.is_empty() && size_dict.has("size")) {
-                Variant sv = size_dict["size"];
-                if (sv.get_type() == Variant::DICTIONARY) {
-                    Dictionary sd = sv;
-                    m->set_size(godot::Vector2(
-                        static_cast<real_t>(args_float(sd, "width", 2.0)),
-                        static_cast<real_t>(args_float(sd, "height", 2.0))));
+
+            if (mesh_type == "box") {
+                auto *m = Object::cast_to<godot::BoxMesh>(mesh.ptr());
+                if (m && !size_dict.is_empty()) {
+                    m->set_size(godot::Vector3(
+                        static_cast<real_t>(args_float(size_dict, "width", 2.0)),
+                        static_cast<real_t>(args_float(size_dict, "height", 2.0)),
+                        static_cast<real_t>(args_float(size_dict, "depth", 2.0))));
+                }
+            } else if (mesh_type == "sphere") {
+                auto *m = Object::cast_to<godot::SphereMesh>(mesh.ptr());
+                if (m && !size_dict.is_empty() && size_dict.has("radius")) {
+                    real_t r = static_cast<real_t>(args_float(size_dict, "radius", 0.5));
+                    m->set_radius(r);
+                    m->set_height(r * 2.0f);
+                }
+            } else if (mesh_type == "cylinder") {
+                auto *m = Object::cast_to<godot::CylinderMesh>(mesh.ptr());
+                if (m && !size_dict.is_empty()) {
+                    real_t r = static_cast<real_t>(args_float(size_dict, "radius", 0.5));
+                    real_t h = static_cast<real_t>(args_float(size_dict, "height", 2.0));
+                    m->set_top_radius(r);
+                    m->set_bottom_radius(r);
+                    m->set_height(h);
+                }
+            } else if (mesh_type == "capsule") {
+                auto *m = Object::cast_to<godot::CapsuleMesh>(mesh.ptr());
+                if (m && !size_dict.is_empty()) {
+                    real_t r = static_cast<real_t>(args_float(size_dict, "radius", 0.3));
+                    real_t h = static_cast<real_t>(args_float(size_dict, "height", 1.0));
+                    m->set_radius(r);
+                    m->set_height(h);
+                }
+            } else if (mesh_type == "plane") {
+                auto *m = Object::cast_to<godot::PlaneMesh>(mesh.ptr());
+                if (m && !size_dict.is_empty() && size_dict.has("size")) {
+                    Variant sv = size_dict["size"];
+                    if (sv.get_type() == Variant::DICTIONARY) {
+                        Dictionary sd = sv;
+                        m->set_size(godot::Vector2(
+                            static_cast<real_t>(args_float(sd, "width", 2.0)),
+                            static_cast<real_t>(args_float(sd, "height", 2.0))));
+                    }
                 }
             }
-            mesh = m;
-        } else if (mesh_type == "torus") {
-            godot::Ref<godot::TorusMesh> m;
-            m.instantiate();
-            mesh = m;
-        } else {
-            memdelete(mesh_inst);
-            return ToolResult::err("UNKNOWN_TYPE", "Unknown mesh_type: " + mesh_type);
         }
 
         if (mesh.is_valid()) {
@@ -261,12 +270,7 @@ protected:
             mesh_inst->set_owner(ctx.root);
             mark_scene_dirty();
         } else {
-            ur->add_do_method(parent, "add_child", mesh_inst, true,
-                              static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
-            ur->add_do_method(mesh_inst, "set_owner", ctx.root);
-            ur->add_undo_method(parent, "remove_child", mesh_inst);
-            ur->add_do_reference(mesh_inst);
-            commit_undo_action(ur);
+            commit_add_child_undo(ur, "MCP: Create MeshInstance3D", parent, mesh_inst, ctx.root);
         }
 
         select_node(mesh_inst);

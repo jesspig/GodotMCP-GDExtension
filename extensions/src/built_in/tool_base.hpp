@@ -60,7 +60,7 @@ public:
     // ── 元数�?──
     virtual godot::String name() const = 0;
     virtual godot::String brief() const = 0;
-    virtual godot::String description() const = 0;
+    virtual godot::String description() const { return brief(); }
     godot::Dictionary input_schema() const;
     virtual godot::Dictionary build_input_schema() const = 0;
 

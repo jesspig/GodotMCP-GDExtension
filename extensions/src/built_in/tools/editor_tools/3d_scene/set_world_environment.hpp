@@ -3,6 +3,8 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
@@ -142,12 +144,7 @@ protected:
                 world_env->set_owner(ctx.root);
                 mark_scene_dirty();
             } else {
-                ur->add_do_method(parent, "add_child", world_env, true,
-                                  static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
-                ur->add_do_method(world_env, "set_owner", ctx.root);
-                ur->add_undo_method(parent, "remove_child", world_env);
-                ur->add_do_reference(world_env);
-                commit_undo_action(ur);
+                commit_add_child_undo(ur, "MCP: Create WorldEnvironment", parent, world_env, ctx.root);
             }
         }
 
@@ -157,8 +154,8 @@ protected:
             world_env->set_environment(env);
         }
 
-        if (ctx.args.has("ambient_color") && ctx.args["ambient_color"].get_type() == Variant::DICTIONARY) {
-            Dictionary cd = ctx.args["ambient_color"];
+        Dictionary cd = args_get_typed<Dictionary>(ctx.args, "ambient_color", Dictionary());
+        if (!cd.is_empty()) {
             real_t r = static_cast<real_t>(args_float(cd, "r", 0.5));
             real_t g = static_cast<real_t>(args_float(cd, "g", 0.5));
             real_t b = static_cast<real_t>(args_float(cd, "b", 0.5));
@@ -183,8 +180,8 @@ protected:
                 env->set_background(godot::Environment::BG_SKY);
             }
 
-            if (ctx.args.has("sky_color") && ctx.args["sky_color"].get_type() == Variant::DICTIONARY) {
-                Dictionary cd = ctx.args["sky_color"];
+            Dictionary cd = args_get_typed<Dictionary>(ctx.args, "sky_color", Dictionary());
+            if (!cd.is_empty()) {
                 real_t r = static_cast<real_t>(args_float(cd, "r", 0.4));
                 real_t g = static_cast<real_t>(args_float(cd, "g", 0.6));
                 real_t b = static_cast<real_t>(args_float(cd, "b", 0.9));
@@ -199,8 +196,8 @@ protected:
         env->set_fog_enabled(fog_enabled);
 
         if (fog_enabled) {
-            if (ctx.args.has("fog_color") && ctx.args["fog_color"].get_type() == Variant::DICTIONARY) {
-                Dictionary cd = ctx.args["fog_color"];
+            Dictionary cd = args_get_typed<Dictionary>(ctx.args, "fog_color", Dictionary());
+            if (!cd.is_empty()) {
                 real_t r = static_cast<real_t>(args_float(cd, "r", 0.5));
                 real_t g = static_cast<real_t>(args_float(cd, "g", 0.5));
                 real_t b = static_cast<real_t>(args_float(cd, "b", 0.5));

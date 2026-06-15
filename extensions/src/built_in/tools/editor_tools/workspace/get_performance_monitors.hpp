@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/performance.hpp>
@@ -40,9 +41,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        Array requested = ctx.args.has("monitors")
-            ? static_cast<Array>(ctx.args["monitors"]
-)            : Array();
+        Array requested = args_get_typed<Array>(ctx.args, "monitors", Array());
 
         auto *perf = godot::Performance::get_singleton();
         if (!perf) {
