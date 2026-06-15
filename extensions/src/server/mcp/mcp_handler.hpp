@@ -112,11 +112,15 @@ private:
     Dictionary handle_completion_complete(const Dictionary &params, const Variant &id);
 
     // Notifications (no return value needed)
-    void handle_cancelled(const Dictionary &params);
+    void handle_cancelled(const Dictionary &params, const String &session_id);
 
     HandlerRegistry *registry_;
     HashMap<String, Session> sessions_;
-    HashMap<String, String> pending_requests_; // request id (as string) -> session id, for cancellation
+    // Keyed by a composite "session\x1F<serialized_id>" so that null-id
+    // requests and same-numbered ids from different sessions no longer collide
+    // (the old key was just JSON::stringify(id), which collapsed all null-ids
+    // and cross-session same ids into one slot).
+    HashMap<String, String> pending_requests_;
     HashMap<String, Variant> cancelled_requests_; // session_id -> request ids that are cancelled
     McpLogCallback log_callback_;
 };

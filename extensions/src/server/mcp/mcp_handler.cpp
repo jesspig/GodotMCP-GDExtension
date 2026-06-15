@@ -188,6 +188,15 @@ Array McpHandler::tool_result_to_mcp_content(const Dictionary &tool_result) {
     return content;
 }
 
+// Build the composite key used by pending_requests_. Using session + id
+// (not id alone) prevents collisions between null-id requests and between
+// same-numbered ids issued by different sessions.
+namespace {
+inline String pending_key(const String &session_id, const Variant &id) {
+    return session_id + String::chr(0x1F) + JSON::stringify(id);
+}
+} // namespace
+
 // -------------------------------------------------------------------------
 // Protocol version negotiation
 // -------------------------------------------------------------------------
@@ -294,7 +303,7 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg, String &io_
 
     // Notifications
     if (method == "notifications/cancelled") {
-        handle_cancelled(params);
+        handle_cancelled(params, io_session_id);
         return Dictionary();
     }
 
@@ -436,7 +445,7 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
     }
 
     // Track as pending for cancellation support
-    pending_requests_[JSON::stringify(id)] = session_id;
+    pending_requests_[pending_key(session_id, id)] = session_id;
 
     // Check cancellation
     {
@@ -455,16 +464,16 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
     try {
         tool_result = registry_->execute(tool_name, args);
     } catch (const std::exception &e) {
-        pending_requests_.erase(JSON::stringify(id));
+        pending_requests_.erase(pending_key(session_id, id));
         log_warn("mcp", String("tools/call FAILED (exception): ") + tool_name + String(" - ") + String(e.what()));
         return make_jsonrpc_error(id, kInternalError, String(e.what()));
     } catch (...) {
-        pending_requests_.erase(JSON::stringify(id));
+        pending_requests_.erase(pending_key(session_id, id));
         log_warn("mcp", String("tools/call FAILED (unknown exception): ") + tool_name);
         return make_jsonrpc_error(id, kInternalError, "Unknown error");
     }
 
-    pending_requests_.erase(JSON::stringify(id));
+    pending_requests_.erase(pending_key(session_id, id));
 
     // Log result summary
     bool success = true;
@@ -994,15 +1003,16 @@ Dictionary McpHandler::handle_completion_complete(const Dictionary &params, cons
 // -------------------------------------------------------------------------
 // notifications/cancelled
 // -------------------------------------------------------------------------
-void McpHandler::handle_cancelled(const Dictionary &params) {
+void McpHandler::handle_cancelled(const Dictionary &params, const String &session_id) {
     const Variant req_id = params.get("requestId", Variant());
     if (req_id.get_type() == Variant::NIL) return;
 
-    // Find which session this request belongs to
-    auto it = pending_requests_.find(JSON::stringify(req_id));
+    // Look up by composite key (session + id) so cancellation targets the
+    // right request even when multiple sessions share an id or use null ids.
+    const String key = pending_key(session_id, req_id);
+    auto it = pending_requests_.find(key);
     if (it != pending_requests_.end()) {
-        const String sid = it->value;
-        cancelled_requests_[sid] = req_id;
+        cancelled_requests_[session_id] = req_id;
         pending_requests_.erase(it->key);
     }
 }
