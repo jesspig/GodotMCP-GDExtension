@@ -8,7 +8,7 @@
 |------|---------|
 | C++ 源码根 | `extensions/src/` |
 | 注册方式 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
-| 工具总数 | **~170**（174 注册行，3 个跨文件重复；全部 X-macro 注册，无 codegen） |
+| 工具总数 | **171**（全部 X-macro 注册，无重复，无 codegen） |
 | 工具体系 | **四层体系**：语义专用(~145) + 通用兜底(2) + 文档(8) + 元工具(7) + 运行时(12) |
 | 指令数据源 | **Godot ClassDB 运行时查询**（零维护） |
 | 顶级分类 | 自动发现：`meta_tools`、`editor_tools`、`node_tools`、`runtime_tools` |

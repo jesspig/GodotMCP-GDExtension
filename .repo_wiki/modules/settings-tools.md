@@ -6,14 +6,11 @@
 
 ```
 editor_tools/settings/
-  get_setting.hpp       SetSettingTool       — 通用读取器（catch-all）
-  set_setting.hpp       GetSettingTool       — 通用写入器（catch-all），带撤销
+  get_setting.hpp       GetSettingTool       — 通用读取器
+  set_setting.hpp       SetSettingTool       — 通用写入器，带撤销
   reset_setting.hpp     ResetSettingTool     — 重置为默认值
   list_settings.hpp     ListSettingsTool     — 列表 + 搜索（is_meta=true）
-  settings_tool.hpp     SettingGetTool / SetSettingTool — 参数化工具工厂（未注册，供外部使用）
 ```
-
-## 注册
 
 所有工具注册在 `register_existing.hpp:117-120`：
 
@@ -23,8 +20,6 @@ editor_tools/settings/
 | 118 | `SetSettingTool` | `set_setting` | true |
 | 119 | `ResetSettingTool` | `reset_setting` | false |
 | 120 | `ListSettingsTool` | `list_settings` | false |
-
-`settings_tool.hpp` 中的 `SettingGetTool` / `SettingSetTool` 是参数化工厂类（构造函数接受 `name`、`setting_path` 等），**未在任何注册文件中实例化**，属于遗留代码。
 
 ## 工具详情
 
@@ -83,12 +78,6 @@ class ListSettingsTool : public ITool {
   3. 只返回包含 `PROPERTY_USAGE_EDITOR`（usage & 4）的设置
   4. 标记 `basic`（usage & 256）和 `restart_if_changed`（usage & 2048）
 
-## YAML 数据库（遗留）
-
-`extensions/src/built_in/tools/editor_tools/settings/db/` 目录包含 19 个 YAML 文件（application、audio、collada、compression、debug、display、dotnet、editor、editor_plugins、filesystem、gui、input_devices、internationalization、layer_names、memory、navigation、accessibility、animation）。
-
-这些文件是旧方案的产物，**当前工具实现不依赖这些 YAML 文件**。所有设置操作均通过 `ProjectSettings::get_singleton()` 动态运行时查询完成。
-
 ## 数据流
 
 ```mermaid
@@ -123,5 +112,4 @@ sequenceDiagram
 | `set_setting.hpp` | 13-76 | SetSettingTool 实现 |
 | `reset_setting.hpp` | 12-66 | ResetSettingTool 实现 |
 | `list_settings.hpp` | 13-107 | ListSettingsTool 实现 |
-| `settings_tool.hpp` | 11-111 | 未注册的工厂类 |
 | `register_existing.hpp` | 117-120 | 注册行 |
