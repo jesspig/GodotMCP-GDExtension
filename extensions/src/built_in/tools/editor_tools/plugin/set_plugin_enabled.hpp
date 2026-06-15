@@ -8,15 +8,15 @@
 
 namespace godot_mcp {
 
-class DisablePluginTool : public ITool {
+class SetPluginEnabledTool : public ITool {
 public:
-    String name() const override { return "disable_plugin"; }
-    String category() const override { return "editor_tools/plugin"; }
-    String brief() const override {
-        return "Disable an editor plugin";
+    String name() const noexcept override { return "set_plugin_enabled"; }
+    String category() const noexcept override { return "editor_tools/plugin"; }
+    String brief() const noexcept override {
+        return "Enable or disable an editor plugin";
     }
     String description() const override {
-        return "Disable a plugin by its addons path "
+        return "Enable or disable a plugin by its addons path "
                "(e.g. \"res://addons/my_plugin\").";
     }
     Dictionary build_input_schema() const override {
@@ -24,7 +24,7 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = "Plugin name to disable";
+            p["description"] = "Plugin name to enable/disable";
             props["plugin_name"] = p;
         }
         {
@@ -32,6 +32,13 @@ public:
             p["type"] = "string";
             p["description"] = "Path to the plugin in addons/";
             props["plugin_path"] = p;
+        }
+        {
+            Dictionary p;
+            p["type"] = "boolean";
+            p["description"] = "true = enable plugin, false = disable plugin";
+            p["default"] = true;
+            props["enabled"] = p;
         }
         Dictionary s;
         s["type"] = "object";
@@ -47,7 +54,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
@@ -60,17 +67,18 @@ protected:
                 "Both plugin_name and plugin_path are required");
         }
 
-        if (plugin_path == "res://addons/godot_mcp") {
-            return ToolResult::err("SELF_DISABLE",
-                "Cannot disable the GodotMCP plugin itself via MCP tools");
+        if (plugin_path == String(g_mcp_self_plugin_path.c_str())) {
+            return ToolResult::err("SELF_MODIFY",
+                "Cannot enable/disable the GodotMCP plugin itself via MCP tools");
         }
 
-        ei->call("set_plugin_enabled", plugin_path, false);
+        bool enabled = args_bool(ctx.args, "enabled", true);
+        ei->call("set_plugin_enabled", plugin_path, enabled);
 
         Dictionary data;
         data["plugin_name"] = plugin_name;
         data["plugin_path"] = plugin_path;
-        data["enabled"] = false;
+        data["enabled"] = enabled;
         return ToolResult::ok(data);
     }
 };

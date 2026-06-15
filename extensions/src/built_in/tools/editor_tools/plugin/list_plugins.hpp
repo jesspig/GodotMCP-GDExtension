@@ -12,9 +12,9 @@ namespace godot_mcp {
 
 class ListPluginsTool : public ITool {
 public:
-    String name() const override { return "list_plugins"; }
-    String category() const override { return "editor_tools/plugin"; }
-    String brief() const override {
+    String name() const noexcept override { return "list_plugins"; }
+    String category() const noexcept override { return "editor_tools/plugin"; }
+    String brief() const noexcept override {
         return "List all editor plugins in the project";
     }
     String description() const override {
