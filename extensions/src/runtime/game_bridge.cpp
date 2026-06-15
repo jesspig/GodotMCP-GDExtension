@@ -113,6 +113,8 @@ void GameBridgeNode::stop_server() {
         server_.unref();
     }
     read_buf_.clear();
+    read_text_ = String();
+    read_offset_ = 0;
 }
 
 void GameBridgeNode::accept_clients() {
@@ -128,6 +130,8 @@ void GameBridgeNode::accept_clients() {
         new_client->set_no_delay(true);
         client_ = new_client;
         read_buf_.clear();
+        read_text_ = String();
+        read_offset_ = 0;
         log_info("game_bridge", "Client connected");
     }
 }
@@ -140,6 +144,8 @@ void GameBridgeNode::read_clients() {
     if (s == StreamPeerSocket::STATUS_ERROR || s == StreamPeerSocket::STATUS_NONE) {
         client_.unref();
         read_buf_.clear();
+        read_text_ = String();
+        read_offset_ = 0;
         log_info("game_bridge", "Client disconnected");
         return;
     }
@@ -152,6 +158,8 @@ void GameBridgeNode::read_clients() {
         client_->disconnect_from_host();
         client_.unref();
         read_buf_.clear();
+        read_text_ = String();
+        read_offset_ = 0;
         return;
     }
     PackedByteArray data = chunk[1];
@@ -164,24 +172,36 @@ void GameBridgeNode::read_clients() {
         client_->disconnect_from_host();
         client_.unref();
         read_buf_.clear();
+        read_text_ = String();
+        read_offset_ = 0;
         return;
     }
 
-    // Parse the buffer directly as JSON (single-pass: accumulate until valid)
-    String text = read_buf_.get_string_from_utf8();
-    if (text.is_empty()) return; // partial UTF-8, wait for more data
+    // Decode only newly received bytes and accumulate the decoded text
+    int new_bytes = static_cast<int>(read_buf_.size()) - read_offset_;
+    if (new_bytes > 0) {
+        const uint8_t* raw = read_buf_.ptr() + read_offset_;
+        String chunk_text;
+        Error utf8_err = chunk_text.parse_utf8((const char*)raw, new_bytes);
+        if (utf8_err != OK) {
+            return;
+        }
+        read_text_ += chunk_text;
+        read_offset_ = static_cast<int>(read_buf_.size());
+    }
+
+    if (read_text_.is_empty()) return;
 
     Ref<JSON> json;
     json.instantiate();
-    Error parse_err = json->parse(text);
+    Error parse_err = json->parse(read_text_);
     if (parse_err != OK) {
-        // Incomplete - wait for more data
         return;
     }
     Variant msg = json->get_data();
 
     // Calculate consumed bytes and keep any remaining data for next message
-    int consumed = static_cast<int>(text.utf8().size());
+    int consumed = static_cast<int>(read_text_.utf8().size());
     if (consumed > 0 && consumed < read_buf_.size()) {
         PackedByteArray remaining;
         remaining.resize(read_buf_.size() - consumed);
@@ -190,6 +210,8 @@ void GameBridgeNode::read_clients() {
     } else {
         read_buf_.clear();
     }
+    read_text_ = String();
+    read_offset_ = 0;
 
     if (msg.get_type() != Variant::DICTIONARY) {
         Dictionary err;

@@ -111,36 +111,58 @@ Dictionary RuntimeBridge::send_command(const String &cmd, const Dictionary &para
 }
 
 Dictionary RuntimeBridge::read_response(int timeout_ms) {
-    const int step = 50;
+    const int step = 5;
     const int max_response_size = 1024 * 1024;
     PackedByteArray buf;
 
+    int consumed_offset = 0;
+
     auto try_parse_line = [&]() -> Dictionary {
-        String text = buf.get_string_from_utf8();
-        if (text.is_empty()) return Dictionary();
+        int new_bytes = static_cast<int>(buf.size()) - consumed_offset;
+        if (new_bytes <= 0) return Dictionary();
+
+        String text;
+        {
+            const uint8_t* raw = buf.ptr() + consumed_offset;
+            Error utf8_err = text.parse_utf8((const char*)raw, new_bytes);
+            if (utf8_err != OK) return Dictionary();
+        }
 
         int newline_idx = static_cast<int>(text.find("\n"));
-        if (newline_idx == -1) return Dictionary();
+        if (newline_idx == -1) {
+            return Dictionary();
+        }
 
         String line = text.substr(0, newline_idx);
         Ref<JSON> json;
         json.instantiate();
         Error parse_err = json->parse(line);
-        if (parse_err != OK) return Dictionary();
+        if (parse_err != OK) {
+            consumed_offset += newline_idx + 1;
+            return Dictionary();
+        }
 
         Variant result = json->get_data();
-        if (result.get_type() != Variant::DICTIONARY) return Dictionary();
-
-        // Remove parsed line from buffer
-        int consumed = static_cast<int>(line.utf8().size()) + 1; // +1 for \n
-        if (consumed >= buf.size()) {
-            buf.clear();
-        } else {
-            PackedByteArray remaining;
-            remaining.resize(buf.size() - consumed);
-            std::copy_n(buf.ptr() + consumed, remaining.size(), remaining.ptrw());
-            buf = remaining;
+        if (result.get_type() != Variant::DICTIONARY) {
+            consumed_offset += newline_idx + 1;
+            return Dictionary();
         }
+
+        // Success — advance past the parsed line
+        consumed_offset += newline_idx + 1;
+
+        // Trim buffer when too far ahead
+        if (consumed_offset > 65536) {
+            PackedByteArray remaining;
+            int remaining_size = static_cast<int>(buf.size()) - consumed_offset;
+            if (remaining_size > 0) {
+                remaining.resize(remaining_size);
+                std::copy_n(buf.ptr() + consumed_offset, remaining_size, remaining.ptrw());
+            }
+            buf = remaining;
+            consumed_offset = 0;
+        }
+
         return result;
     };
 

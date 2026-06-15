@@ -7,6 +7,8 @@
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/json.hpp>
 
+#include <deque>
+
 using namespace godot;
 
 namespace godot_mcp {
@@ -33,13 +35,13 @@ TestEngine::FileSnapshot TestEngine::take_snapshot() {
     if (!root) return snap;
 
     // BFS over the file tree
-    Vector<EditorFileSystemDirectory *> queue;
+    std::deque<EditorFileSystemDirectory *> queue;
     queue.push_back(root);
 
     PackedStringArray all_paths;
-    while (!queue.is_empty()) {
+    while (!queue.empty()) {
         EditorFileSystemDirectory *dir = queue[0];
-        queue.remove_at(0);
+        queue.pop_front();
 
         if (!dir) continue;
 

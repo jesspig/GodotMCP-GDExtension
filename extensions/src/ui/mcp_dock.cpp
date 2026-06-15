@@ -3,7 +3,7 @@
 // =====================================================================
 
 #include "mcp_dock.hpp"
-#include "client_registry.hpp"
+#include "client_config_registry.hpp"
 #include "editor_plugin.hpp"
 #include "server/registry/handler_registry.hpp"
 #include "mcp_logger.hpp"

@@ -17,6 +17,8 @@
 #include <godot_cpp/classes/text_edit.hpp>
 #include <godot_cpp/classes/code_edit.hpp>
 #include <godot_cpp/classes/v_split_container.hpp>
+#include <deque>
+
 #include <godot_cpp/classes/h_split_container.hpp>
 
 namespace godot_mcp {
@@ -56,7 +58,7 @@ private:
     bool auto_scroll_ = true;
     static constexpr int kMaxVisible = 500;
 
-    godot::Vector<McpLogger::LogEntry> logged_entries_;
+    std::deque<McpLogger::LogEntry> logged_entries_;
 
     void _on_clear_pressed();
     void _on_expand_all();
@@ -73,7 +75,6 @@ private:
     void add_tree_entry(const McpLogger::LogEntry &entry, int index);
     void update_detail();
     void update_toolbar_state();
-    void rebuild_metadata_indices();
     int visible_count() const;
 
     static godot::String fmt_tool(const McpLogger::LogEntry &e);

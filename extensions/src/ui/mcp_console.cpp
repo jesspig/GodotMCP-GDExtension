@@ -178,8 +178,8 @@ McpConsole::McpConsole() {
             }
         }
 
-        req_view_->call("set_syntax_highlighter", hl);
-        res_view_->call("set_syntax_highlighter", hl);
+        req_view_->set_syntax_highlighter(hl);
+        res_view_->set_syntax_highlighter(hl);
     }
 
     // ── Context menu ─────────────────────────────────────────────────
@@ -294,18 +294,14 @@ void McpConsole::add_tree_entry(const McpLogger::LogEntry &entry, int index) {
     }
 }
 
-void McpConsole::rebuild_metadata_indices() {
-    // Currently unused — indices stay in sync via on_log_appended / rebuild_log
-}
-
 // =====================================================================
 // 重建
 // =====================================================================
 
 void McpConsole::rebuild_log() {
     log_tree_->clear();
-    for (int i = 0; i < logged_entries_.size(); i++) {
-        add_tree_entry(logged_entries_[i], i);
+    for (size_t i = 0; i < logged_entries_.size(); i++) {
+        add_tree_entry(logged_entries_[i], static_cast<int>(i));
     }
     update_toolbar_state();
     update_detail();
@@ -318,14 +314,14 @@ void McpConsole::rebuild_log() {
 void McpConsole::on_log_appended(const McpLogger::LogEntry &entry) {
     logged_entries_.push_back(entry);
     while (logged_entries_.size() > kMaxVisible) {
-        logged_entries_.remove_at(0);
+        logged_entries_.pop_front();
         TreeItem *root = log_tree_->get_root();
         if (root) {
             TreeItem *oldest = root->get_first_child();
-            if (oldest) memdelete(oldest);
+
         }
     }
-    add_tree_entry(entry, logged_entries_.size() - 1);
+    add_tree_entry(entry, static_cast<int>(logged_entries_.size()) - 1);
     update_toolbar_state();
 }
 
@@ -371,7 +367,7 @@ void McpConsole::update_detail() {
         return;
     }
     int idx = static_cast<int>(meta);
-    if (idx < 0 || idx >= logged_entries_.size()) return;
+    if (idx < 0 || static_cast<size_t>(idx) >= logged_entries_.size()) return;
 
     const McpLogger::LogEntry &entry = logged_entries_[idx];
     req_view_->set_text(format_json(entry.args));
@@ -420,7 +416,7 @@ void McpConsole::_on_context_menu_id_pressed(int32_t id) {
     Variant meta = context_menu_->get_meta("entry_index");
     if (meta.get_type() != Variant::INT) return;
     int idx = static_cast<int>(meta);
-    if (idx < 0 || idx >= logged_entries_.size()) return;
+    if (idx < 0 || static_cast<size_t>(idx) >= logged_entries_.size()) return;
 
     const McpLogger::LogEntry &entry = logged_entries_[idx];
     String text;
@@ -443,7 +439,7 @@ void McpConsole::_on_context_menu_id_pressed(int32_t id) {
 void McpConsole::refresh() {
     if (!logger_) return;
     logged_entries_.clear();
-    const Vector<McpLogger::LogEntry> &entries = logger_->entries();
+    const std::deque<McpLogger::LogEntry> &entries = logger_->entries();
     for (int i = 0; i < entries.size(); i++) {
         logged_entries_.push_back(entries[i]);
     }
@@ -506,7 +502,7 @@ void McpConsole::_on_drag_area_gui_input(const Ref<InputEvent> &event) {
         float w = get_global_mouse_position().x - time_header_->get_global_position().x;
         if (w < 60) w = 60;
         time_header_->set_custom_minimum_size(Vector2(w, 0));
-        log_tree_->call("set_column_custom_minimum_width", 0, static_cast<int>(w));
+        log_tree_->set_column_custom_minimum_width(0, static_cast<int>(w));
     }
 }
 

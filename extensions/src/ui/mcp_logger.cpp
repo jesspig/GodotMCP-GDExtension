@@ -19,7 +19,7 @@ namespace godot_mcp {
 void McpLogger::set_max_entries(int max) {
     max_entries_ = max > 0 ? max : 500;
     while (entries_.size() > max_entries_) {
-        entries_.remove_at(0);
+        entries_.pop_front();
     }
 }
 
@@ -47,7 +47,7 @@ void McpLogger::set_log_callback(LogCallback cb) {
 void McpLogger::append(const LogEntry &entry) {
     entries_.push_back(entry);
     while (entries_.size() > max_entries_) {
-        entries_.remove_at(0);
+        entries_.pop_front();
     }
     pending_entries_.push_back(entry);
     if (pending_entries_.size() >= kBatchSize) {
@@ -58,7 +58,7 @@ void McpLogger::append(const LogEntry &entry) {
     }
 }
 
-const godot::Vector<McpLogger::LogEntry> &McpLogger::entries() const {
+const std::deque<McpLogger::LogEntry> &McpLogger::entries() const {
     return entries_;
 }
 
@@ -149,7 +149,7 @@ void McpLogger::write_to_jsonl(const LogEntry &entry) {
 // ---------------------------------------------------------------------
 
 void McpLogger::flush() {
-    if (pending_entries_.is_empty()) return;
+    if (pending_entries_.empty()) return;
 
     if (current_log_file_.is_empty()) {
         current_log_file_ = log_dir_.path_join(log_filename());
@@ -160,6 +160,7 @@ void McpLogger::flush() {
     godot::Ref<godot::FileAccess> f = ensure_log_file_opened();
 
     if (f.is_valid()) {
+        godot::String combined;
         for (const LogEntry &entry : pending_entries_) {
             godot::Dictionary json_entry;
             json_entry["timestamp"] = entry.timestamp;
@@ -168,9 +169,11 @@ void McpLogger::flush() {
             json_entry["args"] = entry.args;
             json_entry["result"] = entry.result;
             json_entry["duration_ms"] = entry.duration_ms;
-            godot::String line = godot::JSON::stringify(json_entry);
-            f->store_string(line + "\n");
+            combined += godot::JSON::stringify(json_entry);
+            combined += "\n";
         }
+        godot::PackedByteArray buf = combined.to_utf8_buffer();
+        f->store_buffer(buf);
         f->close();
     } else {
         godot::UtilityFunctions::push_error(
