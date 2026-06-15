@@ -107,6 +107,17 @@ godot::String McpLogger::log_filename() const {
 // JSONL 写入
 // ---------------------------------------------------------------------
 
+godot::Ref<godot::FileAccess> McpLogger::ensure_log_file_opened() {
+    godot::Ref<godot::FileAccess> f;
+    if (godot::FileAccess::file_exists(current_log_file_)) {
+        f = godot::FileAccess::open(current_log_file_, godot::FileAccess::READ_WRITE);
+        if (f.is_valid()) f->seek_end();
+    } else {
+        f = godot::FileAccess::open(current_log_file_, godot::FileAccess::WRITE);
+    }
+    return f;
+}
+
 void McpLogger::write_to_jsonl(const LogEntry &entry) {
     ensure_log_dir();
     if (current_log_file_.is_empty()) {
@@ -123,13 +134,7 @@ void McpLogger::write_to_jsonl(const LogEntry &entry) {
 
     godot::String line = godot::JSON::stringify(json_entry);
 
-    godot::Ref<godot::FileAccess> f;
-    if (godot::FileAccess::file_exists(current_log_file_)) {
-        f = godot::FileAccess::open(current_log_file_, godot::FileAccess::READ_WRITE);
-        if (f.is_valid()) f->seek_end();
-    } else {
-        f = godot::FileAccess::open(current_log_file_, godot::FileAccess::WRITE);
-    }
+    godot::Ref<godot::FileAccess> f = ensure_log_file_opened();
     if (f.is_valid()) {
         f->store_string(line + "\n");
         f->close();
@@ -152,13 +157,7 @@ void McpLogger::flush() {
 
     ensure_log_dir();
 
-    godot::Ref<godot::FileAccess> f;
-    if (godot::FileAccess::file_exists(current_log_file_)) {
-        f = godot::FileAccess::open(current_log_file_, godot::FileAccess::READ_WRITE);
-        if (f.is_valid()) f->seek_end();
-    } else {
-        f = godot::FileAccess::open(current_log_file_, godot::FileAccess::WRITE);
-    }
+    godot::Ref<godot::FileAccess> f = ensure_log_file_opened();
 
     if (f.is_valid()) {
         for (const LogEntry &entry : pending_entries_) {
@@ -207,9 +206,9 @@ void McpLogger::rotate_files(int keep_days) {
         // 解析 mcp_YYYYMMDD_HHMMSS.jsonl
         if (name.length() < 24) continue;
         godot::String date_part = name.substr(4, 8); // YYYYMMDD
-        int year = date_part.substr(0, 4).to_int();
-        int month = date_part.substr(4, 2).to_int();
-        int day = date_part.substr(6, 2).to_int();
+        int year = static_cast<int>(date_part.substr(0, 4).to_int());
+        int month = static_cast<int>(date_part.substr(4, 2).to_int());
+        int day = static_cast<int>(date_part.substr(6, 2).to_int());
 
         godot::Dictionary file_dt;
         file_dt["year"] = year;

@@ -210,9 +210,9 @@ void McpDock::set_plugin(McpEditorPlugin *p) {
     plugin_ = p;
     http_port_spin_->set_value(p->http_port());
     bridge_port_spin_->set_value(p->bridge_port());
-    if (p->http_host() == "0.0.0.0") {
+    if (p->http_host() == "0.0.0.0" || p->http_host() == "*") {
         bind_mode_->select(1);
-    } else if (p->http_host() != "127.0.0.1") {
+    } else if (p->http_host() != "127.0.0.1" && p->http_host() != "localhost" && p->http_host() != "::1") {
         bind_mode_->select(2);
         custom_bind_addr_->set_text(p->http_host());
         custom_bind_addr_->set_visible(true);

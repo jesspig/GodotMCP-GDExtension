@@ -1,4 +1,6 @@
 #include "editor_plugin.hpp"
+#include "built_in/cmd_utils.hpp"
+#include "built_in/tool_base.hpp"
 #include "logging.hpp"
 #include "sdk/mcp_tool_registry.hpp"
 #include "ui/mcp_console.hpp"
@@ -20,6 +22,8 @@ using namespace godot;
 
 namespace godot_mcp {
 
+std::string g_mcp_self_plugin_path = "res://addons/godot_mcp";
+
 McpEditorPlugin::McpEditorPlugin() = default;
 
 McpEditorPlugin::~McpEditorPlugin() = default;
@@ -31,16 +35,7 @@ String McpEditorPlugin::_get_plugin_name() const {
 }
 
 int McpEditorPlugin::read_port_from_env(const String &env_var, int default_port) {
-    OS *os = OS::get_singleton();
-    if (!os) return default_port;
-    const String raw = os->get_environment(env_var);
-    if (raw.is_empty()) return default_port;
-    const int64_t parsed = raw.to_int();
-    if (parsed < 1 || parsed > std::numeric_limits<uint16_t>::max()) {
-        log_warn("plugin", String("Ignoring invalid ") + env_var + String("=") + raw);
-        return default_port;
-    }
-    return static_cast<int>(parsed);
+    return godot_mcp::read_port_from_env(env_var, default_port);
 }
 
 void McpEditorPlugin::load_config() {
@@ -178,6 +173,12 @@ void McpEditorPlugin::_enter_tree() {
     });
     mcp_console_->refresh();
     add_control_to_bottom_panel(mcp_console_, "MCP Console");
+
+    // Auto-detect own plugin path for self-protection checks
+    Variant self_path_v = call("get_plugin_path");
+    if (self_path_v.get_type() == Variant::STRING) {
+        g_mcp_self_plugin_path = String(self_path_v).utf8().get_data();
+    }
 
     started_ = true;
 

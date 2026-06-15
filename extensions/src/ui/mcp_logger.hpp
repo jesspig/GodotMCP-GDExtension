@@ -48,6 +48,7 @@ private:
     static constexpr int kBatchSize = 10;
 
     godot::String log_filename() const;
+    godot::Ref<godot::FileAccess> ensure_log_file_opened();
     void write_to_jsonl(const LogEntry &entry);
     void flush();
     void rotate_files(int keep_days);
