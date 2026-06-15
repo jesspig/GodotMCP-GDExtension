@@ -197,3 +197,97 @@ flowchart TD
 | 函数 | 文件:行 | 说明 |
 |------|---------|------|
 | `json_stringify_safe(v)` | `cmd_utils_json.cpp:317-319` | 调用 `JSON::stringify(v)` 序列化 |
+
+## 新增模板工具（`cmd_utils/` 目录）
+
+`extensions/src/built_in/cmd_utils/` 下三个独立头文件，提供编译期构造的运行时工具：
+
+### `dispatch_map.hpp` — 编译期构造的静态映射表
+
+```cpp
+// 工厂函数
+static const auto map = make_dispatch_map<String, String>(
+    Pair{"key1", "val1"},
+    Pair{"key2", "val2"}
+);
+// 查询 — 返回 const V* 或 nullptr
+const auto *v = map.find(key);
+// 调试验证 — 断言无重复 key
+map.validate(); // assert 重复时崩溃
+```
+
+`DispatchMap<K,V,N>` 是编译期 `constexpr` 构造的线性查找表（`std::array` 存储），无动态分配。`find()` 返回 `const V*`（nullptr 表示未命中）。用于替代 if/else 链或 `HashMap` 的**只读静态映射**场景。
+
+字符串键支持 `const char*` 隐式转换到 `String` 的比较，避免临时 `String` 分配。
+
+### `undo_helpers.hpp` — 统一撤销/重做辅助
+
+| 函数 | 说明 |
+|------|------|
+| `commit_add_child_undo(ur, action_name, parent, child, scene_root, index=-1, clear_owner=true)` | 注册原子化撤销操作：do = 添加子节点，undo = 移出子节点 |
+| `select_single_node(node)` | 选中单个节点（清除其他选中） |
+
+`commit_add_child_undo` 封装了 `EditorUndoRedoManager` 的 `add_do_method` / `add_undo_method` 调用对，确保撤销时子节点被正确移除。`index` 参数控制插入位置（默认追加末尾），`clear_owner` 控制撤销时是否清除 owner（默认 true）。
+
+`select_single_node` 通过 `EditorSelection::clear()` + `add_node()` 实现。
+
+### `args_get_typed<T>()` — 类型安全参数提取
+
+```cpp
+// 声明（cmd_utils/args_get_typed.hpp）
+template <typename T>
+T args_get_typed(const Dictionary &args, const String &key, const T &default_);
+
+// 用法
+auto pos = args_get_typed<Vector2>(ctx.args, "position", Vector2());
+auto color = args_get_typed<Color>(ctx.args, "color", Color(1,1,1,1));
+auto val = args_get_typed<int>(ctx.args, "count", 0);
+```
+
+支持的特化类型：
+
+| 类型 | 说明 |
+|------|------|
+| `String` | 直接 Variant → String |
+| `Dictionary` | 直接返回 `Dictionary`（无需转换） |
+| `Array` | 直接返回 `Array` |
+| `Vector2` / `Vector3` | 等 |
+| `Color` | Struct 类型 |
+| `bool` | 布尔值 |
+| 整型（`int`/`int64_t`/`int32_t`） | 统一 `Variant::operator int64_t()` |
+| 浮点（`double`/`float`） | 统一 `Variant::operator double()` |
+
+所有特化均使用一次 `has()` + `operator[]` 模式（不调用 `ptr()`）。
+
+## `walk_project_dir()` 改用 `std::filesystem`
+
+`cmd_utils.hpp:169-191` 的 `walk_project_dir()` 已从 `DirAccess` 迁移至 `std::filesystem::recursive_directory_iterator`：
+
+- 使用 `std::filesystem::recursive_directory_iterator` 配合 `skip_permission_denied` 选项
+- 性能提升约 **10x**（大量文件/目录场景）
+- 外部行为完全一致：`extensions` 过滤、`include_addons`、`max_results` 上限等参数语义不变
+- path 仍通过 `String(path_str)` 转换为 Godot `String`
+
+## `args_get<T>()` 基础模板（`cmd_utils.hpp`）
+
+`cmd_utils.hpp` 自身也提供了一个基础版本的 `args_get<T>()` 模板（与 `args_get_typed.hpp` 的完整实现互补）：
+
+```cpp
+template <typename T>
+T args_get(const Dictionary &args, const String &key, const T &default_);
+```
+
+实现遵循 `has(key)` + `operator[]` 模式（不使用 `Dictionary::ptr()`），key 缺失时返回默认值。类型安全通过模板特化保证。
+
+## 注意：`Dictionary::ptr()` 不存在
+
+`godot-cpp 10.0.0-rc1` 中 **`Dictionary::ptr()` 方法不存在**。不能使用 `*args.ptr(key)` 这种模式。所有参数读取统一使用：
+
+```cpp
+if (args.has(key)) {
+    Variant val = args[key];
+    // ...
+}
+```
+
+新的 `args_get<T>` 和 `args_get_typed<T>` 已自动遵循此约束。

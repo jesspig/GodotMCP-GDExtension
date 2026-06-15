@@ -66,8 +66,6 @@ set(GODOT_MCP_SOURCES
     src/server/mcp/tool_executor.cpp
     src/server/mcp/prompt_provider.cpp
     src/server/registry/handler_registry.cpp
-    src/server/registry/search_engine.cpp
-
     # Tool infrastructure (ITool)
     src/built_in/tool_base.cpp
     src/built_in/tool_adapter.cpp
@@ -136,9 +134,9 @@ set(_unity_batch ${GODOTMCP_UNITY_BATCH_SIZE})
 if(_unity_batch STREQUAL "0")
     include(ProcessorCount)
     ProcessorCount(_cpu_count)
-    # Cap at 32 — beyond that, batches get too large (memory / ODR risk).
-    if(_cpu_count GREATER 32)
-        set(_cpu_count 32)
+    # Cap at 12 — ~190 source files / 12 ≈ 16 files/batch, optimal for this project size.
+    if(_cpu_count GREATER 12)
+        set(_cpu_count 12)
     endif()
     # Ensure at least 2 batches for incremental build efficiency
     if(_cpu_count LESS 2)

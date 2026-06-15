@@ -1,6 +1,6 @@
 # Godot MCP — 项目知识库
 
-> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 `godot-cpp 10.0.0-rc1`，X-macro 分文件注册，四层工具体系（语义专用 + 属性组 + 通用兜底 + 文档查询），Godot ClassDB 运行时驱动文档数据，rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。
+> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600，MCP 2026-07-28 协议）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 `godot-cpp 10.0.0-rc1`，X-macro 分文件注册，四层工具体系（语义专用 + 属性组 + 通用兜底 + 文档查询），Godot ClassDB 运行时驱动文档数据，rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。**无 session，无 GET 端点，纯 POST 通信**。
 
 ## 项目快照
 
@@ -21,6 +21,7 @@
 | Pinned deps | `godot-cpp 10.0.0-rc1`、`ryml v0.7.0` |
 | 版本号 | 仅 `CMakeLists.txt:22` `PROJECT_VERSION` |
 | Python | `>=3.14`（`.python-version` 锁定） |
+| MCP 协议 | **Streamable HTTP 2026-07-28**（无 session，无 GET 端点） |
 
 ## 快速导航
 

@@ -120,7 +120,7 @@ void McpEditorPlugin::_process(double delta) {
             restart_server(true);
     }
 
-    http_server_.poll();                                 // MCP HTTP: 解析 + 会话 + SSE
+    http_server_.poll();                                 // MCP HTTP: 解析 + 流式通知
     _try_bridge_connect();                               // 检测游戏启停，自动连接/断开
     runtime_bridge_.poll();                              // 推进桥接连接状态机
 }

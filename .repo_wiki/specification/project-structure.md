@@ -38,7 +38,7 @@ GodotMCP/
 │   └── src/                       # C++ 源码唯一根
 │       ├── register_types.cpp     # GDExtension 入口（gdext_mcp_init）
 │       ├── editor_plugin.cpp/.hpp # McpEditorPlugin 生命周期
-│       ├── client_registry.hpp    # 11 种 AI 客户端配置模板
+│       ├── client_config_registry.hpp    # 11 种 AI 客户端配置模板
 │       ├── built_in/              # ITool + cmd_utils + tools/
 │       ├── server/                # ipc/ + mcp/ + registry/
 │       ├── runtime/               # bridge.cpp + game_bridge.cpp

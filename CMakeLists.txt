@@ -126,7 +126,7 @@ install(
 set(CPACK_GENERATOR "ZIP")
 set(CPACK_PACKAGE_FILE_NAME "godot-mcp-${PROJECT_VERSION}")
 set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
-set(CPACK_STRIP_FILES OFF)
+set(CPACK_STRIP_FILES ON)
 include(CPack)
 
 # ---------------------------------------------------------------------------

@@ -4,7 +4,7 @@
 
 ## 自动生成配置
 
-调用元工具 `generate_client_config` 即可获取 11 种 AI 客户端的预生成配置（`client_registry.hpp:151-163`）：
+调用元工具 `generate_client_config` 即可获取 11 种 AI 客户端的预生成配置（`client_config_registry.hpp:151-163`）：
 
 | 客户端 | key |
 |--------|-----|
