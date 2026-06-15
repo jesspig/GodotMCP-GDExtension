@@ -36,7 +36,7 @@ void HttpServer::send_sse_headers(int conn_id, Connection &conn) {
         }
     }
 
-    const String retry_line = String("retry: 5000\r\n");
+    const String retry_line = String("retry: ") + String::num_int64(kSseRetryIntervalMsec) + String("\r\n");
     const PackedByteArray retry_out = retry_line.to_utf8_buffer();
     if (conn.tcp.is_valid()) {
         conn.tcp->poll();
@@ -87,7 +87,7 @@ void HttpServer::flush_sse(int conn_id, Connection &conn) {
     const uint64_t now = Time::get_singleton()->get_ticks_msec();
 
     if (!mcp_handler_->has_pending_events(conn.session_id)) {
-        if (now - conn.last_activity_msec > 15000) {
+        if (now - conn.last_activity_msec > kSseKeepaliveIntervalMsec) {
             send_sse_comment(conn_id, conn, "keep-alive");
             conn.last_activity_msec = now;
         }

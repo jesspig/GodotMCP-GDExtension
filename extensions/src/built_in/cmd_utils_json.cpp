@@ -196,17 +196,17 @@ Variant dict_to_specific_type(const Dictionary &d, int depth) {
     const bool has_w = d.has("w");
 
     if (has_x && has_y && !has_z && !has_w) {
-        return Vector2(static_cast<double>(d["x"]), static_cast<double>(d["y"]));
+        return Vector2(static_cast<float>(d["x"]), static_cast<float>(d["y"]));
     }
     if (has_x && has_y && has_z && !has_w) {
-        return Vector3(static_cast<double>(d["x"]), static_cast<double>(d["y"]), static_cast<double>(d["z"]));
+        return Vector3(static_cast<float>(d["x"]), static_cast<float>(d["y"]), static_cast<float>(d["z"]));
     }
     if (has_x && has_y && has_z && has_w) {
-        return Vector4(static_cast<double>(d["x"]), static_cast<double>(d["y"]), static_cast<double>(d["z"]), static_cast<double>(d["w"]));
+        return Vector4(static_cast<float>(d["x"]), static_cast<float>(d["y"]), static_cast<float>(d["z"]), static_cast<float>(d["w"]));
     }
     if (d.has("r") && d.has("g") && d.has("b")) {
-        const double a = d.has("a") ? static_cast<double>(d["a"] ): 1.0;
-        return Color(static_cast<double>(d["r"]), static_cast<double>(d["g"]), static_cast<double>(d["b"]), a);
+        const float a = d.has("a") ? static_cast<float>(d["a"]) : 1.0f;
+        return Color(static_cast<float>(d["r"]), static_cast<float>(d["g"]), static_cast<float>(d["b"]), a);
     }
     if (d.has("position") && d.has("size")) {
         const Variant pos_v = d["position"];
@@ -289,13 +289,13 @@ Variant json_to_variant(const Variant &jv, int depth) {
             }
             if (all_numeric) {
                 if (src.size() == 2) {
-                    return Vector2(static_cast<double>(src[0]), static_cast<double>(src[1]));
+                    return Vector2(static_cast<float>(src[0]), static_cast<float>(src[1]));
                 }
                 if (src.size() == 3) {
-                    return Vector3(static_cast<double>(src[0]), static_cast<double>(src[1]), static_cast<double>(src[2]));
+                    return Vector3(static_cast<float>(src[0]), static_cast<float>(src[1]), static_cast<float>(src[2]));
                 }
                 if (src.size() == 4) {
-                    return Color(static_cast<double>(src[0]), static_cast<double>(src[1]), static_cast<double>(src[2]), static_cast<double>(src[3]));
+                    return Color(static_cast<float>(src[0]), static_cast<float>(src[1]), static_cast<float>(src[2]), static_cast<float>(src[3]));
                 }
             }
             Array out;

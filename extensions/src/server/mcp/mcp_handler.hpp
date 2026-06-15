@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tool_executor.hpp"
 #include "../registry/handler_registry.hpp"
 
 #include <functional>
@@ -14,6 +15,7 @@
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/variant.hpp>
+#include "prompt_provider.hpp"
 
 namespace godot_mcp {
 using namespace godot;
@@ -87,9 +89,6 @@ private:
                                          const Variant &data = {});
     static Dictionary make_notification(const String &method, const Variant &params);
 
-    static Array tool_result_to_mcp_content(const Dictionary &tool_result);
-    static Dictionary build_tool_error_response(const Variant &id, const Dictionary &tool_result);
-
     void enqueue_event(const String &session_id, const Dictionary &event);
 
     // Lifecycle
@@ -107,10 +106,6 @@ private:
     Dictionary handle_resources_templates_list(const Variant &id);
     Dictionary _build_scene_tree_node(Node *node) const;
 
-    // Prompts
-    Dictionary handle_prompts_list(const Variant &id);
-    Dictionary handle_prompts_get(const Dictionary &params, const Variant &id);
-
     // Utilities
     Dictionary handle_completion_complete(const Dictionary &params, const Variant &id);
 
@@ -126,6 +121,8 @@ private:
     HashMap<String, String> pending_requests_;
     HashMap<String, Variant> cancelled_requests_; // session_id -> request ids that are cancelled
     McpLogCallback log_callback_;
+    ToolExecutor tool_executor_;
+    PromptProvider prompt_provider_;
 };
 
 } // namespace godot_mcp

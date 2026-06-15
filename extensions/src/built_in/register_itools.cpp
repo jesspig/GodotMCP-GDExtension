@@ -1,3 +1,8 @@
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4244) // int64_t→int from Godot API calls in tool headers
+#endif
+
 #include "server/registry/handler_registry.hpp"
 
 // ── Meta tools ──
@@ -114,8 +119,7 @@
 
 // ── Plugin tools ──
 #include "built_in/tools/editor_tools/plugin/list_plugins.hpp"
-#include "built_in/tools/editor_tools/plugin/enable_plugin.hpp"
-#include "built_in/tools/editor_tools/plugin/disable_plugin.hpp"
+#include "built_in/tools/editor_tools/plugin/set_plugin_enabled.hpp"
 
 // ── Scaffold tools ──
 #include "built_in/tools/editor_tools/scaffold/create_project.hpp"
@@ -243,3 +247,7 @@ void register_itools(HandlerRegistry &reg) {
 }
 
 } // namespace godot_mcp
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

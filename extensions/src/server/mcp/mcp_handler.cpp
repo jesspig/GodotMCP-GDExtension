@@ -1,6 +1,5 @@
 #include "mcp_handler.hpp"
 
-#include "built_in/cmd_utils.hpp"
 #include "logging.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
@@ -27,7 +26,7 @@ namespace godot_mcp {
 // Construction
 // -------------------------------------------------------------------------
 McpHandler::McpHandler(HandlerRegistry *registry)
-    : registry_(registry) {}
+    : registry_(registry), tool_executor_(*registry, nullptr) {}
 
 void McpHandler::set_log_callback(McpLogCallback cb) {
     log_callback_ = std::move(cb);
@@ -196,18 +195,6 @@ Dictionary McpHandler::make_notification(const String &method, const Variant &pa
     return d;
 }
 
-// -------------------------------------------------------------------------
-// Tool result → MCP content array
-// -------------------------------------------------------------------------
-Array McpHandler::tool_result_to_mcp_content(const Dictionary &tool_result) {
-    Array content;
-    Dictionary text_item;
-    text_item["type"] = "text";
-    text_item["text"] = JSON::stringify(tool_result);
-    content.push_back(text_item);
-    return content;
-}
-
 // Build the composite key used by pending_requests_. Using session + id
 // (not id alone) prevents collisions between null-id requests and between
 // same-numbered ids issued by different sessions.
@@ -310,10 +297,20 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg, String &io_
 
     // Prompts
     if (method == "prompts/list") {
-        return handle_prompts_list(id_v);
+        Dictionary result;
+        result["prompts"] = prompt_provider_.list_prompts();
+        return make_jsonrpc_result(id_v, result);
     }
     if (method == "prompts/get") {
-        return handle_prompts_get(params, id_v);
+        const String name = params.get("name", "");
+        Dictionary args_dict = params.has("arguments") && params["arguments"].get_type() == Variant::DICTIONARY
+                                   ? Dictionary(params["arguments"])
+                                   : Dictionary();
+        Dictionary prompt_result = prompt_provider_.get_prompt(name, args_dict);
+        if (prompt_result.is_empty()) {
+            return make_jsonrpc_error(id_v, kInvalidParams, "No such prompt: " + name);
+        }
+        return make_jsonrpc_result(id_v, prompt_result);
     }
 
     // Utilities
@@ -397,10 +394,6 @@ Dictionary McpHandler::handle_tools_list(const String &session_id, const Diction
 // -------------------------------------------------------------------------
 Dictionary McpHandler::handle_tools_call(const String &session_id, const Dictionary &params,
                                           const Variant &id) {
-    if (!registry_) {
-        return make_jsonrpc_error(id, kInternalError, "Registry not initialized");
-    }
-
     const String tool_name = params.get("name", "");
     if (tool_name.is_empty()) {
         return make_jsonrpc_error(id, kInvalidParams, "Missing 'name' in tool call");
@@ -409,60 +402,6 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
     const Dictionary args = params.has("arguments") && params["arguments"].get_type() == Variant::DICTIONARY
                                 ? Dictionary(params["arguments"])
                                 : Dictionary();
-
-    const uint64_t start_msec = Time::get_singleton()->get_ticks_msec();
-
-    // Permission policy check for destructive tools
-    if (registry_) {
-        const ToolInfo *info = registry_->find_tool_info(tool_name);
-        if (info && info->is_destructive) {
-            String permission = OS::get_singleton()->get_environment("GODOT_MCP_PERMISSION");
-            if (permission.is_empty()) permission = "allow_all";
-
-            if (permission == "deny_destructive") {
-                return make_jsonrpc_error(id, kInvalidRequest,
-                    "Destructive tool denied by permission policy: " + tool_name);
-            }
-
-            if (permission == "confirm_destructive") {
-                bool confirmed = args.get("_confirm", false);
-                if (!confirmed) {
-                    Dictionary err_data;
-                    err_data["destructive"] = true;
-                    err_data["tool_name"] = tool_name;
-                    err_data["message"] = String("This tool is destructive and requires explicit confirmation. "
-                                                  "Set '_confirm' to true to proceed. Tool: ") + tool_name;
-                    return make_jsonrpc_error(id, kInvalidRequest,
-                        "Confirmation required for destructive tool: " + tool_name,
-                        err_data);
-                }
-            }
-            // "allow_all" → no check needed
-        }
-    }
-
-    log_info("mcp", String("tools/call: ") + tool_name);
-
-    // Log key parameters (limit to first 200 chars to avoid flooding)
-    {
-        String param_log;
-        Array param_keys = args.keys();
-        for (int i = 0; i < param_keys.size(); i++) {
-            if (!param_log.is_empty()) param_log += ", ";
-            String k = param_keys[i];
-            Variant v = args[k];
-            param_log += k + String("=");
-            if (v.get_type() == Variant::STRING) {
-                String sv = v;
-                if (sv.length() > 80) sv = sv.substr(0, 80) + String("...");
-                param_log += String("\"") + sv + String("\"");
-            } else {
-                param_log += json_stringify_safe(v);
-            }
-        }
-        if (param_log.length() > 200) param_log = param_log.substr(0, 200) + String("...");
-        log_info("mcp", String("  args: ") + param_log);
-    }
 
     // Track as pending for cancellation support
     pending_requests_[pending_key(session_id, id)] = session_id;
@@ -479,137 +418,37 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
         }
     }
 
-    // Execute via ITool dispatch
-    Dictionary tool_result;
-    try {
-        tool_result = registry_->execute(tool_name, args);
-    } catch (const std::exception &e) {
-        pending_requests_.erase(pending_key(session_id, id));
-        log_warn("mcp", String("tools/call FAILED (exception): ") + tool_name + String(" - ") + String(e.what()));
-        return make_jsonrpc_error(id, kInternalError, String(e.what()));
-    } catch (...) {
-        pending_requests_.erase(pending_key(session_id, id));
-        log_warn("mcp", String("tools/call FAILED (unknown exception): ") + tool_name);
-        return make_jsonrpc_error(id, kInternalError, "Unknown error");
-    }
+    // Delegate to ToolExecutor for permission checking, execution, logging, and MCP formatting
+    const String auth_token;
+    Dictionary exec_result = tool_executor_.execute(tool_name, args, auth_token);
 
     pending_requests_.erase(pending_key(session_id, id));
-
-    // Log result summary
-    bool success = true;
-    {
-        String summary;
-        if (tool_result.has("error")) {
-            success = false;
-            Variant err_val = tool_result["error"];
-            if (err_val.get_type() == Variant::DICTIONARY) {
-                Dictionary ed = err_val;
-                summary = String("error=") + String(ed.get("code", "?")) + String(": ") + String(ed.get("message", "?"));
-            } else {
-                summary = String("error=") + String(err_val);
-            }
-        } else if (tool_result.has("success") && tool_result["success"].get_type() == Variant::BOOL && !static_cast<bool>(tool_result["success"])) {
-            success = false;
-            summary = String("success=false");
-        } else if (tool_result.has("data") && tool_result["data"].get_type() == Variant::DICTIONARY) {
-            Dictionary data = tool_result["data"];
-            Array dk = data.keys();
-            for (int i = 0; i < dk.size() && summary.length() < 120; i++) {
-                if (!summary.is_empty()) summary += ", ";
-                String k = dk[i];
-                Variant v = data[k];
-                summary += k + String("=");
-                if (v.get_type() == Variant::STRING) {
-                    String sv = v;
-                    if (sv.length() > 60) sv = sv.substr(0, 60) + String("...");
-                    summary += String("\"") + sv + String("\"");
-                } else {
-                    summary += json_stringify_safe(v);
-                }
-            }
-        }
-        if (success) {
-            log_info("mcp", String("  -> ok: ") + summary);
-        } else {
-            log_warn("mcp", String("  -> FAIL: ") + summary);
-        }
-    }
 
     // Structured log callback
     if (log_callback_) {
         ToolCallLog log_entry;
         log_entry.timestamp = Time::get_singleton()->get_datetime_string_from_system();
         log_entry.tool_name = tool_name;
-        log_entry.success = success;
+        log_entry.success = !exec_result.has("_exec_error");
         log_entry.args = args;
-        log_entry.result = tool_result;
-        log_entry.duration_ms = static_cast<double>((Time::get_singleton()->get_ticks_msec() - start_msec));
+        log_entry.result = ToolExecutor::extract_result(exec_result);
+        log_entry.duration_ms = exec_result.get("_exec_duration_ms", 0.0);
         log_callback_(log_entry);
     }
 
-    Dictionary error_response = build_tool_error_response(id, tool_result);
-    if (!error_response.is_empty()) return error_response;
-
-    Dictionary result;
-    result["content"] = tool_result_to_mcp_content(tool_result);
-    result["isError"] = false;
-    if (tool_result.has("meta")) {
-        result["meta"] = tool_result["meta"];
-    }
-    if (tool_result.has("confirm")) {
-        result["confirm"] = tool_result["confirm"];
+    // Error path: ToolExecutor signalled a protocol-level error
+    if (exec_result.has("_exec_error")) {
+        const Dictionary err_info = exec_result["_exec_error"];
+        return make_jsonrpc_error(id,
+            err_info.get("code", kInternalError),
+            err_info.get("message", "Unknown error"),
+            err_info.get("data", Variant()));
     }
 
-    const Array dict_keys = tool_result.keys();
-    for (int i = 0; i < dict_keys.size(); ++i) {
-        const String k = dict_keys[i];
-        if (k != "error" && k != "success" && k != "data") {
-            result[k] = tool_result[k];
-        }
-    }
-
-    if (tool_result.has("data") && tool_result["data"].get_type() == Variant::DICTIONARY) {
-        const Dictionary data = tool_result["data"];
-        const Array data_keys = data.keys();
-        for (int i = 0; i < data_keys.size(); ++i) {
-            const String k = data_keys[i];
-            if (!result.has(k)) {
-                result[k] = data[k];
-            }
-        }
-    }
-
-    return make_jsonrpc_result(id, result);
-}
-
-Dictionary McpHandler::build_tool_error_response(const Variant &id, const Dictionary &tool_result) {
-    String err_msg;
-    bool is_error = false;
-
-    if (tool_result.has("error")) {
-        is_error = true;
-        const Variant err_val = tool_result["error"];
-        if (err_val.get_type() == Variant::DICTIONARY) {
-            err_msg = Dictionary(err_val).get("message", "Unknown error");
-        } else {
-            err_msg = err_val;
-        }
-    } else if (tool_result.has("success") && tool_result["success"].get_type() == Variant::BOOL && !static_cast<bool>(tool_result["success"])) {
-        is_error = true;
-        err_msg = "Tool execution failed";
-    }
-
-    if (!is_error) return Dictionary();
-
-    if (tool_result.has("recoverable") && tool_result["recoverable"].get_type() == Variant::BOOL && static_cast<bool>(tool_result["recoverable"])) {
-        Dictionary error_data;
-        error_data["recoverable"] = true;
-        if (tool_result.has("suggestion")) {
-            error_data["suggestion"] = tool_result["suggestion"];
-        }
-        return make_jsonrpc_error(id, kInternalError, err_msg, error_data);
-    }
-    return make_jsonrpc_error(id, kInternalError, err_msg);
+    // Strip internal keys and use as JSON-RPC result
+    exec_result.erase("_raw_result");
+    exec_result.erase("_exec_duration_ms");
+    return make_jsonrpc_result(id, exec_result);
 }
 
 // -------------------------------------------------------------------------
@@ -774,225 +613,6 @@ Dictionary McpHandler::handle_resources_templates_list(const Variant &id) {
     Dictionary result;
     result["resourceTemplates"] = templates;
     return make_jsonrpc_result(id, result);
-}
-
-// -------------------------------------------------------------------------
-// prompts/list
-// -------------------------------------------------------------------------
-Dictionary McpHandler::handle_prompts_list(const Variant &id) {
-    Array prompts;
-
-    Dictionary p1;
-    p1["name"] = "create_scene";
-    p1["description"] = "Guide for creating a new scene with recommended setup";
-    Array p1_args;
-    Dictionary p1_arg1;
-    p1_arg1["name"] = "scene_type";
-    p1_arg1["description"] = "Scene type: 2d, 3d, or empty";
-    p1_arg1["required"] = true;
-    p1_args.append(p1_arg1);
-    p1["arguments"] = p1_args;
-    prompts.append(p1);
-
-    Dictionary p2;
-    p2["name"] = "create_node";
-    p2["description"] = "Guide for adding a node to the scene";
-    Array p2_args;
-    Dictionary p2_arg1;
-    p2_arg1["name"] = "parent_path";
-    p2_arg1["description"] = "Path to the parent node";
-    p2_arg1["required"] = true;
-    p2_args.append(p2_arg1);
-    Dictionary p2_arg2;
-    p2_arg2["name"] = "node_type";
-    p2_arg2["description"] = "Type of node to create (e.g., Node2D, Control, Sprite2D)";
-    p2_arg2["required"] = true;
-    p2_args.append(p2_arg2);
-    p2["arguments"] = p2_args;
-    prompts.append(p2);
-
-    Dictionary p3;
-    p3["name"] = "fix_error";
-    p3["description"] = "Analyze an editor error or script error and suggest fixes";
-    Array p3_args;
-    Dictionary p3_arg1;
-    p3_arg1["name"] = "error_text";
-    p3_arg1["description"] = "The error message to analyze";
-    p3_arg1["required"] = true;
-    p3_args.append(p3_arg1);
-    p3["arguments"] = p3_args;
-    prompts.append(p3);
-
-    Dictionary p4;
-    p4["name"] = "explain_node";
-    p4["description"] = "Explain what a Godot node type does and common usage patterns";
-    Array p4_args;
-    Dictionary p4_arg1;
-    p4_arg1["name"] = "node_type";
-    p4_arg1["description"] = "The node class name to explain";
-    p4_arg1["required"] = true;
-    p4_args.append(p4_arg1);
-    p4["arguments"] = p4_args;
-    prompts.append(p4);
-
-    Dictionary p5;
-    p5["name"] = "code_review";
-    p5["description"] = "Review GDScript or C# script for best practices and potential issues";
-    Array p5_args;
-    Dictionary p5_arg1;
-    p5_arg1["name"] = "script_path";
-    p5_arg1["description"] = "Path to the script file to review";
-    p5_arg1["required"] = true;
-    p5_args.append(p5_arg1);
-    Dictionary p5_arg2;
-    p5_arg2["name"] = "language";
-    p5_arg2["description"] = "Language: gdscript or csharp";
-    p5_arg2["required"] = false;
-    p5_args.append(p5_arg2);
-    p5["arguments"] = p5_args;
-    prompts.append(p5);
-
-    Dictionary result;
-    result["prompts"] = prompts;
-    return make_jsonrpc_result(id, result);
-}
-
-// -------------------------------------------------------------------------
-// prompts/get
-// -------------------------------------------------------------------------
-Dictionary McpHandler::handle_prompts_get(const Dictionary &params, const Variant &id) {
-    const String name = params.get("name", "");
-    Dictionary args_dict = params.has("arguments") && params["arguments"].get_type() == Variant::DICTIONARY
-                               ? Dictionary(params["arguments"])
-                               : Dictionary();
-
-    if (name == "create_scene") {
-        String scene_type = args_dict.get("scene_type", "2d");
-        String prompt_text;
-        if (scene_type == "2d") {
-            prompt_text = "Create a new 2D scene using the 'New Scene' button, then add a Node2D as root. "
-                          "For the root, set a meaningful name like 'Game' or 'Level'. "
-                          "Then add child nodes as needed (Sprite2D, CollisionShape2D, etc.). "
-                          "Save the scene using Ctrl+S.";
-        } else if (scene_type == "3d") {
-            prompt_text = "Create a new 3D scene, add a Node3D as root. "
-                          "Consider adding a WorldEnvironment for lighting, a Camera3D for view, and MeshInstance3D for objects.";
-        } else {
-            prompt_text = "Create a new empty scene with any root node type you need.";
-        }
-
-        Array messages;
-        Dictionary msg;
-        msg["role"] = "user";
-        Dictionary content;
-        content["type"] = "text";
-        content["text"] = prompt_text;
-        msg["content"] = content;
-        messages.append(msg);
-
-        Dictionary result;
-        result["description"] = "Guide for creating a " + scene_type + " scene";
-        result["messages"] = messages;
-        return make_jsonrpc_result(id, result);
-    }
-
-    if (name == "create_node") {
-        String node_type = args_dict.get("node_type", "Node");
-        String prompt_text = "To add a " + node_type + " to the scene: "
-                             "1. Ensure the scene is open and the target parent is selected. "
-                             "2. Use the add_node tool with parent_path and class_name='" + node_type + "'. "
-                             "3. Configure the node's properties as needed.";
-
-        Array messages;
-        Dictionary msg;
-        msg["role"] = "user";
-        Dictionary content;
-        content["type"] = "text";
-        content["text"] = prompt_text;
-        msg["content"] = content;
-        messages.append(msg);
-
-        Dictionary result;
-        result["description"] = "Guide for adding a " + node_type;
-        result["messages"] = messages;
-        return make_jsonrpc_result(id, result);
-    }
-
-    if (name == "fix_error") {
-        String error_text = args_dict.get("error_text", "");
-        String prompt_text = "Error analysis for: " + error_text + "\n\n"
-                             "Suggested steps:\n"
-                             "1. Check for typos in node paths and variable names.\n"
-                             "2. Verify that all required nodes are present in the scene.\n"
-                             "3. Check signal connections for correct target methods.\n"
-                             "4. Ensure exported variables are assigned in the editor.\n";
-
-        Array messages;
-        Dictionary msg;
-        msg["role"] = "user";
-        Dictionary content;
-        content["type"] = "text";
-        content["text"] = prompt_text;
-        msg["content"] = content;
-        messages.append(msg);
-
-        Dictionary result;
-        result["description"] = "Error fix guidance";
-        result["messages"] = messages;
-        return make_jsonrpc_result(id, result);
-    }
-
-    if (name == "explain_node") {
-        String node_type = args_dict.get("node_type", "Node");
-        String prompt_text = "The " + node_type + " node in Godot 4.6:\n"
-                             "- Inherits from: depends on the type\n"
-                             "- Primary use: [description depends on node type]\n"
-                             "- Key properties: [list common properties]\n"
-                             "- Common child nodes: [common children]\n"
-                             "- Best practices: [usage tips]\n";
-
-        Array messages;
-        Dictionary msg;
-        msg["role"] = "user";
-        Dictionary content;
-        content["type"] = "text";
-        content["text"] = prompt_text;
-        msg["content"] = content;
-        messages.append(msg);
-
-        Dictionary result;
-        result["description"] = "Explanation of " + node_type;
-        result["messages"] = messages;
-        return make_jsonrpc_result(id, result);
-    }
-
-    if (name == "code_review") {
-        String script_path = args_dict.get("script_path", "");
-        String language = args_dict.get("language", "gdscript");
-        String prompt_text = "Review the script at " + script_path + ":\n"
-                             "- Check for proper indentation and formatting.\n"
-                             "- Verify type hints and annotations.\n"
-                             "- Look for potential null reference errors.\n"
-                             "- Check for proper node path references.\n"
-                             "- Verify signal connection patterns.\n"
-                             "- Suggest performance improvements.\n";
-
-        Array messages;
-        Dictionary msg;
-        msg["role"] = "user";
-        Dictionary content;
-        content["type"] = "text";
-        content["text"] = prompt_text;
-        msg["content"] = content;
-        messages.append(msg);
-
-        Dictionary result;
-        result["description"] = "Code review for " + script_path;
-        result["messages"] = messages;
-        return make_jsonrpc_result(id, result);
-    }
-
-    return make_jsonrpc_error(id, kInvalidParams, "No such prompt: " + name);
 }
 
 // -------------------------------------------------------------------------

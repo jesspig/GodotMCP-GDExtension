@@ -66,6 +66,15 @@ bool HttpServer::is_listening() const {
     return tcp_server_.is_valid() && tcp_server_->is_listening();
 }
 
+void HttpServer::finish_header_to_body(Connection &conn) {
+    if (conn.content_length > 0 && conn.header_end_pos < conn.read_buf.size()) {
+        const int remaining = static_cast<int>(conn.read_buf.size() - conn.header_end_pos);
+        const int old_size = static_cast<int>(conn.body.size());
+        conn.body.resize(old_size + remaining);
+        memcpy(conn.body.ptrw() + old_size, conn.read_buf.ptr() + conn.header_end_pos, remaining);
+    }
+}
+
 bool HttpServer::try_consume_rate() {
     const double now = Time::get_singleton()->get_ticks_msec() / 1000.0;
     const double elapsed = now - rate_last_refill_;
@@ -123,7 +132,7 @@ void HttpServer::poll() {
 
         // SSE stream: flush events
         if (conn.is_sse_stream) {
-            if (now - conn.sse_last_event_msec > 300000) {
+            if (now - conn.sse_last_event_msec > kSseIdleTimeoutMsec) {
                 dead.push_back(conn_id);
                 continue;
             }
@@ -157,7 +166,7 @@ void HttpServer::poll() {
                 }
                 const PackedByteArray chunk = read_result[1];
                 if (chunk.size() > 0) {
-                    const int old = conn.read_buf.size();
+                    const int old = static_cast<int>(conn.read_buf.size());
                     conn.read_buf.resize(old + chunk.size());
                     std::copy_n(chunk.ptr(), chunk.size(), conn.read_buf.ptrw() + old);
                 }
@@ -179,17 +188,12 @@ void HttpServer::poll() {
                 }
 
                 // Headers complete: copy any body bytes that arrived with headers
-                if (conn.content_length > 0 && conn.header_end_pos < conn.read_buf.size()) {
-                    const int remaining = conn.read_buf.size() - conn.header_end_pos;
-                    const int old_size = conn.body.size();
-                    conn.body.resize(old_size + remaining);
-                    memcpy(conn.body.ptrw() + old_size, conn.read_buf.ptr() + conn.header_end_pos, remaining);
-                }
+                finish_header_to_body(conn);
             } else {
                 // Headers already done: read body data directly from socket
                 if (conn.content_length > 0 && conn.body.size() < conn.content_length) {
-                    const int remaining = conn.content_length - conn.body.size();
-                    const int max_read = kMaxBodyLength - conn.body.size();
+                    const int remaining = static_cast<int>(conn.content_length - conn.body.size());
+                    const int max_read = static_cast<int>(kMaxBodyLength - conn.body.size());
                     int to_read = static_cast<int>(avail) < remaining ? static_cast<int>(avail) : remaining;
                     if (to_read > max_read) to_read = max_read;
                     if (to_read <= 0) { dead.push_back(conn_id); continue; }
@@ -199,7 +203,7 @@ void HttpServer::poll() {
                     }
                     const PackedByteArray read_chunk = read_result[1];
                     if (read_chunk.size() > 0) {
-                        const int old = conn.body.size();
+                        const int old = static_cast<int>(conn.body.size());
                         conn.body.resize(old + read_chunk.size());
                         std::copy_n(read_chunk.ptr(), read_chunk.size(), conn.body.ptrw() + old);
                     }
@@ -217,12 +221,7 @@ void HttpServer::poll() {
                 continue;
             }
             if (pr == COMPLETE) {
-                if (conn.content_length > 0 && conn.header_end_pos < conn.read_buf.size()) {
-                    const int remaining = conn.read_buf.size() - conn.header_end_pos;
-                    const int old_size = conn.body.size();
-                    conn.body.resize(old_size + remaining);
-                    memcpy(conn.body.ptrw() + old_size, conn.read_buf.ptr() + conn.header_end_pos, remaining);
-                }
+                finish_header_to_body(conn);
             } else {
                 continue;
             }

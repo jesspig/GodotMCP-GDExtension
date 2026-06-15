@@ -61,9 +61,10 @@ inline String generate_vscode_config(const String &url) {
     return generate_json_config(url, spec);
 }
 
-inline String generate_cline_config(const String &url) {
+inline String generate_remote_mcp_config(const String &url, const String &type) {
     Dictionary servers;
     Dictionary godot;
+    if (!type.is_empty()) godot["type"] = type;
     godot["command"] = "npx";
     Array args;
     args.push_back("-y");
@@ -74,6 +75,10 @@ inline String generate_cline_config(const String &url) {
     Dictionary root;
     root["mcpServers"] = servers;
     return JSON::stringify(root, "  ");
+}
+
+inline String generate_cline_config(const String &url) {
+    return generate_remote_mcp_config(url, "http");
 }
 
 inline String generate_opencode_config(const String &url) {
@@ -106,19 +111,7 @@ inline String generate_qoder_config(const String &url) {
 }
 
 inline String generate_codebuddy_config(const String &url) {
-    Dictionary servers;
-    Dictionary godot;
-    godot["type"] = "stdio";
-    godot["command"] = "npx";
-    Array args;
-    args.push_back("-y");
-    args.push_back("mcp-remote");
-    args.push_back(url);
-    godot["args"] = args;
-    servers["godot"] = godot;
-    Dictionary root;
-    root["mcpServers"] = servers;
-    return JSON::stringify(root, "  ");
+    return generate_remote_mcp_config(url, "stdio");
 }
 
 inline String generate_pi_config(const String &url) {

@@ -1,16 +1,16 @@
-// =====================================================================
-// commands/cmd_utils.hpp — Shared helpers for every command handler.
+﻿// =====================================================================
+// commands/cmd_utils.hpp �?Shared helpers for every command handler.
 //
 // Shared helper functions for command handlers and ITool implementations:
-//   * resolve_node()             — flexible path resolution
-//   * get_root() / get_undo_redo() — edited-scene accessors
+//   * resolve_node()             �?flexible path resolution
+//   * get_root() / get_undo_redo() �?edited-scene accessors
 //   * variant_to_json() / json_to_variant()
-//                                  — j2v/v2j equivalents using Godot's
+//                                  �?j2v/v2j equivalents using Godot's
 //                                    native Variant + Dictionary types
-//   * undoable_set()             — "apply now + register undo" idiom
-//   * ensure_parent_dir()        — mkdir -p for res:// paths
-//   * relative_path()            — node path relative to scene root
-//   * globalize_path()           — res:// -> absolute disk path
+//   * undoable_set()             �?"apply now + register undo" idiom
+//   * ensure_parent_dir()        �?mkdir -p for res:// paths
+//   * relative_path()            �?node path relative to scene root
+//   * globalize_path()           �?res:// -> absolute disk path
 //
 // All functions in this header MUST be called from the main thread.
 // =====================================================================
@@ -63,7 +63,7 @@ godot::EditorUndoRedoManager *get_undo_redo();
 // Convert a Godot Variant into a JSON-friendly Variant for stringify().
 // Recursively expands Vector2/3/4, Color, Rect2, Quaternion, Resource paths,
 // Dictionaries and Arrays into plain JSON containers.
-godot::Variant variant_to_json(const godot::Variant &v, int depth = 0);
+[[nodiscard]] godot::Variant variant_to_json(const godot::Variant &v, int depth = 0);
 
 // Convert a JSON-parsed Variant back into the most specific Godot type:
 //   {x,y}            -> Vector2
@@ -75,7 +75,7 @@ godot::Variant variant_to_json(const godot::Variant &v, int depth = 0);
 //   [a,b]/[a,b,c]/[a,b,c,d] -> Vector2/3 or Color shortcut
 //   "res://..."      -> ResourceLoader::load()
 //   primitives       -> passed through unchanged
-godot::Variant json_to_variant(const godot::Variant &jv, int depth = 0);
+[[nodiscard]] godot::Variant json_to_variant(const godot::Variant &jv, int depth = 0);
 
 // ---------------------------------------------------------------------
 // Editor write helpers
@@ -87,6 +87,19 @@ void undoable_set(godot::Node *node,
                   const godot::String &property,
                   const godot::Variant &new_value,
                   const godot::String &action_name);
+
+// Begin a named undo/redo action. Returns the EditorUndoRedoManager or
+// nullptr if undo is unavailable (e.g. in runtime/game mode).
+inline godot::EditorUndoRedoManager *begin_undo_action(const godot::String &name) {
+    auto *ur = get_undo_redo();
+    if (ur) ur->create_action(name);
+    return ur;
+}
+
+// Commit a previously-begun undo/redo action. Safe to call with nullptr.
+inline void commit_undo_action(godot::EditorUndoRedoManager *ur) {
+    if (ur) ur->commit_action();
+}
 
 // Mark the currently-edited scene as dirty so the editor shows the
 // unsaved-changes indicator on its tab.
@@ -143,7 +156,7 @@ bool args_bool(const godot::Dictionary &args,
 // Read a port number from environment variable with validation.
 // Returns default_port if env var is empty, unset, or out of range [1, 65535].
 inline int read_port_from_env(const godot::String &env_var, int default_port) {
-    godot::OS *os = godot::OS::get_singleton();
+    auto *os = godot::OS::get_singleton();
     if (!os) return default_port;
     const godot::String raw = os->get_environment(env_var);
     if (raw.is_empty()) return default_port;
@@ -158,7 +171,7 @@ inline int read_port_from_env(const godot::String &env_var, int default_port) {
 // Response builders
 // ---------------------------------------------------------------------
 
-godot::String json_stringify_safe(const godot::Variant &v);
+[[nodiscard]] godot::String json_stringify_safe(const godot::Variant &v);
 
 // ---------------------------------------------------------------------
 // Tree traversal
@@ -177,7 +190,7 @@ inline void collect_nodes_by(godot::Node *node,
         out.append(d);
     }
     for (int64_t i = 0; i < node->get_child_count(); i++) {
-        godot::Node *c = godot::Object::cast_to<godot::Node>(node->get_child(i));
+        auto *c = godot::Object::cast_to<godot::Node>(node->get_child(static_cast<int>(i)));
         if (c) collect_nodes_by(c, predicate, out, max_results, root);
     }
 }
@@ -202,7 +215,7 @@ inline void walk_project_dir(const godot::String &dir, const godot::Array &exten
             walk_project_dir(full, extensions, include_addons, max_results, out);
         } else {
             bool match = extensions.size() == 0;
-            for (int i = 0; i < extensions.size() && !match; i++) {
+            for (int64_t i = 0; i < extensions.size() && !match; i++) {
                 if (n.ends_with(godot::String(extensions[i]))) match = true;
             }
             if (match && out.size() < max_results) out.append(full);

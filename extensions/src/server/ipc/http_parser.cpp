@@ -34,28 +34,28 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
         }
     }
 
-    const int first_lf = header_section.find("\r\n");
+    const int first_lf = static_cast<int>(header_section.find("\r\n"));
     if (first_lf < 0) return ERROR_PARSE;
     const String status_line = header_section.substr(0, first_lf);
 
-    const int sp1 = status_line.find(" ");
+    const int sp1 = static_cast<int>(status_line.find(" "));
     if (sp1 < 0) return ERROR_PARSE;
     conn.method = status_line.substr(0, sp1);
 
-    const int sp2 = status_line.find(" ", sp1 + 1);
+    const int sp2 = static_cast<int>(status_line.find(" ", sp1 + 1));
     if (sp2 < 0) return ERROR_PARSE;
     conn.path = status_line.substr(sp1 + 1, sp2 - sp1 - 1);
-    int qpos = conn.path.find("?");
+    int qpos = static_cast<int>(conn.path.find("?"));
     if (qpos != -1) conn.path = conn.path.substr(0, qpos);
 
     int line_start = first_lf + 2;
     int header_count = 0;
     bool seen_content_length = false;
     while (line_start < header_end) {
-        const int line_end = header_section.find("\r\n", line_start);
+        const int line_end = static_cast<int>(header_section.find("\r\n", line_start));
         if (line_end < 0) break;
         const String line = header_section.substr(line_start, line_end - line_start);
-        const int colon = line.find(":");
+        const int colon = static_cast<int>(line.find(":"));
         if (colon > 0) {
             if (++header_count > kMaxHeaders) {
                 log_warn("http", "Too many headers (> " + String::num_int64(kMaxHeaders) + ")");
@@ -95,7 +95,7 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
 
     // Infer body length from remaining buffer (RFC 7230 non-compliant but works for single-request scenarios)
     if (conn.content_length <= 0 && conn.header_end_pos < conn.read_buf.size()) {
-        conn.content_length = conn.read_buf.size() - conn.header_end_pos;
+        conn.content_length = static_cast<int>(conn.read_buf.size() - conn.header_end_pos);
         if (conn.content_length > kMaxBodyLength) {
             log_warn("http", String("Body without Content-Length exceeds max ") +
                                  String::num_int64(kMaxBodyLength));
@@ -119,7 +119,7 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
 
 void HttpServer::try_read_body(Connection &conn) {
     if (conn.content_length <= 0) return;
-    const int remaining = conn.content_length - conn.body.size();
+    const int remaining = static_cast<int>(conn.content_length - conn.body.size());
     if (remaining <= 0) return;
 
     if (conn.body.size() >= kMaxBodyLength) return;
@@ -128,7 +128,7 @@ void HttpServer::try_read_body(Connection &conn) {
     const int64_t avail = conn.tcp->get_available_bytes();
     if (avail <= 0) return;
 
-    const int max_read = kMaxBodyLength - conn.body.size();
+    const int max_read = static_cast<int>(kMaxBodyLength - conn.body.size());
     const int to_read = static_cast<int>(avail) < remaining ? static_cast<int>(avail) : remaining;
     const int safe_read = to_read < max_read ? to_read : max_read;
     if (safe_read <= 0) return;

@@ -93,8 +93,7 @@ GODOT_MCP_TOOL(AddInputEventBindingTool, false)
 
 // Plugin tools
 GODOT_MCP_TOOL(ListPluginsTool, false)
-GODOT_MCP_TOOL(EnablePluginTool, false)
-GODOT_MCP_TOOL(DisablePluginTool, false)
+GODOT_MCP_TOOL(SetPluginEnabledTool, false)
 
 // Scaffold tools
 GODOT_MCP_TOOL(CreateProjectTool, false)

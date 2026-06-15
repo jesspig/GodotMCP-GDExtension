@@ -35,12 +35,12 @@ public:
         bool supports_undo = false,
         bool is_destructive = false);
 
-    godot::String name() const override { return name_; }
-    godot::String category() const override { return category_; }
-    godot::String brief() const override { return brief_; }
+    godot::String name() const noexcept override { return name_; }
+    godot::String category() const noexcept override { return category_; }
+    godot::String brief() const noexcept override { return brief_; }
     godot::String description() const override { return description_; }
     godot::Dictionary build_input_schema() const override { return input_schema_; }
-    bool is_meta() const override { return is_meta_; }
+    bool is_meta() const noexcept override { return is_meta_; }
     bool needs_scene() const override { return needs_scene_; }
     bool needs_node() const override { return needs_node_; }
     bool supports_undo() const override { return supports_undo_; }

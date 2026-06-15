@@ -19,8 +19,11 @@ class RuntimeBridge;
 
 using CommandFn = std::function<godot::Dictionary(const godot::Dictionary &args)>;
 
+// NOTE: tool_info_ duplicates data from itool_table_. Each ToolInfo copies name,
+// category, brief, description, etc. from ITool. Currently kept as an index for
+// category queries / search / always-on filtering. Future work could iterate
+// itool_table_ directly and eliminate this struct entirely.
 struct ToolInfo {
-    godot::String name;
     godot::String description;
     godot::String brief;
     godot::String category;
@@ -42,7 +45,7 @@ public:
 
     void register_tool(std::unique_ptr<ITool> tool, bool is_custom = false);
     void finalize_registration();
-    godot::Dictionary execute(const godot::String &name, const godot::Dictionary &args);
+    [[nodiscard]] godot::Dictionary execute(const godot::String &name, const godot::Dictionary &args);
 
     [[nodiscard]] const ToolInfo *find_tool_info(const godot::String &name) const;
 
@@ -73,15 +76,15 @@ public:
     const godot::String &plugin_version() const { return plugin_version_; }
 
 private:
-    godot::Dictionary make_tool_entry(const ToolInfo &info) const;
+    godot::Dictionary make_tool_entry(const godot::String &name, const ToolInfo &info) const;
 
     static godot::PackedStringArray tokenize(const godot::String &text);
-    void rebuild_search_index();
 
-    // 使用 std::map 而非 godot::HashMap，因为 unique_ptr 不可复制（HashMap 要求 value 可复制）
+    // 使用 std::map 而非 godot::HashMap，因�?unique_ptr 不可复制（HashMap 要求 value 可复制）
     std::map<godot::String, std::unique_ptr<ITool>> itool_table_;
     godot::HashMap<godot::String, ToolInfo> tool_info_;
-    godot::HashMap<godot::String, godot::Array> search_index_;
+    mutable godot::Array categories_cache_;
+    mutable bool categories_dirty_ = true;
     godot::HashMap<godot::String, int> freq_index_;
     RuntimeBridge *runtime_bridge_ = nullptr;
     godot::String engine_version_;

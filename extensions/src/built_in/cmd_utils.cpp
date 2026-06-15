@@ -84,7 +84,7 @@ Node *resolve_node(Node *root, const String &path, int depth) {
     if (found) return found;
     if (depth >= kMaxResolveDepth) return nullptr;
     for (int64_t i = 0; i < root->get_child_count(); i++) {
-        Node *c = Object::cast_to<Node>(root->get_child(i));
+        Node *c = Object::cast_to<Node>(root->get_child(static_cast<int>(i)));
         if (!c) continue;
         Node *sub = resolve_node(c, path, depth + 1);
         if (sub) return sub;
@@ -200,7 +200,7 @@ bool ensure_parent_dir(const String &res_path) {
     if (res_path.begins_with("user://") && res_path.find("/", 7) < 0) {
         return true;
     }
-    const int slash = res_path.rfind("/");
+    const int slash = static_cast<int>(res_path.rfind("/"));
     if (slash <= 0) {
         return true;
     }

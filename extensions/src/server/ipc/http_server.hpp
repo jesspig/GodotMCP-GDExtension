@@ -33,6 +33,9 @@ public:
     void set_test_engine(TestEngine *te) { test_engine_ = te; }
 
     static constexpr int kMaxConnections = 32;
+    static constexpr auto kSseRetryIntervalMsec = 5000;
+    static constexpr auto kSseKeepaliveIntervalMsec = 15000;
+    static constexpr auto kSseIdleTimeoutMsec = 300000;
     static constexpr int kMaxBodyLength = 1048576; // 1 MB — prevent OOM on oversized payloads
     static constexpr int kMaxHeaders = 100;
     static constexpr int kCorsMaxAgeSeconds = 86400;
@@ -40,28 +43,6 @@ public:
     Error start(uint16_t port, McpHandler *mcp_handler, const String &bind_address = "127.0.0.1");
 
 private:
-    struct RateLimiter {
-        int tokens = 30;
-        double last_refill_sec = 0.0;
-        static constexpr int kMaxTokens = 30;
-        static constexpr double kRefillRate = 30.0; // tokens/sec
-
-        bool try_consume() {
-            refill();
-            if (tokens > 0) { tokens--; return true; }
-            return false;
-        }
-
-        void refill() {
-            double now = godot::Time::get_singleton()->get_ticks_msec() / 1000.0;
-            double elapsed = now - last_refill_sec;
-            if (elapsed > 0.0) {
-                tokens = std::min(kMaxTokens, tokens + static_cast<int>(elapsed * kRefillRate));
-                last_refill_sec = now;
-            }
-        }
-    };
-
     struct Connection {
         godot::Ref<godot::StreamPeerTCP> tcp;
         godot::Vector<uint8_t> read_buf;
@@ -82,13 +63,13 @@ private:
         uint64_t sse_last_event_msec = 0;
         bool keep_alive = true;
 
-        RateLimiter rate_limiter;
     };
 
     enum ParseResult { NEED_MORE, COMPLETE, ERROR_PARSE };
 
     ParseResult parse_headers(Connection &conn);
     void try_read_body(Connection &conn);
+    void finish_header_to_body(Connection &conn);
 
     void dispatch_request(int conn_id, Connection &conn);
     void handle_post(int conn_id, Connection &conn);
