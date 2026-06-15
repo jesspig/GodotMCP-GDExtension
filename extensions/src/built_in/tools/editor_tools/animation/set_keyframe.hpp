@@ -23,7 +23,7 @@ public:
                "delete (remove a key at the given time), or set_value (modify "
                "an existing key's value). All mutations use EditorUndoRedoManager.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

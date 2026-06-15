@@ -48,7 +48,7 @@ Error HttpServer::start(uint16_t port, McpHandler *mcp_handler, const String &bi
 }
 
 void HttpServer::stop() {
-    for (KeyValue<int, Connection> &kv : connections_) {
+    for (auto &kv : connections_) {
         if (kv.value.tcp.is_valid()) {
             kv.value.tcp->disconnect_from_host();
         }
@@ -66,18 +66,29 @@ bool HttpServer::is_listening() const {
     return tcp_server_.is_valid() && tcp_server_->is_listening();
 }
 
+bool HttpServer::try_consume_rate() {
+    const double now = Time::get_singleton()->get_ticks_msec() / 1000.0;
+    const double elapsed = now - rate_last_refill_;
+    if (elapsed > 0.0) {
+        rate_tokens_ = std::min(kMaxTokens, rate_tokens_ + static_cast<int>(elapsed * kRefillRate));
+        rate_last_refill_ = now;
+    }
+    if (rate_tokens_ > 0) {
+        rate_tokens_--;
+        return true;
+    }
+    return false;
+}
+
 // -------------------------------------------------------------------------
 // Poll
 // -------------------------------------------------------------------------
 void HttpServer::poll() {
     if (!tcp_server_.is_valid() || !tcp_server_->is_listening()) return;
-    if (polling_) return; // Re-entrancy guard (EditorProgress → Main::iteration → _process → poll)
-    struct PollGuard {
-        HttpServer &server;
-        PollGuard(HttpServer &s) : server(s) { server.polling_ = true; }
-        ~PollGuard() { server.polling_ = false; }
-    } guard{*this};
+    if (polling_) return; // Re-entrancy guard (EditorProgress -> Main::iteration -> _process -> poll)
+    polling_ = true;
 
+    try {
     const uint64_t now = Time::get_singleton()->get_ticks_msec();
 
     check_timeouts();
@@ -105,7 +116,7 @@ void HttpServer::poll() {
     // Poll existing connections
     Vector<int> dead;
 
-    for (KeyValue<int, Connection> &kv : connections_) {
+    for (auto &kv : connections_) {
         const int conn_id = kv.key;
         Connection &conn = kv.value;
         if (conn.tcp.is_null()) { dead.push_back(conn_id); continue; }
@@ -145,7 +156,11 @@ void HttpServer::poll() {
                     dead.push_back(conn_id); continue;
                 }
                 const PackedByteArray chunk = read_result[1];
-                for (int i = 0; i < chunk.size(); ++i) conn.read_buf.push_back(chunk[i]);
+                if (chunk.size() > 0) {
+                    const int old = conn.read_buf.size();
+                    conn.read_buf.resize(old + chunk.size());
+                    std::copy_n(chunk.ptr(), chunk.size(), conn.read_buf.ptrw() + old);
+                }
 
                 ParseResult pr = parse_headers(conn);
                 if (pr == ERROR_PARSE) {
@@ -183,7 +198,11 @@ void HttpServer::poll() {
                         dead.push_back(conn_id); continue;
                     }
                     const PackedByteArray read_chunk = read_result[1];
-                    for (int i = 0; i < read_chunk.size(); ++i) conn.body.push_back(read_chunk[i]);
+                    if (read_chunk.size() > 0) {
+                        const int old = conn.body.size();
+                        conn.body.resize(old + read_chunk.size());
+                        std::copy_n(read_chunk.ptr(), read_chunk.size(), conn.body.ptrw() + old);
+                    }
                 }
             }
         }
@@ -239,24 +258,40 @@ void HttpServer::poll() {
     }
 
     for (int i = 0; i < dead.size(); ++i) close_connection(dead[i]);
+    } catch (...) {
+        polling_ = false;
+        throw;
+    }
+    polling_ = false;
 }
 
 // -------------------------------------------------------------------------
 // Request dispatch
 // -------------------------------------------------------------------------
 void HttpServer::dispatch_request(int conn_id, Connection &conn) {
-    // Token authentication
+    // Token authentication (constant-time comparison to prevent timing side-channel)
     if (!auth_token_.is_empty()) {
         String auth = conn.headers.has("authorization") ? conn.headers["authorization"] : "";
-        if (auth != String("Bearer ") + auth_token_) {
+        if (auth.length() != auth_token_.length() + 7) {
+            send_response(conn_id, conn, 401, "Unauthorized", "application/json",
+                          "{\"error\":\"Missing or invalid Authorization header\"}");
+            return;
+        }
+        CharString auth_utf8 = auth.utf8();
+        CharString expected_utf8 = (String("Bearer ") + auth_token_).utf8();
+        bool match = true;
+        for (int i = 0; i < expected_utf8.length(); ++i) {
+            if (auth_utf8[i] != expected_utf8[i]) match = false;
+        }
+        if (!match) {
             send_response(conn_id, conn, 401, "Unauthorized", "application/json",
                           "{\"error\":\"Missing or invalid Authorization header\"}");
             return;
         }
     }
 
-    // Rate limiting
-    if (!conn.rate_limiter.try_consume()) {
+    // Global rate limiting
+    if (!try_consume_rate()) {
         send_response(conn_id, conn, 429, "Too Many Requests", "application/json",
                       "{\"error\":\"Rate limit exceeded (30 req/s)\"}");
         return;
@@ -476,7 +511,7 @@ void HttpServer::handle_get(int conn_id, Connection &conn) {
     }
 
     // Reject duplicate SSE stream for the same session
-    for (const KeyValue<int, Connection> &kv : connections_) {
+    for (const auto &kv : connections_) {
         if (kv.key != conn_id && kv.value.is_sse_stream &&
             kv.value.session_id == conn.session_id) {
             send_response(conn_id, conn, 409, "Conflict", "text/plain",

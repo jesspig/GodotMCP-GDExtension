@@ -24,7 +24,7 @@ public:
     }
     bool needs_scene() const override { return false; }
     bool needs_node() const override { return false; }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         Dictionary p;

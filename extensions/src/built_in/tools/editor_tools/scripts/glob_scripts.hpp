@@ -17,7 +17,7 @@ public:
     String description() const override {
         return "Match script file paths in the project using glob patterns. Supports wildcards: * (any characters), ? (single character). Supports filtering by language (gdscript/csharp/all).";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

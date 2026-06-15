@@ -17,7 +17,7 @@ public:
     String brief() const override { return String("Remove breakpoint from script line"); }
     String description() const override { return brief(); }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

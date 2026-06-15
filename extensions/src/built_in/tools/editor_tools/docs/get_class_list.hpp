@@ -19,7 +19,7 @@ public:
         return "Returns a list of all Godot classes registered in ClassDB. "
                "Can optionally filter by a parent class to show only subclasses.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

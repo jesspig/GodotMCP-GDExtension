@@ -26,7 +26,7 @@ public:
                "Other �?creates an empty file. "
                "For .gd/.cs scripts, use the dedicated write_gd_script / write_csharp_script tools.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

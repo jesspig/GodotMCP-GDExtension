@@ -17,7 +17,7 @@ public:
     String brief() const override { return String("Debugger step over"); }
     String description() const override { return brief(); }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s; s["type"] = "object"; s["properties"] = Dictionary();
         return s;
     }

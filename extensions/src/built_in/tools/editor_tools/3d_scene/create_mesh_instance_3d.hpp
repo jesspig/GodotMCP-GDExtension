@@ -34,7 +34,7 @@ public:
                "(box, sphere, cylinder, capsule, plane, torus) or loads a custom mesh/scene. "
                "For .glb/.gltf/.obj/.tscn files, instances as a PackedScene child.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

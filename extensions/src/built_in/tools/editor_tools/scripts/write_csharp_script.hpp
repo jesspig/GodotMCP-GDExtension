@@ -19,7 +19,7 @@ public:
     String description() const override {
         return "Create or overwrite a C# script file. Writes directly when content is provided; creates a minimal valid script when content is empty.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

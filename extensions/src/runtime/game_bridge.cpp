@@ -1,6 +1,7 @@
 #include "game_bridge.hpp"
 #include "logging.hpp"
 
+#include <algorithm>
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/global_constants.hpp>
 #include <godot_cpp/classes/image.hpp>
@@ -44,7 +45,7 @@ int GameBridgeNode::read_port() {
     if (!os) return 9601;
     const String raw = os->get_environment("GODOT_MCP_BRIDGE_PORT");
     if (raw.is_empty()) return 9601;
-    int64_t parsed = raw.to_int();
+    const int64_t parsed = raw.to_int();
     if (parsed < 1 || parsed > 65535) return 9601;
     return static_cast<int>(parsed);
 }
@@ -184,7 +185,7 @@ void GameBridgeNode::read_clients() {
     if (consumed > 0 && consumed < read_buf_.size()) {
         PackedByteArray remaining;
         remaining.resize(read_buf_.size() - consumed);
-        memcpy(remaining.ptrw(), read_buf_.ptr() + consumed, remaining.size());
+        std::copy_n(read_buf_.ptr() + consumed, remaining.size(), remaining.ptrw());
         read_buf_ = remaining;
     } else {
         read_buf_.clear();

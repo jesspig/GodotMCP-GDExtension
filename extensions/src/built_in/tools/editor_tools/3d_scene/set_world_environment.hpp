@@ -26,7 +26,7 @@ public:
         return "Creates or modifies a WorldEnvironment node with Environment resource. "
                "Supports ambient light, sky, fog, and tonemap configuration.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

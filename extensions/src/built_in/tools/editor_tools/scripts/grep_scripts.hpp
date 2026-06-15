@@ -19,7 +19,7 @@ public:
     String description() const override {
         return "Search for a text pattern in project script files, returning matching file paths, line numbers, and line content. Supports filtering by language (gdscript/csharp/all), case sensitivity, and maximum results limit.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

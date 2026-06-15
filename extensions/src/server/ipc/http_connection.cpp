@@ -32,7 +32,8 @@ void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
     response += "Access-Control-Expose-Headers: MCP-Session-Id, Last-Event-ID, MCP-Protocol-Version\r\n";
 
     if (!conn.session_id.is_empty()) {
-        response += String("MCP-Session-Id: ") + conn.session_id + String("\r\n");
+        String safe_sid = conn.session_id.replace("\r", "").replace("\n", "");
+        response += String("MCP-Session-Id: ") + safe_sid + String("\r\n");
     }
 
     if (!extra_headers.is_empty()) {
@@ -64,7 +65,7 @@ void HttpServer::close_connection(int conn_id) {
 void HttpServer::check_timeouts() {
     const uint64_t now = Time::get_singleton()->get_ticks_msec();
     Vector<int> timed_out;
-    for (KeyValue<int, Connection> &kv : connections_) {
+    for (auto &kv : connections_) {
         if (now - kv.value.last_activity_msec > kTimeoutMsec) {
             timed_out.push_back(kv.key);
         }

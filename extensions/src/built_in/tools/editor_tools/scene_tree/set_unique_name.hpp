@@ -21,7 +21,7 @@ public:
                "false disables it. Unique names can be accessed directly via %%Name paths in scripts. "
                "All changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

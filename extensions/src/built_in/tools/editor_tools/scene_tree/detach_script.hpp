@@ -22,7 +22,7 @@ public:
                "Ctrl+Z restores the original script. "
                "If the node has no script, returns a NO_SCRIPT error (not treated as no-op).";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

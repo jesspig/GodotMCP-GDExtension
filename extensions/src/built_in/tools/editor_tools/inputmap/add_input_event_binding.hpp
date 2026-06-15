@@ -23,7 +23,7 @@ public:
         return "Adds an input event binding (key, mouse button, joypad button, or joypad axis) "
                "to an existing InputMap action.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

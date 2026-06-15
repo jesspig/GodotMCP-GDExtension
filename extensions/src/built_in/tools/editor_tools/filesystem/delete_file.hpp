@@ -20,7 +20,7 @@ public:
                "Uses DirAccess::remove_absolute(), then notifies EditorFileSystem to refresh. "
                "Deleting res:// itself is forbidden.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

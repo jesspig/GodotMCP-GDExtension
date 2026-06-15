@@ -21,7 +21,7 @@ public:
                "directories use recursive copy (automatically creates target directories). "
                "The addons directory is not modified.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

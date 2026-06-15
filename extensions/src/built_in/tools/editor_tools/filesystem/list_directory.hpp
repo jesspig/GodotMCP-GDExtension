@@ -24,7 +24,7 @@ public:
                "Prefers EditorFileSystemDirectory for structured information, "
                "falling back to DirAccess for direct traversal. Supports filtering by extension.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

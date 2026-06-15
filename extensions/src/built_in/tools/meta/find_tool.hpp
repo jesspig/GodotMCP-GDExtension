@@ -19,7 +19,7 @@ public:
                "prefix match, token search, and fulltext description search. "
                "Results are sorted by relevance (exact > prefix > token > fulltext) and usage frequency.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary schema;
         schema["type"] = "object";
         Dictionary props;

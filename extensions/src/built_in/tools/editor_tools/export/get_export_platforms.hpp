@@ -19,7 +19,7 @@ public:
         return "Lists export platforms referenced by configured presets, "
                "showing platform name, preset count, and basic status.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         s["properties"] = Dictionary();

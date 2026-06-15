@@ -22,7 +22,7 @@ public:
                             "source_id, atlas_coords, and alternative_tile. Captures old cell data "
                             "before applying for undo support.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

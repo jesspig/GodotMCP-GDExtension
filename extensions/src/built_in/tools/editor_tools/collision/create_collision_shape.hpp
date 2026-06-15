@@ -317,7 +317,7 @@ public:
                             "3D shapes: box, sphere, capsule, cylinder, convex_polygon, concave_polygon, "
                             "height_map, world_boundary, separation_ray.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

@@ -23,7 +23,7 @@ public:
                       "with a total of 59 monitor enums. Supports filtering specific monitors by name.");
     }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

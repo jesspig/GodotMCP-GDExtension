@@ -22,7 +22,7 @@ public:
         return "Returns the tree_root type, states (name + type + position), "
                "transitions (from, to, conditions), and parameter list for an AnimationTree node.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

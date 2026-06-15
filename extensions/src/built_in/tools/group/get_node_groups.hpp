@@ -19,7 +19,7 @@ public:
     String description() const override {
         return String("Returns the list of all group names the specified node belongs to, along with the persistence status of each group.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

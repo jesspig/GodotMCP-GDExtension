@@ -18,7 +18,7 @@ public:
         return String("Clears the resource reference on a node property. "
                             "If the property needs a resource to function, call new_resource afterwards to create a new default instance.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

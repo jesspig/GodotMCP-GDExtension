@@ -30,7 +30,7 @@ public:
                "one_shot, time_seek, transition) to the root AnimationNodeStateMachine "
                "of an AnimationTree. Uses EditorUndoRedoManager for undo support.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

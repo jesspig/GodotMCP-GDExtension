@@ -17,7 +17,7 @@ public:
         return String("Returns a brief list (id, name, description) of all tools registered "
                       "under the given category path. Does not include tools from subcategories.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary schema;
         schema["type"] = "object";
         Dictionary props;

@@ -25,7 +25,7 @@ public:
                "replacement (replaces the target_path node). "
                "Returns an error if the clipboard is empty. Ctrl+Z restores a replaced node.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

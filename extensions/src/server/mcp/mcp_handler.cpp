@@ -71,36 +71,44 @@ String McpHandler::generate_uuid() {
 }
 
 String McpHandler::create_session() {
-    Session s;
-    s.id = generate_uuid();
-    s.last_activity = Time::get_singleton()->get_unix_time_from_system();
-    sessions_[s.id] = s;
-    return s.id;
+    if (sessions_.size() >= kMaxSessions) {
+        cleanup_expired_sessions();
+    }
+    if (sessions_.size() >= kMaxSessions) {
+        log_warn("mcp", "Session limit reached, rejecting new session");
+        return String();
+    }
+    auto s = std::make_unique<Session>();
+    s->id = generate_uuid();
+    s->last_activity = Time::get_singleton()->get_unix_time_from_system();
+    const String id = s->id;
+    sessions_[id] = std::move(s);
+    return id;
 }
 
 bool McpHandler::destroy_session(const String &session_id) {
     auto it = sessions_.find(session_id);
     if (it == sessions_.end()) return false;
-    sessions_.erase(it->key);
+    sessions_.erase(it);
     return true;
 }
 
 bool McpHandler::validate_session(const String &session_id) const {
-    return sessions_.has(session_id);
+    return sessions_.find(session_id) != sessions_.end();
 }
 
 McpHandler::Session *McpHandler::find_session(const String &id) {
     auto it = sessions_.find(id);
-    return it != sessions_.end() ? &it->value : nullptr;
+    return it != sessions_.end() ? it->second.get() : nullptr;
 }
 
 void McpHandler::cleanup_expired_sessions() {
     const double now = Time::get_singleton()->get_unix_time_from_system();
 
     Vector<String> expired;
-    for (const KeyValue<String, Session> &kv : sessions_) {
-        if (now - kv.value.last_activity > kSessionTtl) {
-            expired.push_back(kv.key);
+    for (const auto &kv : sessions_) {
+        if (now - kv.second->last_activity > kSessionTtl) {
+            expired.push_back(kv.first);
         }
     }
     for (int i = 0; i < expired.size(); ++i) {
@@ -110,10 +118,10 @@ void McpHandler::cleanup_expired_sessions() {
     if (sessions_.size() > kMaxSessions) {
         String oldest_id;
         double oldest_time = static_cast<double>(INFINITY);
-        for (const KeyValue<String, Session> &kv : sessions_) {
-            if (kv.value.last_activity < oldest_time) {
-                oldest_time = kv.value.last_activity;
-                oldest_id = kv.key;
+        for (const auto &kv : sessions_) {
+            if (kv.second->last_activity < oldest_time) {
+                oldest_time = kv.second->last_activity;
+                oldest_id = kv.first;
             }
         }
         if (!oldest_id.is_empty()) {
@@ -127,7 +135,7 @@ void McpHandler::cleanup_expired_sessions() {
 // -------------------------------------------------------------------------
 bool McpHandler::has_pending_events(const String &session_id) const {
     auto it = sessions_.find(session_id);
-    return it != sessions_.end() && !it->value.sse_event_queue.is_empty();
+    return it != sessions_.end() && it->second && !it->second->sse_event_queue.is_empty();
 }
 
 Dictionary McpHandler::consume_event(const String &session_id) {
@@ -141,6 +149,9 @@ Dictionary McpHandler::consume_event(const String &session_id) {
 void McpHandler::enqueue_event(const String &session_id, const Dictionary &event) {
     Session *s = find_session(session_id);
     if (s) {
+        if (s->sse_event_queue.size() >= kMaxSseQueue) {
+            s->sse_event_queue.remove_at(0);
+        }
         s->sse_event_queue.push_back(event);
     }
 }
@@ -1016,12 +1027,15 @@ void McpHandler::handle_cancelled(const Dictionary &params, const String &sessio
     const Variant req_id = params.get("requestId", Variant());
     if (req_id.get_type() == Variant::NIL) return;
 
-    // Look up by composite key (session + id) so cancellation targets the
-    // right request even when multiple sessions share an id or use null ids.
+    // Always store in cancelled_requests_ - the tools/call might not have
+    // arrived yet. Storing unconditionally ensures the cancellation is
+    // effective regardless of message ordering.
+    cancelled_requests_[session_id] = req_id;
+
+    // Clean up from pending_requests_ if already registered
     const String key = pending_key(session_id, req_id);
     auto it = pending_requests_.find(key);
     if (it != pending_requests_.end()) {
-        cancelled_requests_[session_id] = req_id;
         pending_requests_.erase(it->key);
     }
 }
@@ -1032,9 +1046,9 @@ void McpHandler::handle_cancelled(const Dictionary &params, const String &sessio
 void McpHandler::notify_tools_list_changed() {
     const Dictionary notification = make_notification(
         "notifications/tools/list_changed", Dictionary());
-    for (KeyValue<String, Session> &kv : sessions_) {
-        if (kv.value.initialized) {
-            enqueue_event(kv.key, notification);
+    for (auto &kv : sessions_) {
+        if (kv.second->initialized) {
+            enqueue_event(kv.first, notification);
         }
     }
 }

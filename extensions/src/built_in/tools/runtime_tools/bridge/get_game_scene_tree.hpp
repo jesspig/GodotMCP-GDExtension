@@ -23,7 +23,7 @@ public:
     }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary p;
         {
             Dictionary d;

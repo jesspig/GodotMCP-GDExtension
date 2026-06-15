@@ -22,7 +22,7 @@ public:
         return String("Lists all signals defined on a given GDScript or built-in node, "
                             "including parameter names, types, and default values for each signal.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

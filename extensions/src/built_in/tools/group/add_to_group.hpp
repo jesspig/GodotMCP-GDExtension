@@ -18,7 +18,7 @@ public:
         return String("Adds a node to a scene group. "
                             "persistent=true means the group relationship is saved when the scene is saved.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

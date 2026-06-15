@@ -22,7 +22,7 @@ public:
         return "Triggers navigation mesh baking on a NavigationRegion2D or "
                "NavigationRegion3D node. Baking can be computationally expensive.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

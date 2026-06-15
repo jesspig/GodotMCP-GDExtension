@@ -23,7 +23,7 @@ public:
     String category_description() const override {
         return "Signal connection tools for connecting, disconnecting, and inspecting node signals";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

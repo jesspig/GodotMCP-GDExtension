@@ -25,7 +25,7 @@ public:
                "AudioStreamPlayer, AudioStreamPlayer2D, or AudioStreamPlayer3D node. "
                "Uses EditorUndoRedoManager for undo support.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

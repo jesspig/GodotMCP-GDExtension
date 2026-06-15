@@ -19,7 +19,7 @@ public:
                              "Equivalent to using the Run Specific Scene dialog. "
                              "Can be stopped via stop_project.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary p;
         {
             Dictionary d;

@@ -25,7 +25,7 @@ public:
                "If the script type does not match the node (e.g. a script inheriting from Node3D but the node is Node2D), "
                "the attach will still be allowed but may produce errors at runtime.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

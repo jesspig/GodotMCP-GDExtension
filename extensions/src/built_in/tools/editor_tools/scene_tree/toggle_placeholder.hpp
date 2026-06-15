@@ -21,7 +21,7 @@ public:
                "When enable is not specified, it automatically toggles the current state. "
                "Only applies to scene instance nodes. All changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

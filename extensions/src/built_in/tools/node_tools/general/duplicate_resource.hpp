@@ -19,7 +19,7 @@ public:
         return String("Deep-copies the resource on a node property and assigns the duplicate back to the property. "
                             "The copy is disconnected from the original; modifications to the copy will not affect the original.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

@@ -18,7 +18,7 @@ public:
         return String("Calls any registered tool by name. AI clients should prefer native tool calls "
                       "and only use this fallback when direct invocation is unavailable.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary schema;
         schema["type"] = "object";
         Dictionary props;

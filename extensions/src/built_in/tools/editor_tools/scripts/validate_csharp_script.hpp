@@ -21,7 +21,7 @@ public:
     String description() const override {
         return "Validate C# script file syntax using dotnet build --no-restore. Returns the validation result and exit code. Requires .NET SDK configured in the project.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

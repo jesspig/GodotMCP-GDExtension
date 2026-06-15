@@ -3,6 +3,8 @@
 #include "../registry/handler_registry.hpp"
 
 #include <functional>
+#include <map>
+#include <memory>
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/node.hpp>
@@ -61,6 +63,7 @@ public:
     static constexpr int kResourceNotFound = -32002;
     static constexpr int kServerTerminated = -32001;
 
+    static constexpr int kMaxSseQueue = 1000;
     static constexpr double kSessionTtl = 3600.0;
     static constexpr int kMaxSessions = 16;
 
@@ -115,7 +118,7 @@ private:
     void handle_cancelled(const Dictionary &params, const String &session_id);
 
     HandlerRegistry *registry_;
-    HashMap<String, Session> sessions_;
+    std::map<String, std::unique_ptr<Session>> sessions_;
     // Keyed by a composite "session\x1F<serialized_id>" so that null-id
     // requests and same-numbered ids from different sessions no longer collide
     // (the old key was just JSON::stringify(id), which collapsed all null-ids

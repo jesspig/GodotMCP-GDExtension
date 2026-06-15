@@ -17,7 +17,7 @@ public:
     String description() const override {
         return String("Removes a node from a scene group. Returns an error if the node is not in the group.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

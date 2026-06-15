@@ -19,7 +19,7 @@ public:
         return "Moves the specified node under new_parent. index=-1 appends at the end. "
                "If the new parent is a descendant of the original node, the operation is automatically detected and rejected. All changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

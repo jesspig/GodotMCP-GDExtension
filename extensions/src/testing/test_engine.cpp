@@ -121,7 +121,7 @@ void TestEngine::cleanup(const Array &tracked,
 
     // Find new files (after - before)
     Vector<String> new_files;
-    for (const KeyValue<String, bool> &kv : after_set) {
+    for (const auto &kv : after_set) {
         if (!before_set.has(kv.key)) {
             new_files.push_back(kv.key);
         }

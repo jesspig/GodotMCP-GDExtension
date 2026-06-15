@@ -19,7 +19,7 @@ public:
         return "Disable a plugin by its addons path "
                "(e.g. \"res://addons/my_plugin\").";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

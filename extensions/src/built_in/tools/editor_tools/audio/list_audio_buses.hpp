@@ -19,7 +19,7 @@ public:
         return "Returns a list of all audio buses from the AudioServer singleton, "
                "including name, solo, mute, bypass, volume_db, effect count, and send target.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         s["properties"] = Dictionary();

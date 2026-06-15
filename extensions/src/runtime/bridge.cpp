@@ -1,6 +1,7 @@
 #include "bridge.hpp"
 #include "logging.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <godot_cpp/classes/json.hpp>
 #include <godot_cpp/classes/os.hpp>
@@ -137,7 +138,7 @@ Dictionary RuntimeBridge::read_response(int timeout_ms) {
         } else {
             PackedByteArray remaining;
             remaining.resize(buf.size() - consumed);
-            memcpy(remaining.ptrw(), buf.ptr() + consumed, remaining.size());
+            std::copy_n(buf.ptr() + consumed, remaining.size(), remaining.ptrw());
             buf = remaining;
         }
         return result;

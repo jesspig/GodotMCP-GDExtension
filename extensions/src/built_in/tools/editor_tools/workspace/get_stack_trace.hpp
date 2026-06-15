@@ -24,7 +24,7 @@ public:
                       "Only available when the debugger is paused.");
     }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         s["properties"] = Dictionary();

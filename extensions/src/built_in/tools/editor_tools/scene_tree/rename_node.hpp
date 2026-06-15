@@ -20,7 +20,7 @@ public:
         return "Changes the name of the specified node. An empty name means no change (invalid operation). "
                "The new name must be unique among siblings under the same parent. All changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

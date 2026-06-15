@@ -20,7 +20,7 @@ public:
                "of a Godot class, including type, getter/setter, "
                "default value, and usage flags.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

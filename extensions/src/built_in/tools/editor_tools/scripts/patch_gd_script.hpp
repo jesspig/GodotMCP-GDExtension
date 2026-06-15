@@ -19,7 +19,7 @@ public:
     String description() const override {
         return "Perform precision text replacement in GDScript files. Replaces old_text with new_text, suitable for surgical modifications rather than rewriting the entire file. occurrence=0 replaces all matches, >0 replaces only the Nth occurrence. Set whole_word=true to only match at identifier boundaries (avoids accidental substring matches like 'score' inside 'highscore').";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

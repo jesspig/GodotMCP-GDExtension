@@ -18,7 +18,7 @@ public:
                       "description, parameters, parameter types, return value, return type, "
                       "required parameters, category path, and usage example.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary schema;
         schema["type"] = "object";
         Dictionary props;

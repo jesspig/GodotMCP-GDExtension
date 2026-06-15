@@ -23,7 +23,7 @@ public:
                "of an existing AnimationPlayer. If library_name is empty, auto-finds "
                "the first available library. Changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

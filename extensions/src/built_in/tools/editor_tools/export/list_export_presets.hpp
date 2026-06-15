@@ -19,7 +19,7 @@ public:
         return "List all configured export presets with their platform, "
                "enabled state, and features.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         s["properties"] = Dictionary();

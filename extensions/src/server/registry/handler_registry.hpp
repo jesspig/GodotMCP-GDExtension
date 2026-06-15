@@ -38,33 +38,33 @@ public:
     HandlerRegistry();
     ~HandlerRegistry();
 
-    bool unregister_custom_tool(const godot::String &name);
+    [[nodiscard]] bool unregister_custom_tool(const godot::String &name);
 
     void register_tool(std::unique_ptr<ITool> tool, bool is_custom = false);
-    void finalize_registration(); // call after all tools are registered
+    void finalize_registration();
     godot::Dictionary execute(const godot::String &name, const godot::Dictionary &args);
 
-    const ToolInfo *find_tool_info(const godot::String &name) const;
+    [[nodiscard]] const ToolInfo *find_tool_info(const godot::String &name) const;
 
     // --- Category queries (for progressive disclosure) ---
-    godot::Array get_categories() const;
-    godot::Array get_tools_in_category(const godot::String &category) const;
+    [[nodiscard]] godot::Array get_categories() const;
+    [[nodiscard]] godot::Array get_tools_in_category(const godot::String &category) const;
 
     // --- Always-on tools list ---
-    godot::Array get_always_on_tools() const;
+    [[nodiscard]] godot::Array get_always_on_tools() const;
 
     // --- Counts ---
-    int builtin_tool_count() const;
-    int custom_tool_count() const;
+    [[nodiscard]] int builtin_tool_count() const;
+    [[nodiscard]] int custom_tool_count() const;
 
     // --- Runtime bridge ---
     void set_runtime_bridge(RuntimeBridge *bridge) { runtime_bridge_ = bridge; }
     RuntimeBridge *get_runtime_bridge() const { return runtime_bridge_; }
 
     // --- Search engine ---
-    godot::Array search_tools(const godot::String &query, const godot::String &category = "", int limit = 20) const;
+    [[nodiscard]] godot::Array search_tools(const godot::String &query, const godot::String &category = "", int limit = 20) const;
     void record_tool_call(const godot::String &name);
-    godot::Array get_search_suggestions(const godot::String &prefix, int limit = 10) const;
+    [[nodiscard]] godot::Array get_search_suggestions(const godot::String &prefix, int limit = 10) const;
 
     // --- Version info ---
     void set_engine_version(const godot::String &v) { engine_version_ = v; }

@@ -26,7 +26,7 @@ public:
         return "Creates a DirectionalLight3D, OmniLight3D, or SpotLight3D node "
                "with optional color, energy, shadow, and range configuration.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

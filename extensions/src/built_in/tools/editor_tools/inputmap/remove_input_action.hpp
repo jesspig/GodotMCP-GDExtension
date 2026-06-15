@@ -19,7 +19,7 @@ public:
         return "Removes an action and all its event bindings from the InputMap. "
                "Fails if the action does not exist.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

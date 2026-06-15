@@ -18,7 +18,7 @@ public:
                              "The scene must have a root node inheriting from Node. "
                              "Can be stopped via stop_project.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         s["properties"] = Dictionary();

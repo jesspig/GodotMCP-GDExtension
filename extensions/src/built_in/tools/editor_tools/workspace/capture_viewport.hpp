@@ -18,7 +18,7 @@ public:
         return String("Captures the editor's 2D or 3D viewport screenshot and saves it to "
                       "res://screenshots/. Returns file path, dimensions, and format of the screenshot.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         Dictionary props;

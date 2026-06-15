@@ -20,7 +20,7 @@ public:
         return "Create a new shader (.gdshader or .gdshaderinc) resource "
                "with the specified mode and optional code template.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

@@ -24,7 +24,7 @@ public:
                       "Godot source editor/editor_log.cpp.");
     }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

@@ -21,7 +21,7 @@ public:
                "false locks it to a read-only instance view. "
                "Non-instance nodes return an error. All changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

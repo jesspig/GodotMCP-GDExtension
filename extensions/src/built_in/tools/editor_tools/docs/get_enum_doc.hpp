@@ -20,7 +20,7 @@ public:
                "of a Godot class, including all enum constants and "
                "their values. Supports both regular enums and bitfields.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

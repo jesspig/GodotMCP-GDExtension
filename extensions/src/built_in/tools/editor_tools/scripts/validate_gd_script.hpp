@@ -21,7 +21,7 @@ public:
     String description() const override {
         return "Validate GDScript file syntax using Godot's --check-only mode. Returns the validation result and exit code.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

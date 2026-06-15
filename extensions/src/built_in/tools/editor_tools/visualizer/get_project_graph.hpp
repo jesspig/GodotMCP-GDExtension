@@ -25,7 +25,7 @@ public:
                "Also returns the structure of the currently open scene in the editor. Read-only operation with no side effects.";
     }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

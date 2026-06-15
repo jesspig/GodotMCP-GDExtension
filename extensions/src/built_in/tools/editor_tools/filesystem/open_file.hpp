@@ -24,7 +24,7 @@ public:
                ".gdshader �?shader editor; .tres/.res �?resource editor; "
                "other files �?selected in the file system panel.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

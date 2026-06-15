@@ -22,7 +22,7 @@ public:
         return "Equivalent to copy_node + delete_node combined, but merged into a single undo action. "
                "The clipboard remains valid until pasted; Ctrl+Z restores the cut node. All changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

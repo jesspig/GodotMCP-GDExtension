@@ -57,7 +57,7 @@ public:
                "set_shader_parameter(). This is the correct API for shader uniforms "
                "and cannot be covered by the generic set_node_property tool.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

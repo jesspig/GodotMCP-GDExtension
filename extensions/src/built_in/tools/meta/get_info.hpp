@@ -23,7 +23,7 @@ public:
                       "engine version, project configuration, and editor state (current scene, "
                       "play status, open scenes list).");
     }
-    Dictionary input_schema() const override { Dictionary s; s["type"] = "object"; s["properties"] = Dictionary(); return s; }
+    Dictionary build_input_schema() const override { Dictionary s; s["type"] = "object"; s["properties"] = Dictionary(); return s; }
     bool is_meta() const override { return true; }
 
 protected:

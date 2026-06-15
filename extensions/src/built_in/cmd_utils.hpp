@@ -18,7 +18,9 @@
 #pragma once
 
 #include <functional>
+#include <cstdint>
 #include <godot_cpp/classes/dir_access.hpp>
+#include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
@@ -133,6 +135,24 @@ double args_float(const godot::Dictionary &args,
 bool args_bool(const godot::Dictionary &args,
                const godot::String &key,
                bool default_value = false);
+
+// ---------------------------------------------------------------------
+// Env helpers
+// ---------------------------------------------------------------------
+
+// Read a port number from environment variable with validation.
+// Returns default_port if env var is empty, unset, or out of range [1, 65535].
+inline int read_port_from_env(const godot::String &env_var, int default_port) {
+    godot::OS *os = godot::OS::get_singleton();
+    if (!os) return default_port;
+    const godot::String raw = os->get_environment(env_var);
+    if (raw.is_empty()) return default_port;
+    const int64_t parsed = raw.to_int();
+    if (parsed < 1 || parsed > 65535) {
+        return default_port;
+    }
+    return static_cast<int>(parsed);
+}
 
 // ---------------------------------------------------------------------
 // Response builders

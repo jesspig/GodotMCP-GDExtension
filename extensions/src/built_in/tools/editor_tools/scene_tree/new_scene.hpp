@@ -23,7 +23,7 @@ public:
                "(e.g. \"Node2D\", \"Node3D\", \"Control\", \"Node\"). "
                "Optionally specify the root name; the scene is held in memory and can be saved via save_scene.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

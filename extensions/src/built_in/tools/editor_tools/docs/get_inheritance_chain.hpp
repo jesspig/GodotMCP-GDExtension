@@ -20,7 +20,7 @@ public:
                "the class itself up to the root (Object or RefCounted). "
                "Returns the full chain as an ordered list.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

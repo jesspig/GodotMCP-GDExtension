@@ -23,7 +23,7 @@ public:
                "Creates a new ShaderMaterial if needed, or replaces "
                "the shader on an existing ShaderMaterial.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

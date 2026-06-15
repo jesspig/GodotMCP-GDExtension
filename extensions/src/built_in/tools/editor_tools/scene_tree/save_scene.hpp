@@ -18,7 +18,7 @@ public:
         return "Saves the currently open scene to disk. If path is empty, saves to the original .tscn path. "
                "Returns an error if the scene was never saved and path is empty.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

@@ -20,7 +20,7 @@ public:
                "of a Godot class, including arguments, return type, "
                "and flags.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

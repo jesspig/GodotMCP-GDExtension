@@ -21,7 +21,7 @@ public:
                "name left empty = keeps the original name. property_mapping can adjust property values (e.g. if the new type uses different property names). "
                "Note: properties exclusive to the original type will be lost. All changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

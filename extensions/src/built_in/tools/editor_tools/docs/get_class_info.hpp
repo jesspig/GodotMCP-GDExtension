@@ -21,7 +21,7 @@ public:
                "methods, properties, and signals. "
                "Provides detailed class metadata for documentation.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

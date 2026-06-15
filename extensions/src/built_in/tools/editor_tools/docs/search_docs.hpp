@@ -19,7 +19,7 @@ public:
         return "Search the Godot documentation via the editor's help system. "
                "Supports class, method, and topic queries.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

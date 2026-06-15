@@ -21,7 +21,7 @@ public:
                "Supports renaming and changing directory location. "
                "Automatically creates target parent directories.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

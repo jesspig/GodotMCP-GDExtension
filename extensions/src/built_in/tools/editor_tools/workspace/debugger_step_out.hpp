@@ -20,7 +20,7 @@ public:
                       "uses debug_next as a substitute).");
     }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s; s["type"] = "object"; s["properties"] = Dictionary();
         return s;
     }

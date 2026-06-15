@@ -20,7 +20,7 @@ public:
                "Uses FileAccess to write text content, then notifies EditorFileSystem to refresh. "
                "When content is not provided, uses the default canvas_item shader template.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

@@ -18,7 +18,7 @@ public:
                "across scene organization, scripting, performance, "
                "and UI design topics.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

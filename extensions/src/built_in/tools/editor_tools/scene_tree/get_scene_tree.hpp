@@ -21,7 +21,7 @@ public:
         return "Returns the full node tree of the currently edited scene, including name, type, path, child count, ownership status, and script path. "
                "max_depth=-1 means recurse to leaf nodes.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

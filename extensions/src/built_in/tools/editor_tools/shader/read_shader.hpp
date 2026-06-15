@@ -20,7 +20,7 @@ public:
         return "Load a shader resource and return its shader type (mode), "
                "source code, and uniform count.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

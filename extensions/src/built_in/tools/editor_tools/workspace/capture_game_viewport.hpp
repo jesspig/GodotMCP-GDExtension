@@ -19,7 +19,7 @@ public:
                       "res://screenshots/. Returns file path, dimensions, and format of the screenshot. "
                       "Returns an error if the game is not running.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         Dictionary props;

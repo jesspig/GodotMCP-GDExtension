@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/variant/array.hpp>
@@ -52,7 +53,8 @@ public:
     virtual godot::String name() const = 0;
     virtual godot::String brief() const = 0;
     virtual godot::String description() const = 0;
-    virtual godot::Dictionary input_schema() const = 0;
+    godot::Dictionary input_schema() const;
+    virtual godot::Dictionary build_input_schema() const = 0;
 
     // ── 两轴分类 ──
     // category() 返回分组 key（如 "scene", "node"），用于 list_tool_categories 归类
@@ -83,6 +85,9 @@ protected:
     // 子类实现业务逻辑，ctx 中 root/node 已保证非空（如果声明了 needs_scene/needs_node）
     virtual godot::Dictionary execute_impl(const ToolContext &ctx) = 0;
     bool is_destructive_ = false;
+
+private:
+    mutable std::optional<godot::Dictionary> schema_cache_;
 };
 
 } // namespace godot_mcp

@@ -21,7 +21,7 @@ public:
         return "Scan res://addons/ for plugins (plugin.cfg) and report "
                "each plugin's name, path, and enabled status.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         s["properties"] = Dictionary();

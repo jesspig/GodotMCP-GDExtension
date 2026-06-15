@@ -23,7 +23,7 @@ public:
                             "border color, border width, and corner radius. Can optionally apply "
                             "it as a theme stylebox override on a Control node.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

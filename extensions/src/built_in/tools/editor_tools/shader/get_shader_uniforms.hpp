@@ -20,7 +20,7 @@ public:
         return "Loads a shader resource and returns all uniform parameters "
                "with their names, types, default values, and hints.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

@@ -24,7 +24,7 @@ public:
                "Search scope is limited to res://. "
                "Match modes: exact, substring, glob, regex, fuzzy.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

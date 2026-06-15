@@ -19,7 +19,7 @@ public:
                "The clipboard persists within the Godot process across MCP tool calls. "
                "Carries node and scene instance data (with editor state), separate from the Godot editor's internal clipboard.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

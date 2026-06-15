@@ -20,7 +20,7 @@ public:
                             "If the property already has a resource, it will be replaced. "
                             "The resource type is determined by the property definition, or can be specified via the resource_type parameter.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

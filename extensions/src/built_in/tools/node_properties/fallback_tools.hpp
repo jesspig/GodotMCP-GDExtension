@@ -23,7 +23,7 @@ public:
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         Dictionary p;
@@ -79,7 +79,7 @@ public:
     bool needs_node() const override { return true; }
     // execute_impl 内部已通过 undoable_set() 自行处理 undo，避免外层空 Undo action
     bool supports_undo() const override { return false; }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         Dictionary p;

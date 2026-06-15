@@ -19,7 +19,7 @@ public:
                       "Can optionally write the config file directly to the project directory.");
     }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary schema;
         schema["type"] = "object";
 

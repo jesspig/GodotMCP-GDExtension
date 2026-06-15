@@ -21,7 +21,7 @@ public:
                       "EditorInterface::set_main_screen_editor().");
     }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

@@ -212,8 +212,10 @@ Array HandlerRegistry::get_categories() const {
     };
 
     CatNode root;
+    // Track top-level category descriptions during single traversal
+    HashMap<String, bool> top_level_filled;
 
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+    for (const auto &kv : tool_info_) {
         if (!kv.value.enabled) continue;
         const String &orig_cat = kv.value.category;
         if (orig_cat.is_empty()) continue;
@@ -230,28 +232,26 @@ Array HandlerRegistry::get_categories() const {
             node = &node->children[seg];
             node->total++;
 
-            // 中间节点/叶子节点都尝试填 desc,仅用 category_description()
-            // 不用 brief 兜底(brief 粒度太细,不适用于分类描述;
-            // HashMap 顺序不可控,brief 兜底会导致子分类 desc 错位)
-            if (node->description.is_empty() && !kv.value.category_description.is_empty()) {
-                node->description = kv.value.category_description;
+            if (!node->description.is_empty()) continue;
+            if (kv.value.category_description.is_empty()) continue;
+
+            node->description = kv.value.category_description;
+            if (i == 0) {
+                top_level_filled[seg] = true;
             }
         }
-        // 叶子节点:直接挂载 +1
         node->direct++;
     }
 
-    // 自动发现顶级分类的描述(description)
-    // label 使用 prettify_segment() 自动美化(如 "editor_tools" → "Editor Tools")
-    for (KeyValue<String, CatNode> &kv : root.children) {
-        const String &first_seg = kv.key;
-        for (const KeyValue<String, ToolInfo> &ti : tool_info_) {
+    // Fill top-level categories that didn't get a description from their own tools
+    for (auto &kv : root.children) {
+        if (top_level_filled.has(kv.key)) continue;
+        for (const auto &ti : tool_info_) {
             if (!ti.value.enabled) continue;
             int slash = ti.value.category.find("/");
             String ti_first = (slash >= 0) ? ti.value.category.substr(0, slash) : ti.value.category;
-            if (ti_first != first_seg) continue;
-
-            if (kv.value.description.is_empty() && !ti.value.category_description.is_empty()) {
+            if (ti_first != kv.key) continue;
+            if (!kv.value.description.is_empty() && !ti.value.category_description.is_empty()) {
                 kv.value.description = ti.value.category_description;
             }
         }
@@ -261,7 +261,7 @@ Array HandlerRegistry::get_categories() const {
     std::function<Array(const CatNode &, const String &)> node_to_subs =
         [&](const CatNode &parent, const String &parent_path) -> Array {
             std::vector<Dictionary> entries;
-            for (const KeyValue<String, CatNode> &kv : parent.children) {
+            for (const auto &kv : parent.children) {
                 const CatNode &child = kv.value;
                 const String child_path = parent_path.is_empty()
                                               ? child.name
@@ -290,7 +290,7 @@ Array HandlerRegistry::get_categories() const {
 
 Array HandlerRegistry::get_tools_in_category(const String &category) const {
     Array result;
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+    for (const auto &kv : tool_info_) {
         if (!kv.value.enabled) continue;
         if (kv.value.category == category) {
             result.push_back(make_tool_entry(kv.value));
@@ -305,7 +305,7 @@ Array HandlerRegistry::get_tools_in_category(const String &category) const {
 
 Array HandlerRegistry::get_always_on_tools() const {
     Array result;
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+    for (const auto &kv : tool_info_) {
         if (!kv.value.enabled) continue;
         if (kv.value.is_meta) {
             result.push_back(make_tool_entry(kv.value));
@@ -320,7 +320,7 @@ Array HandlerRegistry::get_always_on_tools() const {
 
 int HandlerRegistry::builtin_tool_count() const {
     int count = 0;
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+    for (const auto &kv : tool_info_) {
         if (!kv.value.is_custom) ++count;
     }
     return count;
@@ -328,7 +328,7 @@ int HandlerRegistry::builtin_tool_count() const {
 
 int HandlerRegistry::custom_tool_count() const {
     int count = 0;
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+    for (const auto &kv : tool_info_) {
         if (kv.value.is_custom) ++count;
     }
     return count;
@@ -354,7 +354,7 @@ PackedStringArray HandlerRegistry::tokenize(const String &text) {
 
 void HandlerRegistry::rebuild_search_index() {
     search_index_.clear();
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+    for (const auto &kv : tool_info_) {
         PackedStringArray tokens = tokenize(kv.value.name + String(" ") + kv.value.brief + String(" ") + kv.value.description);
         for (int i = 0; i < tokens.size(); ++i) {
             if (!search_index_.has(tokens[i])) {
@@ -381,7 +381,7 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
     HashMap<String, int> best_weight;
 
     // Single pass: evaluate all matching strategies for each tool (权重降序检查)
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+    for (const auto &kv : tool_info_) {
         if (!category.is_empty() && !kv.value.category.begins_with(category)) continue;
 
         const String name_lower = kv.value.name.to_lower();
@@ -423,7 +423,7 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
         int freq;
     };
     std::vector<ScoredTool> scored;
-    for (const KeyValue<String, int> &kv : best_weight) {
+    for (const auto &kv : best_weight) {
         ScoredTool st;
         st.name = kv.key;
         st.weight = kv.value;
@@ -463,7 +463,7 @@ Array HandlerRegistry::get_search_suggestions(const String &prefix, int limit) c
     HashMap<String, int> candidates;
 
     // Phase 1: Prefix match on tool names
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+    for (const auto &kv : tool_info_) {
         if (kv.value.name.to_lower().begins_with(p)) {
             auto fit = freq_index_.find(kv.key);
             candidates[kv.key] = (fit != freq_index_.end()) ? fit->value : 0;
@@ -471,7 +471,7 @@ Array HandlerRegistry::get_search_suggestions(const String &prefix, int limit) c
     }
 
     // Phase 2: Token prefix match for tools not already matched by name
-    for (const KeyValue<String, ToolInfo> &kv : tool_info_) {
+    for (const auto &kv : tool_info_) {
         if (candidates.has(kv.key)) continue;
         PackedStringArray tokens = tokenize(kv.value.name + String(" ") + kv.value.brief + String(" ") + kv.value.description);
         for (int i = 0; i < tokens.size(); ++i) {
@@ -489,7 +489,7 @@ Array HandlerRegistry::get_search_suggestions(const String &prefix, int limit) c
         int freq;
     };
     std::vector<SuggEntry> sorted;
-    for (const KeyValue<String, int> &kv : candidates) {
+    for (const auto &kv : candidates) {
         sorted.push_back({kv.key, kv.value});
     }
     std::sort(sorted.begin(), sorted.end(), [](const SuggEntry &a, const SuggEntry &b) {

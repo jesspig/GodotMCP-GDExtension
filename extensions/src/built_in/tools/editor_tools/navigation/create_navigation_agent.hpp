@@ -22,7 +22,7 @@ public:
         return "Creates a NavigationAgent node for pathfinding. "
                "Supports optional configuration of target/path distances and avoidance.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

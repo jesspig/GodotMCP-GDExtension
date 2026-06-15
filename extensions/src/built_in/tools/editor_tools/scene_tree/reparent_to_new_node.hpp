@@ -21,7 +21,7 @@ public:
                "then moves source_node under it. Equivalent to the editor's \"Reparent to New Node\" operation. "
                "The new parent inherits the owner relationship from the original parent. All changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

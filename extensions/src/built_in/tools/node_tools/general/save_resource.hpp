@@ -19,7 +19,7 @@ public:
     String description() const override {
         return String("Saves the resource on a node property to a file path. Supports .tres (text) and .res (binary) formats.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

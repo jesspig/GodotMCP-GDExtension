@@ -23,7 +23,7 @@ public:
                "Optionally creates an AnimationLibrary and adds it to the player. "
                "All changes are committed via EditorUndoRedoManager.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

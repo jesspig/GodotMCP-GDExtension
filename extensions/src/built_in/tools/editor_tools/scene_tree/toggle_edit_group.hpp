@@ -23,7 +23,7 @@ public:
                "This is distinct from toggle_lock (_edit_lock_) metadata. "
                "All changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

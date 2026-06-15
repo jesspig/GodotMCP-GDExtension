@@ -20,7 +20,7 @@ public:
                "Uses DirAccess::make_dir_recursive_absolute(). "
                "Can create nested directories in one call.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

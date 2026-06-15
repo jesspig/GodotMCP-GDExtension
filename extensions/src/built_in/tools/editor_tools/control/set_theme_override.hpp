@@ -26,7 +26,7 @@ public:
                             "on a Control node. Uses begin_bulk_theme_override/end_bulk_theme_override for batch "
                             "application. Undo restores previous values or removes new overrides.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

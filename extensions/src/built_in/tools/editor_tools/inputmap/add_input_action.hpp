@@ -19,7 +19,7 @@ public:
         return "Adds a new action to the InputMap with the specified deadzone. "
                "Fails if the action already exists.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

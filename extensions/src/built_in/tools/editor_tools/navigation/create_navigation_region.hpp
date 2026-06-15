@@ -26,7 +26,7 @@ public:
         return "Creates a NavigationRegion node with an associated navigation mesh resource. "
                "Supports 2D (NavigationPolygon) and 3D (NavigationMesh) with configurable properties.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

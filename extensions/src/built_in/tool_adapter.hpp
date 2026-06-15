@@ -39,7 +39,7 @@ public:
     godot::String category() const override { return category_; }
     godot::String brief() const override { return brief_; }
     godot::String description() const override { return description_; }
-    godot::Dictionary input_schema() const override { return input_schema_; }
+    godot::Dictionary build_input_schema() const override { return input_schema_; }
     bool is_meta() const override { return is_meta_; }
     bool needs_scene() const override { return needs_scene_; }
     bool needs_node() const override { return needs_node_; }

@@ -19,7 +19,7 @@ public:
     String description() const override {
         return "Create or overwrite a GDScript file. Writes directly when content is provided; creates a minimal valid script (extends Node) when content is empty. AI clients should provide complete script content.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

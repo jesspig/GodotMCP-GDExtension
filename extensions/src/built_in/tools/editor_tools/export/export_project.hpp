@@ -19,7 +19,7 @@ public:
         return "Export the current project using a configured export preset. "
                "Optionally specify an output path for the exported file.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

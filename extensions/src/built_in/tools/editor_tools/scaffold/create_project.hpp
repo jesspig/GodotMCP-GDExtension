@@ -24,7 +24,7 @@ public:
                "WARNING: This operation writes to the filesystem and cannot be undone.";
     }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

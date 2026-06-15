@@ -18,7 +18,7 @@ public:
     String description() const override {
         return String("Returns metadata of the resource on a specified node property, including type, path, name, whether it is built-in, and a list of all readable/writable properties.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

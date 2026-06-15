@@ -23,7 +23,7 @@ public:
                "Supports .tres (text format) and .res (binary format). "
                "The resource_type parameter can specify a Resource subclass (e.g. StyleBoxFlat, Curve, Gradient).";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

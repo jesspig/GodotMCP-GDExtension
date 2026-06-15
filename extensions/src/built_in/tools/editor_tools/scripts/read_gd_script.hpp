@@ -19,7 +19,7 @@ public:
     String description() const override {
         return "Read the contents of a GDScript file at the specified path. Returns the file path, full content, line count, and language type.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

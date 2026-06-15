@@ -20,7 +20,7 @@ public:
         return "List all registered input actions from the InputMap, "
                "including their bound events and deadzone values.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         s["properties"] = Dictionary();

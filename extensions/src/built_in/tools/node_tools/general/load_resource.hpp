@@ -20,7 +20,7 @@ public:
         return String("Loads a resource from a file path and assigns it to a node property. "
                             "Supports .tres, .res, .png, .ogg and all other Godot resource formats.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

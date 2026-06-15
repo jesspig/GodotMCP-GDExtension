@@ -24,7 +24,7 @@ public:
                "After saving, the branch can be re-instantiated using the instance_child_scene tool. "
                "This tool performs a structural transformation �?undo does not restore the file (only affects the node structure).";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

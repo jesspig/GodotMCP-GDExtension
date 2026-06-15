@@ -18,7 +18,7 @@ public:
     String description() const override {
         return "Recursively traverse the project directory and list all GDScript files. Supports filtering by directory, excluding addons, and maximum results limit.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

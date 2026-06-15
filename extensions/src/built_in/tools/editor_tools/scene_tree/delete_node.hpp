@@ -22,7 +22,7 @@ public:
         return "Deletes the specified node and all its children. Root node deletion is restricted by default. "
                "All changes go through EditorUndoRedoManager and can be restored with Ctrl+Z.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

@@ -21,7 +21,7 @@ public:
                "position can be \"up\" (move one forward), \"down\" (move one back), \"first\" (first position), \"last\" (last position), or an integer index. "
                "Out-of-range positions are automatically clamped. All changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

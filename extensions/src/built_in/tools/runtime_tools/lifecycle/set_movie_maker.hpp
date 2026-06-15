@@ -19,7 +19,7 @@ public:
                              "Equivalent to the Project > Enable Movie Maker menu item in the editor. "
                              "Use is_movie_maker_enabled to query the current state.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary p;
         {
             Dictionary d;

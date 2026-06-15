@@ -24,7 +24,7 @@ public:
                "consistent with Godot's SceneTreeDock official scene creation path. "
                "The scene includes a root Node by default.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

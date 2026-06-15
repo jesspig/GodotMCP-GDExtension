@@ -19,7 +19,7 @@ public:
         return "Validates export presets for completeness, checking platform, "
                "export path, features, and template installation status.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

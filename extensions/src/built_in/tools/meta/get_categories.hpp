@@ -18,7 +18,7 @@ public:
         return String("Returns the tool category tree. Specify path to drill into a specific "
                       "category, and max_depth to control expansion depth (default 3, -1 for unlimited).");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary schema;
         schema["type"] = "object";
         Dictionary props;

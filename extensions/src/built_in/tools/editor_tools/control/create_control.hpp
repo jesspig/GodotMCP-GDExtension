@@ -25,7 +25,7 @@ public:
                "Supports layout presets (full_rect, center, top_left, etc.) and optional size. "
                "Uses EditorUndoRedoManager for undo support.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

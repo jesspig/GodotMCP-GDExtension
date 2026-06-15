@@ -24,7 +24,7 @@ public:
                             "used cells count and positions, used rect, collision/navigation state, "
                             "y_sort_origin, and rendering quadrant size. Read-only, no undo needed.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

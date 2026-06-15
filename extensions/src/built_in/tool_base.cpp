@@ -64,6 +64,17 @@ Dictionary ToolResult::err_with_recoverable(const String &code, const String &me
 }
 
 // =========================================================================
+// ITool::input_schema — 缓存包装
+// =========================================================================
+
+Dictionary ITool::input_schema() const {
+    if (!schema_cache_) {
+        schema_cache_ = build_input_schema();
+    }
+    return *schema_cache_;
+}
+
+// =========================================================================
 // ITool::execute — 模板方法
 // =========================================================================
 

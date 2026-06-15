@@ -24,7 +24,7 @@ public:
                "If anim_player_path is empty, resolves the first "
                "AnimationPlayer found in the scene.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

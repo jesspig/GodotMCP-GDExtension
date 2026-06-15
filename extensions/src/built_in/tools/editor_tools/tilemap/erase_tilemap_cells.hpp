@@ -21,7 +21,7 @@ public:
         return String("Erases cells from a TileMapLayer by coordinate pairs. "
                             "Captures old cell data before erasing for undo support.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

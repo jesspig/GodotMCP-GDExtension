@@ -25,7 +25,7 @@ public:
                "Optionally specify new_name for the copy (default \"<orig>_copy\"). "
                "All changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

@@ -27,7 +27,7 @@ public:
                "Requires at least 2 selected nodes sharing the same parent. "
                "All changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

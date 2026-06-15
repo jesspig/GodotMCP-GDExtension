@@ -24,7 +24,7 @@ public:
                "Supports .tres (text) and .res (binary) formats. Useful for "
                "duplicating resources or forcing a re-save after external edits.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

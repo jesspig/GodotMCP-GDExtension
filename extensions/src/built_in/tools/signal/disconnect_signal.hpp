@@ -19,7 +19,7 @@ public:
     String description() const override {
         return String("Disconnects source_node's signal_name from target_node.target_method.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

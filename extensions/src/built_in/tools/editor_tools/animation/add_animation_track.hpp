@@ -44,7 +44,7 @@ public:
                "Supports value, position, rotation, scale, method, bezier, audio, "
                "and animation track types. Changes are undoable.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

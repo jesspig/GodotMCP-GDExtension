@@ -23,7 +23,7 @@ public:
         return String("Returns the list of established connections for a given signal (or all signals) on the specified node, "
                             "including target object, method name and flags for each connection.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

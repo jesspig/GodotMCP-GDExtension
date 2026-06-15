@@ -23,7 +23,7 @@ public:
                "in the root AnimationNodeStateMachine. The condition controls when "
                "the transition fires. Uses EditorUndoRedoManager for undo support.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

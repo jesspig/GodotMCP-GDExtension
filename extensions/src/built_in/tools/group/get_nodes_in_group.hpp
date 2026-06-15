@@ -19,7 +19,7 @@ public:
     String description() const override {
         return String("Returns the name, type and path of all nodes belonging to the specified group in the current scene tree.");
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

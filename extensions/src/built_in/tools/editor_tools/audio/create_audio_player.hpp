@@ -30,7 +30,7 @@ public:
                "Optionally loads an audio stream resource and configures bus, autoplay, and volume. "
                "Uses EditorUndoRedoManager for undo support.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;

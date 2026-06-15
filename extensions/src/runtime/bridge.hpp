@@ -37,7 +37,7 @@ private:
     godot::Ref<godot::StreamPeerTCP> tcp_;
     int port_ = 9601;
     int64_t next_id_ = 1;
-    unsigned long long connecting_since_ = 0;
+    uint64_t connecting_since_ = 0;
 };
 
 } // namespace godot_mcp

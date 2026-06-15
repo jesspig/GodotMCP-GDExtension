@@ -50,6 +50,7 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
 
     int line_start = first_lf + 2;
     int header_count = 0;
+    bool seen_content_length = false;
     while (line_start < header_end) {
         const int line_end = header_section.find("\r\n", line_start);
         if (line_end < 0) break;
@@ -62,6 +63,13 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
             }
             String key = line.substr(0, colon).to_lower().strip_edges();
             String value = line.substr(colon + 1).strip_edges();
+            if (key == "content-length") {
+                if (seen_content_length) {
+                    log_warn("http", "Duplicate Content-Length header rejected");
+                    return ERROR_PARSE;
+                }
+                seen_content_length = true;
+            }
             conn.headers[key] = value;
         }
         line_start = line_end + 2;

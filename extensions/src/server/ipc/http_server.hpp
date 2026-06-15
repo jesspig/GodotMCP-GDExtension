@@ -112,6 +112,12 @@ private:
     String get_cors_origin(const Connection &conn) const;
     static bool is_local_origin(const String &origin);
 
+    int rate_tokens_ = 30;
+    double rate_last_refill_ = 0.0;
+    static constexpr int kMaxTokens = 30;
+    static constexpr double kRefillRate = 30.0;
+    bool try_consume_rate();
+
     godot::Ref<godot::TCPServer> tcp_server_;
     godot::HashMap<int, Connection> connections_;
     int next_conn_id_ = 0;

@@ -26,7 +26,7 @@ public:
                "connects it to an AnimationPlayer, and creates a root AnimationNodeStateMachine. "
                "Uses EditorUndoRedoManager for undo support.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
