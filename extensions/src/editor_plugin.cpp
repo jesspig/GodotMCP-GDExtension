@@ -213,6 +213,13 @@ void McpEditorPlugin::_exit_tree() {
     runtime_bridge_.disconnect();
 
     http_server_.stop();
+
+    // Clean up SDK registry singleton
+    if (sdk_registry) {
+        memdelete(sdk_registry);
+        sdk_registry = nullptr;
+    }
+
     started_ = false;
     log_info("plugin", "Godot MCP shut down");
 }

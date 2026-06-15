@@ -139,7 +139,11 @@ protected:
 
         data["monitors"] = all_monitors;
 
-        bool is_running = godot::EditorInterface::get_singleton()->is_playing_scene();
+        bool is_running = false;
+        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        if (ei) {
+            is_running = ei->is_playing_scene();
+        }
         data["is_running"] = is_running;
 
         return ToolResult::ok(data);

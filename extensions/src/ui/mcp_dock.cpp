@@ -290,7 +290,9 @@ void McpDock::refresh_preview() {
 
 void McpDock::_on_copy_pressed() {
     if (!last_config_content_.is_empty()) {
-        DisplayServer::get_singleton()->clipboard_set(last_config_content_);
+        if (auto *ds = DisplayServer::get_singleton()) {
+            ds->clipboard_set(last_config_content_);
+        }
     }
 }
 

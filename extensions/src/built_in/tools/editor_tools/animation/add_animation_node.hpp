@@ -54,6 +54,20 @@ public:
             Dictionary p;
             p["type"] = "object";
             p["description"] = "Position in graph {x, y}";
+            Dictionary pos_props;
+            {
+                Dictionary px;
+                px["type"] = "number";
+                px["description"] = "X position";
+                px["default"] = 0;
+                pos_props["x"] = px;
+                Dictionary py;
+                py["type"] = "number";
+                py["description"] = "Y position";
+                py["default"] = 0;
+                pos_props["y"] = py;
+            }
+            p["properties"] = pos_props;
             props["position"] = p;
         }
         {

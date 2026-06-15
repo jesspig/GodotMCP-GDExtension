@@ -96,7 +96,10 @@ protected:
             return ToolResult::ok(data);
         }
 
-        godot::ResourceSaver::get_singleton()->save(res, path, godot::ResourceSaver::FLAG_CHANGE_PATH);
+        Error err = godot::ResourceSaver::get_singleton()->save(res, path, godot::ResourceSaver::FLAG_CHANGE_PATH);
+        if (err != godot::OK) {
+            return ToolResult::err("SAVE_FAILED", String("Failed to save resource: error ") + godot::itos(err));
+        }
 
         fs_utils::notify_file_changed(path);
 

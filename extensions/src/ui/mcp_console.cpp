@@ -430,7 +430,9 @@ void McpConsole::_on_context_menu_id_pressed(int32_t id) {
         case MENU_COPY_RESULT:text = JSON::stringify(entry.result, "  "); break;
     }
     if (!text.is_empty()) {
-        DisplayServer::get_singleton()->clipboard_set(text);
+        if (auto *ds = DisplayServer::get_singleton()) {
+            ds->clipboard_set(text);
+        }
     }
 }
 

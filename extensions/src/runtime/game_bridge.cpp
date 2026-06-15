@@ -202,7 +202,9 @@ void GameBridgeNode::read_clients() {
     String cmd = msg_dict.get("cmd", "");
     Dictionary params = msg_dict.get("params", Dictionary());
     Variant id_v = msg_dict.get("id", Variant());
-    int id = static_cast<int>((id_v.get_type() == Variant::FLOAT ? static_cast<double>(id_v ): static_cast<int64_t>(id_v)));
+    int64_t id = (id_v.get_type() == Variant::FLOAT
+        ? static_cast<int64_t>(static_cast<double>(id_v))
+        : static_cast<int64_t>(id_v));
 
     Dictionary result = dispatch(cmd, params);
     result["id"] = id;

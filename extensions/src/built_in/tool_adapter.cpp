@@ -38,9 +38,13 @@ Dictionary IToolAdapter::execute_impl(const ToolContext &ctx) {
         if (ret.get_type() == Variant::DICTIONARY) {
             return Dictionary(ret);
         }
-        Dictionary d;
-        d["result"] = ret;
-        return d;
+        Dictionary err_result;
+        err_result["success"] = false;
+        Dictionary err_obj;
+        err_obj["code"] = "INVALID_RESPONSE";
+        err_obj["message"] = "Tool returned non-dictionary result";
+        err_result["error"] = err_obj;
+        return err_result;
     }
 
     if (fn_) {
