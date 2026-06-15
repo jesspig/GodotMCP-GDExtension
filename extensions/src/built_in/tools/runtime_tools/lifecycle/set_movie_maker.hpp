@@ -41,10 +41,12 @@ protected:
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
         bool enabled = args_bool(ctx.args, "enabled");
+        // Capture the previous state BEFORE mutation; reading it after
+        // set_movie_maker_enabled() always returns the new value.
+        bool was_enabled = ei->is_movie_maker_enabled();
         ei->set_movie_maker_enabled(enabled);
         Dictionary data;
         data["action"] = "set_movie_maker_enabled";
-        bool was_enabled = ei->is_movie_maker_enabled();
         data["previous"] = was_enabled;
         data["current"] = enabled;
         return ToolResult::ok(data);

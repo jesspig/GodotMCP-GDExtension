@@ -20,8 +20,10 @@
 using namespace godot;
 
 namespace godot_mcp {
-// Forward declaration - defined in cmd_utils_json.cpp, no editor dependency
-Variant json_to_variant(const Variant &jv);
+// Forward declaration - defined in cmd_utils_json.cpp, no editor dependency.
+// Keep this signature in sync with cmd_utils.hpp (the depth default lives in
+// the header; redeclaring the default here would be an ODR violation, so omit it).
+Variant json_to_variant(const Variant &jv, int depth);
 
 // -----------------------------------------------------------------------
 // Lifecycle
@@ -337,7 +339,7 @@ Dictionary GameBridgeNode::handle_set_property(const Dictionary &params) {
         r["error"] = String("Node not found: ") + node_path;
         return r;
     }
-    node->set(property, json_to_variant(params.get("value", Variant())));
+    node->set(property, json_to_variant(params.get("value", Variant()), 0));
     Dictionary r;
     r["ok"] = true;
     r["data"] = node->get(property);
@@ -371,7 +373,7 @@ Dictionary GameBridgeNode::handle_call_method(const Dictionary &params) {
     Array converted_args;
     converted_args.resize(args.size());
     for (int i = 0; i < args.size(); i++) {
-        converted_args[i] = json_to_variant(args[i]);
+        converted_args[i] = json_to_variant(args[i], 0);
     }
     Variant result = node->callv(method, converted_args);
     Dictionary r;

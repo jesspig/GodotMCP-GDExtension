@@ -1,6 +1,7 @@
 ﻿
 #pragma once
 
+#include "built_in/cmd_utils.hpp"
 #include "built_in/tool_base.hpp"
 #include "server/registry/handler_registry.hpp"
 
@@ -96,7 +97,9 @@ protected:
 
         const Array all = reg_->get_categories();
         const String path = ctx.args.get("path", "");
-        const int max_depth = ctx.args.get("max_depth", 3);
+        // args_int handles INT/FLOAT/BOOL and falls back to the default; a raw
+        // Dictionary::get -> Variant -> int would abort on a non-numeric payload.
+        const int max_depth = static_cast<int>(args_int(ctx.args, "max_depth", 3));
         Array result;
 
         if (path.is_empty()) {

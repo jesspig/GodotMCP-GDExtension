@@ -1,6 +1,7 @@
 ﻿
 #pragma once
 
+#include "built_in/cmd_utils.hpp"
 #include "built_in/tool_base.hpp"
 #include "server/registry/handler_registry.hpp"
 
@@ -49,7 +50,10 @@ protected:
         }
         String query = ctx.args.get("query", "");
         String category = ctx.args.get("category", "");
-        int limit = ctx.args.get("limit", 20);
+        // args_int handles INT/FLOAT/BOOL and falls back to the default;
+        // a raw Dictionary::get -> Variant -> int would abort on a non-numeric
+        // payload (e.g. client sends "limit": "20").
+        int limit = static_cast<int>(args_int(ctx.args, "limit", 20));
         if (query.is_empty()) {
             return ToolResult::err("MISSING_PARAM", "Missing required parameter: query");
         }

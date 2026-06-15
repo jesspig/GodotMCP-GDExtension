@@ -184,7 +184,12 @@ namespace {
 
 // Heuristic: look at a Dictionary's keys and return the most specific
 // Godot type it represents, or NIL when it should stay a Dictionary.
-Variant dict_to_specific_type(const Dictionary &d) {
+// `depth` bounds recursion (mirrors variant_to_json's kMaxJsonDepth guard)
+// so a pathologically nested payload cannot exhaust the stack.
+Variant dict_to_specific_type(const Dictionary &d, int depth) {
+    if (depth > kMaxJsonDepth) {
+        return Variant();  // too deep -> caller keeps the original Dictionary
+    }
     const bool has_x = d.has("x");
     const bool has_y = d.has("y");
     const bool has_z = d.has("z");
@@ -208,10 +213,10 @@ Variant dict_to_specific_type(const Dictionary &d) {
         const Variant size_v = d["size"];
         // Recurse so the position/size become Vector2 first.
         const Variant pos = pos_v.get_type() == Variant::DICTIONARY
-                                ? dict_to_specific_type(pos_v)
+                                ? dict_to_specific_type(pos_v, depth + 1)
                                 : pos_v;
         const Variant size = size_v.get_type() == Variant::DICTIONARY
-                                 ? dict_to_specific_type(size_v)
+                                 ? dict_to_specific_type(size_v, depth + 1)
                                  : size_v;
         if (pos.get_type() == Variant::VECTOR2 && size.get_type() == Variant::VECTOR2) {
             return Rect2(static_cast<Vector2>(pos), static_cast<Vector2>(size));
@@ -242,7 +247,10 @@ Variant dict_to_specific_type(const Dictionary &d) {
 
 }  // namespace
 
-Variant json_to_variant(const Variant &jv) {
+Variant json_to_variant(const Variant &jv, int depth) {
+    if (depth > kMaxJsonDepth) {
+        return jv;  // too deep -> pass through unchanged (avoid stack overflow)
+    }
     switch (jv.get_type()) {
         case Variant::STRING: {
             const String s = jv;
@@ -256,7 +264,7 @@ Variant json_to_variant(const Variant &jv) {
         }
         case Variant::DICTIONARY: {
             const Dictionary d = jv;
-            const Variant specific = dict_to_specific_type(d);
+            const Variant specific = dict_to_specific_type(d, depth);
             if (specific.get_type() != Variant::NIL) {
                 return specific;
             }
@@ -265,7 +273,7 @@ Variant json_to_variant(const Variant &jv) {
             const Array keys = d.keys();
             for (int i = 0; i < keys.size(); ++i) {
                 const Variant k = keys[i];
-                out[k] = json_to_variant(d[k]);
+                out[k] = json_to_variant(d[k], depth + 1);
             }
             return out;
         }
@@ -293,7 +301,7 @@ Variant json_to_variant(const Variant &jv) {
             Array out;
             out.resize(src.size());
             for (int i = 0; i < src.size(); ++i) {
-                out[i] = json_to_variant(src[i]);
+                out[i] = json_to_variant(src[i], depth + 1);
             }
             return out;
         }

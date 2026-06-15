@@ -73,7 +73,7 @@ godot::Variant variant_to_json(const godot::Variant &v, int depth = 0);
 //   [a,b]/[a,b,c]/[a,b,c,d] -> Vector2/3 or Color shortcut
 //   "res://..."      -> ResourceLoader::load()
 //   primitives       -> passed through unchanged
-godot::Variant json_to_variant(const godot::Variant &jv);
+godot::Variant json_to_variant(const godot::Variant &jv, int depth = 0);
 
 // ---------------------------------------------------------------------
 // Editor write helpers

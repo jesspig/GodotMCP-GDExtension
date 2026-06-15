@@ -6,6 +6,7 @@
 
 #include <godot_cpp/classes/dir_access.hpp>
 #include <godot_cpp/classes/config_file.hpp>
+#include <godot_cpp/classes/file_access.hpp>
 
 namespace godot_mcp {
 
@@ -48,9 +49,11 @@ protected:
                 String plugin_name = cfg->get_value("plugin", "name", n);
                 bool enabled = false;
                 {
+                    // `.enabled` is a FILE marker, not a directory. DirAccess::open
+                    // only opens directories, so it always returned an invalid Ref
+                    // here and `enabled` was unconditionally false. Use file_exists.
                     String enabled_path = "res://addons/" + n + "/.enabled";
-                    godot::Ref<godot::DirAccess> check = godot::DirAccess::open(enabled_path);
-                    enabled = check.is_valid();
+                    enabled = godot::FileAccess::file_exists(enabled_path);
                 }
 
                 Dictionary entry;

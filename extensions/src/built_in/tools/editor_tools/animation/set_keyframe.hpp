@@ -147,6 +147,21 @@ protected:
             if (value.get_type() == Variant::NIL) {
                 return ToolResult::err("MISSING_ARG", "value is required for insert operation");
             }
+            // Detect a pre-existing key at this time. The old undo just did
+            // track_remove_key_at_time, which would also delete a keyframe that
+            // existed BEFORE this insert — silently destroying data on Ctrl+Z.
+            // If a key already exists, we promote this to a set_value (capture
+            // and restore the original); otherwise the insert undo is safe.
+            const int32_t existing_idx = animation->track_find_key(
+                static_cast<int32_t>(track_index), time, godot::Animation::FIND_MODE_APPROX);
+            const bool had_key = existing_idx >= 0;
+            const double existing_time = had_key
+                ? animation->track_get_key_time(static_cast<int32_t>(track_index), existing_idx)
+                : 0.0;
+            const Variant existing_value = had_key
+                ? animation->track_get_key_value(static_cast<int32_t>(track_index), existing_idx)
+                : Variant();
+
             if (!ur) {
                 animation->track_insert_key(static_cast<int32_t>(track_index), time, value);
                 mark_scene_dirty();
@@ -155,8 +170,14 @@ protected:
                                   godot::UndoRedo::MERGE_DISABLE, ctx.root);
                 ur->add_do_method(animation.ptr(), "track_insert_key",
                                   static_cast<int32_t>(track_index), time, value);
-                ur->add_undo_method(animation.ptr(), "track_remove_key_at_time",
-                                    static_cast<int32_t>(track_index), time);
+                if (had_key) {
+                    // Restore the pre-existing keyframe exactly.
+                    ur->add_undo_method(animation.ptr(), "track_insert_key",
+                                        static_cast<int32_t>(track_index), existing_time, existing_value);
+                } else {
+                    ur->add_undo_method(animation.ptr(), "track_remove_key_at_time",
+                                        static_cast<int32_t>(track_index), time);
+                }
                 ur->commit_action();
             }
         } else if (operation == "delete") {

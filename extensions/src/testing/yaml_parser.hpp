@@ -19,6 +19,12 @@ namespace detail {
         std::string tmp(s.data(), s.size());
         return godot::String(tmp.c_str());
     }
+
+    // Defense against malicious/crafted YAML delivered over /run-tests:
+    //   * kMaxYamlDepth caps structural nesting (prevents stack overflow)
+    //   * kMaxYamlChildren caps per-node children (prevents memory exhaustion)
+    inline constexpr size_t kMaxYamlDepth = 64;
+    inline constexpr size_t kMaxYamlChildren = 100000;
 }
 
 // Recursively convert a ryml NodeRef to a Godot Variant.
@@ -46,9 +52,16 @@ inline godot::Variant parse_scalar(const c4::csubstr &val) {
 }
 
 // Convert a ryml node to Godot Variant.
-// Handles map, seq, and scalar values.
-inline godot::Variant ryml_to_variant(ryml::ConstNodeRef node) {
+// Handles map, seq, and scalar values. `depth` bounds recursion so a
+// pathologically nested YAML payload cannot exhaust the stack.
+inline godot::Variant ryml_to_variant(ryml::ConstNodeRef node, size_t depth = 0) {
     using namespace godot;
+
+    if (depth > detail::kMaxYamlDepth) {
+        Dictionary err;
+        err["error"] = "YAML nesting too deep";
+        return err;
+    }
 
     if (node.is_stream()) {
         Dictionary err;
@@ -57,21 +70,31 @@ inline godot::Variant ryml_to_variant(ryml::ConstNodeRef node) {
     }
 
     if (node.is_map()) {
-        Dictionary dict;
         const auto nch = node.num_children();
+        if (nch > detail::kMaxYamlChildren) {
+            Dictionary err;
+            err["error"] = "YAML map has too many children";
+            return err;
+        }
+        Dictionary dict;
         for (size_t i = 0; i < nch; ++i) {
             const auto child = node.child(i);
             const godot::String key = detail::to_godot_string(child.key());
-            dict[key] = ryml_to_variant(child);
+            dict[key] = ryml_to_variant(child, depth + 1);
         }
         return dict;
     }
 
     if (node.is_seq()) {
-        Array arr;
         const auto nch = node.num_children();
+        if (nch > detail::kMaxYamlChildren) {
+            Dictionary err;
+            err["error"] = "YAML sequence has too many children";
+            return err;
+        }
+        Array arr;
         for (size_t i = 0; i < nch; ++i) {
-            arr.push_back(ryml_to_variant(node.child(i)));
+            arr.push_back(ryml_to_variant(node.child(i), depth + 1));
         }
         return arr;
     }

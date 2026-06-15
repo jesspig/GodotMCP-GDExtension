@@ -110,11 +110,14 @@ protected:
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(inst, "set_scene_file_path", scene_path);
             ur->add_do_method(inst, "set_scene_instance_load_placeholder", load_placeholder);
-            if (editable_children) {
-                ur->add_do_method(inst, "set_editable_instance", inst, true);
-            }
             ur->add_do_method(parent, "add_child", inst, true,
                               static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
+            // set_editable_instance(child, flag) is called on the PARENT of the
+            // instanced scene; passing `inst` to itself (old code) was a no-op.
+            // Must run AFTER add_child so inst is a child of parent.
+            if (editable_children) {
+                ur->add_do_method(parent, "set_editable_instance", inst, true);
+            }
             ur->add_undo_method(parent, "remove_child", inst);
             ur->add_do_reference(inst);
             ur->add_undo_reference(inst);
@@ -125,11 +128,13 @@ protected:
         } else {
             inst->set_scene_file_path(scene_path);
             inst->set_scene_instance_load_placeholder(load_placeholder);
-            if (editable_children) {
-                inst->set_editable_instance(inst, true);
-            }
             scene_tree_utils::assign_owner_recursive(inst, ctx.root);
             parent->add_child(inst, true, godot::Node::INTERNAL_MODE_DISABLED);
+            // set_editable_instance(child, flag) is called on the PARENT; the
+            // old `inst->set_editable_instance(inst, true)` was a no-op.
+            if (editable_children) {
+                parent->set_editable_instance(inst, true);
+            }
         }
 
         Dictionary data;

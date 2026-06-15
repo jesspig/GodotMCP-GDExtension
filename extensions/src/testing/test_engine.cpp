@@ -22,6 +22,12 @@ TestEngine::FileSnapshot TestEngine::take_snapshot() {
     EditorFileSystem *efs = ei->get_resource_filesystem();
     if (!efs) return snap;
 
+    // Force a rescan so the in-memory cache reflects the actual disk state.
+    // Without this, a tool that just wrote a file may not appear in `after`,
+    // so cleanup() would miss it (or worse, a stale cache entry could cause a
+    // pre-existing file to be misclassified as "new" and deleted.
+    efs->scan();
+
     EditorFileSystemDirectory *root = efs->get_filesystem();
     if (!root) return snap;
 
@@ -133,8 +139,11 @@ void TestEngine::cleanup(const Array &tracked,
             continue;
         }
 
-        // Safety: never delete res:// itself (protect project root)
-        if (path == "res://") {
+        // Safety: never touch anything outside res:// or res:// itself.
+        // The diff comes from the EditorFileSystem cache, which should only
+        // ever contain res:// paths, but guard defensively against a
+        // malformed/symlinked layout escaping the project root.
+        if (path == "res://" || !path.begins_with("res://")) {
             out_skipped.push_back(path);
             continue;
         }
@@ -151,9 +160,12 @@ void TestEngine::cleanup(const Array &tracked,
             }
         }
 
-        // Clean up empty parent directories (walk up, stop at res://)
+        // Clean up empty parent directories (walk up, stop at res://).
+        // Cap iterations to defend against pathological/symlink layouts that
+        // could otherwise make get_base_dir() spin, and check every remove()'s
+        // return value (the old code ignored failures silently).
         String dir_path = path.get_base_dir();
-        while (dir_path != "res://") {
+        for (int hop = 0; hop < 64 && dir_path != "res://" && dir_path.begins_with("res://"); ++hop) {
             Ref<DirAccess> d = DirAccess::open(dir_path);
             if (d.is_null()) break;
 
@@ -172,7 +184,14 @@ void TestEngine::cleanup(const Array &tracked,
                 Ref<DirAccess> parent = DirAccess::open(dir_path.get_base_dir());
                 if (parent.is_valid()) {
                     const String dir_name = dir_path.get_file();
-                    parent->remove(dir_name);
+                    const Error rm_err = parent->remove(dir_name);
+                    if (rm_err != OK) {
+                        log_warn("test_engine",
+                                 String("Failed to remove empty dir: ") + dir_path);
+                        break;  // stop walking if we can't remove this level
+                    }
+                } else {
+                    break;
                 }
             } else {
                 break;
@@ -280,6 +299,8 @@ Dictionary TestEngine::run(const String &yaml_content) {
     // --- Tests ---
     Array test_results;
     int total = 0, passed = 0, failed = 0;
+    bool teardown_failed = false;
+    String teardown_error;
 
     if (!before_all_error.is_empty()) {
         // before_all failed — report error and skip all tests
@@ -339,6 +360,12 @@ Dictionary TestEngine::run(const String &yaml_content) {
                 const String after_each_err = execute_chain(config["after_each"], "after_each");
                 if (!after_each_err.is_empty()) {
                     log_warn("test_engine", after_each_err);
+                    // A teardown failure leaves the suite in a dirty state; the
+                    // old code only log_warn'd and left the test green, which
+                    // hid real problems. Flip the result to failed and surface
+                    // the teardown error.
+                    result["passed"] = false;
+                    result["error"] = String("after_each failed: ") + after_each_err;
                 }
             }
 
@@ -362,6 +389,9 @@ Dictionary TestEngine::run(const String &yaml_content) {
         const String after_all_err = execute_chain(config["after_all"], "after_all");
         if (!after_all_err.is_empty()) {
             log_warn("test_engine", after_all_err);
+            // Surface suite-level teardown failure instead of swallowing it.
+            teardown_failed = true;
+            teardown_error = after_all_err;
         }
     }
 
@@ -379,6 +409,10 @@ Dictionary TestEngine::run(const String &yaml_content) {
     summary["failed"] = failed;
     summary["cleanup_deleted"] = deleted;
     summary["cleanup_skipped"] = skipped;
+    if (teardown_failed) {
+        summary["teardown_failed"] = true;
+        summary["teardown_error"] = teardown_error;
+    }
 
     suite_result["summary"] = summary;
     suite_result["tests"] = test_results;

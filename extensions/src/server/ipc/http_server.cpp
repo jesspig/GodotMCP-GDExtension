@@ -298,16 +298,12 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
         return;
     }
 
-    // MCP-Protocol-Version validation
-    auto pv_it = conn.headers.find("mcp-protocol-version");
-    if (pv_it != conn.headers.end()) {
-        const String negotiated = McpHandler::negotiate_protocol_version(pv_it->value);
-        if (negotiated != pv_it->value) {
-            send_response(conn_id, conn, 400, "Bad Request", "text/plain",
-                          "Unsupported protocol version. Supported: 2025-03-26, 2025-11-25");
-            return;
-        }
-    }
+    // MCP-Protocol-Version: do NOT reject here. negotiate_protocol_version()
+    // falls back to a supported version for unknown headers, and the actual
+    // negotiation happens in handle_initialize using the body's protocolVersion
+    // field. The previous strict pre-check rejected clients that sent a newer
+    // header version even though the body would have negotiated fine.
+    // (Header is still validated per-request by handle_message.)
 
     // Origin validation
     if (!validate_origin(conn)) {
@@ -374,7 +370,21 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
         Array responses;
         bool any_request = false;
         for (int i = 0; i < batch.size(); ++i) {
-            if (batch[i].get_type() != Variant::DICTIONARY) continue;
+            // Per JSON-RPC 2.0 §6, a non-dictionary batch element is itself
+            // invalid and must produce its own -32600 error response (the old
+            // code silently `continue`d, yielding a misleading 202 for an
+            // all-invalid batch).
+            if (batch[i].get_type() != Variant::DICTIONARY) {
+                Dictionary err_resp;
+                Dictionary err;
+                err["code"] = -32600; // Invalid Request
+                err["message"] = "Invalid Request: batch element must be an object";
+                err_resp["error"] = err;
+                err_resp["id"] = Variant(); // null per spec for unidentifiable
+                responses.push_back(err_resp);
+                any_request = true;
+                continue;
+            }
             String batch_sid = conn.session_id;
             const Dictionary resp = mcp_handler_->handle_message(batch[i], batch_sid);
             if (!batch_sid.is_empty()) conn.session_id = batch_sid;

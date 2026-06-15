@@ -57,7 +57,16 @@ protected:
             return ToolResult::err("NOT_AN_INSTANCE",
                 "Node is not a scene instance (no scene_file_path)");
         }
-        bool current = node->is_editable_instance(node);
+        // set_editable_instance(child, flag) is called on the PARENT, marking
+        // `child`'s scene-internal subtree editable. Calling node->set_editable_instance(node, ...)
+        // (node passed as its own child) is a silent no-op — the previous code
+        // did exactly that, so the toggle never took effect.
+        Node *parent = node->get_parent();
+        if (!parent) {
+            return ToolResult::err("ORPHAN_NODE",
+                "Node has no parent; editable children cannot be toggled");
+        }
+        bool current = parent->is_editable_instance(node);
         bool enable;
         if (ctx.args.has("enable")) {
             enable = static_cast<bool>(ctx.args["enable"]);
@@ -75,11 +84,11 @@ protected:
         if (ur) {
             ur->create_action("MCP: Toggle Editable Children",
                               godot::UndoRedo::MERGE_DISABLE, ctx.root);
-            ur->add_do_method(node, "set_editable_instance", node, enable);
-            ur->add_undo_method(node, "set_editable_instance", node, current);
+            ur->add_do_method(parent, "set_editable_instance", node, enable);
+            ur->add_undo_method(parent, "set_editable_instance", node, current);
             ur->commit_action();
         } else {
-            node->set_editable_instance(node, enable);
+            parent->set_editable_instance(node, enable);
         }
         Dictionary data;
         data["node"] = relative_path(ctx.root, node);

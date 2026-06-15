@@ -4,6 +4,9 @@
 #include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
+#include <charconv>
+#include <system_error>
+
 using namespace godot;
 
 namespace godot_mcp {
@@ -61,12 +64,20 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
 
     auto cl_it = conn.headers.find("content-length");
     if (cl_it != conn.headers.end()) {
-        conn.content_length = static_cast<int>(cl_it->value.to_int());
-        if (conn.content_length > kMaxBodyLength) {
-            log_warn("http", String("Content-Length ") + String::num_int64(conn.content_length) +
-                                 String(" exceeds max ") + String::num_int64(kMaxBodyLength));
+        // Parse Content-Length with strict bounds validation. The previous
+        // `static_cast<int>(to_int())` truncated an attacker-controlled int64
+        // header (e.g. 2147483648 -> negative), which silently bypassed the
+        // kMaxBodyLength cap below. Use std::from_chars on the raw UTF-8 bytes
+        // and reject anything negative or out of range *before* narrowing to int.
+        const CharString cl_utf8 = cl_it->value.utf8();
+        int64_t cl_value = 0;
+        const auto [ptr, ec] = std::from_chars(cl_utf8.ptr(), cl_utf8.ptr() + cl_utf8.length(), cl_value);
+        if (ec != std::errc{} || ptr != cl_utf8.ptr() + cl_utf8.length() ||
+            cl_value < 0 || cl_value > kMaxBodyLength) {
+            log_warn("http", String("Invalid or oversized Content-Length header"));
             return ERROR_PARSE;
         }
+        conn.content_length = static_cast<int>(cl_value);
     }
 
     if (conn.content_length <= 0 && conn.header_end_pos < conn.read_buf.size()) {
