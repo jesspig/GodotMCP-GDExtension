@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class ReparentNodeTool : public ITool {
 public:
-    String name() const override { return "reparent_node"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "reparent_node"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Change a node's parent";
     }
     String description() const override {
@@ -59,20 +59,18 @@ protected:
             return ToolResult::err("MISSING_ARG", "new_parent_path cannot be empty");
         }
 
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
         Node *old_parent = node->get_parent();
         if (!old_parent) {
             return ToolResult::err("ORPHAN_NODE",
                 "Node has no parent");
         }
-        Node *new_parent = resolve_node(ctx.root, new_parent_path);
-        if (!new_parent) {
-            return ToolResult::err("PARENT_NOT_FOUND",
-                "New parent node not found: " + new_parent_path);
+        Node *new_parent = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, new_parent_path, new_parent)) {
+            return ToolResult::err("PARENT_NOT_FOUND", err->get("message", ""));
         }
         if (new_parent == node) {
             return ToolResult::err("SELF_PARENT",
@@ -100,13 +98,11 @@ protected:
                 data["changed"] = false;
                 return ToolResult::ok(data);
             }
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Reparent (reorder)");
         if (ur) {
-            ur->create_action("MCP: Reparent (reorder)",
-                                  godot::UndoRedo::MERGE_DISABLE, ctx.root);
                 ur->add_do_method(new_parent, "move_child", node, target);
                 ur->add_undo_method(new_parent, "move_child", node, cur_idx);
-                ur->commit_action();
+                commit_undo_action(ur);
             } else {
                 new_parent->move_child(node, target);
             }
@@ -123,10 +119,8 @@ protected:
         if (target < 0) target = new_parent->get_child_count();
         if (target > new_parent->get_child_count()) target = new_parent->get_child_count();
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Reparent " + node->get_name());
         if (ur) {
-            ur->create_action("MCP: Reparent " + node->get_name(),
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(old_parent, "remove_child", node);
             ur->add_do_method(new_parent, "add_child", node, true,
                               static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
@@ -137,7 +131,7 @@ protected:
             ur->add_undo_method(old_parent, "move_child", node, old_index);
             ur->add_do_reference(node);
             ur->add_undo_reference(node);
-            ur->commit_action();
+            commit_undo_action(ur);
         } else {
             old_parent->remove_child(node);
             new_parent->add_child(node, true, godot::Node::INTERNAL_MODE_DISABLED);

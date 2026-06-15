@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/tile_map_layer.hpp>
@@ -12,9 +13,9 @@ namespace godot_mcp {
 
 class EraseTileMapCellsTool : public ITool {
 public:
-    String name() const override { return "erase_tilemap_cells"; }
-    String category() const override { return "editor_tools/tilemap"; }
-    String brief() const override {
+    String name() const noexcept override { return "erase_tilemap_cells"; }
+    String category() const noexcept override { return "editor_tools/tilemap"; }
+    String brief() const noexcept override {
         return String("Batch erase tiles from a TileMapLayer");
     }
     String description() const override {
@@ -51,11 +52,11 @@ protected:
             cells = ctx.args["cells"];
         }
 
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND", String("TileMapLayer not found: ") + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
-        godot::TileMapLayer *tilemap = godot::Object::cast_to<godot::TileMapLayer>(node);
+        auto *tilemap = godot::Object::cast_to<godot::TileMapLayer>(node);
         if (!tilemap) {
             return ToolResult::err("NOT_TILEMAP_LAYER", String("Node is not a TileMapLayer: ") + node_path);
         }
@@ -105,7 +106,7 @@ protected:
             old_cells.append(old_cell_data);
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = get_undo_redo();
         if (!ur) {
             for (int64_t i = 0; i < count; i++) {
                 godot::Vector2i coords = read_cell_arr(cells[i]);
@@ -113,27 +114,33 @@ protected:
             }
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Erase TileMap Cells"),
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
-
-            for (int64_t i = 0; i < count; i++) {
-                godot::Vector2i coords = read_cell_arr(cells[i]);
-                ur->add_do_method(tilemap, "erase_cell", coords);
-            }
-
-            for (int64_t i = 0; i < count; i++) {
-                Dictionary oc = old_cells[i];
-                godot::Vector2i coords = read_coords(oc, "coords");
-
-                bool had_cell = args_bool(oc, "has_cell", false);
-                if (had_cell) {
-                    int64_t old_sid = args_int(oc, "source_id", -1);
-                    godot::Vector2i old_ac = read_coords(oc, "atlas_coords");
-                    int64_t old_alt = args_int(oc, "alternative_tile", 0);
-                    ur->add_undo_method(tilemap, "set_cell", coords, static_cast<int>(old_sid), old_ac, static_cast<int>(old_alt));
+            auto *ur_action = begin_undo_action("MCP: Erase TileMap Cells");
+            if (!ur_action) {
+                for (int64_t i = 0; i < count; i++) {
+                    godot::Vector2i coords = read_cell_arr(cells[i]);
+                    tilemap->erase_cell(coords);
                 }
+                mark_scene_dirty();
+            } else {
+                for (int64_t i = 0; i < count; i++) {
+                    godot::Vector2i coords = read_cell_arr(cells[i]);
+                    ur_action->add_do_method(tilemap, "erase_cell", coords);
+                }
+
+                for (int64_t i = 0; i < count; i++) {
+                    Dictionary oc = old_cells[i];
+                    godot::Vector2i coords = read_coords(oc, "coords");
+
+                    bool had_cell = args_bool(oc, "has_cell", false);
+                    if (had_cell) {
+                        int64_t old_sid = args_int(oc, "source_id", -1);
+                        godot::Vector2i old_ac = read_coords(oc, "atlas_coords");
+                        int64_t old_alt = args_int(oc, "alternative_tile", 0);
+                        ur_action->add_undo_method(tilemap, "set_cell", coords, static_cast<int>(old_sid), old_ac, static_cast<int>(old_alt));
+                    }
+                }
+                commit_undo_action(ur_action);
             }
-            ur->commit_action();
         }
 
         Dictionary data;

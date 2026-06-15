@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class RemoveInputActionTool : public ITool {
 public:
-    String name() const override { return "remove_input_action"; }
-    String category() const override { return "editor_tools/inputmap"; }
-    String brief() const override {
+    String name() const noexcept override { return "remove_input_action"; }
+    String category() const noexcept override { return "editor_tools/inputmap"; }
+    String brief() const noexcept override {
         return "Remove an InputMap action";
     }
     String description() const override {
@@ -40,7 +40,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        godot::InputMap *im = godot::InputMap::get_singleton();
+        auto *im = godot::InputMap::get_singleton();
         if (!im) {
             return ToolResult::err("NO_INPUT_MAP", "InputMap not available");
         }
@@ -55,7 +55,7 @@ protected:
 
         godot::TypedArray<godot::StringName> actions = im->get_actions();
         bool found = false;
-        for (int i = 0; i < actions.size(); i++) {
+        for (int64_t i = 0; i < actions.size(); i++) {
             if (actions[i] == action_sn) {
                 found = true;
                 break;

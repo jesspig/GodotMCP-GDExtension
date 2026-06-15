@@ -15,9 +15,9 @@ namespace godot_mcp {
 
 class GroupSelectedNodesTool : public ITool {
 public:
-    String name() const override { return "group_selected_nodes"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "group_selected_nodes"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Group multiple selected nodes under a new parent node";
     }
     String description() const override {
@@ -60,11 +60,11 @@ protected:
         }
         if (new_name.is_empty()) new_name = new_class;
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
-        godot::EditorSelection *sel = ei->get_selection();
+        auto *sel = ei->get_selection();
         if (!sel) {
             return ToolResult::err("NO_SELECTION", "Failed to get EditorSelection");
         }
@@ -77,7 +77,7 @@ protected:
         // Validate all share the same parent
         Node *common_parent = nullptr;
         godot::TypedArray<int64_t> indices;
-        for (int i = 0; i < top.size(); i++) {
+        for (int64_t i = 0; i < top.size(); i++) {
             Node *n = godot::Object::cast_to<godot::Node>(top[i]);
             if (!n) continue;
             Node *p = n->get_parent();
@@ -112,19 +112,15 @@ protected:
         // capture indices and nodes for undo
         godot::Array nodes_arr;
         godot::Array indices_arr;
-        for (int i = 0; i < top.size(); i++) {
+        for (int64_t i = 0; i < top.size(); i++) {
             Node *n = godot::Object::cast_to<godot::Node>(top[i]);
             if (!n) continue;
             nodes_arr.append(n);
             indices_arr.append(static_cast<int64_t>(n->get_index()));
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Group Selected Nodes");
         if (ur) {
-            ur->create_action("MCP: Group Selected Nodes",
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
-
-            // do: add wrapper at the smallest index among selected
             int64_t min_idx = static_cast<int64_t>(indices_arr[0]);
             for (int i = 1; i < indices_arr.size(); i++) {
                 if (static_cast<int64_t>(indices_arr[i]) < min_idx) min_idx = static_cast<int64_t>(indices_arr[i]);
@@ -134,7 +130,7 @@ protected:
             ur->add_do_method(common_parent, "move_child", wrapper, min_idx);
 
             // do: move each selected into wrapper
-            for (int i = 0; i < nodes_arr.size(); i++) {
+            for (int64_t i = 0; i < nodes_arr.size(); i++) {
                 Node *n = godot::Object::cast_to<godot::Node>(nodes_arr[i]);
                 int64_t old_idx = static_cast<int64_t>(indices_arr[i]);
                 ur->add_do_method(common_parent, "remove_child", n);
@@ -151,7 +147,7 @@ protected:
 
             ur->add_do_reference(wrapper);
             ur->add_undo_reference(wrapper);
-            ur->commit_action();
+            commit_undo_action(ur);
         } else {
             int64_t min_idx = static_cast<int64_t>(indices_arr[0]);
             for (int i = 1; i < indices_arr.size(); i++) {
@@ -159,7 +155,7 @@ protected:
             }
             common_parent->add_child(wrapper, true, godot::Node::INTERNAL_MODE_DISABLED);
             common_parent->move_child(wrapper, min_idx);
-            for (int i = 0; i < nodes_arr.size(); i++) {
+            for (int64_t i = 0; i < nodes_arr.size(); i++) {
                 Node *n = godot::Object::cast_to<godot::Node>(nodes_arr[i]);
                 common_parent->remove_child(n);
                 wrapper->add_child(n, true, godot::Node::INTERNAL_MODE_DISABLED);

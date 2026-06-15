@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class PatchCsharpScriptTool : public ITool {
 public:
-    String name() const override { return "patch_csharp_script"; }
-    String category() const override { return "editor_tools/scripts"; }
-    String brief() const override {
+    String name() const noexcept override { return "patch_csharp_script"; }
+    String category() const noexcept override { return "editor_tools/scripts"; }
+    String brief() const noexcept override {
         return "Precision replace text in C# Script (.cs) files";
     }
     String description() const override {

@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation_node_state_machine.hpp>
 #include <godot_cpp/classes/animation_node_state_machine_transition.hpp>
@@ -13,9 +14,9 @@ namespace godot_mcp {
 
 class AddTransitionTool : public ITool {
 public:
-    String name() const override { return "add_transition"; }
-    String category() const override { return "editor_tools/animation"; }
-    String brief() const override {
+    String name() const noexcept override { return "add_transition"; }
+    String category() const noexcept override { return "editor_tools/animation"; }
+    String brief() const noexcept override {
         return "Add a transition between two states in an AnimationTree state machine";
     }
     String description() const override {
@@ -74,12 +75,11 @@ protected:
         double xfade_time = args_float(ctx.args, "xfade_time", 0.0);
         String switch_mode_str = args_string(ctx.args, "switch_mode", "immediate");
 
-        Node *node = resolve_node(ctx.root, tree_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("AnimationTree not found: ") + tree_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, tree_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
-        godot::AnimationTree *tree = Object::cast_to<godot::AnimationTree>(node);
+        auto *tree = Object::cast_to<godot::AnimationTree>(node);
         if (!tree) {
             return ToolResult::err("WRONG_TYPE",
                 String("Node is not an AnimationTree: ") + tree_path);
@@ -126,18 +126,16 @@ protected:
         trans->set_xfade_time(static_cast<float>(xfade_time));
         trans->set_switch_mode(switch_mode);
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Add Transition " + from + " -> " + to);
         if (!ur) {
             sm->add_transition(godot::StringName(from), godot::StringName(to), trans);
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Add Transition ") + from + " -> " + to,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(sm.ptr(), "add_transition",
                               godot::StringName(from), godot::StringName(to), trans);
             ur->add_undo_method(sm.ptr(), "remove_transition",
                                 godot::StringName(from), godot::StringName(to));
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
         Dictionary data;

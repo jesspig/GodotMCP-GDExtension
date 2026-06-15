@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -14,9 +14,9 @@ namespace godot_mcp {
 
 class GetConsoleOutputTool : public ITool {
 public:
-    String name() const override { return "get_console_output"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Get editor console output"); }
+    String name() const noexcept override { return "get_console_output"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Get editor console output"); }
     String description() const override {
         return String("Retrieves log content from the editor Output panel. Supports keyword search, "
                       "message type filtering, and MCP line exclusion. Messages are read from "
@@ -65,7 +65,7 @@ protected:
         bool exclude_mcp = args_bool(ctx.args, "exclude_mcp", true);
         int64_t max_lines = args_int(ctx.args, "max_lines", 500);
 
-        godot::RichTextLabel *rtl = find_console_rtl();
+        auto *rtl = find_console_rtl();
         if (!rtl) {
             return ToolResult::err("NO_CONSOLE", "Console not found");
         }

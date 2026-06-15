@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -10,9 +10,9 @@ class GetToolsTool : public ITool {
 public:
     void set_registry(HandlerRegistry *reg) override { reg_ = reg; }
 
-    String name() const override { return "get_tools"; }
-    String category() const override { return "meta_tools"; }
-    String brief() const override { return String("List all tools under a category path"); }
+    String name() const noexcept override { return "get_tools"; }
+    String category() const noexcept override { return "meta_tools"; }
+    String brief() const noexcept override { return String("List all tools under a category path"); }
     String description() const override {
         return String("Returns a brief list (id, name, description) of all tools registered "
                       "under the given category path. Does not include tools from subcategories.");
@@ -31,7 +31,7 @@ public:
         schema["required"] = req;
         return schema;
     }
-    bool is_meta() const override { return true; }
+    bool is_meta() const noexcept override { return true; }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {

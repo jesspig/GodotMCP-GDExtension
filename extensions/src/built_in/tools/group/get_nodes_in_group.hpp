@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class GetNodesInGroupTool : public ITool {
 public:
-    String name() const override { return "get_nodes_in_group"; }
-    String category() const override { return "node_tools/group"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_nodes_in_group"; }
+    String category() const noexcept override { return "node_tools/group"; }
+    String brief() const noexcept override {
         return String("Get all nodes in a group");
     }
     String description() const override {
@@ -43,14 +43,14 @@ protected:
             return ToolResult::err("MISSING_ARG", String("group_name cannot be empty"));
         }
 
-        godot::SceneTree *tree = ctx.root->get_tree();
+        auto *tree = ctx.root->get_tree();
         if (!tree) {
             return ToolResult::err("NO_TREE", String("Cannot get scene tree"));
         }
 
         godot::TypedArray<Node> nodes = tree->get_nodes_in_group(group_name);
         Array result;
-        for (int i = 0; i < nodes.size(); i++) {
+        for (int64_t i = 0; i < nodes.size(); i++) {
             Node *n = Object::cast_to<Node>(nodes[i]);
             if (!n) continue;
             Dictionary entry;

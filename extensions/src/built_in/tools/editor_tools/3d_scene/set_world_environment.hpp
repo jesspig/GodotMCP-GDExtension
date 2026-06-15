@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/editor_selection.hpp>
@@ -17,9 +18,9 @@ namespace godot_mcp {
 
 class SetWorldEnvironmentTool : public ITool {
 public:
-    String name() const override { return "set_world_environment"; }
-    String category() const override { return "editor_tools/3d_scene"; }
-    String brief() const override {
+    String name() const noexcept override { return "set_world_environment"; }
+    String category() const noexcept override { return "editor_tools/3d_scene"; }
+    String brief() const noexcept override {
         return "Create or modify a WorldEnvironment with Environment settings";
     }
     String description() const override {
@@ -113,10 +114,9 @@ protected:
         bool created = false;
 
         if (!node_path.is_empty()) {
-            Node *found = resolve_node(ctx.root, node_path);
-            if (!found) {
-                return ToolResult::err("NODE_NOT_FOUND",
-                    "WorldEnvironment not found: " + node_path);
+            Node *found = nullptr;
+            if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, found)) {
+                return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
             }
             world_env = Object::cast_to<godot::WorldEnvironment>(found);
             if (!world_env) {
@@ -124,8 +124,8 @@ protected:
                     "Node is not a WorldEnvironment: " + found->get_class());
             }
         } else {
-            Node *parent = resolve_node(ctx.root, parent_path);
-            if (!parent) {
+            Node *parent = nullptr;
+            if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
                 parent = ctx.root;
             }
 
@@ -136,20 +136,18 @@ protected:
             world_env->set_name("WorldEnvironment");
             created = true;
 
-            godot::EditorUndoRedoManager *ur = get_undo_redo();
+            auto *ur = begin_undo_action("MCP: Create WorldEnvironment");
             if (!ur) {
                 parent->add_child(world_env, true, Node::INTERNAL_MODE_DISABLED);
                 world_env->set_owner(ctx.root);
                 mark_scene_dirty();
             } else {
-                ur->create_action("MCP: Create WorldEnvironment",
-                                  godot::UndoRedo::MERGE_DISABLE, ctx.root);
                 ur->add_do_method(parent, "add_child", world_env, true,
                                   static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
                 ur->add_do_method(world_env, "set_owner", ctx.root);
                 ur->add_undo_method(parent, "remove_child", world_env);
                 ur->add_do_reference(world_env);
-                ur->commit_action();
+                commit_undo_action(ur);
             }
         }
 
@@ -233,9 +231,9 @@ protected:
             env->set_tonemapper(static_cast<godot::Environment::ToneMapper>(mode));
         }
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei && world_env->is_inside_tree()) {
-            godot::EditorSelection *sel = ei->get_selection();
+            auto *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(world_env);

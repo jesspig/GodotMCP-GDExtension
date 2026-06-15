@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class SetWorkspaceScriptTool : public ITool {
 public:
-    String name() const override { return "set_workspace_script"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Switch to Script workspace"); }
+    String name() const noexcept override { return "set_workspace_script"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Switch to Script workspace"); }
     String description() const override { return brief(); }
 
     Dictionary build_input_schema() const override {
@@ -23,7 +23,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         ei->set_main_screen_editor("Script");
         Dictionary d;

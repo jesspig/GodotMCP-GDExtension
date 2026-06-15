@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class RunSpecificSceneTool : public ITool {
 public:
-    String name() const override { return "run_specific_scene"; }
-    String category() const override { return "runtime_tools/lifecycle"; }
-    String brief() const override { return String("Run a specific scene file"); }
+    String name() const noexcept override { return "run_specific_scene"; }
+    String category() const noexcept override { return "runtime_tools/lifecycle"; }
+    String brief() const noexcept override { return String("Run a specific scene file"); }
     String description() const override {
         return String("Runs a specific scene file path. The path must start with res:// and point to a .tscn or .scn file. "
                              "Equivalent to using the Run Specific Scene dialog. "
@@ -36,7 +36,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }

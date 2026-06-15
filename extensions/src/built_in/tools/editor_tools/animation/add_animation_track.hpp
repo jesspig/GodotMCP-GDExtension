@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation.hpp>
 #include <godot_cpp/classes/animation_library.hpp>
@@ -33,9 +34,9 @@ static godot::Animation::InterpolationType _parse_interpolation(const String &s)
 
 class AddAnimationTrackTool : public ITool {
 public:
-    String name() const override { return "add_animation_track"; }
-    String category() const override { return "editor_tools/animation"; }
-    String brief() const override {
+    String name() const noexcept override { return "add_animation_track"; }
+    String category() const noexcept override { return "editor_tools/animation"; }
+    String brief() const noexcept override {
         return "Add a new track to an existing animation clip";
     }
     String description() const override {
@@ -106,13 +107,12 @@ protected:
             return ToolResult::err("MISSING_ARG", "clip_name and target_path are required");
         }
 
-        Node *node = resolve_node(ctx.root, anim_player_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("AnimationPlayer not found: ") + anim_player_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, anim_player_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
-        godot::AnimationPlayer *player = Object::cast_to<godot::AnimationPlayer>(node);
+        auto *player = Object::cast_to<godot::AnimationPlayer>(node);
         if (!player) {
             return ToolResult::err("WRONG_TYPE",
                 String("Node is not an AnimationPlayer: ") + anim_player_path);
@@ -147,22 +147,20 @@ protected:
 
         int32_t track_idx = animation->get_track_count();
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Add Animation Track");
         if (!ur) {
             animation->add_track(track_type);
             animation->track_set_path(track_idx, godot::NodePath(target_path));
             animation->track_set_interpolation_type(track_idx, interp);
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Add Animation Track"),
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(animation.ptr(), "add_track", track_type);
             ur->add_do_method(animation.ptr(), "track_set_path",
                               track_idx, godot::NodePath(target_path));
             ur->add_do_method(animation.ptr(), "track_set_interpolation_type",
                               track_idx, interp);
             ur->add_undo_method(animation.ptr(), "remove_track", track_idx);
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
         Dictionary data;

@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class ListCsharpScriptsTool : public ITool {
 public:
-    String name() const override { return "list_csharp_scripts"; }
-    String category() const override { return "editor_tools/scripts"; }
-    String brief() const override {
+    String name() const noexcept override { return "list_csharp_scripts"; }
+    String category() const noexcept override { return "editor_tools/scripts"; }
+    String brief() const noexcept override {
         return "List C# Script (.cs) files in the project";
     }
     String description() const override {

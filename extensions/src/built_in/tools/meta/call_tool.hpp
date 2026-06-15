@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -10,9 +10,9 @@ class CallToolTool : public ITool {
 public:
     void set_registry(HandlerRegistry *reg) override { reg_ = reg; }
 
-    String name() const override { return "call_tool"; }
-    String category() const override { return "meta_tools"; }
-    String brief() const override { return String("Fallback to call any registered tool (not recommended for direct use)"); }
+    String name() const noexcept override { return "call_tool"; }
+    String category() const noexcept override { return "meta_tools"; }
+    String brief() const noexcept override { return String("Fallback to call any registered tool (not recommended for direct use)"); }
     String category_description() const override { return String("Meta tools and system information queries"); }
     String description() const override {
         return String("Calls any registered tool by name. AI clients should prefer native tool calls "
@@ -36,7 +36,7 @@ public:
         schema["required"] = req;
         return schema;
     }
-    bool is_meta() const override { return true; }
+    bool is_meta() const noexcept override { return true; }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {

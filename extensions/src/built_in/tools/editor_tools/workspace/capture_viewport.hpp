@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class CaptureViewportTool : public ITool {
 public:
-    String name() const override { return "capture_viewport"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Capture editor 2D/3D viewport screenshot"); }
+    String name() const noexcept override { return "capture_viewport"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Capture editor 2D/3D viewport screenshot"); }
     String description() const override {
         return String("Captures the editor's 2D or 3D viewport screenshot and saves it to "
                       "res://screenshots/. Returns file path, dimensions, and format of the screenshot.");

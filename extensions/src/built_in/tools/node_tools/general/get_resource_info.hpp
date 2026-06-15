@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/resource.hpp>
@@ -10,9 +11,9 @@ namespace godot_mcp {
 
 class GetResourceInfoTool : public ITool {
 public:
-    String name() const override { return "get_resource_info"; }
-    String category() const override { return "node_tools/general"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_resource_info"; }
+    String category() const noexcept override { return "node_tools/general"; }
+    String brief() const noexcept override {
         return String("Get resource property metadata");
     }
     String description() const override {
@@ -50,10 +51,9 @@ protected:
             return ToolResult::err("MISSING_ARG", String("property_name cannot be empty"));
         }
 
-        Node *node = resolve_node(ctx.root, path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("Node not found ") + path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         Variant val = node->get(prop_name);
@@ -63,7 +63,7 @@ protected:
                 String("Property does not currently have a value"));
         }
 
-        godot::Resource *res = Object::cast_to<godot::Resource>(obj);
+        auto *res = Object::cast_to<godot::Resource>(obj);
         if (!res) {
             return ToolResult::err("NOT_A_RESOURCE",
                 String("Property is not a Resource type: ") + obj->get_class());
@@ -79,7 +79,7 @@ protected:
 
         Array prop_list = obj->get_property_list();
         Array editable;
-        for (int i = 0; i < prop_list.size(); i++) {
+        for (int64_t i = 0; i < prop_list.size(); i++) {
             Dictionary p = prop_list[i];
             int usage = static_cast<int>(p.get("usage", 0));
             String pname = p.get("name", "");

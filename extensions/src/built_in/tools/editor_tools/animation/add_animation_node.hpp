@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation_node.hpp>
 #include <godot_cpp/classes/animation_node_animation.hpp>
@@ -20,9 +21,9 @@ namespace godot_mcp {
 
 class AddAnimationNodeTool : public ITool {
 public:
-    String name() const override { return "add_animation_node"; }
-    String category() const override { return "editor_tools/animation"; }
-    String brief() const override {
+    String name() const noexcept override { return "add_animation_node"; }
+    String category() const noexcept override { return "editor_tools/animation"; }
+    String brief() const noexcept override {
         return "Add an animation node to an AnimationTree state machine";
     }
     String description() const override {
@@ -100,12 +101,11 @@ protected:
             position.y = static_cast<real_t>(args_float(pos, "y", 0.0));
         }
 
-        Node *node = resolve_node(ctx.root, tree_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("AnimationTree not found: ") + tree_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, tree_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
-        godot::AnimationTree *tree = Object::cast_to<godot::AnimationTree>(node);
+        auto *tree = Object::cast_to<godot::AnimationTree>(node);
         if (!tree) {
             return ToolResult::err("WRONG_TYPE",
                 String("Node is not an AnimationTree: ") + tree_path);
@@ -150,25 +150,22 @@ protected:
         }
 
         if (node_type == "animation" && !animation_name.is_empty()) {
-            godot::AnimationNodeAnimation *anim =
-                Object::cast_to<godot::AnimationNodeAnimation>(anim_node.ptr());
+            auto *anim = Object::cast_to<godot::AnimationNodeAnimation>(anim_node.ptr());
             if (anim) {
                 anim->set_animation(godot::StringName(animation_name));
             }
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Add AnimationNode " + node_name);
         if (!ur) {
             sm->add_node(godot::StringName(node_name), anim_node, position);
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Add AnimationNode ") + node_name,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(sm.ptr(), "add_node",
                               godot::StringName(node_name), anim_node, position);
             ur->add_undo_method(sm.ptr(), "remove_node",
                                 godot::StringName(node_name));
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
         Dictionary data;

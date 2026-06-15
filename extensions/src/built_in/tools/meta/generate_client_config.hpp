@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class GenerateClientConfigTool : public ITool {
 public:
-    String name() const override { return "generate_client_config"; }
-    String category() const override { return "meta_tools"; }
-    String brief() const override { return "Generate MCP client configuration for various AI coding assistants"; }
+    String name() const noexcept override { return "generate_client_config"; }
+    String category() const noexcept override { return "meta_tools"; }
+    String brief() const noexcept override { return "Generate MCP client configuration for various AI coding assistants"; }
     String description() const override {
         return String("Generates the appropriate MCP configuration file content for the specified AI client. "
                       "Supports 11+ clients including Claude Code, Cursor, VS Code Copilot, Codex, Trae, and more. "
@@ -51,7 +51,7 @@ public:
         return schema;
     }
 
-    bool is_meta() const override { return true; }
+    bool is_meta() const noexcept override { return true; }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {

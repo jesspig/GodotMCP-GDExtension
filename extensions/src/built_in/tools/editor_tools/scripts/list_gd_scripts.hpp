@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class ListGdScriptsTool : public ITool {
 public:
-    String name() const override { return "list_gd_scripts"; }
-    String category() const override { return "editor_tools/scripts"; }
-    String brief() const override {
+    String name() const noexcept override { return "list_gd_scripts"; }
+    String category() const noexcept override { return "editor_tools/scripts"; }
+    String brief() const noexcept override {
         return "List GDScript (.gd) files in the project";
     }
     String description() const override {

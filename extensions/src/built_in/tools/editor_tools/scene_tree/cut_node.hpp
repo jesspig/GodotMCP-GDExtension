@@ -13,9 +13,9 @@ namespace godot_mcp {
 
 class CutNodeTool : public ITool {
 public:
-    String name() const override { return "cut_node"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "cut_node"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Cut a node to the clipboard (deleting the original)";
     }
     String description() const override {
@@ -42,10 +42,9 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String node_path = args_string(ctx.args, "node_path");
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
         if (node == ctx.root) {
             return ToolResult::err("ROOT_NOT_ALLOWED",
@@ -66,24 +65,22 @@ protected:
         scene_tree_utils::set_clipboard(scene);
 
         int64_t index = node->get_index();
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Cut " + node->get_name());
         if (ur) {
-            ur->create_action("MCP: Cut " + node->get_name(),
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "remove_child", node);
             ur->add_undo_method(parent, "add_child", node, true,
                                 static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_undo_method(parent, "move_child", node, index);
             ur->add_do_reference(node);
             ur->add_undo_reference(node);
-            ur->commit_action();
+            commit_undo_action(ur);
         } else {
             parent->remove_child(node);
         }
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            godot::EditorSelection *sel = ei->get_selection();
+            auto *sel = ei->get_selection();
             if (sel) sel->clear();
         }
 

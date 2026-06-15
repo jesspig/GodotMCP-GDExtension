@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -8,9 +8,9 @@ namespace godot_mcp {
 
 class GetBestPracticesTool : public ITool {
 public:
-    String name() const override { return "get_best_practices"; }
-    String category() const override { return "editor_tools/docs"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_best_practices"; }
+    String category() const noexcept override { return "editor_tools/docs"; }
+    String brief() const noexcept override {
         return "Return Godot best practices and coding guidelines";
     }
     String description() const override {

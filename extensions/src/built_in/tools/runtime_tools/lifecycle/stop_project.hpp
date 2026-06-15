@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -13,9 +13,9 @@ class StopProjectTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
-    String name() const override { return "stop_project"; }
-    String category() const override { return "runtime_tools/lifecycle"; }
-    String brief() const override { return String("Stop the running project"); }
+    String name() const noexcept override { return "stop_project"; }
+    String category() const noexcept override { return "runtime_tools/lifecycle"; }
+    String brief() const noexcept override { return String("Stop the running project"); }
     String description() const override {
         return String("Stops the currently running project. Equivalent to pressing F8 (or clicking the Stop button) in the editor. "
                              "Does nothing if the project is not running.");
@@ -29,7 +29,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }

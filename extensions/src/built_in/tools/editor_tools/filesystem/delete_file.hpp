@@ -1,3 +1,4 @@
+#pragma warning(disable: 4828)  // non-UTF-8 bytes in file (known, harmless)
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -10,9 +11,9 @@ namespace godot_mcp {
 
 class DeleteFileTool : public ITool {
 public:
-    String name() const override { return "delete_file"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "delete_file"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Delete a file or directory";
     }
     String description() const override {
@@ -59,7 +60,7 @@ protected:
                 "Path does not exist: " + path);
         }
 
-        // Capture before deletion �?is_file() returns false after file is deleted
+        // Capture before deletion ??is_file() returns false after file is deleted
         bool was_dir = !fs_utils::is_file(path);
 
         Error err;

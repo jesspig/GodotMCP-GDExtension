@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class CreateGdshaderTool : public ITool {
 public:
-    String name() const override { return "create_gdshader"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_gdshader"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Create a Godot shader (.gdshader) file";
     }
     String description() const override {

@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -12,9 +12,9 @@ namespace godot_mcp {
 
 class GetConsoleErrorsTool : public ITool {
 public:
-    String name() const override { return "get_console_errors"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Get editor console error messages"); }
+    String name() const noexcept override { return "get_console_errors"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Get editor console error messages"); }
     String description() const override { return brief(); }
 
     Dictionary build_input_schema() const override {
@@ -24,7 +24,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        godot::RichTextLabel *rtl = find_console_rtl();
+        auto *rtl = find_console_rtl();
         if (!rtl) return ToolResult::err("NO_CONSOLE", "Console not found");
 
         PackedStringArray lines = rtl->get_text().split("\n", false);

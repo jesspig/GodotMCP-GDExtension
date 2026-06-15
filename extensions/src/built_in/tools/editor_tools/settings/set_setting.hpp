@@ -12,9 +12,9 @@ namespace godot_mcp {
 
 class SetSettingTool : public ITool {
 public:
-    String name() const override { return "set_setting"; }
-    String category() const override { return "editor_tools/settings"; }
-    String brief() const override {
+    String name() const noexcept override { return "set_setting"; }
+    String category() const noexcept override { return "editor_tools/settings"; }
+    String brief() const noexcept override {
         return "Set any project setting by path";
     }
     String description() const override {
@@ -51,7 +51,7 @@ protected:
         if (!ctx.args.has("value")) {
             return ToolResult::err("MISSING_PARAM", "value is required");
         }
-        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
+        auto *ps = godot::ProjectSettings::get_singleton();
         if (!ps->has_setting(path)) {
             return ToolResult::err("SETTING_NOT_FOUND",
                 String("Setting not found: ") + path);

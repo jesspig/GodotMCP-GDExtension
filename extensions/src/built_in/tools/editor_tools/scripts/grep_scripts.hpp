@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class GrepScriptsTool : public ITool {
 public:
-    String name() const override { return "grep_scripts"; }
-    String category() const override { return "editor_tools/scripts"; }
-    String brief() const override {
+    String name() const noexcept override { return "grep_scripts"; }
+    String category() const noexcept override { return "editor_tools/scripts"; }
+    String brief() const noexcept override {
         return "Search for text content in script files";
     }
     String description() const override {

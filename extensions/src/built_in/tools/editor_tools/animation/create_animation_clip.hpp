@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation.hpp>
 #include <godot_cpp/classes/animation_library.hpp>
@@ -13,9 +14,9 @@ namespace godot_mcp {
 
 class CreateAnimationClipTool : public ITool {
 public:
-    String name() const override { return "create_animation_clip"; }
-    String category() const override { return "editor_tools/animation"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_animation_clip"; }
+    String category() const noexcept override { return "editor_tools/animation"; }
+    String brief() const noexcept override {
         return "Create an Animation resource in an existing AnimationPlayer library";
     }
     String description() const override {
@@ -70,13 +71,12 @@ protected:
             return ToolResult::err("MISSING_ARG", "clip_name is required");
         }
 
-        Node *node = resolve_node(ctx.root, anim_player_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("AnimationPlayer not found: ") + anim_player_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, anim_player_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
-        godot::AnimationPlayer *player = Object::cast_to<godot::AnimationPlayer>(node);
+        auto *player = Object::cast_to<godot::AnimationPlayer>(node);
         if (!player) {
             return ToolResult::err("WRONG_TYPE",
                 String("Node is not an AnimationPlayer: ") + anim_player_path);
@@ -114,18 +114,16 @@ protected:
 
         animation->set_length(static_cast<float>(length));
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Create Animation Clip");
         if (!ur) {
             library->add_animation(godot::StringName(clip_name), animation);
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Create Animation Clip"),
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(library.ptr(), "add_animation",
                               godot::StringName(clip_name), animation);
             ur->add_undo_method(library.ptr(), "remove_animation",
                                 godot::StringName(clip_name));
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
         Dictionary data;

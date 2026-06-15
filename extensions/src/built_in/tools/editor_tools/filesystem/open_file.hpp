@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
@@ -13,16 +13,16 @@ namespace godot_mcp {
 
 class OpenFileTool : public ITool {
 public:
-    String name() const override { return "open_file"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "open_file"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Open a file in the editor";
     }
     String description() const override {
         return "Opens the specified file in the Godot editor. Routes to the appropriate editor component based on file extension: "
-               ".tscn �?scene editor; .gd �?script editor; "
-               ".gdshader �?shader editor; .tres/.res �?resource editor; "
-               "other files �?selected in the file system panel.";
+               ".tscn - scene editor; .gd - script editor; "
+               ".gdshader - shader editor; .tres/.res - resource editor; "
+               "other files - selected in the file system panel.";
     }
     Dictionary build_input_schema() const override {
         Dictionary props;
@@ -59,7 +59,7 @@ protected:
                 "File does not exist: " + path);
         }
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR",
                 "EditorInterface not available");
@@ -74,7 +74,7 @@ protected:
         } else if (ext == "gd" || ext == "gdshader" || ext == "cs" || ext == "csharp") {
             godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(path);
             if (res.is_null()) {
-                godot::EditorFileSystem *efs = godot::EditorInterface::get_singleton()->get_resource_filesystem();
+                auto *efs = godot::EditorInterface::get_singleton()->get_resource_filesystem();
                 if (efs) {
                     efs->update_file(path);
                 }
@@ -94,7 +94,7 @@ protected:
         } else if (ext == "tres" || ext == "res") {
             godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(path);
             if (res.is_null()) {
-                godot::EditorFileSystem *efs = godot::EditorInterface::get_singleton()->get_resource_filesystem();
+                auto *efs = godot::EditorInterface::get_singleton()->get_resource_filesystem();
                 if (efs) {
                     efs->update_file(path);
                 }

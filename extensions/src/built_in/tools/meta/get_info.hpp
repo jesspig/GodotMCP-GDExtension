@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -15,16 +15,16 @@ class GetInfoTool : public ITool {
 public:
     void set_registry(HandlerRegistry *reg) override { reg_ = reg; }
 
-    String name() const override { return "get_info"; }
-    String category() const override { return "meta_tools"; }
-    String brief() const override { return String("Return connection status and engine/plugin/project/editor information"); }
+    String name() const noexcept override { return "get_info"; }
+    String category() const noexcept override { return "meta_tools"; }
+    String brief() const noexcept override { return String("Return connection status and engine/plugin/project/editor information"); }
     String description() const override {
         return String("Returns the editor's runtime information, including connection status, "
                       "engine version, project configuration, and editor state (current scene, "
                       "play status, open scenes list).");
     }
     Dictionary build_input_schema() const override { Dictionary s; s["type"] = "object"; s["properties"] = Dictionary(); return s; }
-    bool is_meta() const override { return true; }
+    bool is_meta() const noexcept override { return true; }
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
@@ -49,7 +49,7 @@ protected:
         result["plugin"] = plugin;
 
         Dictionary project;
-        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
+        auto *ps = godot::ProjectSettings::get_singleton();
         project["name"] = ps->get_setting("application/config/name", String());
         project["path"] = ps->globalize_path("res://");
         Variant main_scene = ps->get_setting("application/run/main_scene");
@@ -57,7 +57,7 @@ protected:
         result["project"] = project;
 
         Dictionary editor;
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {
             String current = ei->get_edited_scene_root()
                                  ? ei->get_edited_scene_root()->get_scene_file_path()
@@ -66,7 +66,7 @@ protected:
             editor["is_playing"] = ei->is_playing_scene();
             PackedStringArray open_scenes = ei->get_open_scenes();
             Array open_arr;
-            for (int i = 0; i < open_scenes.size(); ++i) {
+            for (int64_t i = 0; i < open_scenes.size(); ++i) {
                 open_arr.push_back(open_scenes[i]);
             }
             editor["open_scenes"] = open_arr;

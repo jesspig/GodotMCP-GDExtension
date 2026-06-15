@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class ValidateExportPresetsTool : public ITool {
 public:
-    String name() const override { return "validate_export_presets"; }
-    String category() const override { return "editor_tools/export"; }
-    String brief() const override {
+    String name() const noexcept override { return "validate_export_presets"; }
+    String category() const noexcept override { return "editor_tools/export"; }
+    String brief() const noexcept override {
         return "Validate export preset configuration completeness";
     }
     String description() const override {
@@ -35,7 +35,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
@@ -45,7 +45,7 @@ protected:
         Array presets = ei->call("get_export_presets");
         Array results;
 
-        for (int i = 0; i < presets.size(); i++) {
+        for (int64_t i = 0; i < presets.size(); i++) {
             Dictionary preset = presets[i];
             String name = preset.get("name", "");
 
@@ -93,7 +93,7 @@ protected:
 
         int total_errors = 0;
         int total_warnings = 0;
-        for (int i = 0; i < results.size(); i++) {
+        for (int64_t i = 0; i < results.size(); i++) {
             Dictionary r = results[i];
             total_errors += static_cast<int>(r["error_count"]);
             total_warnings += static_cast<int>(r["warning_count"]);

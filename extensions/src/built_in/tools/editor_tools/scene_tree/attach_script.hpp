@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -13,9 +13,9 @@ namespace godot_mcp {
 
 class AttachScriptTool : public ITool {
 public:
-    String name() const override { return "attach_script"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "attach_script"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Attach a GDScript/C# script to a node";
     }
     String description() const override {
@@ -55,10 +55,9 @@ protected:
         if (script_path.is_empty()) {
             return ToolResult::err("MISSING_ARG", "script_path cannot be empty");
         }
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         godot::Ref<godot::Resource> res =
@@ -75,17 +74,15 @@ protected:
 
         godot::Ref<godot::Script> old_script = node->get_script();
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Attach Script " + script_path);
         if (ur) {
-            ur->create_action("MCP: Attach Script " + script_path,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "set_script", script);
             if (old_script.is_valid()) {
                 ur->add_undo_method(node, "set_script", old_script);
             } else {
                 ur->add_undo_method(node, "set_script", godot::Variant());
             }
-            ur->commit_action();
+            commit_undo_action(ur);
         } else {
             node->set_script(script);
         }

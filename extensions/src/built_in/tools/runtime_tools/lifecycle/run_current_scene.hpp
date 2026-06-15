@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class RunCurrentSceneTool : public ITool {
 public:
-    String name() const override { return "run_current_scene"; }
-    String category() const override { return "runtime_tools/lifecycle"; }
-    String brief() const override { return String("Run the currently open scene in the editor"); }
+    String name() const noexcept override { return "run_current_scene"; }
+    String category() const noexcept override { return "runtime_tools/lifecycle"; }
+    String brief() const noexcept override { return String("Run the currently open scene in the editor"); }
     String description() const override {
         return String("Runs the currently open scene in the editor. Equivalent to pressing F6 (or clicking the Run Current Scene button) in the editor. "
                              "The scene must have a root node inheriting from Node. "
@@ -27,7 +27,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }

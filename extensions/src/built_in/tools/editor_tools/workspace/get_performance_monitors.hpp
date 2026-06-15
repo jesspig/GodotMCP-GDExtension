@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -13,9 +13,9 @@ namespace godot_mcp {
 
 class GetPerformanceMonitorsTool : public ITool {
 public:
-    String name() const override { return "get_performance_monitors"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Get performance monitor data"); }
+    String name() const noexcept override { return "get_performance_monitors"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Get performance monitor data"); }
     String description() const override {
         return String("Reads monitor data from the Godot Performance singleton, including FPS, "
                       "memory usage, object count, render statistics, physics statistics, etc. "
@@ -44,7 +44,7 @@ protected:
             ? static_cast<Array>(ctx.args["monitors"]
 )            : Array();
 
-        godot::Performance *perf = godot::Performance::get_singleton();
+        auto *perf = godot::Performance::get_singleton();
         if (!perf) {
             return ToolResult::err("NO_PERF", "Performance singleton not available");
         }
@@ -140,7 +140,7 @@ protected:
         data["monitors"] = all_monitors;
 
         bool is_running = false;
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {
             is_running = ei->is_playing_scene();
         }

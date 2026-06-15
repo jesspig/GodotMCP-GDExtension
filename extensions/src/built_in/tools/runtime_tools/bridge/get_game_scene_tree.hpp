@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 class GetGameSceneTreeTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
-    String name() const override { return "get_game_scene_tree"; }
-    String category() const override { return "runtime_tools/bridge"; }
-    String brief() const override { return String("Get the scene tree of a running game"); }
+    String name() const noexcept override { return "get_game_scene_tree"; }
+    String category() const noexcept override { return "runtime_tools/bridge"; }
+    String brief() const noexcept override { return String("Get the scene tree of a running game"); }
     String description() const override {
         return String("Gets the full scene tree of the running game, including name, type and path of all nodes. "
                              "Optional max_depth parameter limits recursion depth (-1 for unlimited).");

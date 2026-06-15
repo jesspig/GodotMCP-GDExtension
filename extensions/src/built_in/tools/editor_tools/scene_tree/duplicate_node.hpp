@@ -14,9 +14,9 @@ namespace godot_mcp {
 
 class DuplicateNodeTool : public ITool {
 public:
-    String name() const override { return "duplicate_node"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "duplicate_node"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Duplicate a node and its children (under the same parent)";
     }
     String description() const override {
@@ -61,10 +61,9 @@ protected:
         String new_name = args_string(ctx.args, "new_name", "");
         int64_t index = args_int(ctx.args, "index", -1);
 
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
         Node *parent = node->get_parent();
         if (!parent) {
@@ -91,16 +90,14 @@ protected:
         int64_t new_parent_count = parent->get_child_count() + 1;  // includes the new one
         if (insert_idx > new_parent_count) insert_idx = new_parent_count;
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Duplicate " + node->get_name());
         if (ur) {
-            ur->create_action("MCP: Duplicate " + node->get_name(),
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", dup, true,
                               static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(parent, "move_child", dup, insert_idx);
             ur->add_undo_method(parent, "remove_child", dup);
             {
-                godot::UndoRedo *undo_redo = ur->get_history_undo_redo(
+                auto *undo_redo = ur->get_history_undo_redo(
                     ur->get_object_history_id(ctx.root));
                 auto assign_callable = callable_mp_static(scene_tree_utils::assign_owner_recursive);
                 undo_redo->add_do_method(assign_callable.bind(dup, ctx.root));
@@ -108,7 +105,7 @@ protected:
             }
             ur->add_do_reference(dup);
             ur->add_undo_reference(dup);
-            ur->commit_action();
+            commit_undo_action(ur);
         } else {
             parent->add_child(dup, true, godot::Node::INTERNAL_MODE_DISABLED);
             parent->move_child(dup, insert_idx);
@@ -118,9 +115,9 @@ protected:
         scene_tree_utils::assign_owner_recursive(dup, ctx.root);
 
         // select the new node
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            godot::EditorSelection *sel = ei->get_selection();
+            auto *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(dup);

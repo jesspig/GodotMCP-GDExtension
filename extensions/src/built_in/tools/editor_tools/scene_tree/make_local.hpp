@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -12,9 +12,9 @@ namespace godot_mcp {
 
 class MakeLocalTool : public ITool {
 public:
-    String name() const override { return "make_local"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "make_local"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Make a scene instance local (break external reference)";
     }
     String description() const override {
@@ -22,7 +22,7 @@ public:
                "(no longer linked to the original .tscn). "
                "All ownership is auto-rewritten to the current scene root. "
                "Equivalent to the editor's Make Local operation. Only applies to scene instance nodes. "
-               "All changes are undoable (restoring scene_file_path has limited support 鈥?old value must be recorded first).";
+               "All changes are undoable (restoring scene_file_path has limited support �?old value must be recorded first).";
     }
     Dictionary build_input_schema() const override {
         Dictionary props;
@@ -44,10 +44,9 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String node_path = args_string(ctx.args, "node_path");
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
         String old_sfp = node->get_scene_file_path();
         if (old_sfp.is_empty()) {
@@ -55,13 +54,11 @@ protected:
                 "Node is not a scene instance (no scene_file_path)");
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Make Local " + node->get_name());
         if (ur) {
-            ur->create_action("MCP: Make Local " + node->get_name(),
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "set_scene_file_path", String());
             ur->add_undo_method(node, "set_scene_file_path", old_sfp);
-            ur->commit_action();
+            commit_undo_action(ur);
         } else {
             node->set_scene_file_path("");
         }

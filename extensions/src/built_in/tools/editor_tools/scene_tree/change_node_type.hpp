@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class ChangeNodeTypeTool : public ITool {
 public:
-    String name() const override { return "change_node_type"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "change_node_type"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Change a node's type (preserving name, children, and property mapping)";
     }
     String description() const override {
@@ -70,10 +70,9 @@ protected:
             return ToolResult::err("UNKNOWN_CLASS",
                 "Unknown Godot class: " + new_type);
         }
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
         String old_type = node->get_class();
         if (old_type == new_type) {
@@ -115,7 +114,7 @@ protected:
         if (prop_mapping_var.get_type() == godot::Variant::DICTIONARY) {
             godot::Dictionary mapping = prop_mapping_var;
             godot::Array keys = mapping.keys();
-            for (int i = 0; i < keys.size(); i++) {
+            for (int64_t i = 0; i < keys.size(); i++) {
                 String old_key = keys[i];
                 String new_key = mapping[old_key];
                 if (node->has_meta(old_key)) {
@@ -130,23 +129,19 @@ protected:
             }
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Change Type " + old_type + " -> " + new_type);
         if (ur) {
-            ur->create_action("MCP: Change Type " + old_type +
-                                  " -> " + new_type,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "replace_by", new_node, true);
             ur->add_undo_method(new_node, "replace_by", node, true);
             ur->add_do_reference(new_node);
             ur->add_undo_reference(new_node);
             ur->add_do_reference(node);
             ur->add_undo_reference(node);
-            // Preserve child index
             if (old_index >= 0) {
                 ur->add_do_method(parent, "move_child", new_node, static_cast<int64_t>(old_index));
                 ur->add_undo_method(parent, "move_child", node, static_cast<int64_t>(old_index));
             }
-            ur->commit_action();
+            commit_undo_action(ur);
         } else {
             node->replace_by(new_node, true);
             if (parent->get_child_count() > 0) {

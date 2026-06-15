@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/editor_selection.hpp>
@@ -17,9 +18,9 @@ namespace godot_mcp {
 
 class CreateNavigationRegionTool : public ITool {
 public:
-    String name() const override { return "create_navigation_region"; }
-    String category() const override { return "editor_tools/navigation"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_navigation_region"; }
+    String category() const noexcept override { return "editor_tools/navigation"; }
+    String brief() const noexcept override {
         return "Create a NavigationRegion2D or NavigationRegion3D node";
     }
     String description() const override {
@@ -86,9 +87,9 @@ protected:
         double agent_radius = args_float(ctx.args, "agent_radius", 0.0);
         double agent_height = args_float(ctx.args, "agent_height", 0.0);
 
-        Node *parent = resolve_node(ctx.root, parent_path);
-        if (!parent) {
-            return ToolResult::err("NODE_NOT_FOUND", "Parent node not found: " + parent_path);
+        Node *parent = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         bool is_3d = (dimension != "2d");
@@ -121,7 +122,7 @@ protected:
             if (agent_height > 0.0) {
                 nav_mesh->set_agent_height(static_cast<real_t>(agent_height));
             }
-            godot::NavigationRegion3D *region = Object::cast_to<godot::NavigationRegion3D>(region_node);
+            auto *region = Object::cast_to<godot::NavigationRegion3D>(region_node);
             if (region) {
                 region->set_navigation_mesh(nav_mesh);
             }
@@ -138,31 +139,29 @@ protected:
             if (agent_radius > 0.0) {
                 nav_poly->set_agent_radius(static_cast<real_t>(agent_radius));
             }
-            godot::NavigationRegion2D *region = Object::cast_to<godot::NavigationRegion2D>(region_node);
+            auto *region = Object::cast_to<godot::NavigationRegion2D>(region_node);
             if (region) {
                 region->set_navigation_polygon(nav_poly);
             }
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Create " + class_name);
         if (!ur) {
             parent->add_child(region_node, true, Node::INTERNAL_MODE_DISABLED);
             region_node->set_owner(ctx.root);
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Create ") + class_name,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", region_node, true,
                               static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(region_node, "set_owner", ctx.root);
             ur->add_undo_method(parent, "remove_child", region_node);
             ur->add_undo_reference(region_node);
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            godot::EditorSelection *sel = ei->get_selection();
+            auto *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(region_node);

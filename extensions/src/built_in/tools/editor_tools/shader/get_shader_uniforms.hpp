@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class GetShaderUniformsTool : public ITool {
 public:
-    String name() const override { return "get_shader_uniforms"; }
-    String category() const override { return "editor_tools/shader"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_shader_uniforms"; }
+    String category() const noexcept override { return "editor_tools/shader"; }
+    String brief() const noexcept override {
         return "Query shader uniform parameters with type info";
     }
     String description() const override {

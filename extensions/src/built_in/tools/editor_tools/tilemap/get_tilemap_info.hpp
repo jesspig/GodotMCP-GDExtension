@@ -1,8 +1,9 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/tile_map_layer.hpp>
 #include <godot_cpp/classes/tile_set.hpp>
@@ -14,9 +15,9 @@ namespace godot_mcp {
 
 class GetTileMapInfoTool : public ITool {
 public:
-    String name() const override { return "get_tilemap_info"; }
-    String category() const override { return "editor_tools/tilemap"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_tilemap_info"; }
+    String category() const noexcept override { return "editor_tools/tilemap"; }
+    String brief() const noexcept override {
         return String("Query TileMapLayer metadata and cell data");
     }
     String description() const override {
@@ -44,11 +45,11 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String node_path = args_string(ctx.args, "node_path");
 
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND", String("TileMapLayer not found: ") + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
-        godot::TileMapLayer *tilemap = godot::Object::cast_to<godot::TileMapLayer>(node);
+        auto *tilemap = godot::Object::cast_to<godot::TileMapLayer>(node);
         if (!tilemap) {
             return ToolResult::err("NOT_TILEMAP_LAYER", String("Node is not a TileMapLayer: ") + node_path);
         }

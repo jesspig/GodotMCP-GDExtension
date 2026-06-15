@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class ReadShaderTool : public ITool {
 public:
-    String name() const override { return "read_shader"; }
-    String category() const override { return "editor_tools/shader"; }
-    String brief() const override {
+    String name() const noexcept override { return "read_shader"; }
+    String category() const noexcept override { return "editor_tools/shader"; }
+    String brief() const noexcept override {
         return "Read an existing shader resource's code";
     }
     String description() const override {

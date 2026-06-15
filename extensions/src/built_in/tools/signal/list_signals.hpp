@@ -1,8 +1,9 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/variant/array.hpp>
@@ -13,9 +14,9 @@ namespace godot_mcp {
 
 class ListSignalsTool : public ITool {
 public:
-    String name() const override { return "list_signals"; }
-    String category() const override { return "node_tools/signal"; }
-    String brief() const override {
+    String name() const noexcept override { return "list_signals"; }
+    String category() const noexcept override { return "node_tools/signal"; }
+    String brief() const noexcept override {
         return String("List all available signals for a node (with parameter info)");
     }
     String description() const override {
@@ -42,10 +43,9 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String path = args_string(ctx.args, "node_path", "");
-        Node *node = resolve_node(ctx.root, path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("Node not found: ") + path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         Array signals = node->get_signal_list();

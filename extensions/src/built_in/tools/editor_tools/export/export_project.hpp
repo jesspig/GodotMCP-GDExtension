@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class ExportProjectTool : public ITool {
 public:
-    String name() const override { return "export_project"; }
-    String category() const override { return "editor_tools/export"; }
-    String brief() const override {
+    String name() const noexcept override { return "export_project"; }
+    String category() const noexcept override { return "editor_tools/export"; }
+    String brief() const noexcept override {
         return "Export the project using a named preset";
     }
     String description() const override {
@@ -46,7 +46,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }

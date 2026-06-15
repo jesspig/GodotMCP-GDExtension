@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class GetPropertyDocTool : public ITool {
 public:
-    String name() const override { return "get_property_doc"; }
-    String category() const override { return "editor_tools/docs"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_property_doc"; }
+    String category() const noexcept override { return "editor_tools/docs"; }
+    String brief() const noexcept override {
         return "Get detailed documentation for a class property";
     }
     String description() const override {

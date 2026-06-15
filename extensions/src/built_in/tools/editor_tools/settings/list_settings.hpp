@@ -12,16 +12,16 @@ namespace godot_mcp {
 
 class ListSettingsTool : public ITool {
 public:
-    String name() const override { return "list_settings"; }
-    String category() const override { return "editor_tools/settings"; }
-    String brief() const override {
+    String name() const noexcept override { return "list_settings"; }
+    String category() const noexcept override { return "editor_tools/settings"; }
+    String brief() const noexcept override {
         return "List all project settings, optionally filtered";
     }
     String description() const override {
         return "Lists all project settings (including feature tag variants). Supports filtering by category prefix (e.g. \"display/window\") "
                "and text search. Returns setting name, type and current value.";
     }
-    bool is_meta() const override { return true; }
+    bool is_meta() const noexcept override { return true; }
     bool needs_scene() const override { return false; }
     bool needs_node() const override { return false; }
     Dictionary build_input_schema() const override {
@@ -52,12 +52,12 @@ protected:
         if (limit <= 0) limit = 200;
         if (limit > 5000) limit = 5000;
 
-        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
+        auto *ps = godot::ProjectSettings::get_singleton();
         Array prop_list = ps->get_property_list();
 
         Array results;
         int count = 0;
-        for (int i = 0; i < prop_list.size() && count < limit; i++) {
+        for (int64_t i = 0; i < prop_list.size() && count < limit; i++) {
             Dictionary prop = prop_list[i];
             String name = prop["name"];
 

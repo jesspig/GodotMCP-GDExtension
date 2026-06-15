@@ -13,9 +13,9 @@ namespace godot_mcp {
 
 class PasteNodeTool : public ITool {
 public:
-    String name() const override { return "paste_node"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "paste_node"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Paste a node from the clipboard";
     }
     String description() const override {
@@ -71,10 +71,8 @@ protected:
         Node *parent = nullptr;
         int64_t target_index = -1;
         if (!target_path.is_empty()) {
-            target = resolve_node(ctx.root, target_path);
-            if (!target) {
-                return ToolResult::err("TARGET_NOT_FOUND",
-                    "Target node not found: " + target_path);
+            if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, target_path, target)) {
+                return ToolResult::err("TARGET_NOT_FOUND", err->get("message", ""));
             }
         }
         if (mode == "child") {
@@ -116,10 +114,8 @@ protected:
         }
         // owner wired post-add_child (use a do_method so it captures in undo)
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Paste " + inst->get_name());
         if (ur) {
-            ur->create_action("MCP: Paste " + inst->get_name(),
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             if (mode == "replacement") {
                 ur->add_do_method(target, "replace_by", inst, true);
                 ur->add_undo_method(inst, "replace_by", target, true);
@@ -139,14 +135,14 @@ protected:
             }
             // Set owner as part of undo action
             {
-                godot::UndoRedo *undo_redo = ur->get_history_undo_redo(
+                auto *undo_redo = ur->get_history_undo_redo(
                     ur->get_object_history_id(ctx.root));
                 auto assign_callable = callable_mp_static(scene_tree_utils::assign_owner_recursive);
                 undo_redo->add_do_method(assign_callable.bind(inst, ctx.root));
                 undo_redo->add_undo_method(assign_callable.bind(inst, ctx.root));
             }
 
-            ur->commit_action();
+            commit_undo_action(ur);
 
             // Also set owner outside undo for immediate consistency
             scene_tree_utils::assign_owner_recursive(inst, ctx.root);
@@ -163,9 +159,9 @@ protected:
         }
 
         // select new node
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            godot::EditorSelection *sel = ei->get_selection();
+            auto *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(inst);

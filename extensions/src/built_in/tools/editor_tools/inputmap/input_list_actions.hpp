@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class InputListActionsTool : public ITool {
 public:
-    String name() const override { return "input_list_actions"; }
-    String category() const override { return "editor_tools/inputmap"; }
-    String brief() const override {
+    String name() const noexcept override { return "input_list_actions"; }
+    String category() const noexcept override { return "editor_tools/inputmap"; }
+    String brief() const noexcept override {
         return "List all input actions and their events";
     }
     String description() const override {
@@ -29,7 +29,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        godot::InputMap *im = godot::InputMap::get_singleton();
+        auto *im = godot::InputMap::get_singleton();
         if (!im) {
             return ToolResult::err("NO_INPUT_MAP", "InputMap not available");
         }
@@ -37,7 +37,7 @@ protected:
         godot::TypedArray<godot::StringName> actions = im->get_actions();
         Array results;
 
-        for (int i = 0; i < actions.size(); i++) {
+        for (int64_t i = 0; i < actions.size(); i++) {
             godot::StringName action = actions[i];
             Array events = im->action_get_events(action);
 
@@ -47,7 +47,7 @@ protected:
             entry["event_count"] = static_cast<int64_t>(events.size());
 
             Array event_list;
-            for (int e = 0; e < events.size(); e++) {
+            for (int64_t e = 0; e < events.size(); e++) {
                 godot::Ref<godot::InputEvent> event = events[e];
                 Dictionary ev_entry;
                 ev_entry["type"] = event->get_class();
@@ -59,7 +59,7 @@ protected:
 
                 Array props = event->get_property_list();
                 Dictionary prop_values;
-                for (int p = 0; p < props.size(); p++) {
+                for (int64_t p = 0; p < props.size(); p++) {
                     Dictionary prop = props[p];
                     String prop_name = prop["name"];
                     Variant val = event->get(prop_name);

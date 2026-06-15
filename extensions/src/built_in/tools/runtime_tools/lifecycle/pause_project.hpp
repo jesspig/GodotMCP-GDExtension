@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 class PauseProjectTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
-    String name() const override { return "pause_project"; }
-    String category() const override { return "runtime_tools/lifecycle"; }
-    String brief() const override { return String("Pause or resume the running project"); }
+    String name() const noexcept override { return "pause_project"; }
+    String category() const noexcept override { return "runtime_tools/lifecycle"; }
+    String brief() const noexcept override { return String("Pause or resume the running project"); }
     String description() const override {
         return String("Pauses or resumes the running project. When paused, the game scene's _process and _physics_process stop processing, "
                              "but the engine continues running. Equivalent to calling SceneTree.set_pause(). "

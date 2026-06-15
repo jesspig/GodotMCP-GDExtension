@@ -1,3 +1,4 @@
+#pragma warning(disable: 4828)  // non-UTF-8 bytes in file (known, harmless)
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -6,14 +7,14 @@
 namespace godot_mcp {
 
 // =====================================================================
-// GetNodePropertyTool â€” Generic fallback: read any property by name
+// GetNodePropertyTool ??Generic fallback: read any property by name
 // =====================================================================
 
 class GetNodePropertyTool : public ITool {
 public:
-    String name() const override { return "get_node_property"; }
-    String category() const override { return "node_tools/fallback"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_node_property"; }
+    String category() const noexcept override { return "node_tools/fallback"; }
+    String brief() const noexcept override {
         return "Read any property from a node by name";
     }
     String description() const override {
@@ -59,14 +60,14 @@ protected:
 };
 
 // =====================================================================
-// SetNodePropertyTool â€” Generic fallback: write any property by name
+// SetNodePropertyTool ??Generic fallback: write any property by name
 // =====================================================================
 
 class SetNodePropertyTool : public ITool {
 public:
-    String name() const override { return "set_node_property"; }
-    String category() const override { return "node_tools/fallback"; }
-    String brief() const override {
+    String name() const noexcept override { return "set_node_property"; }
+    String category() const noexcept override { return "node_tools/fallback"; }
+    String brief() const noexcept override {
         return "Write any property on a node by name (with undo)";
     }
     String description() const override {
@@ -77,7 +78,7 @@ public:
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }
-    // execute_impl å†…éƒ¨å·²é€šè¿‡ undoable_set() è‡ªè¡Œå¤„ç† undoï¼Œé¿å…å¤–å±‚ç©º Undo action
+    // execute_impl ÄÚ²¿ÒÑÍ¨¹ı undoable_set() ×ÔĞĞ´¦Àí undo£¬±ÜÃâÍâ²ã¿Õ Undo action
     bool supports_undo() const override { return false; }
     Dictionary build_input_schema() const override {
         Dictionary s;

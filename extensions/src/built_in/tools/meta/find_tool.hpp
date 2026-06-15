@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/cmd_utils.hpp"
@@ -11,9 +11,9 @@ class FindToolTool : public ITool {
 public:
     void set_registry(HandlerRegistry *reg) override { reg_ = reg; }
 
-    String name() const override { return "find_tool"; }
-    String category() const override { return "meta_tools"; }
-    String brief() const override { return "Search for tools by name, keyword, or description"; }
+    String name() const noexcept override { return "find_tool"; }
+    String category() const noexcept override { return "meta_tools"; }
+    String brief() const noexcept override { return "Search for tools by name, keyword, or description"; }
     String description() const override {
         return "Search the tool registry for matching tools. Supports exact name match, "
                "prefix match, token search, and fulltext description search. "
@@ -41,7 +41,7 @@ public:
         schema["required"] = req;
         return schema;
     }
-    bool is_meta() const override { return true; }
+    bool is_meta() const noexcept override { return true; }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {

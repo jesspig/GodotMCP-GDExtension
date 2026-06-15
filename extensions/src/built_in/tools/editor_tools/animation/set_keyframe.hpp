@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation.hpp>
 #include <godot_cpp/classes/animation_library.hpp>
@@ -13,9 +14,9 @@ namespace godot_mcp {
 
 class SetKeyframeTool : public ITool {
 public:
-    String name() const override { return "set_keyframe"; }
-    String category() const override { return "editor_tools/animation"; }
-    String brief() const override {
+    String name() const noexcept override { return "set_keyframe"; }
+    String category() const noexcept override { return "editor_tools/animation"; }
+    String brief() const noexcept override {
         return "Insert, modify, or delete a keyframe on a track";
     }
     String description() const override {
@@ -86,12 +87,11 @@ protected:
         Variant value = ctx.args.has("value") ? ctx.args["value"] : Variant();
         String operation = args_string(ctx.args, "operation", "insert");
 
-        Node *node = resolve_node(ctx.root, anim_player_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("AnimationPlayer not found: ") + anim_player_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, anim_player_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
-        godot::AnimationPlayer *player = Object::cast_to<godot::AnimationPlayer>(node);
+        auto *player = Object::cast_to<godot::AnimationPlayer>(node);
         if (!player) {
             return ToolResult::err("WRONG_TYPE",
                 String("Node is not an AnimationPlayer: ") + anim_player_path);
@@ -141,7 +141,7 @@ protected:
             }
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = get_undo_redo();
 
         if (operation == "insert") {
             if (value.get_type() == Variant::NIL) {
@@ -149,7 +149,7 @@ protected:
             }
             // Detect a pre-existing key at this time. The old undo just did
             // track_remove_key_at_time, which would also delete a keyframe that
-            // existed BEFORE this insert — silently destroying data on Ctrl+Z.
+            // existed BEFORE this insert �?silently destroying data on Ctrl+Z.
             // If a key already exists, we promote this to a set_value (capture
             // and restore the original); otherwise the insert undo is safe.
             const int32_t existing_idx = animation->track_find_key(
@@ -166,19 +166,22 @@ protected:
                 animation->track_insert_key(static_cast<int32_t>(track_index), time, value);
                 mark_scene_dirty();
             } else {
-                ur->create_action(String("MCP: Insert Keyframe"),
-                                  godot::UndoRedo::MERGE_DISABLE, ctx.root);
-                ur->add_do_method(animation.ptr(), "track_insert_key",
-                                  static_cast<int32_t>(track_index), time, value);
-                if (had_key) {
-                    // Restore the pre-existing keyframe exactly.
-                    ur->add_undo_method(animation.ptr(), "track_insert_key",
-                                        static_cast<int32_t>(track_index), existing_time, existing_value);
+                auto *ur_ins = begin_undo_action("MCP: Insert Keyframe");
+                if (!ur_ins) {
+                    animation->track_insert_key(static_cast<int32_t>(track_index), time, value);
+                    mark_scene_dirty();
                 } else {
-                    ur->add_undo_method(animation.ptr(), "track_remove_key_at_time",
-                                        static_cast<int32_t>(track_index), time);
+                    ur_ins->add_do_method(animation.ptr(), "track_insert_key",
+                                      static_cast<int32_t>(track_index), time, value);
+                    if (had_key) {
+                        ur_ins->add_undo_method(animation.ptr(), "track_insert_key",
+                                            static_cast<int32_t>(track_index), existing_time, existing_value);
+                    } else {
+                        ur_ins->add_undo_method(animation.ptr(), "track_remove_key_at_time",
+                                            static_cast<int32_t>(track_index), time);
+                    }
+                    commit_undo_action(ur_ins);
                 }
-                ur->commit_action();
             }
         } else if (operation == "delete") {
             int32_t key_idx = animation->track_find_key(
@@ -194,13 +197,17 @@ protected:
                 animation->track_remove_key_at_time(static_cast<int32_t>(track_index), time);
                 mark_scene_dirty();
             } else {
-                ur->create_action(String("MCP: Delete Keyframe"),
-                                  godot::UndoRedo::MERGE_DISABLE, ctx.root);
-                ur->add_do_method(animation.ptr(), "track_remove_key_at_time",
-                                  static_cast<int32_t>(track_index), time);
-                ur->add_undo_method(animation.ptr(), "track_insert_key",
-                                    static_cast<int32_t>(track_index), exact_time, old_value);
-                ur->commit_action();
+                auto *ur_del = begin_undo_action("MCP: Delete Keyframe");
+                if (!ur_del) {
+                    animation->track_remove_key_at_time(static_cast<int32_t>(track_index), time);
+                    mark_scene_dirty();
+                } else {
+                    ur_del->add_do_method(animation.ptr(), "track_remove_key_at_time",
+                                      static_cast<int32_t>(track_index), time);
+                    ur_del->add_undo_method(animation.ptr(), "track_insert_key",
+                                        static_cast<int32_t>(track_index), exact_time, old_value);
+                    commit_undo_action(ur_del);
+                }
             }
         } else if (operation == "set_value") {
             if (value.get_type() == Variant::NIL) {
@@ -218,13 +225,17 @@ protected:
                 animation->track_set_key_value(static_cast<int32_t>(track_index), key_idx, value);
                 mark_scene_dirty();
             } else {
-                ur->create_action(String("MCP: Set Keyframe Value"),
-                                  godot::UndoRedo::MERGE_DISABLE, ctx.root);
-                ur->add_do_method(animation.ptr(), "track_set_key_value",
-                                  static_cast<int32_t>(track_index), key_idx, value);
-                ur->add_undo_method(animation.ptr(), "track_set_key_value",
-                                    static_cast<int32_t>(track_index), key_idx, old_value);
-                ur->commit_action();
+                auto *ur_set = begin_undo_action("MCP: Set Keyframe Value");
+                if (!ur_set) {
+                    animation->track_set_key_value(static_cast<int32_t>(track_index), key_idx, value);
+                    mark_scene_dirty();
+                } else {
+                    ur_set->add_do_method(animation.ptr(), "track_set_key_value",
+                                      static_cast<int32_t>(track_index), key_idx, value);
+                    ur_set->add_undo_method(animation.ptr(), "track_set_key_value",
+                                        static_cast<int32_t>(track_index), key_idx, old_value);
+                    commit_undo_action(ur_set);
+                }
             }
         } else {
             return ToolResult::err("INVALID_OPERATION",

@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/editor_selection.hpp>
@@ -24,9 +25,9 @@ namespace godot_mcp {
 
 class CreateMeshInstance3DTool : public ITool {
 public:
-    String name() const override { return "create_mesh_instance_3d"; }
-    String category() const override { return "editor_tools/3d_scene"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_mesh_instance_3d"; }
+    String category() const noexcept override { return "editor_tools/3d_scene"; }
+    String brief() const noexcept override {
         return "Create a MeshInstance3D with a primitive or custom mesh";
     }
     String description() const override {
@@ -97,9 +98,9 @@ protected:
             return ToolResult::err("BAD_PARAM", "mesh_type is required");
         }
 
-        Node *parent = resolve_node(ctx.root, parent_path);
-        if (!parent) {
-            return ToolResult::err("NODE_NOT_FOUND", "Parent node not found: " + parent_path);
+        Node *parent = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         Dictionary size_dict;
@@ -130,20 +131,18 @@ protected:
             String inst_name = node_name.is_empty() ? instance->get_name() : node_name;
             instance->set_name(inst_name);
 
-            godot::EditorUndoRedoManager *ur = get_undo_redo();
+            auto *ur = begin_undo_action("MCP: Instance scene");
             if (!ur) {
                 parent->add_child(instance, true, Node::INTERNAL_MODE_DISABLED);
                 instance->set_owner(ctx.root);
                 mark_scene_dirty();
             } else {
-                ur->create_action("MCP: Instance scene",
-                                  godot::UndoRedo::MERGE_DISABLE, ctx.root);
                 ur->add_do_method(parent, "add_child", instance, true,
                                   static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
                 ur->add_do_method(instance, "set_owner", ctx.root);
                 ur->add_undo_method(parent, "remove_child", instance);
                 ur->add_do_reference(instance);
-                ur->commit_action();
+                commit_undo_action(ur);
             }
 
             select_node(instance);
@@ -156,7 +155,7 @@ protected:
             return ToolResult::ok(data);
         }
 
-        godot::MeshInstance3D *mesh_inst = memnew(godot::MeshInstance3D);
+        auto *mesh_inst = memnew(godot::MeshInstance3D);
         if (!mesh_inst) {
             return ToolResult::err("CREATE_FAILED", "Failed to create MeshInstance3D");
         }
@@ -256,20 +255,18 @@ protected:
         }
         mesh_inst->set_name(node_name);
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Create MeshInstance3D");
         if (!ur) {
             parent->add_child(mesh_inst, true, Node::INTERNAL_MODE_DISABLED);
             mesh_inst->set_owner(ctx.root);
             mark_scene_dirty();
         } else {
-            ur->create_action("MCP: Create MeshInstance3D",
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", mesh_inst, true,
                               static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(mesh_inst, "set_owner", ctx.root);
             ur->add_undo_method(parent, "remove_child", mesh_inst);
             ur->add_do_reference(mesh_inst);
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
         select_node(mesh_inst);
@@ -284,9 +281,9 @@ protected:
 
 private:
     void select_node(Node *node) {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            godot::EditorSelection *sel = ei->get_selection();
+            auto *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(node);

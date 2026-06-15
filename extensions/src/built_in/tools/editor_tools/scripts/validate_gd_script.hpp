@@ -13,9 +13,9 @@ namespace godot_mcp {
 
 class ValidateGdScriptTool : public ITool {
 public:
-    String name() const override { return "validate_gd_script"; }
-    String category() const override { return "editor_tools/scripts"; }
-    String brief() const override {
+    String name() const noexcept override { return "validate_gd_script"; }
+    String category() const noexcept override { return "editor_tools/scripts"; }
+    String brief() const noexcept override {
         return "Validate GDScript (.gd) file syntax";
     }
     String description() const override {
@@ -53,14 +53,14 @@ protected:
                 "File does not exist: " + path);
         }
 
-        godot::OS *os = godot::OS::get_singleton();
+        auto *os = godot::OS::get_singleton();
         if (!os) {
             return ToolResult::err("NO_OS",
                 "OS singleton not available");
         }
 
         String godot_path = String("godot");
-        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
+        auto *ps = godot::ProjectSettings::get_singleton();
         String abs_path = ps ? ps->globalize_path(path) : path;
         String res_path = ps ? ps->globalize_path("res://") : String(".");
 

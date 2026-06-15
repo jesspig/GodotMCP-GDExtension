@@ -13,9 +13,9 @@ namespace godot_mcp {
 
 class ValidateCsharpScriptTool : public ITool {
 public:
-    String name() const override { return "validate_csharp_script"; }
-    String category() const override { return "editor_tools/scripts"; }
-    String brief() const override {
+    String name() const noexcept override { return "validate_csharp_script"; }
+    String category() const noexcept override { return "editor_tools/scripts"; }
+    String brief() const noexcept override {
         return "Validate C# Script (.cs) file syntax";
     }
     String description() const override {
@@ -58,13 +58,13 @@ protected:
                 ".NET is not enabled, cannot validate C# script");
         }
 
-        godot::OS *os = godot::OS::get_singleton();
+        auto *os = godot::OS::get_singleton();
         if (!os) {
             return ToolResult::err("NO_OS",
                 "OS singleton not available");
         }
 
-        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
+        auto *ps = godot::ProjectSettings::get_singleton();
         String project_path = ps ? ps->globalize_path("res://") : String(".");
 
         Array args_arr;

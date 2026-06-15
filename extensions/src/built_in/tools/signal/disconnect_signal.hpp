@@ -1,8 +1,9 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/variant/callable.hpp>
@@ -11,9 +12,9 @@ namespace godot_mcp {
 
 class DisconnectSignalTool : public ITool {
 public:
-    String name() const override { return "disconnect_signal"; }
-    String category() const override { return "node_tools/signal"; }
-    String brief() const override {
+    String name() const noexcept override { return "disconnect_signal"; }
+    String category() const noexcept override { return "node_tools/signal"; }
+    String brief() const noexcept override {
         return String("Disconnect a node signal");
     }
     String description() const override {
@@ -61,13 +62,13 @@ protected:
         String target_path = args_string(ctx.args, "target_path");
         String target_method = args_string(ctx.args, "target_method");
 
-        Node *source = resolve_node(ctx.root, path);
-        if (!source)
-            return ToolResult::err("NODE_NOT_FOUND", String("Source node not found: ") + path);
+        Node *source = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, path, source))
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
 
-        Node *target = resolve_node(ctx.root, target_path);
-        if (!target)
-            return ToolResult::err("NODE_NOT_FOUND", String("Target node not found: ") + target_path);
+        Node *target = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, target_path, target))
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
 
         Callable callable(target, target_method);
         if (!source->is_connected(signal_name, callable)) {
@@ -77,7 +78,7 @@ protected:
 
         bool is_persist = false;
         Array conns = source->get_signal_connection_list(signal_name);
-        for (int i = 0; i < conns.size(); i++) {
+        for (int64_t i = 0; i < conns.size(); i++) {
             Dictionary c = conns[i];
             Callable c_callable = c.get("callable", Callable());
             if (c_callable == callable) {
@@ -88,12 +89,14 @@ protected:
         }
 
         if (is_persist) {
-            godot::EditorUndoRedoManager *ur = get_undo_redo();
+            auto *ur = get_undo_redo();
             if (ur) {
-                ur->create_action("MCP: Disconnect signal", godot::UndoRedo::MERGE_DISABLE, ctx.root);
-                ur->add_do_method(source, "disconnect", signal_name, callable);
-                ur->add_undo_method(source, "connect", signal_name, callable, (uint32_t)4);
-                ur->commit_action();
+                auto *ur_dc = begin_undo_action("MCP: Disconnect signal");
+                if (ur_dc) {
+                ur_dc->add_do_method(source, "disconnect", signal_name, callable);
+                ur_dc->add_undo_method(source, "connect", signal_name, callable, (uint32_t)4);
+                commit_undo_action(ur_dc);
+                }
             } else {
                 source->disconnect(signal_name, callable);
             }

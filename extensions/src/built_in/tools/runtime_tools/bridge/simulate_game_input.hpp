@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 class SimulateGameInputTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
-    String name() const override { return "simulate_game_input"; }
-    String category() const override { return "runtime_tools/bridge"; }
-    String brief() const override { return String("Simulate input in a running game"); }
+    String name() const noexcept override { return "simulate_game_input"; }
+    String category() const noexcept override { return "runtime_tools/bridge"; }
+    String brief() const noexcept override { return String("Simulate input in a running game"); }
     String description() const override {
         return String("Sends keyboard, mouse or Action input events to the running game. "
                              "actions is an array of input actions, each containing type (key/mouse_button/mouse_motion/action) and corresponding parameters.\n"

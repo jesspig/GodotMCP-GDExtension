@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 
@@ -9,9 +10,9 @@ namespace godot_mcp {
 
 class RemoveFromGroupTool : public ITool {
 public:
-    String name() const override { return "remove_from_group"; }
-    String category() const override { return "node_tools/group"; }
-    String brief() const override {
+    String name() const noexcept override { return "remove_from_group"; }
+    String category() const noexcept override { return "node_tools/group"; }
+    String brief() const noexcept override {
         return String("Remove a node from a group");
     }
     String description() const override {
@@ -56,10 +57,9 @@ protected:
             return ToolResult::err("MISSING_ARG", String("group_name cannot be empty"));
         }
 
-        Node *node = resolve_node(ctx.root, path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("Node not found: ") + path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         if (!node->is_in_group(group_name)) {
@@ -69,12 +69,14 @@ protected:
 
         bool persistent = args_bool(ctx.args, "persistent", true);
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = get_undo_redo();
         if (ur) {
-            ur->create_action("MCP: Remove from group", godot::UndoRedo::MERGE_DISABLE, ctx.root);
-            ur->add_do_method(node, "remove_from_group", group_name);
-            ur->add_undo_method(node, "add_to_group", group_name, persistent);
-            ur->commit_action();
+            auto *ur_rg = begin_undo_action("MCP: Remove from group");
+            if (ur_rg) {
+            ur_rg->add_do_method(node, "remove_from_group", group_name);
+            ur_rg->add_undo_method(node, "add_to_group", group_name, persistent);
+            commit_undo_action(ur_rg);
+            }
         } else {
             node->remove_from_group(group_name);
         }

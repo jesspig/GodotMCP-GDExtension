@@ -9,9 +9,9 @@ namespace godot_mcp {
 
 class GlobScriptsTool : public ITool {
 public:
-    String name() const override { return "glob_scripts"; }
-    String category() const override { return "editor_tools/scripts"; }
-    String brief() const override {
+    String name() const noexcept override { return "glob_scripts"; }
+    String category() const noexcept override { return "editor_tools/scripts"; }
+    String brief() const noexcept override {
         return "Match script files by path pattern";
     }
     String description() const override {

@@ -32,6 +32,18 @@ inline String get_file_extension(const String &path) {
     return path.substr(dot + 1).to_lower();
 }
 
+// Check if a file name's extension matches any in the extensions list.
+// Extensions are compared case-insensitively without leading dots.
+// Returns true if extensions list is empty (no filter).
+inline bool matches_extension(const String &name, const Array &extensions) {
+    if (extensions.size() <= 0) return true;
+    String ext = get_file_extension(name);
+    for (int64_t e = 0; e < extensions.size(); e++) {
+        if (ext == String(extensions[e]).to_lower()) return true;
+    }
+    return false;
+}
+
 inline bool path_exists(const String &res_path) {
     godot::Ref<godot::DirAccess> dir = godot::DirAccess::open(res_path);
     if (dir.is_valid()) {
@@ -79,7 +91,7 @@ inline Dictionary validate_res_path(const String &path) {
         return err;
     }
     // Verify path doesn't escape res://
-    godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
+    auto *ps = godot::ProjectSettings::get_singleton();
     if (ps) {
         String global_res = ps->globalize_path("res://");
         String global_target = ps->globalize_path(path);
@@ -104,18 +116,18 @@ inline bool ensure_parent_dir(const String &res_path) {
 }
 
 inline void notify_fs_changes() {
-    godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+    auto *ei = godot::EditorInterface::get_singleton();
     if (!ei) return;
-    godot::EditorFileSystem *efs = ei->get_resource_filesystem();
+    auto *efs = ei->get_resource_filesystem();
     if (efs) {
         efs->scan();
     }
 }
 
 inline void notify_file_changed(const String &path) {
-    godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+    auto *ei = godot::EditorInterface::get_singleton();
     if (!ei) return;
-    godot::EditorFileSystem *efs = ei->get_resource_filesystem();
+    auto *efs = ei->get_resource_filesystem();
     if (efs) {
         efs->update_file(path);
     }

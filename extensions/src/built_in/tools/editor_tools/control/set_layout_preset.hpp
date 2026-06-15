@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 #include "control_utils.hpp"
 
 #include <godot_cpp/classes/control.hpp>
@@ -12,9 +13,9 @@ namespace godot_mcp {
 
 class SetLayoutPresetTool : public ITool {
 public:
-    String name() const override { return "set_layout_preset"; }
-    String category() const override { return "editor_tools/control"; }
-    String brief() const override {
+    String name() const noexcept override { return "set_layout_preset"; }
+    String category() const noexcept override { return "editor_tools/control"; }
+    String brief() const noexcept override {
         return String("Set anchor preset on a Control node");
     }
     String description() const override {
@@ -56,11 +57,11 @@ protected:
         String preset_name = args_string(ctx.args, "preset");
         bool keep_offsets = args_bool(ctx.args, "keep_offsets", false);
 
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND", String("Node not found: ") + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
-        godot::Control *control = godot::Object::cast_to<godot::Control>(node);
+        auto *control = godot::Object::cast_to<godot::Control>(node);
         if (!control) {
             return ToolResult::err("NOT_A_CONTROL", String("Node is not a Control: ") + node_path);
         }
@@ -76,13 +77,11 @@ protected:
         double old_offset_right = control->get_offset(godot::Side::SIDE_RIGHT);
         double old_offset_bottom = control->get_offset(godot::Side::SIDE_BOTTOM);
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Set Layout Preset " + preset_name);
         if (!ur) {
             control->set_anchors_preset(preset, keep_offsets);
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Set Layout Preset ") + preset_name,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(control, "set_anchors_preset", preset, keep_offsets);
             ur->add_undo_property(control, "anchor_left", old_left);
             ur->add_undo_property(control, "anchor_top", old_top);
@@ -92,7 +91,7 @@ protected:
             ur->add_undo_property(control, "offset_top", old_offset_top);
             ur->add_undo_property(control, "offset_right", old_offset_right);
             ur->add_undo_property(control, "offset_bottom", old_offset_bottom);
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
         Dictionary data;

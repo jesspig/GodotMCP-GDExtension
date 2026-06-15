@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/editor_selection.hpp>
@@ -17,9 +18,9 @@ namespace godot_mcp {
 
 class CreateLight3DTool : public ITool {
 public:
-    String name() const override { return "create_light_3d"; }
-    String category() const override { return "editor_tools/3d_scene"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_light_3d"; }
+    String category() const noexcept override { return "editor_tools/3d_scene"; }
+    String brief() const noexcept override {
         return "Create a 3D light node (Directional/Omni/Spot)";
     }
     String description() const override {
@@ -99,9 +100,9 @@ protected:
         double range = args_float(ctx.args, "range", 0.0);
         double spot_angle = args_float(ctx.args, "spot_angle", 0.0);
 
-        Node *parent = resolve_node(ctx.root, parent_path);
-        if (!parent) {
-            return ToolResult::err("NODE_NOT_FOUND", "Parent node not found: " + parent_path);
+        Node *parent = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         String class_name;
@@ -127,7 +128,7 @@ protected:
         }
         light_node->set_name(node_name);
 
-        godot::Light3D *light = Object::cast_to<godot::Light3D>(light_node);
+        auto *light = Object::cast_to<godot::Light3D>(light_node);
         if (!light) {
             memdelete(light_node);
             return ToolResult::err("CAST_FAILED", "Failed to cast to Light3D");
@@ -157,25 +158,23 @@ protected:
             light->set_param(godot::Light3D::PARAM_SPOT_ANGLE, static_cast<real_t>(spot_angle));
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Create " + class_name);
         if (!ur) {
             parent->add_child(light_node, true, Node::INTERNAL_MODE_DISABLED);
             light_node->set_owner(ctx.root);
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Create ") + class_name,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", light_node, true,
                               static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(light_node, "set_owner", ctx.root);
             ur->add_undo_method(parent, "remove_child", light_node);
             ur->add_do_reference(light_node);
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            godot::EditorSelection *sel = ei->get_selection();
+            auto *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(light_node);

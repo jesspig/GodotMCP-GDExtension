@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -13,9 +13,9 @@ namespace godot_mcp {
 
 class NewSceneTool : public ITool {
 public:
-    String name() const override { return "new_scene"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "new_scene"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Create a new scene with a specified root node type and name";
     }
     String description() const override {
@@ -67,7 +67,7 @@ protected:
                 "Failed to create node of type: " + root_type);
         }
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             memdelete(new_root);
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
@@ -83,7 +83,7 @@ protected:
 
         ei->add_root_node(new_root);
 
-        godot::EditorSelection *sel = ei->get_selection();
+        auto *sel = ei->get_selection();
         if (sel) {
             sel->clear();
             sel->add_node(new_root);

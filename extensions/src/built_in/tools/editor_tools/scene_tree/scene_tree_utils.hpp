@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/classes/object.hpp>
@@ -33,6 +35,9 @@
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/typed_array.hpp>
 #include <godot_cpp/variant/variant.hpp>
+
+#include "built_in/cmd_utils.hpp"
+#include "built_in/tool_base.hpp"
 
 namespace godot_mcp::scene_tree_utils {
 
@@ -100,6 +105,16 @@ void collect_node_info(Node *node, Node *root, int64_t max_depth, bool include_s
 
 // -- Misc utilities --------------------------------------------------
 
-
+// Resolve a node path and return a ToolResult-compatible error dictionary
+// on failure. Returns std::nullopt on success (out_node is set).
+inline std::optional<godot::Dictionary> resolve_node_or_error(
+    godot::Node *root, const godot::String &path, godot::Node *&out_node) {
+    out_node = godot_mcp::resolve_node(root, path);
+    if (!out_node) {
+        return ToolResult::err("NODE_NOT_FOUND",
+            godot::String("Node not found: ") + path);
+    }
+    return {};
+}
 
 }  // namespace godot_mcp::scene_tree_utils

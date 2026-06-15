@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class DebuggerControlTool : public ITool {
 public:
-    String name() const override { return "debugger_control"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Control debugger: break/continue/step"); }
+    String name() const noexcept override { return "debugger_control"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Control debugger: break/continue/step"); }
     String description() const override {
         return String("Controls the debugger execution flow: break, continue, step_over, step_into. "
                       "Aligned with the debug_break() / debug_continue() / debug_next() / debug_step() "

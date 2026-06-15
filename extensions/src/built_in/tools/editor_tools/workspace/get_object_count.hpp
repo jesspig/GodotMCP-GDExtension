@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class GetObjectCountTool : public ITool {
 public:
-    String name() const override { return "get_object_count"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Get object/resource/node count"); }
+    String name() const noexcept override { return "get_object_count"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Get object/resource/node count"); }
     String description() const override { return brief(); }
 
     Dictionary build_input_schema() const override {
@@ -23,7 +23,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        godot::Performance *p = godot::Performance::get_singleton();
+        auto *p = godot::Performance::get_singleton();
         Dictionary d;
         d["object_count"] = p->get_monitor(godot::Performance::OBJECT_COUNT);
         d["resource_count"] = p->get_monitor(godot::Performance::OBJECT_RESOURCE_COUNT);

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
@@ -13,17 +13,17 @@ namespace godot_mcp {
 
 class CreateTool : public ITool {
 public:
-    String name() const override { return "create"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "create"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Create a file (auto-dispatch by extension)";
     }
     String description() const override {
         return "A composite tool that selects the creation strategy based on the path extension: "
-               ".tscn �?PackedScene::pack() + ResourceSaver::save() "
-               ".tres/.res �?ResourceSaver::save() "
-               ".gdshader �?FileAccess writes text "
-               "Other �?creates an empty file. "
+               ".tscn - PackedScene::pack() + ResourceSaver::save() "
+               ".tres/.res - ResourceSaver::save() "
+               ".gdshader - FileAccess writes text "
+               "Other - creates an empty file. "
                "For .gd/.cs scripts, use the dedicated write_gd_script / write_csharp_script tools.";
     }
     Dictionary build_input_schema() const override {

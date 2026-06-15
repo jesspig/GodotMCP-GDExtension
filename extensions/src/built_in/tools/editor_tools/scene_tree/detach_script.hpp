@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -12,9 +12,9 @@ namespace godot_mcp {
 
 class DetachScriptTool : public ITool {
 public:
-    String name() const override { return "detach_script"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "detach_script"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Remove the script from a node";
     }
     String description() const override {
@@ -42,10 +42,9 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String node_path = args_string(ctx.args, "node_path");
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
         godot::Ref<godot::Script> old_script = node->get_script();
         if (old_script.is_null()) {
@@ -54,13 +53,11 @@ protected:
         }
         String old_path = old_script->get_path();
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Detach Script");
         if (ur) {
-            ur->create_action("MCP: Detach Script",
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "set_script", godot::Variant());
             ur->add_undo_method(node, "set_script", old_script);
-            ur->commit_action();
+            commit_undo_action(ur);
         } else {
             node->set_script(godot::Variant());
         }

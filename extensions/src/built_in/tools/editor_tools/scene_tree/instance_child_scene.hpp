@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class InstanceChildSceneTool : public ITool {
 public:
-    String name() const override { return "instance_child_scene"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "instance_child_scene"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Instantiate a .tscn file as a child node in the scene";
     }
     String description() const override {
@@ -77,10 +77,9 @@ protected:
         if (scene_path.is_empty()) {
             return ToolResult::err("MISSING_ARG", "scene_path cannot be empty");
         }
-        Node *parent = resolve_node(ctx.root, parent_path);
-        if (!parent) {
-            return ToolResult::err("PARENT_NOT_FOUND",
-                "Parent node not found: " + parent_path);
+        Node *parent = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
+            return ToolResult::err("PARENT_NOT_FOUND", err->get("message", ""));
         }
 
         godot::Ref<godot::PackedScene> packed =
@@ -104,24 +103,19 @@ protected:
         if (!instance_name.is_empty()) {
             inst->set_name(instance_name);
         }
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Instance " + scene_path);
         if (ur) {
-            ur->create_action("MCP: Instance " + scene_path,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(inst, "set_scene_file_path", scene_path);
             ur->add_do_method(inst, "set_scene_instance_load_placeholder", load_placeholder);
             ur->add_do_method(parent, "add_child", inst, true,
                               static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
-            // set_editable_instance(child, flag) is called on the PARENT of the
-            // instanced scene; passing `inst` to itself (old code) was a no-op.
-            // Must run AFTER add_child so inst is a child of parent.
             if (editable_children) {
                 ur->add_do_method(parent, "set_editable_instance", inst, true);
             }
             ur->add_undo_method(parent, "remove_child", inst);
             ur->add_do_reference(inst);
             ur->add_undo_reference(inst);
-            ur->commit_action();
+            commit_undo_action(ur);
 
             // Also set owner outside undo for immediate consistency
             scene_tree_utils::assign_owner_recursive(inst, ctx.root);

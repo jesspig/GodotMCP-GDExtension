@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/audio_stream.hpp>
 #include <godot_cpp/classes/audio_stream_player.hpp>
@@ -18,9 +19,9 @@ namespace godot_mcp {
 
 class CreateAudioPlayerTool : public ITool {
 public:
-    String name() const override { return "create_audio_player"; }
-    String category() const override { return "editor_tools/audio"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_audio_player"; }
+    String category() const noexcept override { return "editor_tools/audio"; }
+    String brief() const noexcept override {
         return "Create an AudioStreamPlayer, AudioStreamPlayer2D, or AudioStreamPlayer3D node";
     }
     String description() const override {
@@ -106,10 +107,9 @@ protected:
                 String("Unknown player_type: ") + player_type + " (expected standard/2d/3d)");
         }
 
-        Node *parent = resolve_node(ctx.root, parent_path);
-        if (!parent) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("Parent node not found: ") + parent_path);
+        Node *parent = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         Node *player_node = Object::cast_to<Node>(ClassDB::instantiate(class_name));
@@ -140,45 +140,43 @@ protected:
         }
 
         if (player_type == "standard") {
-            godot::AudioStreamPlayer *p = Object::cast_to<godot::AudioStreamPlayer>(player_node);
+            auto *p = Object::cast_to<godot::AudioStreamPlayer>(player_node);
             if (stream.is_valid()) p->set_stream(stream);
             p->set_bus(godot::StringName(bus));
             p->set_autoplay(autoplay);
             p->set_volume_db(static_cast<float>(volume_db));
         } else if (player_type == "2d") {
-            godot::AudioStreamPlayer2D *p = Object::cast_to<godot::AudioStreamPlayer2D>(player_node);
+            auto *p = Object::cast_to<godot::AudioStreamPlayer2D>(player_node);
             if (stream.is_valid()) p->set_stream(stream);
             p->set_bus(godot::StringName(bus));
             p->set_autoplay(autoplay);
             p->set_volume_db(static_cast<float>(volume_db));
         } else {
-            godot::AudioStreamPlayer3D *p = Object::cast_to<godot::AudioStreamPlayer3D>(player_node);
+            auto *p = Object::cast_to<godot::AudioStreamPlayer3D>(player_node);
             if (stream.is_valid()) p->set_stream(stream);
             p->set_bus(godot::StringName(bus));
             p->set_autoplay(autoplay);
             p->set_volume_db(static_cast<float>(volume_db));
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Create AudioPlayer " + class_name);
         if (!ur) {
             parent->add_child(player_node, true, Node::INTERNAL_MODE_DISABLED);
             player_node->set_owner(ctx.root);
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Create AudioPlayer ") + class_name,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", player_node, true,
                               static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(player_node, "set_owner", ctx.root);
             ur->add_do_reference(player_node);
             ur->add_undo_method(player_node, "set_owner", Variant());
             ur->add_undo_method(parent, "remove_child", player_node);
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            godot::EditorSelection *sel = ei->get_selection();
+            auto *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(player_node);

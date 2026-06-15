@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation_node_state_machine.hpp>
 #include <godot_cpp/classes/animation_player.hpp>
@@ -16,9 +17,9 @@ namespace godot_mcp {
 
 class CreateAnimationTreeTool : public ITool {
 public:
-    String name() const override { return "create_animation_tree"; }
-    String category() const override { return "editor_tools/animation"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_animation_tree"; }
+    String category() const noexcept override { return "editor_tools/animation"; }
+    String brief() const noexcept override {
         return "Create an AnimationTree node with a root state machine";
     }
     String description() const override {
@@ -70,18 +71,16 @@ protected:
         String node_name = args_string(ctx.args, "node_name", "AnimationTree");
         String root_type = args_string(ctx.args, "root_type", "state_machine");
 
-        Node *parent = resolve_node(ctx.root, parent_path);
-        if (!parent) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("Parent node not found: ") + parent_path);
+        Node *parent = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
-        Node *ap_node = resolve_node(ctx.root, anim_player_path);
-        if (!ap_node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("AnimationPlayer not found: ") + anim_player_path);
+        Node *ap_node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, anim_player_path, ap_node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
-        godot::AnimationPlayer *player = Object::cast_to<godot::AnimationPlayer>(ap_node);
+        auto *player = Object::cast_to<godot::AnimationPlayer>(ap_node);
         if (!player) {
             return ToolResult::err("WRONG_TYPE",
                 String("Node is not an AnimationPlayer: ") + anim_player_path);
@@ -98,7 +97,7 @@ protected:
         }
         tree_node->set_name(node_name);
 
-        godot::AnimationTree *tree = Object::cast_to<godot::AnimationTree>(tree_node);
+        auto *tree = Object::cast_to<godot::AnimationTree>(tree_node);
         if (!tree) {
             memdelete(tree_node);
             return ToolResult::err("CAST_FAILED", "Failed to cast node to AnimationTree");
@@ -121,26 +120,24 @@ protected:
                 String("A node with the same name already exists: ") + node_name);
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Create AnimationTree");
         if (!ur) {
             parent->add_child(tree_node, true, Node::INTERNAL_MODE_DISABLED);
             tree_node->set_owner(ctx.root);
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Create AnimationTree"),
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", tree_node, true,
                               static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(tree_node, "set_owner", ctx.root);
             ur->add_do_reference(tree_node);
             ur->add_undo_method(tree_node, "set_owner", Variant());
             ur->add_undo_method(parent, "remove_child", tree_node);
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            godot::EditorSelection *sel = ei->get_selection();
+            auto *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(tree_node);

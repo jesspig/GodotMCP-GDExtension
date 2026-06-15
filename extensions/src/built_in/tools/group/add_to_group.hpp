@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 
@@ -9,9 +10,9 @@ namespace godot_mcp {
 
 class AddToGroupTool : public ITool {
 public:
-    String name() const override { return "add_to_group"; }
-    String category() const override { return "node_tools/group"; }
-    String brief() const override {
+    String name() const noexcept override { return "add_to_group"; }
+    String category() const noexcept override { return "node_tools/group"; }
+    String brief() const noexcept override {
         return String("Add a node to a group");
     }
     String description() const override {
@@ -68,7 +69,7 @@ protected:
                 String("Node already in group: ") + group_name);
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = get_undo_redo();
         if (ur) {
             ur->create_action("MCP: Add to group", godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "add_to_group", group_name, persistent);

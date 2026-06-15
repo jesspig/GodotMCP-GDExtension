@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class MoveNodeTool : public ITool {
 public:
-    String name() const override { return "move_node"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "move_node"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Reorder a node within its parent";
     }
     String description() const override {
@@ -59,21 +59,20 @@ protected:
         if (position.is_empty()) {
             return ToolResult::err("MISSING_ARG", "position cannot be empty");
         }
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
         Node *old_parent = node->get_parent();
         if (!old_parent) {
             return ToolResult::err("ORPHAN_NODE",
                 "Node has no parent, cannot move");
         }
-        Node *new_parent = parent_path.is_empty() ? old_parent
-                            : resolve_node(ctx.root, parent_path);
-        if (!new_parent) {
-            return ToolResult::err("PARENT_NOT_FOUND",
-                "New parent node not found: " + parent_path);
+        Node *new_parent = old_parent;
+        if (!parent_path.is_empty()) {
+            if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, new_parent)) {
+                return ToolResult::err("PARENT_NOT_FOUND", err->get("message", ""));
+            }
         }
 
         int64_t cur = node->get_index();
@@ -111,10 +110,8 @@ protected:
         }
 
         int64_t old_index = cur;
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Move Node");
         if (ur) {
-            ur->create_action("MCP: Move Node",
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             if (new_parent != old_parent) {
                 ur->add_do_method(old_parent, "remove_child", node);
                 ur->add_do_method(new_parent, "add_child", node, true,
@@ -128,7 +125,7 @@ protected:
             }
             ur->add_do_method(new_parent, "move_child", node, target);
             ur->add_undo_method(new_parent, "move_child", node, old_index);
-            ur->commit_action();
+            commit_undo_action(ur);
         } else {
             if (new_parent != old_parent) {
                 old_parent->remove_child(node);

@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation.hpp>
 #include <godot_cpp/classes/animation_library.hpp>
@@ -12,9 +13,9 @@ namespace godot_mcp {
 
 class GetAnimationInfoTool : public ITool {
 public:
-    String name() const override { return "get_animation_info"; }
-    String category() const override { return "editor_tools/animation"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_animation_info"; }
+    String category() const noexcept override { return "editor_tools/animation"; }
+    String brief() const noexcept override {
         return "Query animation data on an AnimationPlayer";
     }
     String description() const override {
@@ -51,10 +52,9 @@ protected:
             // Auto-find first AnimationPlayer in the scene
             player = _find_first_animation_player(ctx.root);
         } else {
-            Node *node = resolve_node(ctx.root, anim_player_path);
-            if (!node) {
-                return ToolResult::err("NODE_NOT_FOUND",
-                    String("AnimationPlayer not found: ") + anim_player_path);
+            Node *node = nullptr;
+            if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, anim_player_path, node)) {
+                return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
             }
             player = Object::cast_to<godot::AnimationPlayer>(node);
         }
@@ -137,7 +137,7 @@ private:
         for (int64_t i = 0; i < root->get_child_count(); i++) {
             Node *child = root->get_child(i);
             if (!child) continue;
-            godot::AnimationPlayer *found = _find_first_animation_player(child);
+            auto *found = _find_first_animation_player(child);
             if (found) return found;
         }
         return nullptr;

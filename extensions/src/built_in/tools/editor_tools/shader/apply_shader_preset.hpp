@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/shader.hpp>
 #include <godot_cpp/classes/shader_material.hpp>
@@ -13,9 +14,9 @@ namespace godot_mcp {
 
 class ApplyShaderPresetTool : public ITool {
 public:
-    String name() const override { return "apply_shader_preset"; }
-    String category() const override { return "editor_tools/shader"; }
-    String brief() const override {
+    String name() const noexcept override { return "apply_shader_preset"; }
+    String category() const noexcept override { return "editor_tools/shader"; }
+    String brief() const noexcept override {
         return "Apply a shader to a node via ShaderMaterial";
     }
     String description() const override {
@@ -59,7 +60,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
@@ -73,10 +74,9 @@ protected:
                 "Both node_path and shader_path are required");
         }
 
-        Node *node = resolve_node(ctx.root, node_path_str);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Node not found: " + node_path_str);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path_str, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         godot::Ref<godot::Shader> shader = godot::ResourceLoader::get_singleton()->load(shader_path);

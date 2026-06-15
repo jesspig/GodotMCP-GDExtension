@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation_library.hpp>
 #include <godot_cpp/classes/animation_player.hpp>
@@ -13,9 +14,9 @@ namespace godot_mcp {
 
 class CreateAnimationPlayerTool : public ITool {
 public:
-    String name() const override { return "create_animation_player"; }
-    String category() const override { return "editor_tools/animation"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_animation_player"; }
+    String category() const noexcept override { return "editor_tools/animation"; }
+    String brief() const noexcept override {
         return "Create an AnimationPlayer node in the scene";
     }
     String description() const override {
@@ -59,13 +60,12 @@ protected:
         String node_name = args_string(ctx.args, "node_name", "AnimationPlayer");
         String library_name = args_string(ctx.args, "library_name", "");
 
-        Node *parent = resolve_node(ctx.root, parent_path);
-        if (!parent) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("Parent node not found: ") + parent_path);
+        Node *parent = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
-        godot::AnimationPlayer *player = Object::cast_to<godot::AnimationPlayer>(ClassDB::instantiate("AnimationPlayer"));
+        auto *player = Object::cast_to<godot::AnimationPlayer>(ClassDB::instantiate("AnimationPlayer"));
         if (!player) {
             return ToolResult::err("CREATE_FAILED", "Failed to create AnimationPlayer node");
         }
@@ -83,7 +83,7 @@ protected:
             library_created = true;
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Create AnimationPlayer");
         if (!ur) {
             parent->add_child(player, true, Node::INTERNAL_MODE_DISABLED);
             player->set_owner(ctx.root);
@@ -92,8 +92,6 @@ protected:
             }
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Create AnimationPlayer"),
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", player, true,
                               static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_undo_method(parent, "remove_child", player);
@@ -108,7 +106,7 @@ protected:
                                     godot::StringName(library_name));
             }
 
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
         Dictionary data;

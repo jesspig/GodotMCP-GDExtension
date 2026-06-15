@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class SetUniqueNameTool : public ITool {
 public:
-    String name() const override { return "set_unique_name"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "set_unique_name"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Toggle a node's %% unique name";
     }
     String description() const override {
@@ -49,10 +49,9 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String node_path = args_string(ctx.args, "node_path");
         bool enable = args_bool(ctx.args, "enable", true);
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
         bool old = node->is_unique_name_in_owner();
         if (old == enable) {
@@ -62,13 +61,11 @@ protected:
             data["changed"] = false;
             return ToolResult::ok(data);
         }
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Toggle Unique Name");
         if (ur) {
-            ur->create_action("MCP: Toggle Unique Name",
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "set_unique_name_in_owner", enable);
             ur->add_undo_method(node, "set_unique_name_in_owner", old);
-            ur->commit_action();
+            commit_undo_action(ur);
         } else {
             node->set_unique_name_in_owner(enable);
         }

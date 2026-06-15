@@ -14,9 +14,9 @@ namespace godot_mcp {
 
 class ListDirectoryTool : public ITool {
 public:
-    String name() const override { return "list_directory"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "list_directory"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "List directory contents";
     }
     String description() const override {
@@ -80,7 +80,7 @@ protected:
                 if (extensions.size() > 0) {
                     String ext = fs_utils::get_file_extension(name);
                     bool ext_match = false;
-                    for (int e = 0; e < extensions.size(); e++) {
+                    for (int64_t e = 0; e < extensions.size(); e++) {
                         if (ext == String(extensions[e]).to_lower()) {
                             ext_match = true;
                             break;
@@ -100,7 +100,7 @@ protected:
         // Subdirectories
         if (include_dirs) {
             for (int i = 0; i < dir->get_subdir_count(); i++) {
-                godot::EditorFileSystemDirectory *sub = dir->get_subdir(i);
+                auto *sub = dir->get_subdir(i);
                 Dictionary entry;
                 entry["name"] = sub->get_name();
                 entry["path"] = sub->get_path();
@@ -147,7 +147,7 @@ protected:
                 if (extensions.size() > 0) {
                     String ext = fs_utils::get_file_extension(n);
                     bool ext_match = false;
-                    for (int e = 0; e < extensions.size(); e++) {
+                    for (int64_t e = 0; e < extensions.size(); e++) {
                         if (ext == String(extensions[e]).to_lower()) {
                             ext_match = true;
                             break;
@@ -185,10 +185,10 @@ protected:
         Array dir_list;
 
         // Try EditorFileSystem first for structured data
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         bool efs_used = false;
         if (ei) {
-            godot::EditorFileSystem *efs = ei->get_resource_filesystem();
+            auto *efs = ei->get_resource_filesystem();
             if (efs) {
                 godot::EditorFileSystemDirectory *efs_dir;
                 if (path == "res://") {

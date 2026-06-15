@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class GetInheritanceChainTool : public ITool {
 public:
-    String name() const override { return "get_inheritance_chain"; }
-    String category() const override { return "editor_tools/docs"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_inheritance_chain"; }
+    String category() const noexcept override { return "editor_tools/docs"; }
+    String brief() const noexcept override {
         return "Get the inheritance chain of a Godot class";
     }
     String description() const override {

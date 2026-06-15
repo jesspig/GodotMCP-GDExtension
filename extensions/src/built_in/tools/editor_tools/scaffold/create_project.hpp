@@ -15,9 +15,9 @@ namespace godot_mcp {
 
 class CreateProjectTool : public ITool {
 public:
-    String name() const override { return "create_project"; }
-    String category() const override { return "editor_tools/scaffold"; }
-    String brief() const override { return "Create a new Godot project"; }
+    String name() const noexcept override { return "create_project"; }
+    String category() const noexcept override { return "editor_tools/scaffold"; }
+    String brief() const noexcept override { return "Create a new Godot project"; }
     String description() const override {
         return "Creates a new Godot project at the specified path. "
                "Creates project.godot config file, main scene, default environment, and icon. "

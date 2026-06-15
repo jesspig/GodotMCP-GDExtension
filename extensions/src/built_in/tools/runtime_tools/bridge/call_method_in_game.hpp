@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 class CallMethodInGameTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
-    String name() const override { return "call_method_in_game"; }
-    String category() const override { return "runtime_tools/bridge"; }
-    String brief() const override { return String("Call a method on a running game node"); }
+    String name() const noexcept override { return "call_method_in_game"; }
+    String category() const noexcept override { return "runtime_tools/bridge"; }
+    String brief() const noexcept override { return String("Call a method on a running game node"); }
     String description() const override {
         return String("Calls an arbitrary method on a node in the running game and returns the result. "
                              "node_path is the node path (e.g. /root/Main/Player), "

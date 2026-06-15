@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class PatchGdScriptTool : public ITool {
 public:
-    String name() const override { return "patch_gd_script"; }
-    String category() const override { return "editor_tools/scripts"; }
-    String brief() const override {
+    String name() const noexcept override { return "patch_gd_script"; }
+    String category() const noexcept override { return "editor_tools/scripts"; }
+    String brief() const noexcept override {
         return "Precision replace text in GDScript (.gd) files";
     }
     String description() const override {

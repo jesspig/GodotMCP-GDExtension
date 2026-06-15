@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/cmd_utils.hpp"
@@ -11,9 +11,9 @@ class GetCategoriesTool : public ITool {
 public:
     void set_registry(HandlerRegistry *reg) override { reg_ = reg; }
 
-    String name() const override { return "get_categories"; }
-    String category() const override { return "meta_tools"; }
-    String brief() const override { return String("List tool categories as a tree, supporting path drilling and depth control"); }
+    String name() const noexcept override { return "get_categories"; }
+    String category() const noexcept override { return "meta_tools"; }
+    String brief() const noexcept override { return String("List tool categories as a tree, supporting path drilling and depth control"); }
     String description() const override {
         return String("Returns the tool category tree. Specify path to drill into a specific "
                       "category, and max_depth to control expansion depth (default 3, -1 for unlimited).");
@@ -36,7 +36,7 @@ public:
         schema["properties"] = props;
         return schema;
     }
-    bool is_meta() const override { return true; }
+    bool is_meta() const noexcept override { return true; }
 
 protected:
 

@@ -14,7 +14,7 @@ using godot::ProjectSettings;
 using godot::String;
 
 inline bool has_dotnet() {
-    godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
+    auto *ps = godot::ProjectSettings::get_singleton();
     if (!ps) return false;
     return ps->has_setting("dotnet/project/assembly_name");
 }

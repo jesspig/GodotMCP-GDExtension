@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class WriteGdScriptTool : public ITool {
 public:
-    String name() const override { return "write_gd_script"; }
-    String category() const override { return "editor_tools/scripts"; }
-    String brief() const override {
+    String name() const noexcept override { return "write_gd_script"; }
+    String category() const noexcept override { return "editor_tools/scripts"; }
+    String brief() const noexcept override {
         return "Write/Create GDScript (.gd) file";
     }
     String description() const override {

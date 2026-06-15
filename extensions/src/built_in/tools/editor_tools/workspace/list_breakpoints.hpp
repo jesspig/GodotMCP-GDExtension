@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -14,9 +14,9 @@ namespace godot_mcp {
 
 class ListBreakpointsTool : public ITool {
 public:
-    String name() const override { return "list_breakpoints"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("List all breakpoints"); }
+    String name() const noexcept override { return "list_breakpoints"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("List all breakpoints"); }
     String description() const override { return brief(); }
 
     Dictionary build_input_schema() const override {
@@ -29,7 +29,7 @@ protected:
         Array breakpoints;
         Array bp_data;
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             Dictionary data;
             data["breakpoints"] = Array();
@@ -37,14 +37,14 @@ protected:
             return ToolResult::ok(data);
         }
 
-        godot::ScriptEditor *se = ei->get_script_editor();
+        auto *se = ei->get_script_editor();
         if (se) {
             breakpoints = se->call("get_breakpoints");
         }
 
         // Fallback: try finding ScriptEditor via scene tree
         if (breakpoints.size() == 0) {
-            godot::Control *base = ei->get_base_control();
+            auto *base = ei->get_base_control();
             if (base) {
                 Array nodes = base->find_children("*", "ScriptEditor", true, false);
                 if (nodes.size() > 0) {

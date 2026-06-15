@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 class GetGameNodePropertyTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
-    String name() const override { return "get_game_node_property"; }
-    String category() const override { return "runtime_tools/bridge"; }
-    String brief() const override { return String("Read a running game node property"); }
+    String name() const noexcept override { return "get_game_node_property"; }
+    String category() const noexcept override { return "runtime_tools/bridge"; }
+    String brief() const noexcept override { return String("Read a running game node property"); }
     String description() const override {
         return String("Reads a property value from a node in the running game. "
                              "node_path is the node path (e.g. /root/Main/Player), "

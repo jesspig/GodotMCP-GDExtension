@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class CopyFileTool : public ITool {
 public:
-    String name() const override { return "copy_file"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "copy_file"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Copy a file or directory";
     }
     String description() const override {

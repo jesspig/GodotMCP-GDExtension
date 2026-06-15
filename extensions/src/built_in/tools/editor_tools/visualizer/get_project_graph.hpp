@@ -9,6 +9,7 @@
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/classes/packed_scene.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
+#include <godot_cpp/templates/hash_set.hpp>
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 
@@ -16,9 +17,9 @@ namespace godot_mcp {
 
 class GetProjectGraphTool : public ITool {
 public:
-    String name() const override { return "get_project_graph"; }
-    String category() const override { return "editor_tools/visualizer"; }
-    String brief() const override { return "Get the project's scene dependency graph"; }
+    String name() const noexcept override { return "get_project_graph"; }
+    String category() const noexcept override { return "editor_tools/visualizer"; }
+    String brief() const noexcept override { return "Get the project's scene dependency graph"; }
     String description() const override {
         return "Scans .tscn files in the project and analyzes scene dependencies. "
                "Returns a list of nodes (scene files) and edges (child/signal/resource dependencies). "
@@ -61,6 +62,12 @@ protected:
         Array scene_files;
         walk_project_dir("res://", Array::make(".tscn"), false, 500, scene_files);
 
+        // Build HashSet for O(1) scene lookups
+        godot::HashSet<godot::String> scene_set;
+        for (int64_t j = 0; j < scene_files.size(); j++) {
+            scene_set.insert(godot::String(scene_files[j]));
+        }
+
         // Build graph nodes for each scene file
         for (int64_t i = 0; i < scene_files.size(); i++) {
             String scene_path = scene_files[i];
@@ -75,12 +82,12 @@ protected:
 
             // Parse scene dependencies (limited by max_depth)
             if (i < max_depth || max_depth <= 0) {
-                _analyze_scene_deps(scene_path, scene_path, edges, include_resources, 0, max_depth, visited_scenes, scene_files);
+                _analyze_scene_deps(scene_path, scene_path, edges, include_resources, 0, max_depth, visited_scenes, scene_files, scene_set);
             }
         }
 
         // Add current edited scene info
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         String current_scene;
         if (ei) {
             Node *root = ei->get_edited_scene_root();
@@ -120,7 +127,8 @@ private:
     void _analyze_scene_deps(const String &scene_path, const String &from_id,
                              Array &edges, bool include_resources,
                              int64_t depth, int64_t max_depth,
-                             Dictionary &visited, const Array &all_scenes) const {
+                             Dictionary &visited, const Array &all_scenes,
+                             const godot::HashSet<godot::String> &scene_set) const {
         if (max_depth > 0 && depth >= max_depth) return;
 
         godot::Ref<godot::PackedScene> packed = godot::ResourceLoader::get_singleton()->load(scene_path, "PackedScene");
@@ -130,7 +138,7 @@ private:
         if (!temp) return;
 
         // Find child scene references (instanced scenes)
-        _find_child_scenes(temp, from_id, edges, all_scenes);
+        _find_child_scenes(temp, from_id, edges, scene_set);
 
         // Find signal connections
         if (include_resources) {
@@ -141,29 +149,23 @@ private:
     }
 
     void _find_child_scenes(Node *node, const String &from_id,
-                            Array &edges, const Array &all_scenes) const {
+                            Array &edges, const godot::HashSet<godot::String> &scene_set) const {
         for (int64_t i = 0; i < node->get_child_count(); i++) {
             Node *child = node->get_child(i);
             if (!child) continue;
 
             // Check if child has an instanced scene
             String child_scene = child->get_scene_file_path();
-            if (!child_scene.is_empty()) {
-                // Check if this is one of our project scenes
-                for (int64_t j = 0; j < all_scenes.size(); j++) {
-                    if (child_scene == String(all_scenes[j])) {
-                        Dictionary edge;
-                        edge["from"] = from_id;
-                        edge["to"] = child_scene;
-                        edge["label"] = String(child->get_name());
-                        edge["type"] = "child";
-                        edges.append(edge);
-                        break;
-                    }
-                }
+            if (!child_scene.is_empty() && scene_set.has(child_scene)) {
+                Dictionary edge;
+                edge["from"] = from_id;
+                edge["to"] = child_scene;
+                edge["label"] = String(child->get_name());
+                edge["type"] = "child";
+                edges.append(edge);
             }
 
-            _find_child_scenes(child, from_id, edges, all_scenes);
+            _find_child_scenes(child, from_id, edges, scene_set);
         }
     }
 

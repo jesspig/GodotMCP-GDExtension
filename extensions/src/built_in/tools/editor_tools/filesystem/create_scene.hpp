@@ -13,9 +13,9 @@ namespace godot_mcp {
 
 class CreateSceneTool : public ITool {
 public:
-    String name() const override { return "create_scene"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_scene"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Create a Godot scene (.tscn) file";
     }
     String description() const override {

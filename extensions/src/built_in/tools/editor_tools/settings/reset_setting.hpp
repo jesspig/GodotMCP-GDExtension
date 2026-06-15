@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class ResetSettingTool : public ITool {
 public:
-    String name() const override { return "reset_setting"; }
-    String category() const override { return "editor_tools/settings"; }
-    String brief() const override {
+    String name() const noexcept override { return "reset_setting"; }
+    String category() const noexcept override { return "editor_tools/settings"; }
+    String brief() const noexcept override {
         return "Reset a project setting to its default value";
     }
     String description() const override {
@@ -43,7 +43,7 @@ protected:
         if (path.is_empty()) {
             return ToolResult::err("MISSING_PARAM", "setting_path is required");
         }
-        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
+        auto *ps = godot::ProjectSettings::get_singleton();
         if (!ps->has_setting(path)) {
             return ToolResult::err("SETTING_NOT_FOUND",
                 String("Setting not found: ") + path);

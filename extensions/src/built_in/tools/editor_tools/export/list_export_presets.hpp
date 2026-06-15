@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class ListExportPresetsTool : public ITool {
 public:
-    String name() const override { return "list_export_presets"; }
-    String category() const override { return "editor_tools/export"; }
-    String brief() const override {
+    String name() const noexcept override { return "list_export_presets"; }
+    String category() const noexcept override { return "editor_tools/export"; }
+    String brief() const noexcept override {
         return "List available export presets";
     }
     String description() const override {
@@ -28,7 +28,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
@@ -36,7 +36,7 @@ protected:
         Array presets = ei->call("get_export_presets");
         Array results;
 
-        for (int i = 0; i < presets.size(); i++) {
+        for (int64_t i = 0; i < presets.size(); i++) {
             Dictionary preset = presets[i];
             Dictionary entry;
             entry["name"] = preset.get("name", "");

@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class GetRenderStatsTool : public ITool {
 public:
-    String name() const override { return "get_render_stats"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Get render statistics"); }
+    String name() const noexcept override { return "get_render_stats"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Get render statistics"); }
     String description() const override { return brief(); }
 
     Dictionary build_input_schema() const override {
@@ -23,7 +23,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        godot::Performance *p = godot::Performance::get_singleton();
+        auto *p = godot::Performance::get_singleton();
         Dictionary d;
         d["objects_in_frame"] = p->get_monitor(godot::Performance::RENDER_TOTAL_OBJECTS_IN_FRAME);
         d["primitives_in_frame"] = p->get_monitor(godot::Performance::RENDER_TOTAL_PRIMITIVES_IN_FRAME);

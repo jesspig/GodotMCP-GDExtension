@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class GetClassListTool : public ITool {
 public:
-    String name() const override { return "get_class_list"; }
-    String category() const override { return "editor_tools/docs"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_class_list"; }
+    String category() const noexcept override { return "editor_tools/docs"; }
+    String brief() const noexcept override {
         return "List all registered Godot classes";
     }
     String description() const override {

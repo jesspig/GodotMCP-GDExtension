@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class ListAudioBusesTool : public ITool {
 public:
-    String name() const override { return "list_audio_buses"; }
-    String category() const override { return "editor_tools/audio"; }
-    String brief() const override {
+    String name() const noexcept override { return "list_audio_buses"; }
+    String category() const noexcept override { return "editor_tools/audio"; }
+    String brief() const noexcept override {
         return "List all audio buses and their properties";
     }
     String description() const override {
@@ -28,7 +28,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        godot::AudioServer *as = godot::AudioServer::get_singleton();
+        auto *as = godot::AudioServer::get_singleton();
         if (!as) {
             return ToolResult::err("NO_AUDIO_SERVER", "AudioServer not available");
         }

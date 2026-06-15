@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/shader.hpp>
@@ -47,9 +48,9 @@ inline bool uniform_type_compatible(const godot::String &declared, const godot::
 
 class SetShaderUniformTool : public ITool {
 public:
-    String name() const override { return "set_shader_uniform"; }
-    String category() const override { return "editor_tools/shader"; }
-    String brief() const override {
+    String name() const noexcept override { return "set_shader_uniform"; }
+    String category() const noexcept override { return "editor_tools/shader"; }
+    String brief() const noexcept override {
         return "Set a shader uniform parameter on a ShaderMaterial";
     }
     String description() const override {
@@ -105,9 +106,9 @@ protected:
             return ToolResult::err("BAD_PARAM", "value is required");
         }
 
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND", "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         godot::ShaderMaterial *material = nullptr;

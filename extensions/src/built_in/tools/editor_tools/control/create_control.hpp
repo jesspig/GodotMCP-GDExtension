@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 #include "control_utils.hpp"
 
 #include <godot_cpp/classes/control.hpp>
@@ -15,9 +16,9 @@ namespace godot_mcp {
 
 class CreateControlTool : public ITool {
 public:
-    String name() const override { return "create_control"; }
-    String category() const override { return "editor_tools/control"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_control"; }
+    String category() const noexcept override { return "editor_tools/control"; }
+    String brief() const noexcept override {
         return "Create a Control subclass node (Button, Label, Panel, etc.)";
     }
     String description() const override {
@@ -82,9 +83,9 @@ protected:
             return ToolResult::err("NOT_A_CONTROL", "Class is not a Control subclass: " + class_name);
         }
 
-        Node *parent = resolve_node(ctx.root, parent_path);
-        if (!parent) {
-            return ToolResult::err("NODE_NOT_FOUND", "Parent node not found: " + parent_path);
+        Node *parent = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         if (node_name.is_empty()) {
@@ -102,7 +103,7 @@ protected:
             return ToolResult::err("NAME_CONFLICT", "A node with the same name already exists: " + node_name);
         }
 
-        godot::Control *control = godot::Object::cast_to<godot::Control>(child);
+        auto *control = godot::Object::cast_to<godot::Control>(child);
         if (!control) {
             memdelete(child);
             return ToolResult::err("CAST_FAILED", "Failed to cast node to Control");
@@ -123,25 +124,23 @@ protected:
             ));
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Create Control " + class_name);
         if (!ur) {
             parent->add_child(child, true, godot::Node::INTERNAL_MODE_DISABLED);
             child->set_owner(ctx.root);
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Create Control ") + class_name,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(parent, "add_child", child, true, static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(child, "set_owner", ctx.root);
             ur->add_undo_method(parent, "remove_child", child);
             ur->add_undo_method(child, "set_owner", Variant());
             ur->add_do_reference(child);
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            godot::EditorSelection *sel = ei->get_selection();
+            auto *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(child);

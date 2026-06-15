@@ -10,9 +10,9 @@ namespace godot_mcp {
 
 class SetWorkspaceTool : public ITool {
 public:
-    String name() const override { return "set_workspace"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Switch editor workspace"); }
+    String name() const noexcept override { return "set_workspace"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Switch editor workspace"); }
     String description() const override {
         return String("Switches to the specified workspace: 2D (2D editing), 3D (3D editing), "
                       "Script (script editing), AssetLib (asset library). "
@@ -46,7 +46,7 @@ protected:
         String normalized = name.strip_edges().capitalize();
         static const PackedStringArray valid_names = { "2D", "3D", "Script", "AssetLib" };
         bool valid = false;
-        for (int i = 0; i < valid_names.size(); i++) {
+        for (int64_t i = 0; i < valid_names.size(); i++) {
             if (normalized.to_lower() == valid_names[i].to_lower()) {
                 normalized = valid_names[i];
                 valid = true;
@@ -58,7 +58,7 @@ protected:
                 String("Invalid workspace name '") + name + String("', valid values: 2D / 3D / Script / AssetLib"));
         }
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }

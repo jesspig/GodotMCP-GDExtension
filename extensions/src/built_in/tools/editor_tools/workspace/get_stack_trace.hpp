@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -12,9 +12,9 @@ namespace godot_mcp {
 
 class GetStackTraceTool : public ITool {
 public:
-    String name() const override { return "get_stack_trace"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Get current debug stack frame (single frame only)"); }
+    String name() const noexcept override { return "get_stack_trace"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Get current debug stack frame (single frame only)"); }
     String description() const override {
         return String("Returns the current stack frame when the debugger is paused. "
                       "NOTE: This returns only the current (top) frame, not a full call stack. "

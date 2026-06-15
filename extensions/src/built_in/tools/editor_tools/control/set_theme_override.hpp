@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/control.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
@@ -16,9 +17,9 @@ namespace godot_mcp {
 
 class SetThemeOverrideTool : public ITool {
 public:
-    String name() const override { return "set_theme_override"; }
-    String category() const override { return "editor_tools/control"; }
-    String brief() const override {
+    String name() const noexcept override { return "set_theme_override"; }
+    String category() const noexcept override { return "editor_tools/control"; }
+    String brief() const noexcept override {
         return String("Batch set theme overrides on a Control node");
     }
     String description() const override {
@@ -76,11 +77,11 @@ protected:
             overrides = ctx.args["overrides"];
         }
 
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND", String("Node not found: ") + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
-        godot::Control *control = godot::Object::cast_to<godot::Control>(node);
+        auto *control = godot::Object::cast_to<godot::Control>(node);
         if (!control) {
             return ToolResult::err("NOT_A_CONTROL", String("Node is not a Control: ") + node_path);
         }
@@ -154,7 +155,7 @@ protected:
             undo_items.append(undo_item);
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = get_undo_redo();
         if (!ur) {
             control->begin_bulk_theme_override();
             for (int64_t i = 0; i < count; i++) {

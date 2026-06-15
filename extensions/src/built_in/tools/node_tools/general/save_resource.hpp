@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/resource.hpp>
@@ -11,9 +12,9 @@ namespace godot_mcp {
 
 class SaveResourceTool : public ITool {
 public:
-    String name() const override { return "save_resource"; }
-    String category() const override { return "node_tools/general"; }
-    String brief() const override {
+    String name() const noexcept override { return "save_resource"; }
+    String category() const noexcept override { return "node_tools/general"; }
+    String brief() const noexcept override {
         return String("Save a resource to file");
     }
     String description() const override {

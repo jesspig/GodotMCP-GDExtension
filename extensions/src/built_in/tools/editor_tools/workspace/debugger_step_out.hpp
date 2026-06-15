@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -12,9 +12,9 @@ namespace godot_mcp {
 
 class DebuggerStepOutTool : public ITool {
 public:
-    String name() const override { return "debugger_step_out"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Debugger step out"); }
+    String name() const noexcept override { return "debugger_step_out"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Debugger step out"); }
     String description() const override {
         return String("Steps out of the current function (Godot has no direct step_out command, "
                       "uses debug_next as a substitute).");

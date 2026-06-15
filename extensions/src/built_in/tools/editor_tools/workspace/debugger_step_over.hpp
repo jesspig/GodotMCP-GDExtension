@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -12,9 +12,9 @@ namespace godot_mcp {
 
 class DebuggerStepOverTool : public ITool {
 public:
-    String name() const override { return "debugger_step_over"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Debugger step over"); }
+    String name() const noexcept override { return "debugger_step_over"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Debugger step over"); }
     String description() const override { return brief(); }
 
     Dictionary build_input_schema() const override {

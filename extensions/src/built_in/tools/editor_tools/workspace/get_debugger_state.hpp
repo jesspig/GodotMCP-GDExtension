@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -12,9 +12,9 @@ namespace godot_mcp {
 
 class GetDebuggerStateTool : public ITool {
 public:
-    String name() const override { return "get_debugger_state"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Get debugger current state"); }
+    String name() const noexcept override { return "get_debugger_state"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Get debugger current state"); }
     String description() const override {
         return String("Retrieves state information from the editor debugger panel, including: "
                       "error/warning count, break state, debuggable state, session activity, "

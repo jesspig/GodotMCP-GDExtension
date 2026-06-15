@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 
 class GetMemoryUsageTool : public ITool {
 public:
-    String name() const override { return "get_memory_usage"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Get memory usage"); }
+    String name() const noexcept override { return "get_memory_usage"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Get memory usage"); }
     String description() const override { return brief(); }
 
     Dictionary build_input_schema() const override {
@@ -23,7 +23,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        godot::Performance *p = godot::Performance::get_singleton();
+        auto *p = godot::Performance::get_singleton();
         Dictionary d;
         d["memory_static_mb"] = p->get_monitor(godot::Performance::MEMORY_STATIC) / 1048576.0;
         d["memory_static_max_mb"] = p->get_monitor(godot::Performance::MEMORY_STATIC_MAX) / 1048576.0;

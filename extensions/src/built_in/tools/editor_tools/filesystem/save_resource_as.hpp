@@ -13,9 +13,9 @@ namespace godot_mcp {
 
 class SaveResourceAsTool : public ITool {
 public:
-    String name() const override { return "save_resource_as"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "save_resource_as"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Save a resource file to a target path";
     }
     String description() const override {

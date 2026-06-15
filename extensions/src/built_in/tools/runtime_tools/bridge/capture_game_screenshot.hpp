@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 class CaptureGameScreenshotTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
-    String name() const override { return "capture_game_screenshot"; }
-    String category() const override { return "runtime_tools/bridge"; }
-    String brief() const override { return String("Capture the game viewport of a running game"); }
+    String name() const noexcept override { return "capture_game_screenshot"; }
+    String category() const noexcept override { return "runtime_tools/bridge"; }
+    String brief() const noexcept override { return String("Capture the game viewport of a running game"); }
     String description() const override {
         return String("Captures a screenshot of the running game's viewport and returns base64-encoded image data. "
                              "format can be png (default) or jpg.");
