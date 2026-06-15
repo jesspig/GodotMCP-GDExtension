@@ -40,7 +40,7 @@ FetchContent_Declare(
     GIT_SUBMODULES "ext/c4core"
 )
 
-# Ensure rapidyaml/c4core static libs are compiled with -fPIC (needed for shared lib linking).
+# Ensure rapidyaml/c4core static libs are compiled with -fPIC (needed for shared lib linking on Linux/macOS).
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 FetchContent_MakeAvailable(rapidyaml)
 
@@ -113,6 +113,8 @@ target_compile_definitions(godot_mcp_gdext PRIVATE
     GODOT_MCP_PLUGIN_VERSION="${GODOT_MCP_PLUGIN_VERSION}"
 )
 
+# Suppress CRT deprecation warnings (fopen, strcpy, etc.) on MSVC.
+# Only needed if raw CRT calls are present; remove if codebase uses Godot API exclusively.
 if(MSVC)
     target_compile_definitions(godot_mcp_gdext PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
@@ -134,6 +136,10 @@ if(_unity_batch STREQUAL "0")
     # Cap at 32 — beyond that, batches get too large (memory / ODR risk).
     if(_cpu_count GREATER 32)
         set(_cpu_count 32)
+    endif()
+    # Ensure at least 2 batches for incremental build efficiency
+    if(_cpu_count LESS 2)
+        set(_cpu_count 2)
     endif()
     set(_unity_batch ${_cpu_count})
     message(STATUS "Unity batch size: ${_unity_batch} (auto = ${_cpu_count} cores)")
@@ -166,7 +172,6 @@ if(MSVC)
     endif()
 endif()
 
-# Suppress noisy warnings from godot-cpp generated code on MSVC.
 if(MSVC)
     target_compile_options(godot_mcp_gdext PRIVATE /W3 /wd4244 /wd4267)
 else()

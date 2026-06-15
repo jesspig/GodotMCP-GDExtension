@@ -11,6 +11,7 @@ Usage:
 """
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -89,8 +90,8 @@ def detect_vctargetspath() -> str | None:
         )
         if result.returncode == 0 and result.stdout.strip():
             vs_path = Path(result.stdout.strip())
-            # Try v180 (VS 2026), v170 (VS 2022), v160 (VS 2019)
-            for ver in ("v170", "v160"):
+            # Try v180 (VS 2026), v170 (VS 2022), v160 (VS 2019) — in order of preference.
+            for ver in ("v180", "v170", "v160"):
                 vc_path = vs_path / "MSBuild" / "Microsoft" / "VC" / ver
                 if vc_path.exists():
                     return str(vc_path) + "\\"
@@ -135,7 +136,7 @@ def _capture_vs_dev_env() -> dict[str, str] | None:
 
 def run(cmd: list, capture: bool = False, extra_env: dict[str, str] | None = None) -> tuple[bool, str]:
     print(f"\n$ {' '.join(cmd)}", flush=True)
-    env = {**subprocess.os.environ, "PYTHONIOENCODING": "utf-8"}
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
     if extra_env:
         env.update(extra_env)
     if capture:
@@ -170,13 +171,14 @@ def configure(extra_defs: list) -> tuple[bool, str]:
     cmd = ["cmake", "-B", str(BUILD_DIR), "-S", str(PROJECT_ROOT)] + extra_defs
     extra_env = None
     # Auto-detect Ninja generator for faster incremental builds.
+    # CMake auto-detects MSVC from the vcvarsall environment (no explicit
+    # -DCMAKE_CXX_COMPILER needed) — this avoids hardcoding a specific
+    # MSVC toolchain version.
     if platform.system() == "Windows":
         cl_path = _find_msvc_cl()
         if shutil.which("ninja") and cl_path:
             extra_env = _capture_vs_dev_env()
             cmd += ["-GNinja"]
-            cmd += ["-DCMAKE_C_COMPILER:FILEPATH=" + cl_path]
-            cmd += ["-DCMAKE_CXX_COMPILER:FILEPATH=" + cl_path]
             if not extra_env:
                 rc_path, mt_path = _find_windows_sdk_tools()
                 if rc_path:
@@ -239,11 +241,11 @@ def main():
                 item.unlink(missing_ok=True)
 
     # --- Ensure VCTargetsPath is set (fixes .NET SDK preview interference) ---
-    if "VCTargetsPath" not in subprocess.os.environ:
+    if "VCTargetsPath" not in os.environ:
         vc_path = detect_vctargetspath()
         if vc_path:
             print(f"\n[ENV] VCTargetsPath={vc_path}", flush=True)
-            subprocess.os.environ["VCTargetsPath"] = vc_path
+            os.environ["VCTargetsPath"] = vc_path
 
     # --- Configure ---
     ok, output = configure(cmake_defs)
