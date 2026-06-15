@@ -24,7 +24,7 @@ void McpToolDefinition::set_brief(const String &v) { brief_ = v; }
 String McpToolDefinition::get_description() const { return description_; }
 void McpToolDefinition::set_description(const String &v) { description_ = v; }
 
-Dictionary McpToolDefinition::get_input_schema() const { return input_schema_; }
+const Dictionary &McpToolDefinition::get_input_schema() const { return input_schema_; }
 void McpToolDefinition::set_input_schema(const Dictionary &v) { input_schema_ = v; }
 
 bool McpToolDefinition::get_is_meta() const { return is_meta_; }

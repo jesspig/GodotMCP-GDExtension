@@ -11,7 +11,11 @@
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
 
+#include <memory>
+
 namespace godot_mcp {
+
+class IToolAdapter;
 
 class McpToolRegistry : public godot::Object {
     GDCLASS(McpToolRegistry, godot::Object)
@@ -53,7 +57,7 @@ public:
     bool unregister_tool(const godot::String &name);
 
     // --- Query ---
-    bool has_tool(const godot::String &name) const;
+    [[nodiscard]] bool has_tool(const godot::String &name) const;
     godot::Array get_custom_tools() const;
     int get_custom_tool_count() const;
 
@@ -82,6 +86,26 @@ private:
     godot::HashMap<godot::String, CustomTool> tools_;
     HandlerRegistry *handler_registry_ = nullptr;
     McpHandler *mcp_handler_ = nullptr;
+
+    // Build CustomTool from fields (DRY helper)
+    static CustomTool make_custom_tool(
+        const godot::String &original_name,
+        const godot::String &registered_name,
+        const godot::String &category,
+        const godot::String &brief,
+        const godot::String &description,
+        const godot::Dictionary &input_schema,
+        bool is_meta,
+        bool supports_undo,
+        bool is_destructive);
+
+    // Create IToolAdapter from CustomTool + callable (DRY helper)
+    static std::unique_ptr<IToolAdapter> make_adapter(
+        const CustomTool &ct,
+        CommandFn fn);
+    static std::unique_ptr<IToolAdapter> make_adapter(
+        const CustomTool &ct,
+        const godot::Callable &callable);
 
     // Resolve name: add custom_ prefix if not already present
     static godot::String resolve_name(const godot::String &name);

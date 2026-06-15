@@ -28,7 +28,7 @@ public:
     godot::String get_description() const;
     void set_description(const godot::String &v);
 
-    godot::Dictionary get_input_schema() const;
+    const godot::Dictionary &get_input_schema() const;
     void set_input_schema(const godot::Dictionary &v);
 
     bool get_is_meta() const;

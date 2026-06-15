@@ -52,6 +52,68 @@ String McpToolRegistry::resolve_name(const String &name) {
 }
 
 // ---------------------------------------------------------------------------
+// DRY helpers
+// ---------------------------------------------------------------------------
+
+McpToolRegistry::CustomTool McpToolRegistry::make_custom_tool(
+    const String &original_name,
+    const String &registered_name,
+    const String &category,
+    const String &brief,
+    const String &description,
+    const Dictionary &input_schema,
+    bool is_meta,
+    bool supports_undo,
+    bool is_destructive) {
+
+    CustomTool ct;
+    ct.original_name = original_name;
+    ct.registered_name = registered_name;
+    ct.category = category;
+    ct.brief = brief;
+    ct.description = description;
+    ct.input_schema = input_schema;
+    ct.is_meta = is_meta;
+    ct.supports_undo = supports_undo;
+    ct.is_destructive = is_destructive;
+    return ct;
+}
+
+std::unique_ptr<IToolAdapter> McpToolRegistry::make_adapter(
+    const CustomTool &ct, CommandFn fn) {
+
+    return std::make_unique<IToolAdapter>(
+        ct.registered_name,
+        ct.category,
+        ct.brief,
+        ct.description,
+        ct.input_schema,
+        std::move(fn),
+        ct.is_meta,
+        false, // needs_scene
+        false, // needs_node
+        ct.supports_undo,
+        ct.is_destructive);
+}
+
+std::unique_ptr<IToolAdapter> McpToolRegistry::make_adapter(
+    const CustomTool &ct, const Callable &callable) {
+
+    return std::make_unique<IToolAdapter>(
+        ct.registered_name,
+        ct.category,
+        ct.brief,
+        ct.description,
+        ct.input_schema,
+        callable,
+        ct.is_meta,
+        false, // needs_scene
+        false, // needs_node
+        ct.supports_undo,
+        ct.is_destructive);
+}
+
+// ---------------------------------------------------------------------------
 // Mode A: Register from McpToolDefinition (RefCounted)
 // ---------------------------------------------------------------------------
 
@@ -73,16 +135,15 @@ void McpToolRegistry::register_definition(McpToolDefinition *tool_def) {
     }
 
     // Store custom tool metadata
-    CustomTool ct;
-    ct.original_name = original;
-    ct.registered_name = resolved;
-    ct.category = tool_def->get_category();
-    ct.brief = tool_def->get_brief();
-    ct.description = tool_def->get_description();
-    ct.input_schema = tool_def->get_input_schema();
-    ct.is_meta = tool_def->get_is_meta();
-    ct.supports_undo = tool_def->get_supports_undo();
-    ct.is_destructive = tool_def->get_is_destructive();
+    CustomTool ct = make_custom_tool(
+        original, resolved,
+        tool_def->get_category(),
+        tool_def->get_brief(),
+        tool_def->get_description(),
+        tool_def->get_input_schema(),
+        tool_def->get_is_meta(),
+        tool_def->get_supports_undo(),
+        tool_def->get_is_destructive());
     tools_[resolved] = ct;
 
     // Register via IToolAdapter — goes into itool_table_
@@ -92,20 +153,7 @@ void McpToolRegistry::register_definition(McpToolDefinition *tool_def) {
             return def_ref->execute(args);
         };
 
-        auto adapter = std::make_unique<IToolAdapter>(
-            resolved,
-            ct.category,
-            ct.brief,
-            ct.description,
-            ct.input_schema,
-            std::move(wrapper),
-            ct.is_meta,
-            false, // needs_scene
-            false, // needs_node
-            ct.supports_undo,
-            ct.is_destructive);
-
-        handler_registry_->register_tool(std::move(adapter), true);
+        handler_registry_->register_tool(make_adapter(ct, std::move(wrapper)), true);
     }
 
     log_info("sdk", String("Registered custom tool: ") + resolved);
@@ -146,25 +194,15 @@ void McpToolRegistry::register_tool(
     }
 
     // Store metadata
-    CustomTool ct;
-    ct.original_name = name;
-    ct.registered_name = resolved;
-    ct.category = category;
-    ct.brief = brief;
-    ct.description = description;
-    ct.input_schema = input_schema;
-    ct.is_meta = is_meta;
-    ct.supports_undo = supports_undo;
-    ct.is_destructive = is_destructive;
+    CustomTool ct = make_custom_tool(
+        name, resolved,
+        category, brief, description, input_schema,
+        is_meta, supports_undo, is_destructive);
     tools_[resolved] = ct;
 
     // Register via IToolAdapter
     if (handler_registry_) {
-        Callable captured_handler = handler;
-        auto adapter = std::make_unique<IToolAdapter>(
-            resolved, category, brief, description, input_schema,
-            captured_handler, is_meta, false, false, supports_undo, is_destructive);
-        handler_registry_->register_tool(std::move(adapter), true);
+        handler_registry_->register_tool(make_adapter(ct, handler), true);
     }
 
     log_info("sdk", String("Registered custom tool: ") + resolved);
@@ -195,7 +233,7 @@ bool McpToolRegistry::unregister_tool(const String &name) {
     tools_.erase(resolved);
 
     if (handler_registry_) {
-        handler_registry_->unregister_custom_tool(resolved);
+        (void)handler_registry_->unregister_custom_tool(resolved);
     }
 
     log_info("sdk", String("Unregistered custom tool: ") + resolved);
