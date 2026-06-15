@@ -74,6 +74,7 @@ private:
     void _on_copy_pressed();
     void _on_apply_restart_pressed();
     void _on_force_restart_pressed();
+    void _restart_server(bool force);
     void _on_bind_mode_changed(int index);
     void _on_max_entries_changed(double value);
     void _on_log_dir_changed(const godot::String &text);

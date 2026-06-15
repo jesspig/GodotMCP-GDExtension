@@ -39,8 +39,7 @@ public:
     bool is_meta() const override { return true; }
 
 protected:
-    // 鍦?categories 鏁扮粍涓寜 id 鏌ユ壘鎸囧畾 segment
-    // 杩斿洖璇ヨ妭鐐圭殑鍓湰锛屾湭鎵惧埌鍒欒繑鍥炵┖ Dictionary
+
     static Dictionary find_by_id(const Array &categories, const String &id) {
         for (int i = 0; i < categories.size(); ++i) {
             Dictionary cat = categories[i];
@@ -51,7 +50,7 @@ protected:
         return Dictionary();
     }
 
-    // 閫掑綊瑁佸壀锛歞epth 浠?1 寮€濮嬭鏁帮紝瓒呰繃 max_depth 鏃剁Щ闄?subcategories
+
     static Dictionary trim_depth(const Dictionary &node, int max_depth, int depth) {
         Dictionary out = node;
         if (max_depth >= 0 && depth >= max_depth) {
@@ -69,7 +68,7 @@ protected:
         return out;
     }
 
-    // 閫掑綊鏌ユ壘璺緞鑺傜偣锛氳繑鍥炴壘鍒扮殑鑺傜偣鍓湰锛堝凡瑁佸壀锛夛紝绌?Dictionary 琛ㄧず鏈壘鍒?
+
     static Dictionary find_path_node(const Array &categories,
                                      const PackedStringArray &segments,
                                      int seg_idx,

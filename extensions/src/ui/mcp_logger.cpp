@@ -64,6 +64,7 @@ const godot::Vector<McpLogger::LogEntry> &McpLogger::entries() const {
 
 void McpLogger::clear() {
     entries_.clear();
+    pending_entries_.clear();
 }
 
 // ---------------------------------------------------------------------
@@ -81,28 +82,35 @@ void McpLogger::ensure_log_dir() {
 }
 
 // ---------------------------------------------------------------------
+// 日志文件名生成
+// ---------------------------------------------------------------------
+
+godot::String McpLogger::log_filename() const {
+    godot::Dictionary dt = godot::Time::get_singleton()->get_datetime_dict_from_system();
+    int y = static_cast<int>(dt["year"]);
+    int mo = static_cast<int>(dt["month"]);
+    int d = static_cast<int>(dt["day"]);
+    int h = static_cast<int>(dt["hour"]);
+    int mi = static_cast<int>(dt["minute"]);
+    int s = static_cast<int>(dt["second"]);
+    return godot::String("mcp_")
+        + godot::String::num_int64(y)
+        + (mo < 10 ? "0" : "") + godot::String::num_int64(mo)
+        + (d < 10 ? "0" : "") + godot::String::num_int64(d) + "_"
+        + (h < 10 ? "0" : "") + godot::String::num_int64(h)
+        + (mi < 10 ? "0" : "") + godot::String::num_int64(mi)
+        + (s < 10 ? "0" : "") + godot::String::num_int64(s)
+        + ".jsonl";
+}
+
+// ---------------------------------------------------------------------
 // JSONL 写入
 // ---------------------------------------------------------------------
 
 void McpLogger::write_to_jsonl(const LogEntry &entry) {
     ensure_log_dir();
     if (current_log_file_.is_empty()) {
-        godot::Dictionary dt = godot::Time::get_singleton()->get_datetime_dict_from_system();
-        int y = static_cast<int>(dt["year"]);
-        int mo = static_cast<int>(dt["month"]);
-        int d = static_cast<int>(dt["day"]);
-        int h = static_cast<int>(dt["hour"]);
-        int mi = static_cast<int>(dt["minute"]);
-        int s = static_cast<int>(dt["second"]);
-        godot::String filename = godot::String("mcp_")
-            + godot::String::num_int64(y)
-            + (mo < 10 ? "0" : "") + godot::String::num_int64(mo)
-            + (d < 10 ? "0" : "") + godot::String::num_int64(d) + "_"
-            + (h < 10 ? "0" : "") + godot::String::num_int64(h)
-            + (mi < 10 ? "0" : "") + godot::String::num_int64(mi)
-            + (s < 10 ? "0" : "") + godot::String::num_int64(s)
-            + ".jsonl";
-        current_log_file_ = log_dir_.path_join(filename);
+        current_log_file_ = log_dir_.path_join(log_filename());
     }
 
     godot::Dictionary json_entry;
@@ -139,22 +147,7 @@ void McpLogger::flush() {
     if (pending_entries_.is_empty()) return;
 
     if (current_log_file_.is_empty()) {
-        godot::Dictionary dt = godot::Time::get_singleton()->get_datetime_dict_from_system();
-        int y = static_cast<int>(dt["year"]);
-        int mo = static_cast<int>(dt["month"]);
-        int d = static_cast<int>(dt["day"]);
-        int h = static_cast<int>(dt["hour"]);
-        int mi = static_cast<int>(dt["minute"]);
-        int s = static_cast<int>(dt["second"]);
-        godot::String filename = godot::String("mcp_")
-            + godot::String::num_int64(y)
-            + (mo < 10 ? "0" : "") + godot::String::num_int64(mo)
-            + (d < 10 ? "0" : "") + godot::String::num_int64(d) + "_"
-            + (h < 10 ? "0" : "") + godot::String::num_int64(h)
-            + (mi < 10 ? "0" : "") + godot::String::num_int64(mi)
-            + (s < 10 ? "0" : "") + godot::String::num_int64(s)
-            + ".jsonl";
-        current_log_file_ = log_dir_.path_join(filename);
+        current_log_file_ = log_dir_.path_join(log_filename());
     }
 
     ensure_log_dir();

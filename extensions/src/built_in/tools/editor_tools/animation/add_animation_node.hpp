@@ -76,6 +76,7 @@ protected:
         String tree_path = args_string(ctx.args, "tree_path");
         String node_type = args_string(ctx.args, "node_type");
         String node_name = args_string(ctx.args, "name");
+        if (node_name.is_empty()) node_name = args_string(ctx.args, "node_name");
         String animation_name = args_string(ctx.args, "animation_name", "");
 
         godot::Vector2 position;

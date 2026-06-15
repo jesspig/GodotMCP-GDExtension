@@ -10,7 +10,7 @@ namespace godot_mcp {
 // ToolResult
 // =========================================================================
 
-Dictionary ToolResult::ok(Dictionary data) {
+Dictionary ToolResult::ok(const Dictionary &data) {
     Dictionary r;
     r["success"] = true;
     if (data.size() > 0) {

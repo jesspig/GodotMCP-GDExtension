@@ -295,15 +295,7 @@ void McpConsole::add_tree_entry(const McpLogger::LogEntry &entry, int index) {
 }
 
 void McpConsole::rebuild_metadata_indices() {
-    TreeItem *root = log_tree_->get_root();
-    if (!root) return;
-    TreeItem *child = root->get_first_child();
-    int i = 0;
-    while (child) {
-        child->set_metadata(0, i);
-        child = child->get_next();
-        i++;
-    }
+    // Currently unused — indices stay in sync via on_log_appended / rebuild_log
 }
 
 // =====================================================================

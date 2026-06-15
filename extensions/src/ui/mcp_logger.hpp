@@ -29,6 +29,11 @@ public:
     void set_log_callback(LogCallback cb);
     void append(const LogEntry &entry);
     const godot::Vector<LogEntry> &entries() const;
+    ~McpLogger() {
+        if (!pending_entries_.is_empty()) {
+            flush();
+        }
+    }
     void clear();
     void rotate(int keep_days = 7);
     void ensure_log_dir();
@@ -42,6 +47,7 @@ private:
     godot::Vector<LogEntry> pending_entries_;
     static constexpr int kBatchSize = 10;
 
+    godot::String log_filename() const;
     void write_to_jsonl(const LogEntry &entry);
     void flush();
     void rotate_files(int keep_days);

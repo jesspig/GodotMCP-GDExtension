@@ -295,26 +295,14 @@ void McpDock::_on_copy_pressed() {
 }
 
 void McpDock::_on_apply_restart_pressed() {
-    if (!plugin_) return;
-    int http_port = static_cast<int>(http_port_spin_->get_value());
-    int bridge_port = static_cast<int>(bridge_port_spin_->get_value());
-    int bind_idx = bind_mode_->get_selected();
-    String host;
-    if (bind_idx == 1) {
-        host = "0.0.0.0";
-    } else if (bind_idx == 2) {
-        host = custom_bind_addr_->get_text();
-    } else {
-        host = "127.0.0.1";
-    }
-    plugin_->set_http_port(http_port);
-    plugin_->set_bridge_port(bridge_port);
-    plugin_->set_http_host(host);
-    plugin_->save_config();
-    plugin_->restart_server(false);
+    _restart_server(false);
 }
 
 void McpDock::_on_force_restart_pressed() {
+    _restart_server(true);
+}
+
+void McpDock::_restart_server(bool force) {
     if (!plugin_) return;
     int http_port = static_cast<int>(http_port_spin_->get_value());
     int bridge_port = static_cast<int>(bridge_port_spin_->get_value());
@@ -331,7 +319,7 @@ void McpDock::_on_force_restart_pressed() {
     plugin_->set_bridge_port(bridge_port);
     plugin_->set_http_host(host);
     plugin_->save_config();
-    plugin_->restart_server(true);
+    plugin_->restart_server(force);
 }
 
 void McpDock::_on_bind_mode_changed(int index) {
@@ -369,8 +357,7 @@ void McpDock::update_status() {
         status_icon_->add_theme_color_override("font_color", Color(0.9f, 0.2f, 0.2f));
     }
 
-    EditorInterface *ei = EditorInterface::get_singleton();
-    if (ei && ei->is_playing_scene()) {
+    if (plugin_ && plugin_->is_bridge_connected()) {
         bridge_status_->set_text("Bridge: Connected");
         bridge_status_->add_theme_color_override("font_color", Color(0.2f, 0.9f, 0.2f));
     } else {

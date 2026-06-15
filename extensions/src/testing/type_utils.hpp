@@ -135,7 +135,7 @@ inline godot::String compare_variant_fields(
     if (th == "int" || th == "integer") {
         const Variant::Type at = actual.get_type();
         const Variant::Type et = expected_val.get_type();
-        if (at != Variant::INT) {
+        if (at != Variant::INT && at != Variant::FLOAT) {
             return String("int mismatch: actual is not int (type ") + String::num_int64(static_cast<int64_t>(at)) + String(")");
         }
         if (et != Variant::INT) {

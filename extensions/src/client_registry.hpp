@@ -19,36 +19,46 @@ struct ClientEntry {
 
 // ---- Generator implementations -------------------------------------------------
 
-inline String generate_claude_code_config(const String &url) {
+struct JsonConfigSpec {
+    const char *root_key;
+    const char *godot_type;
+    const char *transport_key;
+    const char *transport_val;
+};
+
+inline String generate_json_config(const String &url, const JsonConfigSpec &spec) {
     Dictionary servers;
     Dictionary godot;
-    godot["type"] = "http";
+    if (spec.godot_type) godot["type"] = String(spec.godot_type);
+    if (spec.transport_val) {
+        godot[String(spec.transport_key ? spec.transport_key : "type")] = String(spec.transport_val);
+    }
     godot["url"] = url;
     servers["godot"] = godot;
     Dictionary root;
-    root["mcpServers"] = servers;
+    if (String(spec.root_key) == "mcp") {
+        Dictionary intermediate;
+        intermediate["mcpServers"] = servers;
+        root["mcp"] = intermediate;
+    } else {
+        root[String(spec.root_key)] = servers;
+    }
     return JSON::stringify(root, "  ");
+}
+
+inline String generate_claude_code_config(const String &url) {
+    static constexpr JsonConfigSpec spec = {"mcpServers", "http", nullptr, nullptr};
+    return generate_json_config(url, spec);
 }
 
 inline String generate_cursor_config(const String &url) {
-    Dictionary servers;
-    Dictionary godot;
-    godot["url"] = url;
-    servers["godot"] = godot;
-    Dictionary root;
-    root["mcpServers"] = servers;
-    return JSON::stringify(root, "  ");
+    static constexpr JsonConfigSpec spec = {"mcpServers", nullptr, nullptr, nullptr};
+    return generate_json_config(url, spec);
 }
 
 inline String generate_vscode_config(const String &url) {
-    Dictionary servers;
-    Dictionary godot;
-    godot["type"] = "http";
-    godot["url"] = url;
-    servers["godot"] = godot;
-    Dictionary root;
-    root["servers"] = servers;
-    return JSON::stringify(root, "  ");
+    static constexpr JsonConfigSpec spec = {"servers", "http", nullptr, nullptr};
+    return generate_json_config(url, spec);
 }
 
 inline String generate_cline_config(const String &url) {
@@ -87,24 +97,12 @@ inline String generate_codex_toml(const String &url) {
 }
 
 inline String generate_trae_config(const String &url) {
-    Dictionary servers;
-    Dictionary godot;
-    godot["url"] = url;
-    servers["godot"] = godot;
-    Dictionary root;
-    root["mcpServers"] = servers;
-    return JSON::stringify(root, "  ");
+    return generate_cursor_config(url);
 }
 
 inline String generate_qoder_config(const String &url) {
-    Dictionary servers;
-    Dictionary godot;
-    godot["transport"] = "http";
-    godot["url"] = url;
-    servers["godot"] = godot;
-    Dictionary root;
-    root["mcpServers"] = servers;
-    return JSON::stringify(root, "  ");
+    static constexpr JsonConfigSpec spec = {"mcpServers", nullptr, "transport", "http"};
+    return generate_json_config(url, spec);
 }
 
 inline String generate_codebuddy_config(const String &url) {
@@ -124,25 +122,12 @@ inline String generate_codebuddy_config(const String &url) {
 }
 
 inline String generate_pi_config(const String &url) {
-    Dictionary servers;
-    Dictionary godot;
-    godot["url"] = url;
-    servers["godot"] = godot;
-    Dictionary mcp;
-    mcp["mcpServers"] = servers;
-    Dictionary root;
-    root["mcp"] = mcp;
-    return JSON::stringify(root, "  ");
+    static constexpr JsonConfigSpec spec = {"mcp", nullptr, nullptr, nullptr};
+    return generate_json_config(url, spec);
 }
 
 inline String generate_openclaw_config(const String &url) {
-    Dictionary servers;
-    Dictionary godot;
-    godot["url"] = url;
-    servers["godot"] = godot;
-    Dictionary root;
-    root["mcpServers"] = servers;
-    return JSON::stringify(root, "  ");
+    return generate_cursor_config(url);
 }
 
 // ---- Registry -------------------------------------------------------------------

@@ -5,6 +5,7 @@
 #include <godot_cpp/classes/editor_file_system_directory.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/file_access.hpp>
+#include <godot_cpp/classes/json.hpp>
 
 using namespace godot;
 
@@ -348,8 +349,10 @@ Dictionary TestEngine::run(const String &yaml_content) {
                         suite_result["_all_tracked"] = Array();
                     }
                     Array all_tracked = suite_result["_all_tracked"];
+                    const int old_size = all_tracked.size();
+                    all_tracked.resize(old_size + paths.size());
                     for (int p = 0; p < paths.size(); ++p) {
-                        all_tracked.push_back(paths[p]);
+                        all_tracked[old_size + p] = paths[p];
                     }
                     suite_result["_all_tracked"] = all_tracked;
                 }
