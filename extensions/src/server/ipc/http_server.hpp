@@ -35,7 +35,6 @@ public:
     static constexpr int kMaxConnections = 32;
     static constexpr auto kSseRetryIntervalMsec = 5000;
     static constexpr auto kSseKeepaliveIntervalMsec = 15000;
-    static constexpr auto kSseIdleTimeoutMsec = 300000;
     static constexpr int kMaxBodyLength = 1048576; // 1 MB — prevent OOM on oversized payloads
     static constexpr int kMaxHeaders = 100;
     static constexpr int kCorsMaxAgeSeconds = 86400;
@@ -47,8 +46,6 @@ private:
         godot::Ref<godot::StreamPeerTCP> tcp;
         godot::Vector<uint8_t> read_buf;
         uint64_t last_activity_msec = 0;
-        godot::String session_id;
-
         bool headers_done = false;
         godot::String method;
         godot::String path;
@@ -57,11 +54,12 @@ private:
         int content_length = 0;
         int header_end_pos = -1;
 
-        bool is_sse_stream = false;
         bool sse_write_errored = false;
         int sse_event_id = 0;
         uint64_t sse_last_event_msec = 0;
         bool keep_alive = true;
+        godot::String mcp_method;
+        godot::String mcp_name;
 
     };
 
@@ -73,8 +71,6 @@ private:
 
     void dispatch_request(int conn_id, Connection &conn);
     void handle_post(int conn_id, Connection &conn);
-    void handle_get(int conn_id, Connection &conn);
-    void handle_delete(int conn_id, Connection &conn);
     void handle_options(int conn_id, Connection &conn);
 
     void send_response(int conn_id, Connection &conn, int status_code,

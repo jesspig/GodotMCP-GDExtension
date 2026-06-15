@@ -130,25 +130,7 @@ void HttpServer::poll() {
         Connection &conn = kv.value;
         if (conn.tcp.is_null()) { dead.push_back(conn_id); continue; }
 
-        // SSE stream: flush events
-        if (conn.is_sse_stream) {
-            if (now - conn.sse_last_event_msec > kSseIdleTimeoutMsec) {
-                dead.push_back(conn_id);
-                continue;
-            }
-            if (conn.sse_write_errored) {
-                dead.push_back(conn_id);
-                continue;
-            }
-            flush_sse(conn_id, conn);
-            const int64_t avail = conn.tcp->get_available_bytes();
-            if (avail < 0) {
-                dead.push_back(conn_id);
-            }
-            continue;
-        }
-
-        // --- Non-SSE: read available bytes ---
+        // --- Read available bytes ---
         conn.tcp->poll();
         const int64_t avail = conn.tcp->get_available_bytes();
         if (avail < 0) {
@@ -244,13 +226,11 @@ void HttpServer::poll() {
 
         // Body complete �?dispatch
         if (conn.headers_done && (conn.content_length <= 0 || conn.body.size() >= conn.content_length)) {
-            // Non-SSE connections close after each request (poll architecture can't
+            // Connections close after each request (poll architecture can't
             // reliably handle rapid-fire keepalive due to frame timing).
-            if (!conn.is_sse_stream) {
-                conn.keep_alive = false;
-            }
+            conn.keep_alive = false;
             dispatch_request(conn_id, conn);
-            if (!conn.is_sse_stream && connections_.has(conn_id)) {
+            if (connections_.has(conn_id)) {
                 dead.push_back(conn_id);
             }
         }
@@ -297,8 +277,6 @@ void HttpServer::dispatch_request(int conn_id, Connection &conn) {
     }
 
     if (conn.method == "POST") handle_post(conn_id, conn);
-    else if (conn.method == "GET") handle_get(conn_id, conn);
-    else if (conn.method == "DELETE") handle_delete(conn_id, conn);
     else if (conn.method == "OPTIONS") handle_options(conn_id, conn);
     else {
         log_warn("http", String("Unsupported method: ") + conn.method);
@@ -338,7 +316,7 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
 
     // MCP-Protocol-Version: do NOT reject here. negotiate_protocol_version()
     // falls back to a supported version for unknown headers, and the actual
-    // negotiation happens in handle_initialize using the body's protocolVersion
+    // negotiation happens in server/discover using the body's protocolVersion
     // field. The previous strict pre-check rejected clients that sent a newer
     // header version even though the body would have negotiated fine.
     // (Header is still validated per-request by handle_message.)
@@ -423,17 +401,25 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
                 any_request = true;
                 continue;
             }
-            String batch_sid = conn.session_id;
-            const Dictionary resp = mcp_handler_->handle_message(batch[i], batch_sid);
-            if (!batch_sid.is_empty()) conn.session_id = batch_sid;
+            const Dictionary resp = mcp_handler_->handle_message(batch[i]);
             if (!resp.is_empty()) {
                 responses.push_back(resp);
                 any_request = true;
             }
         }
         if (!any_request) {
+            if (mcp_handler_->has_pending_events()) {
+                send_sse_headers(conn_id, conn);
+                flush_sse(conn_id, conn);
+                return;
+            }
             send_response(conn_id, conn, 202, "Accepted", "text/plain", "");
         } else {
+            if (mcp_handler_->has_pending_events()) {
+                send_sse_headers(conn_id, conn);
+                flush_sse(conn_id, conn);
+                return;
+            }
             send_response(conn_id, conn, 200, "OK", "application/json; charset=utf-8",
                           json_stringify_safe(responses));
         }
@@ -449,107 +435,71 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
 
     const Dictionary msg = root;
 
-    // Notification or response (no `id` field or has `result`/`error`) �?202
+    // Validate Mcp-Method header against the JSON-RPC method field
+    if (!conn.mcp_method.is_empty()) {
+        String body_method = msg.get("method", "");
+        if (!body_method.is_empty() && conn.mcp_method != body_method) {
+            send_response(conn_id, conn, 400, "Bad Request", "application/json",
+                "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32600,\"message\":\"HeaderMismatch: Mcp-Method does not match body method\"},\"id\":null}");
+            return;
+        }
+    }
+
+    // Validate Mcp-Name header against params.name or params.uri
+    if (!conn.mcp_name.is_empty()) {
+        Dictionary params = msg.has("params") ? Dictionary(msg["params"]) : Dictionary();
+        String body_name = params.has("name") ? String(params["name"]) : (params.has("uri") ? String(params["uri"]) : "");
+        if (!body_name.is_empty() && conn.mcp_name != body_name) {
+            send_response(conn_id, conn, 400, "Bad Request", "application/json",
+                "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32600,\"message\":\"HeaderMismatch: Mcp-Name does not match body name/uri\"},\"id\":null}");
+            return;
+        }
+    }
+
+    // Notification or response (no `id` field or has `result`/`error`) → 202
     const bool has_result_or_error = msg.has("result") || msg.has("error");
     const bool is_notification_or_response = !msg.has("id") || has_result_or_error;
 
     if (is_notification_or_response) {
-        String notify_sid = conn.session_id;
-        mcp_handler_->handle_message(msg, notify_sid);
-        if (!notify_sid.is_empty()) conn.session_id = notify_sid;
+        mcp_handler_->handle_message(msg);
+        if (mcp_handler_->has_pending_events()) {
+            send_sse_headers(conn_id, conn);
+            flush_sse(conn_id, conn);
+            return;
+        }
         send_response(conn_id, conn, 202, "Accepted", "text/plain", "");
         return;
     }
 
     // Process request via MCP handler
-    String session_ref = conn.session_id;
-    const Dictionary handler_result = mcp_handler_->handle_message(msg, session_ref);
-    conn.session_id = session_ref;
+    const Dictionary handler_result = mcp_handler_->handle_message(msg);
 
     if (handler_result.is_empty()) {
+        if (mcp_handler_->has_pending_events()) {
+            send_sse_headers(conn_id, conn);
+            flush_sse(conn_id, conn);
+            return;
+        }
         send_response(conn_id, conn, 202, "Accepted", "text/plain", "");
         return;
     }
 
     const String result_json = json_stringify_safe(handler_result);
+    if (mcp_handler_->has_pending_events()) {
+        send_sse_headers(conn_id, conn);
+        flush_sse(conn_id, conn);
+        return;
+    }
     send_response(conn_id, conn, 200, "OK", "application/json; charset=utf-8", result_json);
-}
-
-// -------------------------------------------------------------------------
-// GET /mcp �?SSE stream
-// -------------------------------------------------------------------------
-void HttpServer::handle_get(int conn_id, Connection &conn) {
-    if (conn.path != "/mcp") {
-        send_response(conn_id, conn, 404, "Not Found", "text/plain", "404 Not Found");
-        return;
-    }
-
-    // Validate Accept header
-    auto accept_it = conn.headers.find("accept");
-    if (accept_it == conn.headers.end() ||
-        accept_it->value.find("text/event-stream") == -1) {
-        send_response(conn_id, conn, 405, "Method Not Allowed", "text/plain",
-                      "GET only for text/event-stream");
-        return;
-    }
-
-    if (!validate_origin(conn)) {
-        send_response(conn_id, conn, 403, "Forbidden", "text/plain", "Origin not allowed");
-        return;
-    }
-
-    if (conn.session_id.is_empty()) {
-        send_response(conn_id, conn, 400, "Bad Request", "text/plain",
-                      "MCP-Session-Id header required");
-        return;
-    }
-
-    if (!mcp_handler_->validate_session(conn.session_id)) {
-        send_response(conn_id, conn, 404, "Not Found", "text/plain", "Session not found");
-        return;
-    }
-
-    // Reject duplicate SSE stream for the same session
-    for (const auto &kv : connections_) {
-        if (kv.key != conn_id && kv.value.is_sse_stream &&
-            kv.value.session_id == conn.session_id) {
-            send_response(conn_id, conn, 409, "Conflict", "text/plain",
-                          "Only one SSE stream allowed per session");
-            return;
-        }
-    }
-
-    conn.is_sse_stream = true; // SSE resumption via Last-Event-ID is not supported
-    conn.sse_last_event_msec = Time::get_singleton()->get_ticks_msec();
-    send_sse_headers(conn_id, conn);
-}
-
-// -------------------------------------------------------------------------
-// DELETE /mcp �?session termination
-// -------------------------------------------------------------------------
-void HttpServer::handle_delete(int conn_id, Connection &conn) {
-    if (conn.path != "/mcp") {
-        send_response(conn_id, conn, 404, "Not Found", "text/plain", "404 Not Found");
-        return;
-    }
-
-    if (!conn.session_id.is_empty() && mcp_handler_->validate_session(conn.session_id)) {
-        mcp_handler_->destroy_session(conn.session_id);
-        send_response(conn_id, conn, 202, "Accepted", "text/plain", "");
-    } else {
-        log_warn("http", String("DELETE rejected for session=") + conn.session_id);
-        send_response(conn_id, conn, 405, "Method Not Allowed", "text/plain",
-                      "DELETE not available");
-    }
 }
 
 void HttpServer::handle_options(int conn_id, Connection &conn) {
     String cors_headers = String("Access-Control-Allow-Origin: ") + get_cors_origin(conn) + String("\r\n") +
         "Vary: Origin\r\n"
-        "Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS\r\n"
-        "Access-Control-Allow-Headers: Content-Type, Accept, MCP-Session-Id, Last-Event-ID, MCP-Protocol-Version\r\n"
+        "Access-Control-Allow-Methods: POST, OPTIONS\r\n"
+        "Access-Control-Allow-Headers: Content-Type, Accept, MCP-Protocol-Version\r\n"
         "Access-Control-Max-Age: " + String::num_int64(kCorsMaxAgeSeconds) +
-        "\r\nAccess-Control-Expose-Headers: MCP-Session-Id, Last-Event-ID, MCP-Protocol-Version\r\n";
+        "\r\nAccess-Control-Expose-Headers: MCP-Protocol-Version\r\n";
     send_response(conn_id, conn, 204, "No Content", "text/plain", "", cors_headers);
 }
 

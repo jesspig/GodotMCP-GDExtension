@@ -11,12 +11,7 @@
 #include <godot_cpp/core/object.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
-#include <charconv>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <array>
-#include <random>
 
 using namespace godot;
 
@@ -41,118 +36,21 @@ int McpHandler::pending_request_count() const {
 }
 
 // -------------------------------------------------------------------------
-// Session management
-// -------------------------------------------------------------------------
-String McpHandler::generate_uuid() {
-    static std::mt19937_64 rng = []() -> std::mt19937_64 {
-        try {
-            return std::mt19937_64(std::random_device{}());
-        } catch (...) {
-            // Fallback: use time-based seed if random_device fails
-            uint64_t seed = static_cast<uint64_t>(Time::get_singleton()->get_ticks_usec());
-            return std::mt19937_64(seed);
-        }
-    }();
-    static std::uniform_int_distribution<uint64_t> dist;
-
-    constexpr int kUuidBufSize = 37;
-    char buf[kUuidBufSize];
-    const uint64_t hi = dist(rng);
-    const uint64_t lo = dist(rng);
-    // RFC 4122 version 4
-    std::snprintf(buf, sizeof(buf), "%08x-%04x-4%03x-%04x-%012llx",
-                 static_cast<unsigned>((hi >> 32)),
-                 static_cast<unsigned>((hi >> 16)) & 0xffff,
-                 static_cast<unsigned>((hi & 0x0fff)),
-                 (static_cast<unsigned>((lo >> 48)) & 0x3fff) | 0x8000,
-                 (unsigned long long)(lo & 0x0000ffffffffffffULL));
-    return String(buf);
-}
-
-String McpHandler::create_session() {
-    if (sessions_.size() >= kMaxSessions) {
-        cleanup_expired_sessions();
-    }
-    if (sessions_.size() >= kMaxSessions) {
-        log_warn("mcp", "Session limit reached, rejecting new session");
-        return String();
-    }
-    auto s = std::make_unique<Session>();
-    s->id = generate_uuid();
-    s->last_activity = Time::get_singleton()->get_unix_time_from_system();
-    const String id = s->id;
-    sessions_[id] = std::move(s);
-    return id;
-}
-
-bool McpHandler::destroy_session(const String &session_id) {
-    auto it = sessions_.find(session_id);
-    if (it == sessions_.end()) return false;
-    sessions_.erase(it);
-    return true;
-}
-
-bool McpHandler::validate_session(const String &session_id) const {
-    return sessions_.find(session_id) != sessions_.end();
-}
-
-McpHandler::Session *McpHandler::find_session(const String &id) {
-    auto it = sessions_.find(id);
-    return it != sessions_.end() ? it->second.get() : nullptr;
-}
-
-void McpHandler::cleanup_expired_sessions() {
-    const double now = Time::get_singleton()->get_unix_time_from_system();
-
-    Vector<String> expired;
-    for (const auto &kv : sessions_) {
-        if (now - kv.second->last_activity > kSessionTtl) {
-            expired.push_back(kv.first);
-        }
-    }
-    for (int i = 0; i < expired.size(); ++i) {
-        sessions_.erase(expired[i]);
-    }
-
-    if (sessions_.size() > kMaxSessions) {
-        String oldest_id;
-        double oldest_time = static_cast<double>(INFINITY);
-        for (const auto &kv : sessions_) {
-            if (kv.second->last_activity < oldest_time) {
-                oldest_time = kv.second->last_activity;
-                oldest_id = kv.first;
-            }
-        }
-        if (!oldest_id.is_empty()) {
-            sessions_.erase(oldest_id);
-        }
-    }
-}
-
-// -------------------------------------------------------------------------
 // SSE event queue
 // -------------------------------------------------------------------------
-bool McpHandler::has_pending_events(const String &session_id) const {
-    auto it = sessions_.find(session_id);
-    return it != sessions_.end() && it->second && !it->second->sse_event_queue.is_empty();
+bool McpHandler::has_pending_events() const {
+    return !global_event_queue_.empty();
 }
 
-Dictionary McpHandler::consume_event(const String &session_id) {
-    Session *s = find_session(session_id);
-    if (!s || s->sse_event_queue.is_empty()) return Dictionary();
-    Dictionary ev = s->sse_event_queue[0];
-    s->sse_event_queue.remove_at(0);
+Dictionary McpHandler::consume_event() {
+    if (global_event_queue_.empty()) return Dictionary();
+    Dictionary ev = global_event_queue_[0];
+    global_event_queue_.pop_front();
     return ev;
 }
 
-void McpHandler::enqueue_event(const String &session_id, const Dictionary &event) {
-    Session *s = find_session(session_id);
-    if (s) {
-        if (s->sse_event_queue.size() >= kMaxSseQueue) {
-            s->sse_event_queue.remove_at(0);
-        }
-        s->sse_event_queue.push_back(event);
-    }
+void McpHandler::enqueue_event(const Dictionary &event) {
+    global_event_queue_.push_back(event);
 }
 
 // -------------------------------------------------------------------------
@@ -195,20 +93,12 @@ Dictionary McpHandler::make_notification(const String &method, const Variant &pa
     return d;
 }
 
-// Build the composite key used by pending_requests_. Using session + id
-// (not id alone) prevents collisions between null-id requests and between
-// same-numbered ids issued by different sessions.
-namespace {
-inline String pending_key(const String &session_id, const Variant &id) {
-    return session_id + String::chr(0x1F) + JSON::stringify(id);
-}
-} // namespace
-
 // -------------------------------------------------------------------------
 // Protocol version negotiation
 // -------------------------------------------------------------------------
 String McpHandler::negotiate_protocol_version(const String &header_value) {
-    static constexpr std::array<const char*, 2> kSupported = {
+    static constexpr std::array<const char*, 3> kSupported = {
+        "2026-07-28",
         "2025-11-25",
         "2025-03-26"
     };
@@ -227,12 +117,7 @@ String McpHandler::negotiate_protocol_version(const String &header_value) {
 // -------------------------------------------------------------------------
 // Main message dispatch — the heart of the MCP protocol
 // -------------------------------------------------------------------------
-// Returns JSON-RPC response Dictionary (empty for notifications).
-// io_session_id is an in/out parameter: if the message creates a session
-// (initialize), the new session ID is written back here.
-Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg, String &io_session_id) {
-    cleanup_expired_sessions();
-
+Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg) {
     const Variant id_v = jsonrpc_msg.has("id") ? jsonrpc_msg["id"] : Variant();
 
     const String version = jsonrpc_msg.get("jsonrpc", "");
@@ -250,38 +135,21 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg, String &io_
                                   ? Dictionary(jsonrpc_msg["params"])
                                   : Dictionary();
 
-    Session *session = nullptr;
-    if (!io_session_id.is_empty()) {
-        session = find_session(io_session_id);
-        if (session) {
-            session->last_activity = Time::get_singleton()->get_unix_time_from_system();
-        }
-    }
-
-    if (method == "initialize") {
-        return handle_initialize(io_session_id, params, id_v);
-    }
-
-    // All other methods need a valid session
-    if (!session) {
-        return make_jsonrpc_error(id_v, kInvalidRequest, "No valid session. Call initialize first.");
+    if (method == "server/discover") {
+        return handle_server_discover(id_v);
     }
 
     // Lifecycle
     if (method == "ping") {
         return handle_ping(id_v);
     }
-    if (method == "notifications/initialized") {
-        session->initialized = true;
-        return Dictionary();
-    }
 
     // Tools
     if (method == "tools/list") {
-        return handle_tools_list(io_session_id, params, id_v);
+        return handle_tools_list(params, id_v);
     }
     if (method == "tools/call") {
-        return handle_tools_call(io_session_id, params, id_v);
+        return handle_tools_call(params, id_v);
     }
 
     // Resources
@@ -320,7 +188,7 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg, String &io_
 
     // Notifications
     if (method == "notifications/cancelled") {
-        handle_cancelled(params, io_session_id);
+        handle_cancelled(params);
         return Dictionary();
     }
 
@@ -329,23 +197,9 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg, String &io_
 }
 
 // -------------------------------------------------------------------------
-// initialize
+// server/discover
 // -------------------------------------------------------------------------
-Dictionary McpHandler::handle_initialize(String &session_id, const Dictionary &params,
-                                          const Variant &id) {
-    Session *session = find_session(session_id);
-    if (!session) {
-        session_id = create_session();
-        session = find_session(session_id);
-    }
-
-    const String client_version = params.get("protocolVersion", "");
-    session->protocol_version = negotiate_protocol_version(client_version);
-    session->client_info = params.get("clientInfo", Dictionary());
-    log_info("mcp", String("Initialize from '") +
-                     JSON::stringify(session->client_info) +
-                     String("', protocol ") + session->protocol_version);
-
+Dictionary McpHandler::handle_server_discover(const Variant &id) {
     Dictionary caps;
     Dictionary tools_caps;
     tools_caps["listChanged"] = true;
@@ -360,7 +214,6 @@ Dictionary McpHandler::handle_initialize(String &session_id, const Dictionary &p
     server_info["version"] = registry_ ? registry_->plugin_version() : "0.0.0";
 
     Dictionary result;
-    result["protocolVersion"] = session->protocol_version;
     result["capabilities"] = caps;
     result["serverInfo"] = server_info;
 
@@ -377,8 +230,7 @@ Dictionary McpHandler::handle_ping(const Variant &id) {
 // -------------------------------------------------------------------------
 // tools/list — returns only always-on tools (progressive disclosure)
 // -------------------------------------------------------------------------
-Dictionary McpHandler::handle_tools_list(const String &session_id, const Dictionary &params,
-                                          const Variant &id) {
+Dictionary McpHandler::handle_tools_list(const Dictionary &params, const Variant &id) {
     if (!registry_) {
         return make_jsonrpc_error(id, kInternalError, "Registry not initialized");
     }
@@ -392,8 +244,7 @@ Dictionary McpHandler::handle_tools_list(const String &session_id, const Diction
 // -------------------------------------------------------------------------
 // tools/call
 // -------------------------------------------------------------------------
-Dictionary McpHandler::handle_tools_call(const String &session_id, const Dictionary &params,
-                                          const Variant &id) {
+Dictionary McpHandler::handle_tools_call(const Dictionary &params, const Variant &id) {
     const String tool_name = params.get("name", "");
     if (tool_name.is_empty()) {
         return make_jsonrpc_error(id, kInvalidParams, "Missing 'name' in tool call");
@@ -403,18 +254,16 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
                                 ? Dictionary(params["arguments"])
                                 : Dictionary();
 
-    // Track as pending for cancellation support
-    pending_requests_[pending_key(session_id, id)] = session_id;
+    // Track as pending for cancellation support (keyed by request ID only)
+    const String req_key = JSON::stringify(id);
+    pending_requests_[req_key] = req_key;
 
     // Check cancellation
     {
-        auto cancel_it = cancelled_requests_.find(session_id);
+        auto cancel_it = cancelled_requests_.find(req_key);
         if (cancel_it != cancelled_requests_.end()) {
-            const Variant canceled_id = cancel_it->value;
-            if (canceled_id == id) {
-                cancelled_requests_.erase(session_id);
-                return make_jsonrpc_error(id, kServerTerminated, "Request cancelled");
-            }
+            cancelled_requests_.erase(req_key);
+            return make_jsonrpc_error(id, kServerTerminated, "Request cancelled");
         }
     }
 
@@ -422,7 +271,7 @@ Dictionary McpHandler::handle_tools_call(const String &session_id, const Diction
     const String auth_token;
     Dictionary exec_result = tool_executor_.execute(tool_name, args, auth_token);
 
-    pending_requests_.erase(pending_key(session_id, id));
+    pending_requests_.erase(req_key);
 
     // Structured log callback
     if (log_callback_) {
@@ -643,17 +492,17 @@ Dictionary McpHandler::handle_completion_complete(const Dictionary &params, cons
 // -------------------------------------------------------------------------
 // notifications/cancelled
 // -------------------------------------------------------------------------
-void McpHandler::handle_cancelled(const Dictionary &params, const String &session_id) {
+void McpHandler::handle_cancelled(const Dictionary &params) {
     const Variant req_id = params.get("requestId", Variant());
     if (req_id.get_type() == Variant::NIL) return;
 
+    const String key = JSON::stringify(req_id);
     // Always store in cancelled_requests_ - the tools/call might not have
     // arrived yet. Storing unconditionally ensures the cancellation is
     // effective regardless of message ordering.
-    cancelled_requests_[session_id] = req_id;
+    cancelled_requests_[key] = req_id;
 
     // Clean up from pending_requests_ if already registered
-    const String key = pending_key(session_id, req_id);
     auto it = pending_requests_.find(key);
     if (it != pending_requests_.end()) {
         pending_requests_.erase(it->key);
@@ -661,16 +510,12 @@ void McpHandler::handle_cancelled(const Dictionary &params, const String &sessio
 }
 
 // -------------------------------------------------------------------------
-// notify_tools_list_changed — send notification to all initialized sessions
+// notify_tools_list_changed — push notification to global event queue
 // -------------------------------------------------------------------------
 void McpHandler::notify_tools_list_changed() {
     const Dictionary notification = make_notification(
         "notifications/tools/list_changed", Dictionary());
-    for (auto &kv : sessions_) {
-        if (kv.second->initialized) {
-            enqueue_event(kv.first, notification);
-        }
-    }
+    enqueue_event(notification);
 }
 
 // -------------------------------------------------------------------------

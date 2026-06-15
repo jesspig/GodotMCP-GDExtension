@@ -108,9 +108,18 @@ HttpServer::ParseResult HttpServer::parse_headers(Connection &conn) {
         conn.keep_alive = false;
     }
 
-    auto sid_it = conn.headers.find("mcp-session-id");
-    if (sid_it != conn.headers.end()) {
-        conn.session_id = sid_it->value;
+    auto origin_it = conn.headers.find("origin");
+    if (origin_it != conn.headers.end()) {
+        origin_it->value = origin_it->value.replace("\r", "").replace("\n", "");
+    }
+
+    auto mm_it = conn.headers.find("mcp-method");
+    if (mm_it != conn.headers.end()) {
+        conn.mcp_method = mm_it->value;
+    }
+    auto mn_it = conn.headers.find("mcp-name");
+    if (mn_it != conn.headers.end()) {
+        conn.mcp_name = mn_it->value;
     }
 
     conn.headers_done = true;

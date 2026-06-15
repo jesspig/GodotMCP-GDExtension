@@ -20,7 +20,7 @@ void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
     response += String("Content-Type: ") + content_type + String("\r\n");
     response += String("Content-Length: ") + String::num_int64(body_bytes.size()) + String("\r\n");
 
-    if (conn.keep_alive && !conn.is_sse_stream) {
+    if (conn.keep_alive) {
         response += "Connection: keep-alive\r\n";
     } else {
         response += "Connection: close\r\n";
@@ -29,12 +29,7 @@ void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
     response += "Cache-Control: no-store\r\n";
     response += String("Access-Control-Allow-Origin: ") + get_cors_origin(conn) + String("\r\n");
     response += "Vary: Origin\r\n";
-    response += "Access-Control-Expose-Headers: MCP-Session-Id, Last-Event-ID, MCP-Protocol-Version\r\n";
-
-    if (!conn.session_id.is_empty()) {
-        String safe_sid = conn.session_id.replace("\r", "").replace("\n", "");
-        response += String("MCP-Session-Id: ") + safe_sid + String("\r\n");
-    }
+    response += "Access-Control-Expose-Headers: Last-Event-ID, MCP-Protocol-Version\r\n";
 
     if (!extra_headers.is_empty()) {
         response += extra_headers;

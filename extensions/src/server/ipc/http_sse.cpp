@@ -19,10 +19,6 @@ void HttpServer::send_sse_headers(int conn_id, Connection &conn) {
                       String("Access-Control-Allow-Origin: ") + get_cors_origin(conn) + String("\r\n") +
                       String("Vary: Origin\r\n");
 
-    if (!conn.session_id.is_empty()) {
-        response += String("MCP-Session-Id: ") + conn.session_id + String("\r\n");
-    }
-
     response += String("\r\n");
 
     const PackedByteArray out = response.to_utf8_buffer();
@@ -82,22 +78,12 @@ void HttpServer::send_sse_comment(int conn_id, Connection &conn, const String &c
 }
 
 void HttpServer::flush_sse(int conn_id, Connection &conn) {
-    if (!mcp_handler_ || conn.session_id.is_empty()) return;
+    if (!mcp_handler_) return;
 
-    const uint64_t now = Time::get_singleton()->get_ticks_msec();
-
-    if (!mcp_handler_->has_pending_events(conn.session_id)) {
-        if (now - conn.last_activity_msec > kSseKeepaliveIntervalMsec) {
-            send_sse_comment(conn_id, conn, "keep-alive");
-            conn.last_activity_msec = now;
-        }
-        return;
-    }
-
-    while (mcp_handler_->has_pending_events(conn.session_id)) {
+    while (mcp_handler_->has_pending_events()) {
         if (conn.sse_write_errored) return;
 
-        Dictionary event = mcp_handler_->consume_event(conn.session_id);
+        Dictionary event = mcp_handler_->consume_event();
         const String method = event.get("method", "");
         const Variant params = event.get("params", Variant());
 
@@ -115,8 +101,6 @@ void HttpServer::flush_sse(int conn_id, Connection &conn) {
         // Event IDs are sent for SSE spec compliance; resumption via Last-Event-ID is not supported
         conn.sse_event_id++;
         send_sse_event(conn_id, conn, "message", data, conn.sse_event_id);
-        conn.last_activity_msec = now;
-        conn.sse_last_event_msec = now;
     }
 }
 
