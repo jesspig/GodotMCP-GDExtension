@@ -94,6 +94,7 @@ void McpEditorPlugin::restart_server() {
 
 void McpEditorPlugin::_enter_tree() {
     if (!Engine::get_singleton()->is_editor_hint()) return;
+    if (started_) return;
 
     registry_.set_engine_version(Engine::get_singleton()->get_version_info().get("string", String()));
     registry_.set_plugin_version(String(GODOT_MCP_PLUGIN_VERSION));

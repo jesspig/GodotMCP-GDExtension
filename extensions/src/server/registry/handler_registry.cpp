@@ -260,7 +260,7 @@ Array HandlerRegistry::get_categories() const {
             String ti_first = (slash >= 0) ? tool_cat.substr(0, slash) : tool_cat;
             if (ti_first != seg) continue;
             const String cat_desc = tool->category_description();
-            if (!cat_node.description.is_empty() && !cat_desc.is_empty()) {
+            if (cat_node.description.is_empty() && !cat_desc.is_empty()) {
                 cat_node.description = cat_desc;
             }
         }

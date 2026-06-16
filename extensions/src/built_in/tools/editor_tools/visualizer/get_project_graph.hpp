@@ -65,10 +65,8 @@ protected:
             node_entry["path"] = scene_path;
             nodes.append(node_entry);
 
-            // Parse scene dependencies (limited by max_depth)
-            if (i < max_depth || max_depth <= 0) {
-                _analyze_scene_deps(scene_path, scene_path, edges, include_resources, 0, max_depth, visited_scenes, scene_files, scene_set);
-            }
+            // Parse scene dependencies (_analyze_scene_deps handles max_depth internally)
+            _analyze_scene_deps(scene_path, scene_path, edges, include_resources, 0, max_depth, visited_scenes, scene_files, scene_set);
         }
 
         // Add current edited scene info
@@ -112,10 +110,8 @@ private:
     void _analyze_scene_deps(const String &scene_path, const String &from_id,
                              Array &edges, bool include_resources,
                              int64_t depth, int64_t max_depth,
-                             Dictionary &visited, const Array &all_scenes,
+                             Dictionary & /*visited*/, const Array & /*all_scenes*/,
                              const godot::HashSet<godot::String> &scene_set) const {
-        (void)visited;
-        (void)all_scenes;
         if (max_depth > 0 && depth >= max_depth) return;
 
         godot::Ref<godot::PackedScene> packed = godot::ResourceLoader::get_singleton()->load(scene_path, "PackedScene");

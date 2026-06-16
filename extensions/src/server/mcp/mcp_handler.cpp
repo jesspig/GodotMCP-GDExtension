@@ -21,7 +21,10 @@ namespace godot_mcp {
 // Construction
 // -------------------------------------------------------------------------
 McpHandler::McpHandler(HandlerRegistry *registry)
-    : registry_(registry), tool_executor_(*registry) {}
+    : registry_(registry), tool_executor_(*registry) {
+    // tool_executor_ ctor dereferences registry — must be non-null at construction
+    CRASH_COND(registry == nullptr);
+}
 
 void McpHandler::set_log_callback(McpLogCallback cb) {
     log_callback_ = std::move(cb);
