@@ -318,7 +318,10 @@ void McpConsole::on_log_appended(const McpLogger::LogEntry &entry) {
         TreeItem *root = log_tree_->get_root();
         if (root) {
             TreeItem *oldest = root->get_first_child();
-
+            if (oldest) {
+                root->remove_child(oldest);
+                memdelete(oldest);
+            }
         }
     }
     add_tree_entry(entry, static_cast<int>(logged_entries_.size()) - 1);

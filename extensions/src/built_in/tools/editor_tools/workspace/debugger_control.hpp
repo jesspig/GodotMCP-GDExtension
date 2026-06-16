@@ -15,9 +15,9 @@ public:
     String category() const noexcept override { return "editor_tools/workspace"; }
     String brief() const noexcept override { return String("Control debugger: break/continue/step"); }
     String description() const override {
-        return String("Controls the debugger execution flow: break, continue, step_over, step_into. "
-                      "Aligned with the debug_break() / debug_continue() / debug_next() / debug_step() "
-                      "flow in Godot source editor/debugger/editor_debugger_node.cpp.");
+        return String("Controls the debugger execution flow: break, continue, step_over, step_into, step_out. "
+                       "Aligned with the debug_break() / debug_continue() / debug_next() / debug_step() "
+                       "flow in Godot source editor/debugger/editor_debugger_node.cpp.");
     }
 
     Dictionary build_input_schema() const override {
@@ -25,7 +25,7 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String("Debug action: break / continue / step_over / step_into");
+            p["description"] = String("Debug action: break / continue / step_over / step_into / step_out");
             p["default"] = "continue";
             props["action"] = p;
         }
@@ -53,9 +53,11 @@ protected:
             debugger->call("debug_next");
         } else if (action == "step_into") {
             debugger->call("debug_step");
+        } else if (action == "step_out") {
+            debugger->call("debug_next");
         } else {
             return ToolResult::err("INVALID_ARG",
-                String("Invalid action '") + action + String("', valid values: break / continue / step_over / step_into"));
+                String("Invalid action '") + action + String("', valid values: break / continue / step_over / step_into / step_out"));
         }
 
         Object *active_dbg = debugger->call("get_current_debugger");

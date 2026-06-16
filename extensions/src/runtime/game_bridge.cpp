@@ -115,6 +115,9 @@ void GameBridgeNode::stop_server() {
     read_buf_.clear();
     read_text_ = String();
     read_offset_ = 0;
+    utf8_retries_ = 0;
+    utf8_fail_offset_ = -1;
+    consumed_bytes_ = 0;
 }
 
 void GameBridgeNode::accept_clients() {
@@ -132,6 +135,9 @@ void GameBridgeNode::accept_clients() {
         read_buf_.clear();
         read_text_ = String();
         read_offset_ = 0;
+        utf8_retries_ = 0;
+        utf8_fail_offset_ = -1;
+        consumed_bytes_ = 0;
         log_info("game_bridge", "Client connected");
     }
 }
@@ -143,9 +149,12 @@ void GameBridgeNode::read_clients() {
     StreamPeerSocket::Status s = client_->get_status();
     if (s == StreamPeerSocket::STATUS_ERROR || s == StreamPeerSocket::STATUS_NONE) {
         client_.unref();
-        read_buf_.clear();
-        read_text_ = String();
-        read_offset_ = 0;
+    read_buf_.clear();
+    read_text_ = String();
+    read_offset_ = 0;
+    utf8_retries_ = 0;
+    utf8_fail_offset_ = -1;
+    consumed_bytes_ = 0;
         log_info("game_bridge", "Client disconnected");
         return;
     }
@@ -158,8 +167,11 @@ void GameBridgeNode::read_clients() {
         client_->disconnect_from_host();
         client_.unref();
         read_buf_.clear();
-        read_text_ = String();
-        read_offset_ = 0;
+    read_text_ = String();
+    read_offset_ = 0;
+    utf8_retries_ = 0;
+    utf8_fail_offset_ = -1;
+    consumed_bytes_ = 0;
         return;
     }
     PackedByteArray data = chunk[1];
@@ -174,6 +186,7 @@ void GameBridgeNode::read_clients() {
         read_buf_.clear();
         read_text_ = String();
         read_offset_ = 0;
+        consumed_bytes_ = 0;
         return;
     }
 
@@ -184,9 +197,24 @@ void GameBridgeNode::read_clients() {
         String chunk_text;
         Error utf8_err = chunk_text.parse_utf8((const char*)raw, new_bytes);
         if (utf8_err != OK) {
+            if (read_offset_ == utf8_fail_offset_) {
+                utf8_retries_++;
+            } else {
+                utf8_retries_ = 0;
+                utf8_fail_offset_ = read_offset_;
+            }
+            if (utf8_retries_ >= 3) {
+                read_offset_ = static_cast<int>(read_buf_.size());
+                utf8_retries_ = 0;
+                utf8_fail_offset_ = -1;
+                log_warn("game_bridge", "Discarding un-decodable UTF-8 data");
+            }
             return;
         }
+        utf8_retries_ = 0;
+        utf8_fail_offset_ = -1;
         read_text_ += chunk_text;
+        consumed_bytes_ += new_bytes;
         read_offset_ = static_cast<int>(read_buf_.size());
     }
 
@@ -201,7 +229,7 @@ void GameBridgeNode::read_clients() {
     Variant msg = json->get_data();
 
     // Calculate consumed bytes and keep any remaining data for next message
-    int consumed = static_cast<int>(read_text_.utf8().size());
+    int consumed = consumed_bytes_;
     if (consumed > 0 && consumed < read_buf_.size()) {
         PackedByteArray remaining;
         remaining.resize(read_buf_.size() - consumed);
@@ -212,6 +240,7 @@ void GameBridgeNode::read_clients() {
     }
     read_text_ = String();
     read_offset_ = 0;
+    consumed_bytes_ = 0;
 
     if (msg.get_type() != Variant::DICTIONARY) {
         Dictionary err;

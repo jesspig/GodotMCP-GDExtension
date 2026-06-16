@@ -127,18 +127,13 @@
 #include "built_in/tools/editor_tools/scaffold/create_project.hpp"
 
 // ── Script tools ──
-#include "built_in/tools/editor_tools/scripts/read_gd_script.hpp"
-#include "built_in/tools/editor_tools/scripts/write_gd_script.hpp"
-#include "built_in/tools/editor_tools/scripts/patch_gd_script.hpp"
-#include "built_in/tools/editor_tools/scripts/validate_gd_script.hpp"
-#include "built_in/tools/editor_tools/scripts/list_gd_scripts.hpp"
+#include "built_in/tools/editor_tools/scripts/read_script.hpp"
+#include "built_in/tools/editor_tools/scripts/write_script.hpp"
+#include "built_in/tools/editor_tools/scripts/patch_script.hpp"
+#include "built_in/tools/editor_tools/scripts/validate_script.hpp"
+#include "built_in/tools/editor_tools/scripts/list_scripts.hpp"
 #include "built_in/tools/editor_tools/scripts/grep_scripts.hpp"
 #include "built_in/tools/editor_tools/scripts/glob_scripts.hpp"
-#include "built_in/tools/editor_tools/scripts/read_csharp_script.hpp"
-#include "built_in/tools/editor_tools/scripts/write_csharp_script.hpp"
-#include "built_in/tools/editor_tools/scripts/patch_csharp_script.hpp"
-#include "built_in/tools/editor_tools/scripts/validate_csharp_script.hpp"
-#include "built_in/tools/editor_tools/scripts/list_csharp_scripts.hpp"
 
 // ── Settings tools ──
 #include "built_in/tools/editor_tools/settings/get_setting.hpp"
@@ -186,20 +181,15 @@
 #include "built_in/tools/editor_tools/workspace/get_debugger_state.hpp"
 #include "built_in/tools/editor_tools/workspace/get_debugger_status.hpp"
 #include "built_in/tools/editor_tools/workspace/get_debugger_errors.hpp"
+#include "built_in/tools/editor_tools/workspace/get_performance_monitors.hpp"
 #include "built_in/tools/editor_tools/workspace/get_fps.hpp"
 #include "built_in/tools/editor_tools/workspace/get_memory_usage.hpp"
 #include "built_in/tools/editor_tools/workspace/get_object_count.hpp"
-#include "built_in/tools/editor_tools/workspace/get_performance_monitors.hpp"
 #include "built_in/tools/editor_tools/workspace/get_physics_stats.hpp"
 #include "built_in/tools/editor_tools/workspace/get_render_stats.hpp"
 #include "built_in/tools/editor_tools/workspace/get_stack_trace.hpp"
 #include "built_in/tools/editor_tools/workspace/get_locals.hpp"
-#include "built_in/tools/editor_tools/workspace/debugger_break.hpp"
-#include "built_in/tools/editor_tools/workspace/debugger_continue.hpp"
 #include "built_in/tools/editor_tools/workspace/debugger_control.hpp"
-#include "built_in/tools/editor_tools/workspace/debugger_step_into.hpp"
-#include "built_in/tools/editor_tools/workspace/debugger_step_out.hpp"
-#include "built_in/tools/editor_tools/workspace/debugger_step_over.hpp"
 #include "built_in/tools/editor_tools/workspace/list_breakpoints.hpp"
 #include "built_in/tools/editor_tools/workspace/set_breakpoint.hpp"
 #include "built_in/tools/editor_tools/workspace/remove_breakpoint.hpp"
@@ -245,7 +235,6 @@ void register_itools(HandlerRegistry &reg) {
     #include "built_in/tools/register/register_existing.hpp"
     #include "built_in/tools/register/register_fallback.hpp"
     #include "built_in/tools/register/register_docs.hpp"
-    reg.finalize_registration();
 }
 
 } // namespace godot_mcp

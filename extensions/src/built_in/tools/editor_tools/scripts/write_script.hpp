@@ -9,22 +9,43 @@
 
 namespace godot_mcp {
 
-class WriteCsharpScriptTool : public ITool {
+template <ScriptLang Lang>
+class WriteScriptTool : public ITool {
+    String ext() const {
+        if constexpr (Lang == ScriptLang::GDScript) return ".gd";
+        else return ".cs";
+    }
+    String lang_id() const {
+        if constexpr (Lang == ScriptLang::GDScript) return "gdscript";
+        else return "csharp";
+    }
+    String tool_name() const {
+        if constexpr (Lang == ScriptLang::GDScript) return "write_gd_script";
+        else return "write_csharp_script";
+    }
+
 public:
-    String name() const noexcept override { return "write_csharp_script"; }
+    String name() const noexcept override { return tool_name(); }
     String category() const noexcept override { return "editor_tools/scripts"; }
     String brief() const noexcept override {
-        return "Write/Create C# Script (.cs) file";
+        if constexpr (Lang == ScriptLang::GDScript)
+            return "Write/Create GDScript (.gd) file";
+        else
+            return "Write/Create C# Script (.cs) file";
     }
     String description() const override {
-        return "Create or overwrite a C# script file. Writes directly when content is provided; creates a minimal valid script when content is empty.";
+        if constexpr (Lang == ScriptLang::GDScript) {
+            return "Create or overwrite a GDScript file. Writes directly when content is provided; creates a minimal valid script (extends Node) when content is empty. AI clients should provide complete script content.";
+        } else {
+            return "Create or overwrite a C# script file. Writes directly when content is provided; creates a minimal valid script when content is empty.";
+        }
     }
     Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = "Target path (must end with .cs)";
+            p["description"] = String("Target path (must end with ") + ext() + String(")");
             props["path"] = p;
         }
         {
@@ -49,9 +70,9 @@ protected:
         if (!verr.is_empty()) {
             return ToolResult::err(verr["code"], verr["message"]);
         }
-        if (!path.ends_with(".cs")) {
+        if (!path.ends_with(ext())) {
             return ToolResult::err("BAD_EXTENSION",
-                "Path must end with .cs");
+                String("Path must end with ") + ext());
         }
         if (!fs_utils::ensure_parent_dir(path)) {
             return ToolResult::err("MKDIR_FAILED",
@@ -59,8 +80,12 @@ protected:
         }
 
         if (content.is_empty()) {
-            String class_name = script_utils::sanitize_class_name(script_utils::get_file_base_name(path));
-            content = String("using Godot;\n\nnamespace Game;\n\npublic partial class ") + class_name + String(" : Node\n{\n}\n");
+            if constexpr (Lang == ScriptLang::GDScript) {
+                content = String("extends Node\n");
+            } else {
+                String class_name = script_utils::sanitize_class_name(script_utils::get_file_base_name(path));
+                content = String("using Godot;\n\nnamespace Game;\n\npublic partial class ") + class_name + String(" : Node\n{\n}\n");
+            }
         }
 
         godot::Ref<godot::FileAccess> file = godot::FileAccess::open(path, godot::FileAccess::WRITE);
@@ -76,11 +101,13 @@ protected:
         Dictionary data;
         data["path"] = path;
         data["name"] = fs_utils::get_file_name(path);
-        data["language"] = String("csharp");
+        data["language"] = lang_id();
         data["size"] = static_cast<int64_t>(content.length());
         return ToolResult::ok(data);
     }
 };
 
-} // namespace godot_mcp
+using WriteGdScriptTool = WriteScriptTool<ScriptLang::GDScript>;
+using WriteCsharpScriptTool = WriteScriptTool<ScriptLang::CSharp>;
 
+} // namespace godot_mcp

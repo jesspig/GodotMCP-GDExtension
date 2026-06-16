@@ -251,16 +251,14 @@ void HttpServer::dispatch_request(int conn_id, Connection &conn) {
     // Token authentication (constant-time comparison to prevent timing side-channel)
     if (!auth_token_.is_empty()) {
         String auth = conn.headers.has("authorization") ? conn.headers["authorization"] : "";
-        if (auth.length() != auth_token_.length() + 7) {
-            send_response(conn_id, conn, 401, "Unauthorized", "application/json",
-                          "{\"error\":\"Missing or invalid Authorization header\"}");
-            return;
-        }
         CharString auth_utf8 = auth.utf8();
         CharString expected_utf8 = (String("Bearer ") + auth_token_).utf8();
         bool match = true;
-        for (int i = 0; i < expected_utf8.length(); ++i) {
-            if (auth_utf8[i] != expected_utf8[i]) match = false;
+        int max_len = auth_utf8.length() > expected_utf8.length() ? auth_utf8.length() : expected_utf8.length();
+        for (int i = 0; i < max_len; ++i) {
+            char a = i < auth_utf8.length() ? auth_utf8[i] : '\0';
+            char e = i < expected_utf8.length() ? expected_utf8[i] : '\0';
+            if (a != e) match = false;
         }
         if (!match) {
             send_response(conn_id, conn, 401, "Unauthorized", "application/json",
@@ -409,15 +407,15 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
         }
         if (!any_request) {
             if (mcp_handler_->has_pending_events()) {
-                send_sse_headers(conn_id, conn);
-                flush_sse(conn_id, conn);
+                send_sse_headers(conn);
+                flush_sse(conn);
                 return;
             }
             send_response(conn_id, conn, 202, "Accepted", "text/plain", "");
         } else {
             if (mcp_handler_->has_pending_events()) {
-                send_sse_headers(conn_id, conn);
-                flush_sse(conn_id, conn);
+                send_sse_headers(conn);
+                flush_sse(conn);
                 return;
             }
             send_response(conn_id, conn, 200, "OK", "application/json; charset=utf-8",
@@ -463,8 +461,8 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
     if (is_notification_or_response) {
         mcp_handler_->handle_message(msg);
         if (mcp_handler_->has_pending_events()) {
-            send_sse_headers(conn_id, conn);
-            flush_sse(conn_id, conn);
+            send_sse_headers(conn);
+            flush_sse(conn);
             return;
         }
         send_response(conn_id, conn, 202, "Accepted", "text/plain", "");
@@ -476,8 +474,8 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
 
     if (handler_result.is_empty()) {
         if (mcp_handler_->has_pending_events()) {
-            send_sse_headers(conn_id, conn);
-            flush_sse(conn_id, conn);
+            send_sse_headers(conn);
+            flush_sse(conn);
             return;
         }
         send_response(conn_id, conn, 202, "Accepted", "text/plain", "");
@@ -486,8 +484,8 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
 
     const String result_json = json_stringify_safe(handler_result);
     if (mcp_handler_->has_pending_events()) {
-        send_sse_headers(conn_id, conn);
-        flush_sse(conn_id, conn);
+        send_sse_headers(conn);
+        flush_sse(conn);
         return;
     }
     send_response(conn_id, conn, 200, "OK", "application/json; charset=utf-8", result_json);

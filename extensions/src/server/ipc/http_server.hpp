@@ -77,11 +77,11 @@ private:
                        const godot::String &status_text, const godot::String &content_type,
                        const godot::String &body,
                        const godot::String &extra_headers = "");
-    void send_sse_headers(int conn_id, Connection &conn);
-    void send_sse_event(int conn_id, Connection &conn, const godot::String &event_type,
+    void send_sse_headers(Connection &conn);
+    void send_sse_event(Connection &conn, const godot::String &event_type,
                         const godot::String &data, int id = 0);
-    void send_sse_comment(int conn_id, Connection &conn, const godot::String &comment);
-    void flush_sse(int conn_id, Connection &conn);
+    void send_sse_comment(Connection &conn, const godot::String &comment);
+    void flush_sse(Connection &conn);
 
     void close_connection(int conn_id);
     void check_timeouts();

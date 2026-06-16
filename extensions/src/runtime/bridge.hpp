@@ -7,7 +7,7 @@
 
 namespace godot_mcp {
 
-constexpr int DEFAULT_TIMEOUT_MS = 2000;
+constexpr int DEFAULT_TIMEOUT_MS = 100;
 constexpr int CONNECT_TIMEOUT_MS = 10000;
 
 class RuntimeBridge {

@@ -1,4 +1,5 @@
 #include "bridge.hpp"
+#include "built_in/cmd_utils/error_codes.hpp"
 #include "logging.hpp"
 
 #include <algorithm>
@@ -100,6 +101,9 @@ Dictionary RuntimeBridge::send_command(const String &cmd, const Dictionary &para
     }
 
     raw = read_response(timeout_ms);
+    if (raw.has("pending")) {
+        return raw;
+    }
     if (raw.has("id") && static_cast<int64_t>(raw["id"]) != id) {
         disconnect();
         Dictionary err_dict;
@@ -197,18 +201,17 @@ Dictionary RuntimeBridge::read_response(int timeout_ms) {
         OS::get_singleton()->delay_msec(step);
     }
 
-    disconnect();
     Dictionary r;
-    r["ok"] = false;
-    r["error"] = String("Runtime bridge command timed out (") + String::num_int64(timeout_ms) + String("ms)");
+    r["pending"] = true;
     return r;
 }
 
 Dictionary RuntimeBridge::make_response(const Dictionary &raw) {
+    if (raw.has("pending")) return raw;
     if (raw.has("success")) {
         if (!raw["success"] && !raw.has("error")) {
             Dictionary error;
-            error["code"] = -1;
+            error["code"] = String(error_codes::BRIDGE_ERROR);
             error["message"] = "Unknown error";
             Dictionary r;
             r["success"] = false;

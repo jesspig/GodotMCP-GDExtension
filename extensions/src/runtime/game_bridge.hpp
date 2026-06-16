@@ -50,6 +50,9 @@ private:
     godot::String read_text_;
     int read_offset_ = 0;
     int port_ = 9601;
+    int utf8_retries_ = 0;
+    int utf8_fail_offset_ = -1;
+    int consumed_bytes_ = 0;
     static constexpr int BUFFER_LIMIT = 1024 * 1024;
 };
 

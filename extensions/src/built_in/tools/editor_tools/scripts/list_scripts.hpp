@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -8,15 +7,35 @@
 
 namespace godot_mcp {
 
-class ListGdScriptsTool : public ITool {
+template <ScriptLang Lang>
+class ListScriptsTool : public ITool {
+    String ext() const {
+        if constexpr (Lang == ScriptLang::GDScript) return ".gd";
+        else return ".cs";
+    }
+    String lang_id() const {
+        if constexpr (Lang == ScriptLang::GDScript) return "gdscript";
+        else return "csharp";
+    }
+    String tool_name() const {
+        if constexpr (Lang == ScriptLang::GDScript) return "list_gd_scripts";
+        else return "list_csharp_scripts";
+    }
+
 public:
-    String name() const noexcept override { return "list_gd_scripts"; }
+    String name() const noexcept override { return tool_name(); }
     String category() const noexcept override { return "editor_tools/scripts"; }
     String brief() const noexcept override {
-        return "List GDScript (.gd) files in the project";
+        if constexpr (Lang == ScriptLang::GDScript)
+            return "List GDScript (.gd) files in the project";
+        else
+            return "List C# Script (.cs) files in the project";
     }
     String description() const override {
-        return "Recursively traverse the project directory and list all GDScript files. Supports filtering by directory, excluding addons, and maximum results limit.";
+        if constexpr (Lang == ScriptLang::GDScript)
+            return "Recursively traverse the project directory and list all GDScript files. Supports filtering by directory, excluding addons, and maximum results limit.";
+        else
+            return "Recursively traverse the project directory and list all C# script files. Supports filtering by directory, excluding addons, and maximum results limit.";
     }
     Dictionary build_input_schema() const override {
         Dictionary props;
@@ -55,7 +74,7 @@ protected:
             return ToolResult::err(verr["code"], verr["message"]);
         }
 
-        Array extensions = Array::make(".gd");
+        Array extensions = Array::make(ext());
         Array files;
         walk_project_dir(directory, extensions, include_addons, max_results, files);
 
@@ -65,7 +84,7 @@ protected:
             Dictionary entry;
             entry["path"] = file_path;
             entry["name"] = fs_utils::get_file_name(file_path);
-            entry["language"] = String("gdscript");
+            entry["language"] = lang_id();
             result_files.append(entry);
         }
 
@@ -78,5 +97,8 @@ protected:
         return ToolResult::ok(data);
     }
 };
+
+using ListGdScriptsTool = ListScriptsTool<ScriptLang::GDScript>;
+using ListCsharpScriptsTool = ListScriptsTool<ScriptLang::CSharp>;
 
 } // namespace godot_mcp
