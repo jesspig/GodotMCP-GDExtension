@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -15,6 +14,7 @@ public:
     String name() const noexcept override { return "get_debugger_errors"; }
     String category() const noexcept override { return "editor_tools/workspace"; }
     String brief() const noexcept override { return String("Get debugger error and warning counts"); }
+    String description() const override { return brief(); }
 
     Dictionary build_input_schema() const override {
         Dictionary s; s["type"] = "object"; s["properties"] = Dictionary();
@@ -32,8 +32,8 @@ protected:
             d["error_count"] = static_cast<int64_t>(active->call("get_error_count"));
             d["warning_count"] = static_cast<int64_t>(active->call("get_warning_count"));
         } else {
-            d["error_count"] = (int64_t)0;
-            d["warning_count"] = (int64_t)0;
+            d["error_count"] = static_cast<int64_t>(0);
+            d["warning_count"] = static_cast<int64_t>(0);
         }
         return ToolResult::ok(d);
     }

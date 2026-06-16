@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/memdelete_guard.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_selection.hpp>
@@ -96,10 +97,9 @@ protected:
             return ToolResult::err("CREATE_FAILED",
                 "Failed to create node of type: " + class_name);
         }
+        MemdeleteGuard<Node> guard(child);
 
-        // Handle name conflicts
         if (parent->has_node(String("./") + node_name)) {
-            memdelete(child);
             return ToolResult::err("NAME_CONFLICT",
                 "A node with the same name already exists: " + node_name);
         }
@@ -113,6 +113,7 @@ protected:
             scene_tree_utils::do_add_child(ur, parent, child, ctx.root, index,
                 "MCP: Add " + class_name);
         }
+        guard.dismiss();
 
         // Select the new node
         auto *ei = godot::EditorInterface::get_singleton();

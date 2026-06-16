@@ -1,5 +1,6 @@
 #pragma once
 
+#include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/templates/vector.hpp>
@@ -34,6 +35,9 @@ public:
         if (!pending_entries_.empty()) {
             flush();
         }
+        if (log_file_.is_valid()) {
+            log_file_->close();
+        }
     }
     void clear();
     void rotate(int keep_days = 7);
@@ -47,6 +51,8 @@ private:
     LogCallback callback_;
     std::deque<LogEntry> pending_entries_;
     static constexpr int kBatchSize = 10;
+    godot::Ref<godot::FileAccess> log_file_;
+    bool dir_ensured_ = false;
 
     godot::String log_filename() const;
     godot::Ref<godot::FileAccess> ensure_log_file_opened();

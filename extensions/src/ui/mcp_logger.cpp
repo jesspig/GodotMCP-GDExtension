@@ -30,6 +30,11 @@ int McpLogger::max_entries() const {
 void McpLogger::set_log_dir(const godot::String &dir) {
     log_dir_ = dir;
     current_log_file_ = "";
+    dir_ensured_ = false;
+    if (log_file_.is_valid()) {
+        log_file_->close();
+        log_file_ = godot::Ref<godot::FileAccess>();
+    }
 }
 
 godot::String McpLogger::log_dir() const {
@@ -72,13 +77,16 @@ void McpLogger::clear() {
 // ---------------------------------------------------------------------
 
 void McpLogger::ensure_log_dir() {
+    if (dir_ensured_) return;
     godot::Ref<godot::DirAccess> da = godot::DirAccess::open(log_dir_);
     if (da.is_null()) {
         godot::Error err = godot::DirAccess::make_dir_recursive_absolute(log_dir_);
         if (err != godot::OK) {
             godot::UtilityFunctions::push_error("[McpLogger] Failed to create log dir: ", log_dir_);
+            return;
         }
     }
+    dir_ensured_ = true;
 }
 
 // ---------------------------------------------------------------------
@@ -108,14 +116,16 @@ godot::String McpLogger::log_filename() const {
 // ---------------------------------------------------------------------
 
 godot::Ref<godot::FileAccess> McpLogger::ensure_log_file_opened() {
-    godot::Ref<godot::FileAccess> f;
-    if (godot::FileAccess::file_exists(current_log_file_)) {
-        f = godot::FileAccess::open(current_log_file_, godot::FileAccess::READ_WRITE);
-        if (f.is_valid()) f->seek_end();
-    } else {
-        f = godot::FileAccess::open(current_log_file_, godot::FileAccess::WRITE);
+    if (log_file_.is_valid()) {
+        return log_file_;
     }
-    return f;
+    if (godot::FileAccess::file_exists(current_log_file_)) {
+        log_file_ = godot::FileAccess::open(current_log_file_, godot::FileAccess::READ_WRITE);
+        if (log_file_.is_valid()) log_file_->seek_end();
+    } else {
+        log_file_ = godot::FileAccess::open(current_log_file_, godot::FileAccess::WRITE);
+    }
+    return log_file_;
 }
 
 void McpLogger::write_to_jsonl(const LogEntry &entry) {
@@ -137,7 +147,6 @@ void McpLogger::write_to_jsonl(const LogEntry &entry) {
     godot::Ref<godot::FileAccess> f = ensure_log_file_opened();
     if (f.is_valid()) {
         f->store_string(line + "\n");
-        f->close();
     } else {
         godot::UtilityFunctions::push_error(
             "[McpLogger] Failed to open log file: ", current_log_file_);
@@ -174,7 +183,6 @@ void McpLogger::flush() {
         }
         godot::PackedByteArray buf = combined.to_utf8_buffer();
         f->store_buffer(buf);
-        f->close();
     } else {
         godot::UtilityFunctions::push_error(
             "[McpLogger] Failed to open log file during flush: ", current_log_file_);
@@ -222,8 +230,7 @@ void McpLogger::rotate_files(int keep_days) {
         int diff = static_cast<int>(diff_seconds / 86400);
 
         if (diff > keep_days) {
-            godot::String path = log_dir_.path_join(name);
-            godot::Error err = da->remove(path);
+            godot::Error err = da->remove(name);
             if (err == godot::OK) {
                 godot::UtilityFunctions::print("[McpLogger] Rotated old log: ", name);
             }

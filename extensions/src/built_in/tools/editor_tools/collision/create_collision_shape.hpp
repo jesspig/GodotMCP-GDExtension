@@ -4,6 +4,7 @@
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/args_get_typed.hpp"
 #include "built_in/cmd_utils/dispatch_map.hpp"
+#include "built_in/cmd_utils/memdelete_guard.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 
@@ -417,20 +418,19 @@ protected:
         if (!body) {
             return ToolResult::err("UNKNOWN_BODY_TYPE", String("Unknown body type: ") + body_type);
         }
+        MemdeleteGuard<Node> body_guard(body);
 
         String shape_class = (dimension == "3d") ? "CollisionShape3D" : "CollisionShape2D";
         Node *shape_node = godot::Object::cast_to<godot::Node>(godot::ClassDB::instantiate(shape_class));
         if (shape_node) shape_node->set_name(shape_name);
         if (!shape_node) {
-            memdelete(body);
             return ToolResult::err("CREATE_FAILED", String("Failed to create ") + shape_class);
         }
+        MemdeleteGuard<Node> shape_guard(shape_node);
 
         if (dimension == "3d") {
             godot::Ref<godot::Shape3D> shape_res = create_shape_resource_3d(shape_type, shape_props);
             if (shape_res.is_null()) {
-                memdelete(body);
-                memdelete(shape_node);
                 return ToolResult::err("UNKNOWN_SHAPE_TYPE", String("Unknown 3D shape type: ") + shape_type);
             }
             auto *cs = godot::Object::cast_to<godot::CollisionShape3D>(shape_node);
@@ -438,8 +438,6 @@ protected:
         } else {
             godot::Ref<godot::Shape2D> shape_res = create_shape_resource(shape_type, shape_props);
             if (shape_res.is_null()) {
-                memdelete(body);
-                memdelete(shape_node);
                 return ToolResult::err("UNKNOWN_SHAPE_TYPE", String("Unknown 2D shape type: ") + shape_type);
             }
             auto *cs = godot::Object::cast_to<godot::CollisionShape2D>(shape_node);
@@ -447,8 +445,6 @@ protected:
         }
 
         if (parent->has_node(String("./") + body_name)) {
-            memdelete(body);
-            memdelete(shape_node);
             return ToolResult::err("NAME_CONFLICT", String("A node with the same name already exists: ") + body_name);
         }
 
@@ -477,6 +473,8 @@ protected:
 
             commit_undo_action(ur);
         }
+        body_guard.dismiss();
+        shape_guard.dismiss();
 
         auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {

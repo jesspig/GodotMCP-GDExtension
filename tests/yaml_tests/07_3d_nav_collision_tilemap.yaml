@@ -25,10 +25,8 @@ tests:
       mesh_type: "box"
       parent_path: ""
     expect:
-      has_keys: [node_name, node_path, mesh_type, load_type]
-      field_checks:
-        - key: mesh_type
-          value: "box"
+      status: error
+      error_contains: "not available in this mode"
 
   - tool: create_light_3d
     description: Creates a DirectionalLight3D

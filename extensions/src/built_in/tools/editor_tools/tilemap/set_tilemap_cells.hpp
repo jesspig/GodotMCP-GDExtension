@@ -83,12 +83,12 @@ protected:
             Dictionary cell = cells[i];
 
             godot::Vector2i coords = read_coords(cell, "coords");
-            int64_t source_id = args_int(cell, "source_id", -1);
+            (void)args_int(cell, "source_id", -1);
             godot::Vector2i atlas_coords = read_coords(cell, "atlas_coords");
             if (atlas_coords == godot::Vector2i()) {
                 atlas_coords = godot::Vector2i(-1, -1);
             }
-            int64_t alternative_tile = args_int(cell, "alternative_tile", 0);
+            (void)args_int(cell, "alternative_tile", 0);
 
             Dictionary old_cell_data;
             godot::Array arr = godot::Array::make(static_cast<int64_t>(coords.x), static_cast<int64_t>(coords.y));

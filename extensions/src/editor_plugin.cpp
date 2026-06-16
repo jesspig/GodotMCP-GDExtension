@@ -81,14 +81,7 @@ void McpEditorPlugin::save_config() {
     ps->save();
 }
 
-void McpEditorPlugin::restart_server(bool force) {
-    if (!force && mcp_handler_.has_pending_requests()) {
-        pending_restart_ = true;
-        restart_deadline_ = Time::get_singleton()->get_ticks_msec() / 1000.0 + kRestartTimeoutSec;
-        log_info("plugin", String("Waiting for ") + String::num_int64(mcp_handler_.pending_request_count()) + String(" pending requests..."));
-        return;
-    }
-
+void McpEditorPlugin::restart_server() {
     http_server_.stop();
     runtime_bridge_.disconnect();
     load_config();
@@ -96,7 +89,6 @@ void McpEditorPlugin::restart_server(bool force) {
     http_server_.set_test_engine(&test_engine_);
     runtime_bridge_.set_port(bridge_port_);
     started_ = true;
-    pending_restart_ = false;
     log_info("plugin", String("Server restarted on HTTP :") + String::num_int64(http_port_));
 }
 
@@ -231,14 +223,6 @@ void McpEditorPlugin::_exit_tree() {
 
 void McpEditorPlugin::_process(double delta) {
     if (!started_) return;
-
-    // Pending restart polling
-    if (pending_restart_) {
-        bool timed_out = Time::get_singleton()->get_ticks_msec() / 1000.0 > restart_deadline_;
-        if (!mcp_handler_.has_pending_requests() || timed_out) {
-            restart_server(true);
-        }
-    }
 
     http_server_.poll();
 

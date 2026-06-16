@@ -1,12 +1,30 @@
 
 #pragma once
 
+#include <cstdint>
 #include <godot_cpp/classes/control.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/rich_text_label.hpp>
 #include <godot_cpp/variant/array.hpp>
 
 namespace godot_mcp {
+
+struct ConsoleCache {
+    String cached_text;
+    uint64_t last_read_msec = 0;
+    bool dirty = true;
+
+    String get_text(godot::RichTextLabel *rtl, uint64_t now_msec) {
+        if (dirty || (now_msec - last_read_msec) > 1000) {
+            cached_text = rtl->get_text();
+            last_read_msec = now_msec;
+            dirty = false;
+        }
+        return cached_text;
+    }
+
+    void mark_dirty() { dirty = true; }
+};
 
 inline godot::Object *find_debugger() {
     auto *ei = godot::EditorInterface::get_singleton();

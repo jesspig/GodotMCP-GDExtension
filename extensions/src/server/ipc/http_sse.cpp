@@ -10,7 +10,7 @@ using namespace godot;
 
 namespace godot_mcp {
 
-void HttpServer::send_sse_headers(int conn_id, Connection &conn) {
+void HttpServer::send_sse_headers(Connection &conn) {
     String response = String("HTTP/1.1 200 OK\r\n") +
                       String("Content-Type: text/event-stream; charset=utf-8\r\n") +
                       String("Cache-Control: no-cache\r\n") +
@@ -45,7 +45,7 @@ void HttpServer::send_sse_headers(int conn_id, Connection &conn) {
     }
 }
 
-void HttpServer::send_sse_event(int conn_id, Connection &conn,
+void HttpServer::send_sse_event(Connection &conn,
                                  const String &event_type, const String &data, int id) {
     String event;
     if (id > 0) event += String("id: ") + String::num_int64(id) + String("\r\n");
@@ -64,7 +64,7 @@ void HttpServer::send_sse_event(int conn_id, Connection &conn,
     }
 }
 
-void HttpServer::send_sse_comment(int conn_id, Connection &conn, const String &comment) {
+void HttpServer::send_sse_comment(Connection &conn, const String &comment) {
     const String msg = String(": ") + comment + String("\r\n");
     const PackedByteArray out = msg.to_utf8_buffer();
     if (conn.tcp.is_valid()) {
@@ -77,7 +77,7 @@ void HttpServer::send_sse_comment(int conn_id, Connection &conn, const String &c
     }
 }
 
-void HttpServer::flush_sse(int conn_id, Connection &conn) {
+void HttpServer::flush_sse(Connection &conn) {
     if (!mcp_handler_) return;
 
     while (mcp_handler_->has_pending_events()) {
@@ -100,7 +100,7 @@ void HttpServer::flush_sse(int conn_id, Connection &conn) {
 
         // Event IDs are sent for SSE spec compliance; resumption via Last-Event-ID is not supported
         conn.sse_event_id++;
-        send_sse_event(conn_id, conn, "message", data, conn.sse_event_id);
+        send_sse_event(conn, "message", data, conn.sse_event_id);
     }
 }
 

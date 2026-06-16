@@ -21,18 +21,10 @@ namespace godot_mcp {
 // Construction
 // -------------------------------------------------------------------------
 McpHandler::McpHandler(HandlerRegistry *registry)
-    : registry_(registry), tool_executor_(*registry, nullptr) {}
+    : registry_(registry), tool_executor_(*registry) {}
 
 void McpHandler::set_log_callback(McpLogCallback cb) {
     log_callback_ = std::move(cb);
-}
-
-bool McpHandler::has_pending_requests() const {
-    return pending_requests_.size() != 0;
-}
-
-int McpHandler::pending_request_count() const {
-    return pending_requests_.size();
 }
 
 // -------------------------------------------------------------------------
@@ -166,7 +158,7 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg) {
     // Prompts
     if (method == "prompts/list") {
         Dictionary result;
-        result["prompts"] = prompt_provider_.list_prompts();
+        result["prompts"] = prompt_provider::list_prompts();
         return make_jsonrpc_result(id_v, result);
     }
     if (method == "prompts/get") {
@@ -174,7 +166,7 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg) {
         Dictionary args_dict = params.has("arguments") && params["arguments"].get_type() == Variant::DICTIONARY
                                    ? Dictionary(params["arguments"])
                                    : Dictionary();
-        Dictionary prompt_result = prompt_provider_.get_prompt(name, args_dict);
+        Dictionary prompt_result = prompt_provider::get_prompt(name, args_dict);
         if (prompt_result.is_empty()) {
             return make_jsonrpc_error(id_v, kInvalidParams, "No such prompt: " + name);
         }
@@ -254,24 +246,8 @@ Dictionary McpHandler::handle_tools_call(const Dictionary &params, const Variant
                                 ? Dictionary(params["arguments"])
                                 : Dictionary();
 
-    // Track as pending for cancellation support (keyed by request ID only)
-    const String req_key = JSON::stringify(id);
-    pending_requests_[req_key] = req_key;
-
-    // Check cancellation
-    {
-        auto cancel_it = cancelled_requests_.find(req_key);
-        if (cancel_it != cancelled_requests_.end()) {
-            cancelled_requests_.erase(req_key);
-            return make_jsonrpc_error(id, kServerTerminated, "Request cancelled");
-        }
-    }
-
-    // Delegate to ToolExecutor for permission checking, execution, logging, and MCP formatting
-    const String auth_token;
-    Dictionary exec_result = tool_executor_.execute(tool_name, args, auth_token);
-
-    pending_requests_.erase(req_key);
+    // Delegate to ToolExecutor for execution, logging, and MCP formatting
+    Dictionary exec_result = tool_executor_.execute(tool_name, args);
 
     // Structured log callback
     if (log_callback_) {
@@ -493,20 +469,8 @@ Dictionary McpHandler::handle_completion_complete(const Dictionary &params, cons
 // notifications/cancelled
 // -------------------------------------------------------------------------
 void McpHandler::handle_cancelled(const Dictionary &params) {
-    const Variant req_id = params.get("requestId", Variant());
-    if (req_id.get_type() == Variant::NIL) return;
-
-    const String key = JSON::stringify(req_id);
-    // Always store in cancelled_requests_ - the tools/call might not have
-    // arrived yet. Storing unconditionally ensures the cancellation is
-    // effective regardless of message ordering.
-    cancelled_requests_[key] = req_id;
-
-    // Clean up from pending_requests_ if already registered
-    auto it = pending_requests_.find(key);
-    if (it != pending_requests_.end()) {
-        pending_requests_.erase(it->key);
-    }
+    // Synchronous execution model: cancellations are handled by the
+    // server polling loop, no action needed at this layer.
 }
 
 // -------------------------------------------------------------------------
@@ -521,19 +485,29 @@ void McpHandler::notify_tools_list_changed() {
 // -------------------------------------------------------------------------
 // _build_scene_tree_node — recursive helper for scene-tree resource
 // -------------------------------------------------------------------------
-Dictionary McpHandler::_build_scene_tree_node(Node *node) const {
+Dictionary McpHandler::_build_scene_tree_node(Node *node, int depth, int max_depth, int max_children) const {
     Dictionary d;
     d["name"] = node->get_name();
     d["type"] = node->get_class();
     d["node_path"] = node->get_path();
     d["child_count"] = node->get_child_count();
 
+    if (depth >= max_depth) {
+        d["truncated"] = true;
+        return d;
+    }
+
     Array children;
-    for (int i = 0; i < node->get_child_count(); i++) {
+    const int child_count = node->get_child_count();
+    const int limit = child_count < max_children ? child_count : max_children;
+    for (int i = 0; i < limit; i++) {
         Node *child = Object::cast_to<Node>(node->get_child(i));
         if (child) {
-            children.append(_build_scene_tree_node(child));
+            children.append(_build_scene_tree_node(child, depth + 1, max_depth, max_children));
         }
+    }
+    if (child_count > max_children) {
+        d["truncated"] = true;
     }
     d["children"] = children;
     return d;

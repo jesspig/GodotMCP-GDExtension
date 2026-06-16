@@ -5,6 +5,7 @@
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
 #include "built_in/cmd_utils/dispatch_map.hpp"
+#include "built_in/cmd_utils/memdelete_guard.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
@@ -113,6 +114,7 @@ protected:
         if (!region_node) {
             return ToolResult::err("CREATE_FAILED", "Failed to create " + class_name);
         }
+        MemdeleteGuard<Node> guard(region_node);
 
         if (node_name.is_empty()) {
             node_name = default_name;
@@ -123,7 +125,6 @@ protected:
             godot::Ref<godot::NavigationMesh> nav_mesh;
             nav_mesh.instantiate();
             if (nav_mesh.is_null()) {
-                memdelete(region_node);
                 return ToolResult::err("CREATE_FAILED", "Failed to create NavigationMesh resource");
             }
             if (cell_size > 0.0) {
@@ -143,7 +144,6 @@ protected:
             godot::Ref<godot::NavigationPolygon> nav_poly;
             nav_poly.instantiate();
             if (nav_poly.is_null()) {
-                memdelete(region_node);
                 return ToolResult::err("CREATE_FAILED", "Failed to create NavigationPolygon resource");
             }
             if (cell_size > 0.0) {
@@ -166,6 +166,7 @@ protected:
         } else {
             commit_add_child_undo(ur, "MCP: Create " + class_name, parent, region_node, ctx.root);
         }
+        guard.dismiss();
 
         auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {

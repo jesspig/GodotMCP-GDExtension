@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -14,6 +13,7 @@ public:
     String name() const noexcept override { return "get_render_stats"; }
     String category() const noexcept override { return "editor_tools/workspace"; }
     String brief() const noexcept override { return String("Get render statistics"); }
+    String description() const override { return brief(); }
 
     Dictionary build_input_schema() const override {
         Dictionary s; s["type"] = "object"; s["properties"] = Dictionary();

@@ -4,6 +4,7 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
+#include "built_in/cmd_utils/memdelete_guard.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation_node_state_machine.hpp>
@@ -96,11 +97,11 @@ protected:
         if (!tree_node) {
             return ToolResult::err("CREATE_FAILED", "Failed to create AnimationTree node");
         }
+        MemdeleteGuard<Node> guard(tree_node);
         tree_node->set_name(node_name);
 
         auto *tree = Object::cast_to<godot::AnimationTree>(tree_node);
         if (!tree) {
-            memdelete(tree_node);
             return ToolResult::err("CAST_FAILED", "Failed to cast node to AnimationTree");
         }
 
@@ -110,13 +111,11 @@ protected:
         godot::Ref<godot::AnimationNodeStateMachine> sm;
         sm.instantiate();
         if (sm.is_null()) {
-            memdelete(tree_node);
             return ToolResult::err("CREATE_FAILED", "Failed to create AnimationNodeStateMachine");
         }
         tree->set_tree_root(sm);
 
         if (parent->has_node(String("./") + node_name)) {
-            memdelete(tree_node);
             return ToolResult::err("NAME_CONFLICT",
                 String("A node with the same name already exists: ") + node_name);
         }
@@ -129,6 +128,7 @@ protected:
         } else {
             commit_add_child_undo(ur, "MCP: Create AnimationTree", parent, tree_node, ctx.root);
         }
+        guard.dismiss();
 
         auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {

@@ -28,6 +28,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
+        (void)ctx;
         auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");

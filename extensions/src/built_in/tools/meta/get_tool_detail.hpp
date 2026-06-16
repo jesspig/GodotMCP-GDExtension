@@ -49,16 +49,16 @@ protected:
             return ToolResult::err("TOOL_NOT_FOUND", String("Tool not found: ") + tool_name);
         }
 
-        const String &cat_path = info->category;
+        const String cat_path = info->tool_ptr->category();
         const PackedStringArray cat_segments = cat_path.split("/");
         const String cat_id = cat_segments.is_empty() ? cat_path : cat_segments[cat_segments.size() - 1];
 
         Dictionary data;
         data["id"] = tool_name;
-        data["name"] = info->brief;
-        data["description"] = info->description;
+        data["name"] = info->tool_ptr->brief();
+        data["description"] = info->tool_ptr->description();
 
-        Dictionary schema = info->input_schema;
+        Dictionary schema = info->tool_ptr->input_schema();
         Dictionary props = schema.get("properties", Dictionary());
         Array param_names = props.keys();
         Array params;

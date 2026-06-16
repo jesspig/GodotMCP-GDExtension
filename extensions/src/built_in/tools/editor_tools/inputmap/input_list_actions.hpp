@@ -29,6 +29,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
+        (void)ctx;
         auto *im = godot::InputMap::get_singleton();
         if (!im) {
             return ToolResult::err("NO_INPUT_MAP", "InputMap not available");

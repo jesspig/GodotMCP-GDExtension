@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -16,34 +15,27 @@ namespace godot_mcp {
 // assigned without Godot silently ignoring it. Sampler types require an
 // Object/Resource; numeric scalars/vectors accept matching numeric types.
 inline bool uniform_type_compatible(const godot::String &declared, const godot::Variant &value) {
-    using namespace godot;
-    const String c = declared.to_lower();
-    const Variant::Type vt = value.get_type();
+    const godot::String c = declared.to_lower();
+    const godot::Variant::Type vt = value.get_type();
 
-    // Samplers / textures: must be an Object (a Resource subclass).
     if (c.find("sampler") >= 0 || c.find("texture") >= 0) {
-        return vt == Variant::OBJECT || vt == Variant::NIL;
+        return vt == godot::Variant::OBJECT || vt == godot::Variant::NIL;
     }
-    // Booleans.
     if (c == "bool") {
-        return vt == Variant::BOOL || vt == Variant::INT || vt == Variant::FLOAT;
+        return vt == godot::Variant::BOOL || vt == godot::Variant::INT || vt == godot::Variant::FLOAT;
     }
-    // Integer scalars.
     if (c == "int" || c == "uint" || c == "ivec2" || c == "ivec3" || c == "ivec4") {
-        return vt == Variant::INT || vt == Variant::FLOAT;
+        return vt == godot::Variant::INT || vt == godot::Variant::FLOAT;
     }
-    // Floating-point scalars.
     if (c == "float") {
-        return vt == Variant::FLOAT || vt == Variant::INT;
+        return vt == godot::Variant::FLOAT || vt == godot::Variant::INT;
     }
-    // Float vectors.
-    if (c == "vec2" || c == "vector2") return vt == Variant::VECTOR2 || vt == Variant::VECTOR2I;
-    if (c == "vec3" || c == "vector3") return vt == Variant::VECTOR3 || vt == Variant::VECTOR3I;
+    if (c == "vec2" || c == "vector2") return vt == godot::Variant::VECTOR2 || vt == godot::Variant::VECTOR2I;
+    if (c == "vec3" || c == "vector3") return vt == godot::Variant::VECTOR3 || vt == godot::Variant::VECTOR3I;
     if (c == "vec4" || c == "vector4" || c == "quat" || c == "quaternion") {
-        return vt == Variant::VECTOR4 || vt == Variant::VECTOR4I || vt == Variant::QUATERNION;
+        return vt == godot::Variant::VECTOR4 || vt == godot::Variant::VECTOR4I || vt == godot::Variant::QUATERNION;
     }
-    if (c == "color") return vt == Variant::COLOR;
-    // Unknown/struct/array uniforms: allow (Godot will validate further).
+    if (c == "color") return vt == godot::Variant::COLOR;
     return true;
 }
 
@@ -157,7 +149,15 @@ protected:
                 String("Value type incompatible with uniform '") + uniform_name +
                 String("' (declared ") + declared_class + String(")"));
         }
-        material->set_shader_parameter(uniform_sn, converted);
+        Variant old_val = material->get_shader_parameter(uniform_sn);
+        auto *ur = begin_undo_action("MCP: Set Shader Uniform " + uniform_name);
+        if (ur) {
+            ur->add_do_method(material, "set_shader_parameter", uniform_sn, converted);
+            ur->add_undo_method(material, "set_shader_parameter", uniform_sn, old_val);
+            commit_undo_action(ur);
+        } else {
+            material->set_shader_parameter(uniform_sn, converted);
+        }
         mark_scene_dirty();
 
         Dictionary data;

@@ -180,11 +180,11 @@ protected:
                 env->set_background(godot::Environment::BG_SKY);
             }
 
-            Dictionary cd = args_get_typed<Dictionary>(ctx.args, "sky_color", Dictionary());
-            if (!cd.is_empty()) {
-                real_t r = static_cast<real_t>(args_float(cd, "r", 0.4));
-                real_t g = static_cast<real_t>(args_float(cd, "g", 0.6));
-                real_t b = static_cast<real_t>(args_float(cd, "b", 0.9));
+            Dictionary sky_cd = args_get_typed<Dictionary>(ctx.args, "sky_color", Dictionary());
+            if (!sky_cd.is_empty()) {
+                real_t r = static_cast<real_t>(args_float(sky_cd, "r", 0.6));
+                real_t g = static_cast<real_t>(args_float(sky_cd, "g", 0.6));
+                real_t b = static_cast<real_t>(args_float(sky_cd, "b", 0.9));
                 godot::Ref<godot::ProceduralSkyMaterial> sky_mat = sky->get_material();
                 if (sky_mat.is_valid()) {
                     sky_mat->set_sky_top_color(godot::Color(r, g, b));
@@ -196,11 +196,11 @@ protected:
         env->set_fog_enabled(fog_enabled);
 
         if (fog_enabled) {
-            Dictionary cd = args_get_typed<Dictionary>(ctx.args, "fog_color", Dictionary());
-            if (!cd.is_empty()) {
-                real_t r = static_cast<real_t>(args_float(cd, "r", 0.5));
-                real_t g = static_cast<real_t>(args_float(cd, "g", 0.5));
-                real_t b = static_cast<real_t>(args_float(cd, "b", 0.5));
+            Dictionary fog_cd = args_get_typed<Dictionary>(ctx.args, "fog_color", Dictionary());
+            if (!fog_cd.is_empty()) {
+                real_t r = static_cast<real_t>(args_float(fog_cd, "r", 0.5));
+                real_t g = static_cast<real_t>(args_float(fog_cd, "g", 0.5));
+                real_t b = static_cast<real_t>(args_float(fog_cd, "b", 0.5));
                 env->set_fog_light_color(godot::Color(r, g, b));
             }
 

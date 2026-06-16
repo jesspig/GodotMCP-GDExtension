@@ -5,6 +5,7 @@
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
 #include "built_in/cmd_utils/dispatch_map.hpp"
+#include "built_in/cmd_utils/memdelete_guard.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/audio_stream.hpp>
@@ -124,6 +125,7 @@ protected:
             return ToolResult::err("CREATE_FAILED",
                 String("Failed to create ") + class_name);
         }
+        MemdeleteGuard<Node> guard(player_node);
 
         if (node_name.is_empty()) {
             node_name = class_name;
@@ -131,7 +133,6 @@ protected:
         player_node->set_name(node_name);
 
         if (parent->has_node(String("./") + node_name)) {
-            memdelete(player_node);
             return ToolResult::err("NAME_CONFLICT",
                 String("A node with the same name already exists: ") + node_name);
         }
@@ -140,7 +141,6 @@ protected:
         if (!stream_path.is_empty()) {
             stream = godot::ResourceLoader::get_singleton()->load(stream_path);
             if (stream.is_null()) {
-                memdelete(player_node);
                 return ToolResult::err("LOAD_FAILED",
                     String("Failed to load audio stream: ") + stream_path);
             }
@@ -174,6 +174,7 @@ protected:
         } else {
             commit_add_child_undo(ur, "MCP: Create AudioPlayer " + class_name, parent, player_node, ctx.root);
         }
+        guard.dismiss();
 
         auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {

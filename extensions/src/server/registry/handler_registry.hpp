@@ -19,20 +19,10 @@ class RuntimeBridge;
 
 using CommandFn = std::function<godot::Dictionary(const godot::Dictionary &args)>;
 
-// NOTE: tool_info_ duplicates data from itool_table_. Each ToolInfo copies name,
-// category, brief, description, etc. from ITool. Currently kept as an index for
-// category queries / search / always-on filtering. Future work could iterate
-// itool_table_ directly and eliminate this struct entirely.
 struct ToolInfo {
-    godot::String description;
-    godot::String brief;
-    godot::String category;
-    godot::String category_description;
-    bool is_meta = false;
-    bool supports_undo = false;
+    ITool *tool_ptr = nullptr;
     bool is_destructive = false;
     bool is_custom = false;
-    godot::Dictionary input_schema;
     bool enabled = true;
 };
 
@@ -44,7 +34,6 @@ public:
     [[nodiscard]] bool unregister_custom_tool(const godot::String &name);
 
     void register_tool(std::unique_ptr<ITool> tool, bool is_custom = false);
-    void finalize_registration();
     [[nodiscard]] godot::Dictionary execute(const godot::String &name, const godot::Dictionary &args);
 
     [[nodiscard]] const ToolInfo *find_tool_info(const godot::String &name) const;
@@ -83,6 +72,13 @@ private:
     // 使用 std::map 而非 godot::HashMap，因�?unique_ptr 不可复制（HashMap 要求 value 可复制）
     std::map<godot::String, std::unique_ptr<ITool>> itool_table_;
     godot::HashMap<godot::String, ToolInfo> tool_info_;
+
+    // 预构建搜索索引：在 register_tool() 时增量构建，避免 search_tools() 实时 tokenize
+    struct SearchIndexEntry {
+        godot::PackedStringArray tokens;
+    };
+    godot::HashMap<godot::String, SearchIndexEntry> search_index_;
+
     mutable godot::Array categories_cache_;
     mutable bool categories_dirty_ = true;
     godot::HashMap<godot::String, int> freq_index_;

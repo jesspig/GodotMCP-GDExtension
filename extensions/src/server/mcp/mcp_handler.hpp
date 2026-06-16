@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tool_executor.hpp"
+#include "prompt_provider.hpp"
 #include "../registry/handler_registry.hpp"
 
 #include <deque>
@@ -14,7 +15,6 @@
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/variant.hpp>
-#include "prompt_provider.hpp"
 
 namespace godot_mcp {
 using namespace godot;
@@ -43,8 +43,7 @@ public:
 
     using McpLogCallback = std::function<void(const ToolCallLog &)>;
     void set_log_callback(McpLogCallback cb);
-    bool has_pending_requests() const;
-    int pending_request_count() const;
+
     // Utility: parse a MCP-Protocol-Version header and return a compatible version.
     static String negotiate_protocol_version(const String &header_value);
 
@@ -78,7 +77,7 @@ private:
     Dictionary handle_resources_list(const Variant &id);
     Dictionary handle_resources_read(const Dictionary &params, const Variant &id);
     Dictionary handle_resources_templates_list(const Variant &id);
-    Dictionary _build_scene_tree_node(Node *node) const;
+    Dictionary _build_scene_tree_node(Node *node, int depth = 0, int max_depth = 15, int max_children = 200) const;
 
     // Utilities
     Dictionary handle_completion_complete(const Dictionary &params, const Variant &id);
@@ -87,12 +86,8 @@ private:
     void handle_cancelled(const Dictionary &params);
 
     HandlerRegistry *registry_;
-    // Keyed by JSON::stringify(id) — no session composite needed
-    HashMap<String, String> pending_requests_;
-    HashMap<String, Variant> cancelled_requests_; // request id string -> request id
     McpLogCallback log_callback_;
     ToolExecutor tool_executor_;
-    PromptProvider prompt_provider_;
     std::deque<Dictionary> global_event_queue_;
 };
 

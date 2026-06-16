@@ -6,6 +6,7 @@
 #include "built_in/cmd_utils/undo_helpers.hpp"
 #include "built_in/cmd_utils/args_get_typed.hpp"
 #include "built_in/cmd_utils/dispatch_map.hpp"
+#include "built_in/cmd_utils/memdelete_guard.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
@@ -154,22 +155,20 @@ protected:
         if (!mesh_inst) {
             return ToolResult::err("CREATE_FAILED", "Failed to create MeshInstance3D");
         }
+        MemdeleteGuard<godot::MeshInstance3D> guard(mesh_inst);
 
         godot::Ref<godot::Mesh> mesh;
 
         if (mesh_type == "custom") {
             if (custom_path.is_empty()) {
-                memdelete(mesh_inst);
                 return ToolResult::err("BAD_PARAM", "custom_path required for custom mesh type");
             }
             godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(custom_path);
             if (res.is_null()) {
-                memdelete(mesh_inst);
                 return ToolResult::err("LOAD_FAILED", "Failed to load resource: " + custom_path);
             }
             mesh = res;
             if (mesh.is_null()) {
-                memdelete(mesh_inst);
                 return ToolResult::err("WRONG_TYPE", "Resource is not a Mesh: " + custom_path);
             }
         } else {
@@ -185,20 +184,18 @@ protected:
 
             const godot::String* matched = kMeshClasses.find(godot::String(mesh_type));
             if (!matched) {
-                memdelete(mesh_inst);
                 return ToolResult::err("UNKNOWN_TYPE", "Unknown mesh_type: " + mesh_type);
             }
 
             godot::String class_name = *matched;
             Object *mesh_obj = ClassDB::instantiate(class_name);
             if (!mesh_obj) {
-                memdelete(mesh_inst);
                 return ToolResult::err("CREATE_FAILED", "Failed to create " + class_name);
             }
             mesh = godot::Ref<godot::Mesh>(Object::cast_to<godot::Mesh>(mesh_obj));
             if (mesh.is_null()) {
-                memdelete(mesh_inst);
-                return ToolResult::err("CREATE_FAILED", "Failed to create " + class_name);
+                return ToolResult::err("CLASS_NOT_AVAILABLE",
+                    class_name + " is not available in this mode (headless rendering disabled)");
             }
 
             if (mesh_type == "box") {
@@ -272,6 +269,7 @@ protected:
         } else {
             commit_add_child_undo(ur, "MCP: Create MeshInstance3D", parent, mesh_inst, ctx.root);
         }
+        guard.dismiss();
 
         select_node(mesh_inst);
 

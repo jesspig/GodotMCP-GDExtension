@@ -5,9 +5,11 @@
 #include "runtime/bridge.hpp"
 #include "server/registry/handler_registry.hpp"
 
+#include <godot_cpp/classes/control.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
+#include <godot_cpp/variant/array.hpp>
 
 namespace godot_mcp {
 
@@ -71,7 +73,23 @@ protected:
             }
             editor["open_scenes"] = open_arr;
         }
-        editor["error_count"] = 0;
+        {
+            auto *base = ei ? ei->get_base_control() : nullptr;
+            if (base) {
+                Array nodes = base->find_children("*", "EditorDebuggerNode", true, false);
+                if (nodes.size() > 0) {
+                    auto *dbg = Object::cast_to<Node>(nodes[0]);
+                    if (dbg) {
+                        Object *active = dbg->call("get_current_debugger");
+                        if (active) {
+                            editor["error_count"] = static_cast<int64_t>(active->call("get_error_count"));
+                        } else {
+                            editor["error_count"] = (int64_t)0;
+                        }
+                    }
+                }
+            }
+        }
         result["editor"] = editor;
 
         Dictionary bridge;

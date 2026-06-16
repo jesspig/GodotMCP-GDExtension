@@ -101,6 +101,11 @@ inline godot::Variant ryml_to_variant(ryml::ConstNodeRef node, size_t depth = 0)
     }
 
     // Scalar value
+    // Quoted values (single or double quoted) always produce a String,
+    // even if empty --- "" must NOT become null Variant.
+    if (node.is_val_quoted()) {
+        return godot::String(detail::to_godot_string(node.val()));
+    }
     return parse_scalar(node.val());
 }
 

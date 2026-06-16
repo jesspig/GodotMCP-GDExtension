@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/memdelete_guard.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation_library.hpp>
@@ -69,6 +70,7 @@ protected:
         if (!player) {
             return ToolResult::err("CREATE_FAILED", "Failed to create AnimationPlayer node");
         }
+        MemdeleteGuard<godot::AnimationPlayer> guard(player);
         player->set_name(node_name);
 
         bool library_created = false;
@@ -77,7 +79,6 @@ protected:
         if (!library_name.is_empty()) {
             lib.instantiate();
             if (lib.is_null()) {
-                memdelete(player);
                 return ToolResult::err("CREATE_FAILED", "Failed to create AnimationLibrary");
             }
             library_created = true;
@@ -108,6 +109,7 @@ protected:
 
             commit_undo_action(ur);
         }
+        guard.dismiss();
 
         Dictionary data;
         data["node_name"] = node_name;

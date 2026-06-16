@@ -1,5 +1,5 @@
-#pragma warning(disable: 4828)  // non-UTF-8 bytes in file (known, harmless)
 #pragma once
+#pragma warning(disable: 4828)  // non-UTF-8 bytes in file (known, harmless)
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"

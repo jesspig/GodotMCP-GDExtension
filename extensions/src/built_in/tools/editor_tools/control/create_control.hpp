@@ -5,6 +5,7 @@
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
 #include "built_in/cmd_utils/args_get_typed.hpp"
+#include "built_in/cmd_utils/memdelete_guard.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 #include "control_utils.hpp"
 
@@ -98,16 +99,15 @@ protected:
         if (!child) {
             return ToolResult::err("CREATE_FAILED", "Failed to create node of type: " + class_name);
         }
+        MemdeleteGuard<Node> guard(child);
         child->set_name(node_name);
 
         if (parent->has_node(String("./") + node_name)) {
-            memdelete(child);
             return ToolResult::err("NAME_CONFLICT", "A node with the same name already exists: " + node_name);
         }
 
         auto *control = godot::Object::cast_to<godot::Control>(child);
         if (!control) {
-            memdelete(child);
             return ToolResult::err("CAST_FAILED", "Failed to cast node to Control");
         }
 
@@ -131,6 +131,7 @@ protected:
         } else {
             commit_add_child_undo(ur, "MCP: Create Control " + class_name, parent, child, ctx.root);
         }
+        guard.dismiss();
 
         auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {

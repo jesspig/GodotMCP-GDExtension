@@ -37,7 +37,7 @@ public:
     bool is_bridge_connected() const { return runtime_bridge_.is_connected(); }
 
     void save_config();
-    void restart_server(bool force = false);
+    void restart_server();
 
 protected:
     static void _bind_methods();
@@ -60,9 +60,7 @@ private:
     godot::String http_host_ = "127.0.0.1";
     bool started_ = false;
     bool game_was_running_ = false;
-    bool pending_restart_ = false;
-    double restart_deadline_ = 0.0;
-    static constexpr double kRestartTimeoutSec = 10.0;
+
 
     void load_config();
 };

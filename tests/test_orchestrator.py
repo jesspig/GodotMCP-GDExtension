@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 GodotMCP Test Orchestrator
 
@@ -143,73 +143,74 @@ async def run_test_session(cfg: dict) -> TestReport:
     )
 
     # --- Check for C++ /run-tests endpoint ---
-    use_cpp_engine = await check_run_tests_endpoint(cfg["mcp_port"])
-    if use_cpp_engine:
-        print("[setup] C++ TestEngine available — using /run-tests endpoint")
+    try:
+        use_cpp_engine = await check_run_tests_endpoint(cfg["mcp_port"])
+        if use_cpp_engine:
+            print("[setup] C++ TestEngine available 鈥?using /run-tests endpoint")
 
-        yaml_files = discover_yaml_files(cfg)
-        if not yaml_files:
-            print("[setup] No YAML test files found in yaml_tests/")
-        else:
-            for yaml_path in yaml_files:
-                t0 = time.time()
-                fname = os.path.basename(yaml_path)
-                try:
-                    result = await run_yaml_test_file(yaml_path, cfg["mcp_port"])
-                    elapsed = time.time() - t0
+            yaml_files = discover_yaml_files(cfg)
+            if not yaml_files:
+                print("[setup] No YAML test files found in yaml_tests/")
+            else:
+                for yaml_path in yaml_files:
+                    t0 = time.time()
+                    fname = os.path.basename(yaml_path)
+                    try:
+                        result = await run_yaml_test_file(yaml_path, cfg["mcp_port"])
+                        elapsed = time.time() - t0
 
-                    summary = result.get("summary", {})
-                    total = summary.get("total", 0)
-                    passed = summary.get("passed", 0)
-                    failed = summary.get("failed", 0)
-                    deleted = summary.get("cleanup_deleted", [])
-                    skipped = summary.get("cleanup_skipped", [])
+                        summary = result.get("summary", {})
+                        total = summary.get("total", 0)
+                        passed = summary.get("passed", 0)
+                        failed = summary.get("failed", 0)
+                        deleted = summary.get("cleanup_deleted", [])
+                        skipped = summary.get("cleanup_skipped", [])
 
-                    phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
-                    phase_report.start_time = t0
-                    for t in result.get("tests", []):
-                        tr = TestResult(
-                            tool=t.get("tool", ""),
-                            status="PASS" if t.get("passed") else "FAIL",
-                            expected=t.get("description", ""),
-                            actual={"raw": t},
-                            error=t.get("error", ""),
-                        )
-                        phase_report.results.append(tr)
-                    phase_report.end_time = time.time()
-                    report.add_phase(phase_report)
-
-                    status = "OK" if failed == 0 else f"FAIL({failed})"
-                    print(f"[{fname}] {total} tests, {passed} passed, {failed} failed "
-                          f"({elapsed:.1f}s) | cleanup: {len(deleted)} del, {len(skipped)} skip")
-                    if failed > 0:
+                        phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
+                        phase_report.start_time = t0
                         for t in result.get("tests", []):
-                            if not t.get("passed"):
-                                print(f"  FAIL: {t.get('tool')} ({t.get('description', '')}) — {t.get('error', '')[:120]}")
-                except Exception as e:
-                    elapsed = time.time() - t0
-                    phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
-                    phase_report.start_time = t0
-                    phase_report.end_time = time.time()
-                    report.add_phase(phase_report)
-                    print(f"[{fname}] ERROR ({elapsed:.1f}s): {e}")
+                            tr = TestResult(
+                                tool=t.get("tool", ""),
+                                status="PASS" if t.get("passed") else "FAIL",
+                                expected=t.get("description", ""),
+                                actual={"raw": t},
+                                error=t.get("error", ""),
+                            )
+                            phase_report.results.append(tr)
+                        phase_report.end_time = time.time()
+                        report.add_phase(phase_report)
 
-        total = report.total_tools
-        passed = report.passed
-        failed = report.failed
-        print(f"\n{'='*50}")
-        print(f"Total: {total} | Passed: {passed} | Failed: {failed}")
+                        status = "OK" if failed == 0 else f"FAIL({failed})"
+                        print(f"[{fname}] {total} tests, {passed} passed, {failed} failed "
+                              f"({elapsed:.1f}s) | cleanup: {len(deleted)} del, {len(skipped)} skip")
+                        if failed > 0:
+                            for t in result.get("tests", []):
+                                if not t.get("passed"):
+                                    print(f"  FAIL: {t.get('tool')} ({t.get('description', '')}) 鈥?{t.get('error', '')[:120]}")
+                    except Exception as e:
+                        elapsed = time.time() - t0
+                        phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
+                        phase_report.start_time = t0
+                        phase_report.end_time = time.time()
+                        report.add_phase(phase_report)
+                        print(f"[{fname}] ERROR ({elapsed:.1f}s): {e}")
 
-        report.set_env(
-            engine="cpp",
-            yaml_files=len(yaml_files),
-        )
-    else:
-        raise RuntimeError("C++ /run-tests endpoint not available — cannot run tests")
+            total = report.total_tools
+            passed = report.passed
+            failed = report.failed
+            print(f"\n{'='*50}")
+            print(f"Total: {total} | Passed: {passed} | Failed: {failed}")
 
-    # --- Stop Godot ---
-    if not cfg.get("keep_open"):
-        await manager.stop()
+            report.set_env(
+                engine="cpp",
+                yaml_files=len(yaml_files),
+            )
+        else:
+            raise RuntimeError("C++ /run-tests endpoint not available 鈥?cannot run tests")
+
+    finally:
+        if not cfg.get("keep_open"):
+            await manager.stop()
 
     # --- Save reports ---
     json_path = report.save_json(cfg["output_dir"])

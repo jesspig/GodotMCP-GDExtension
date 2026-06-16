@@ -15,27 +15,22 @@ using namespace godot;
 
 namespace godot_mcp {
 
-ToolExecutor::ToolExecutor(HandlerRegistry &registry, McpLogger *logger)
-    : registry_(registry), logger_(logger) {}
+ToolExecutor::ToolExecutor(HandlerRegistry &registry)
+    : registry_(registry) {}
 
-Dictionary ToolExecutor::execute(const String &tool_name, const Dictionary &arguments,
-                                  const String &auth_token, const String &permission_policy) {
+Dictionary ToolExecutor::execute(const String &tool_name, const Dictionary &arguments) {
     const uint64_t start_msec = Time::get_singleton()->get_ticks_msec();
 
-    String perm_policy = permission_policy;
-    if (perm_policy.is_empty()) {
-        perm_policy = OS::get_singleton()->get_environment("GODOT_MCP_PERMISSION");
-        if (perm_policy.is_empty()) perm_policy = "allow_all";
-    }
+    String perm_policy = OS::get_singleton()->get_environment("GODOT_MCP_PERMISSION");
+    if (perm_policy.is_empty()) perm_policy = "allow_all";
 
     const ToolInfo *info = registry_.find_tool_info(tool_name);
 
-    String permission_error;
-    if (!check_permission(info, tool_name, auth_token, perm_policy, permission_error)) {
+    if (info && info->is_destructive && perm_policy == "deny_destructive") {
         Dictionary result;
         result["_raw_result"] = Dictionary();
         result["_exec_duration_ms"] = static_cast<double>(Time::get_singleton()->get_ticks_msec() - start_msec);
-        result["_exec_error"] = format_error(kErrorInvalidRequest, permission_error);
+        result["_exec_error"] = format_error(kErrorInvalidRequest, "Destructive tool denied by permission policy: " + tool_name);
         return result;
     }
 
@@ -170,22 +165,6 @@ Dictionary ToolExecutor::extract_result(const Dictionary &exec_result) {
         return exec_result["_raw_result"];
     }
     return Dictionary();
-}
-
-bool ToolExecutor::check_permission(const ToolInfo *info, const String &name,
-                                     const String &auth_token,
-                                     const String &permission_policy, String &out_error) {
-    if (!info || !info->is_destructive) {
-        return true;
-    }
-
-    if (permission_policy == "deny_destructive") {
-        out_error = "Destructive tool denied by permission policy: " + name;
-        return false;
-    }
-
-    // "allow_all" or "confirm_destructive" (handled in execute()) → allow
-    return true;
 }
 
 String ToolExecutor::format_params_for_log(const Dictionary &args) {

@@ -29,6 +29,7 @@ bool HandlerRegistry::unregister_custom_tool(const String &name) {
         itool_table_.erase(it_tool);
     }
 
+    search_index_.erase(name);
     categories_dirty_ = true;
     return true;
 }
@@ -40,32 +41,26 @@ bool HandlerRegistry::unregister_custom_tool(const String &name) {
 void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool, bool is_custom) {
     if (!tool) return;
 
-    // 注入 registry 指针（meta 工具需要它回调查询）
     tool->set_registry(this);
 
     const String name = tool->name();
 
-    // Populate ToolInfo for backward compatibility (category queries, schema, etc.)
     ToolInfo info;
-    info.category = tool->category();
-    info.brief = tool->brief();
-    info.description = tool->description();
-    info.category_description = tool->category_description();
-    info.input_schema = tool->input_schema();
-    info.is_meta = tool->is_meta();
-    info.supports_undo = tool->supports_undo();
+    info.tool_ptr = tool.get();
     info.is_destructive = tool->is_destructive();
     info.is_custom = is_custom;
     info.enabled = true;
     tool_info_[name] = info;
 
-    itool_table_[name] = std::move(tool);  // operator[] 与 tool_info_ 保持一致（覆盖）
-}
+    // 预构建搜索索引，避免 search_tools() 实时 tokenize
+    {
+        SearchIndexEntry idx_entry;
+        const String search_text = name + String(" ") + info.tool_ptr->brief() + String(" ") + info.tool_ptr->description();
+        idx_entry.tokens = tokenize(search_text);
+        search_index_[name] = idx_entry;
+    }
 
-void HandlerRegistry::finalize_registration() {
-    // Reserve for post-processing after all built-in tools are registered.
-    // Previously held search_index rebuild; now a placeholder for future init.
-    categories_dirty_ = true;
+    itool_table_[name] = std::move(tool);
 }
 
 // ---------------------------------------------------------------------------
@@ -75,9 +70,8 @@ void HandlerRegistry::finalize_registration() {
 Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args) {
     record_tool_call(name);
 
-    // Find tool info for ability checks
     auto info_it = tool_info_.find(name);
-    bool undoable = (info_it != tool_info_.end()) && info_it->value.supports_undo;
+    bool undoable = (info_it != tool_info_.end()) && info_it->value.tool_ptr && info_it->value.tool_ptr->supports_undo();
 
     // Check ITool table first
     auto it = itool_table_.find(name);
@@ -124,12 +118,10 @@ const ToolInfo *HandlerRegistry::find_tool_info(const String &name) const {
 Dictionary HandlerRegistry::make_tool_entry(const String &name, const ToolInfo &info) const {
     Dictionary d;
     d["name"] = name;
-    d["brief"] = info.brief;
-    d["description"] = info.description;
+    d["brief"] = info.tool_ptr->brief();
+    d["description"] = info.tool_ptr->description();
 
-    // MCP 协议要求 inputSchema.type == "object"。
-    // 兜底：若上游（builtin 工具 / SDK 自定义工具）未填 type，自动补全。
-    Dictionary schema = info.input_schema;
+    Dictionary schema = info.tool_ptr->input_schema();
     if (!schema.has("type")) {
         schema["type"] = "object";
         if (!schema.has("properties")) {
@@ -137,7 +129,7 @@ Dictionary HandlerRegistry::make_tool_entry(const String &name, const ToolInfo &
         }
     }
     d["inputSchema"] = schema;
-    d["supports_undo"] = info.supports_undo;
+    d["supports_undo"] = info.tool_ptr->supports_undo();
     d["is_destructive"] = info.is_destructive;
     return d;
 }
@@ -222,7 +214,7 @@ Array HandlerRegistry::get_categories() const {
 
     for (const auto &[name, info] : tool_info_) {
         if (!info.enabled) continue;
-        const String &orig_cat = info.category;
+        const String orig_cat = info.tool_ptr->category();
         if (orig_cat.is_empty()) continue;
 
         const PackedStringArray segments = orig_cat.split("/");
@@ -238,9 +230,10 @@ Array HandlerRegistry::get_categories() const {
             node->total++;
 
             if (!node->description.is_empty()) continue;
-            if (info.category_description.is_empty()) continue;
+            const String cat_desc = info.tool_ptr->category_description();
+            if (cat_desc.is_empty()) continue;
 
-            node->description = info.category_description;
+            node->description = cat_desc;
             if (i == 0) {
                 top_level_filled[seg] = true;
             }
@@ -248,16 +241,17 @@ Array HandlerRegistry::get_categories() const {
         node->direct++;
     }
 
-    // Fill top-level categories that didn't get a description from their own tools
     for (auto &[seg, cat_node] : root.children) {
         if (top_level_filled.has(seg)) continue;
         for (const auto &[tool_name, tool_info] : tool_info_) {
             if (!tool_info.enabled) continue;
-            int slash = static_cast<int>(tool_info.category.find("/"));
-            String ti_first = (slash >= 0) ? tool_info.category.substr(0, slash) : tool_info.category;
+            const String tool_cat = tool_info.tool_ptr->category();
+            int slash = static_cast<int>(tool_cat.find("/"));
+            String ti_first = (slash >= 0) ? tool_cat.substr(0, slash) : tool_cat;
             if (ti_first != seg) continue;
-            if (!cat_node.description.is_empty() && !tool_info.category_description.is_empty()) {
-                cat_node.description = tool_info.category_description;
+            const String cat_desc = tool_info.tool_ptr->category_description();
+            if (!cat_node.description.is_empty() && !cat_desc.is_empty()) {
+                cat_node.description = cat_desc;
             }
         }
     }
@@ -266,6 +260,7 @@ Array HandlerRegistry::get_categories() const {
     std::function<Array(const CatNode &, const String &)> node_to_subs =
         [&](const CatNode &parent, const String &parent_path) -> Array {
             std::vector<Dictionary> entries;
+            entries.reserve(parent.children.size());
             for (const auto &[_, child] : parent.children) {
                 const String child_path = parent_path.is_empty()
                                               ? child.name
@@ -299,7 +294,7 @@ Array HandlerRegistry::get_tools_in_category(const String &category) const {
     Array result;
     for (const auto &[name, info] : tool_info_) {
         if (!info.enabled) continue;
-        if (info.category == category) {
+        if (info.tool_ptr->category() == category) {
             result.push_back(make_tool_entry(name, info));
         }
     }
@@ -314,7 +309,7 @@ Array HandlerRegistry::get_always_on_tools() const {
     Array result;
     for (const auto &[name, info] : tool_info_) {
         if (!info.enabled) continue;
-        if (info.is_meta) {
+        if (info.tool_ptr->is_meta()) {
             result.push_back(make_tool_entry(name, info));
         }
     }
@@ -376,7 +371,7 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
 
     // Single pass: evaluate all matching strategies for each tool (权重降序检查)
     for (const auto &[tool_name, info] : tool_info_) {
-        if (!category.is_empty() && !info.category.begins_with(category)) continue;
+        if (!category.is_empty() && !info.tool_ptr->category().begins_with(category)) continue;
 
         const String name_lower = tool_name.to_lower();
 
@@ -393,19 +388,21 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
         }
 
         // Token fuzzy — any token contains query (weight 200)
-        PackedStringArray tokens = tokenize(tool_name + String(" ") + info.brief + String(" ") + info.description);
         bool token_matched = false;
-        for (int i = 0; i < tokens.size(); ++i) {
-            if (tokens[i].find(q) >= 0) {
-                best_weight[tool_name] = 200;
-                token_matched = true;
-                break;
+        auto idx_it = search_index_.find(tool_name);
+        if (idx_it != search_index_.end()) {
+            const PackedStringArray &tokens = idx_it->value.tokens;
+            for (int i = 0; i < tokens.size(); ++i) {
+                if (tokens[i].find(q) >= 0) {
+                    best_weight[tool_name] = 200;
+                    token_matched = true;
+                    break;
+                }
             }
         }
         if (token_matched) continue;
 
-        // Fulltext description substring (weight 50)
-        if (info.description.to_lower().find(q) >= 0) {
+        if (info.tool_ptr->description().to_lower().find(q) >= 0) {
             best_weight[tool_name] = 50;
         }
     }
@@ -417,6 +414,7 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
         int freq;
     };
     std::vector<ScoredTool> scored;
+    scored.reserve(best_weight.size());
     for (const auto &[tool_name, weight] : best_weight) {
         ScoredTool st;
         st.name = tool_name;
@@ -439,9 +437,9 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
         entry["name"] = scored[i].name;
         const ToolInfo *info = find_tool_info(scored[i].name);
         if (info) {
-            entry["brief"] = info->brief;
-            entry["category"] = info->category;
-            entry["description"] = info->description;
+            entry["brief"] = info->tool_ptr->brief();
+            entry["category"] = info->tool_ptr->category();
+            entry["description"] = info->tool_ptr->description();
         }
         entry["frequency"] = scored[i].freq;
         result.push_back(entry);
@@ -467,12 +465,15 @@ Array HandlerRegistry::get_search_suggestions(const String &prefix, int limit) c
     // Phase 2: Token prefix match for tools not already matched by name
     for (const auto &[tool_name, info] : tool_info_) {
         if (candidates.has(tool_name)) continue;
-        PackedStringArray tokens = tokenize(tool_name + String(" ") + info.brief + String(" ") + info.description);
-        for (int i = 0; i < tokens.size(); ++i) {
-            if (tokens[i].begins_with(p)) {
-                auto fit = freq_index_.find(tool_name);
-                candidates[tool_name] = (fit != freq_index_.end()) ? fit->value : 0;
-                break;
+        auto idx_it = search_index_.find(tool_name);
+        if (idx_it != search_index_.end()) {
+            const PackedStringArray &tokens = idx_it->value.tokens;
+            for (int i = 0; i < tokens.size(); ++i) {
+                if (tokens[i].begins_with(p)) {
+                    auto fit = freq_index_.find(tool_name);
+                    candidates[tool_name] = (fit != freq_index_.end()) ? fit->value : 0;
+                    break;
+                }
             }
         }
     }
@@ -483,6 +484,7 @@ Array HandlerRegistry::get_search_suggestions(const String &prefix, int limit) c
         int freq;
     };
     std::vector<SuggEntry> sorted;
+    sorted.reserve(candidates.size());
     for (const auto &[tool_name, freq] : candidates) {
         sorted.push_back({tool_name, freq});
     }

@@ -28,6 +28,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
+        (void)ctx;
         auto *as = godot::AudioServer::get_singleton();
         if (!as) {
             return ToolResult::err("NO_AUDIO_SERVER", "AudioServer not available");

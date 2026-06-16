@@ -129,6 +129,8 @@ private:
                              int64_t depth, int64_t max_depth,
                              Dictionary &visited, const Array &all_scenes,
                              const godot::HashSet<godot::String> &scene_set) const {
+        (void)visited;
+        (void)all_scenes;
         if (max_depth > 0 && depth >= max_depth) return;
 
         godot::Ref<godot::PackedScene> packed = godot::ResourceLoader::get_singleton()->load(scene_path, "PackedScene");

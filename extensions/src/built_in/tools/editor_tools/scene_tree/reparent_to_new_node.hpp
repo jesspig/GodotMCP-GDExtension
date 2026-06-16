@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/memdelete_guard.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
@@ -79,8 +80,8 @@ protected:
             return ToolResult::err("CREATE_FAILED",
                 "Failed to create node of type: " + new_class);
         }
+        MemdeleteGuard<Node> guard(wrapper);
         if (old_parent->has_node(String("./") + new_name)) {
-            memdelete(wrapper);
             return ToolResult::err("NAME_CONFLICT",
                 "A node with the same name already exists: " + new_name);
         }
@@ -115,6 +116,7 @@ protected:
             old_parent->remove_child(node);
             wrapper->add_child(node, true, godot::Node::INTERNAL_MODE_DISABLED);
         }
+        guard.dismiss();
 
         Dictionary data;
         data["source"] = relative_path(ctx.root, node);

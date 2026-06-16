@@ -30,6 +30,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
+        (void)ctx;
         godot::Ref<godot::DirAccess> da = godot::DirAccess::open("res://addons");
         Array results;
 

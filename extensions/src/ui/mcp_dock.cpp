@@ -272,6 +272,7 @@ void McpDock::_on_generate_pressed() {
 }
 
 void McpDock::_on_client_changed(int index) {
+    (void)index;
     refresh_preview();
 }
 
@@ -297,14 +298,14 @@ void McpDock::_on_copy_pressed() {
 }
 
 void McpDock::_on_apply_restart_pressed() {
-    _restart_server(false);
+    _restart_server();
 }
 
 void McpDock::_on_force_restart_pressed() {
-    _restart_server(true);
+    _restart_server();
 }
 
-void McpDock::_restart_server(bool force) {
+void McpDock::_restart_server() {
     if (!plugin_) return;
     int http_port = static_cast<int>(http_port_spin_->get_value());
     int bridge_port = static_cast<int>(bridge_port_spin_->get_value());
@@ -321,7 +322,7 @@ void McpDock::_restart_server(bool force) {
     plugin_->set_bridge_port(bridge_port);
     plugin_->set_http_host(host);
     plugin_->save_config();
-    plugin_->restart_server(force);
+    plugin_->restart_server();
 }
 
 void McpDock::_on_bind_mode_changed(int index) {
@@ -349,22 +350,50 @@ void McpDock::update_status() {
 
     int builtin = registry_->builtin_tool_count();
     int custom = registry_->custom_tool_count();
-    tools_count_->set_text(String("Tools: ") + String::num_int64(builtin + custom));
+    String tools_text = String("Tools: ") + String::num_int64(builtin + custom);
+    if (tools_text != cached_tools_text_) {
+        cached_tools_text_ = tools_text;
+        tools_count_->set_text(tools_text);
+    }
 
     if (plugin_ && plugin_->is_started()) {
-        status_icon_->set_text("[ON]");
-        status_icon_->add_theme_color_override("font_color", Color(0.2f, 0.9f, 0.2f));
+        String st = "[ON]";
+        Color sc(0.2f, 0.9f, 0.2f);
+        if (st != cached_status_text_ || sc != cached_status_color_) {
+            cached_status_text_ = st;
+            cached_status_color_ = sc;
+            status_icon_->set_text(st);
+            status_icon_->add_theme_color_override("font_color", sc);
+        }
     } else {
-        status_icon_->set_text("[OFF]");
-        status_icon_->add_theme_color_override("font_color", Color(0.9f, 0.2f, 0.2f));
+        String st = "[OFF]";
+        Color sc(0.9f, 0.2f, 0.2f);
+        if (st != cached_status_text_ || sc != cached_status_color_) {
+            cached_status_text_ = st;
+            cached_status_color_ = sc;
+            status_icon_->set_text(st);
+            status_icon_->add_theme_color_override("font_color", sc);
+        }
     }
 
     if (plugin_ && plugin_->is_bridge_connected()) {
-        bridge_status_->set_text("Bridge: Connected");
-        bridge_status_->add_theme_color_override("font_color", Color(0.2f, 0.9f, 0.2f));
+        String bt = "Bridge: Connected";
+        Color bc(0.2f, 0.9f, 0.2f);
+        if (bt != cached_bridge_text_ || bc != cached_bridge_color_) {
+            cached_bridge_text_ = bt;
+            cached_bridge_color_ = bc;
+            bridge_status_->set_text(bt);
+            bridge_status_->add_theme_color_override("font_color", bc);
+        }
     } else {
-        bridge_status_->set_text("Bridge: Disconnected");
-        bridge_status_->add_theme_color_override("font_color", Color(0.9f, 0.2f, 0.2f));
+        String bt = "Bridge: Disconnected";
+        Color bc(0.9f, 0.2f, 0.2f);
+        if (bt != cached_bridge_text_ || bc != cached_bridge_color_) {
+            cached_bridge_text_ = bt;
+            cached_bridge_color_ = bc;
+            bridge_status_->set_text(bt);
+            bridge_status_->add_theme_color_override("font_color", bc);
+        }
     }
 }
 

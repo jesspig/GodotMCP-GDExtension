@@ -12,13 +12,11 @@ namespace godot_mcp {
 void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
                                 const String &status_text, const String &content_type,
                                 const String &body, const String &extra_headers) {
-    String response = String("HTTP/1.1 ") + String::num_int64(status_code) +
-                      String(" ") + status_text + String("\r\n");
-
     const PackedByteArray body_bytes = body.to_utf8_buffer();
 
-    response += String("Content-Type: ") + content_type + String("\r\n");
-    response += String("Content-Length: ") + String::num_int64(body_bytes.size()) + String("\r\n");
+    String response = vformat("HTTP/1.1 %d %s\r\n", status_code, status_text);
+    response += vformat("Content-Type: %s\r\n", content_type);
+    response += vformat("Content-Length: %d\r\n", body_bytes.size());
 
     if (conn.keep_alive) {
         response += "Connection: keep-alive\r\n";
@@ -27,7 +25,7 @@ void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
     }
 
     response += "Cache-Control: no-store\r\n";
-    response += String("Access-Control-Allow-Origin: ") + get_cors_origin(conn) + String("\r\n");
+    response += vformat("Access-Control-Allow-Origin: %s\r\n", get_cors_origin(conn));
     response += "Vary: Origin\r\n";
     response += "Access-Control-Expose-Headers: Last-Event-ID, MCP-Protocol-Version\r\n";
 
@@ -44,7 +42,7 @@ void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
         conn.tcp->poll();
         const Error send_err = tcp_send(conn.tcp, out);
         if (send_err != OK) {
-            log_warn("http", String("Send failed (err=") + String::num_int64(static_cast<int64_t>(send_err)) + String(")"));
+            log_warn("http", vformat("Send failed (err=%d)", static_cast<int64_t>(send_err)));
         }
     }
 }

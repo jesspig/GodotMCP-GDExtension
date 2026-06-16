@@ -114,22 +114,6 @@ protected:
     }
 
 private:
-    struct ConsoleCache {
-        String cached_text;
-        uint64_t last_read_msec = 0;
-        bool dirty = true;
-
-        String get_text(godot::RichTextLabel *rtl, uint64_t now_msec) {
-            if (dirty || (now_msec - last_read_msec) > 1000) {
-                cached_text = rtl->get_text();
-                last_read_msec = now_msec;
-                dirty = false;
-            }
-            return cached_text;
-        }
-
-        void mark_dirty() { dirty = true; }
-    };
     static bool _is_mcp_line(const String &line) {
         return line.contains("MCP") || line.contains("mcp") || line.contains("godot_mcp");
     }
