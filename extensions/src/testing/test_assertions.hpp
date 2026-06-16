@@ -129,12 +129,17 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
         if (!result.has("error")) {
             return String("Expected error containing '") + expect["error_contains"].operator String() + String("', but no error");
         }
-        if (result["error"].get_type() != Variant::STRING) {
-            return String("'error' field must be a string");
-        }
-        const String error_msg = result["error"];
         if (expect["error_contains"].get_type() != Variant::STRING) {
             return String("'error_contains' field must be a string");
+        }
+        String error_msg;
+        const Variant err_val = result["error"];
+        if (err_val.get_type() == Variant::DICTIONARY) {
+            error_msg = Dictionary(err_val).get("message", JSON::stringify(err_val));
+        } else if (err_val.get_type() == Variant::STRING) {
+            error_msg = err_val;
+        } else {
+            error_msg = JSON::stringify(err_val);
         }
         const String needle = expect["error_contains"];
         if (error_msg.find(needle) == -1) {
