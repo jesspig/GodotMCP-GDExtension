@@ -100,23 +100,23 @@ tests:
   - tool: set_setting
     description: Sets and reverts a test setting
     args:
-      setting_path: "application/config/name"
+      setting_path: "application/config/description"
       value: "MCP_Smoke_Test"
     expect:
       has_keys: [setting, previous_value, new_value, saved]
       field_checks:
         - key: setting
-          value: "application/config/name"
+          value: "application/config/description"
 
   - tool: reset_setting
     description: Resets setting to default
     args:
-      setting_path: "application/config/name"
+      setting_path: "application/config/description"
     expect:
       has_keys: [setting, previous_value, reset]
       field_checks:
         - key: setting
-          value: "application/config/name"
+          value: "application/config/description"
 
   - tool: list_export_presets
     description: Lists export presets (may be empty)
@@ -191,10 +191,6 @@ tests:
           value: "res://test_mcp_smoke/test_script.gd"
 
 after_all:
-  - tool: set_setting
-    args:
-      setting_path: "application/config/name"
-      value: "Example"
   - tool: delete_file
     args:
       path: "res://test_mcp_smoke"
