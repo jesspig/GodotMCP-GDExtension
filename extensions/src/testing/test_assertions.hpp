@@ -32,6 +32,9 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
 
     // 1. status check
     if (expect.has("status")) {
+        if (expect["status"].get_type() != Variant::STRING) {
+            return String("'status' field must be a string");
+        }
         const String expected_status = expect["status"];
         if (expected_status == "success") {
             if (result.has("error")) {
@@ -46,6 +49,9 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
 
     // 2. has_keys check
     if (expect.has("has_keys")) {
+        if (expect["has_keys"].get_type() != Variant::ARRAY) {
+            return String("'has_keys' field must be an array");
+        }
         const Array keys = expect["has_keys"];
         for (int i = 0; i < keys.size(); ++i) {
             const String key = keys[i];
@@ -123,7 +129,13 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
         if (!result.has("error")) {
             return String("Expected error containing '") + expect["error_contains"].operator String() + String("', but no error");
         }
+        if (result["error"].get_type() != Variant::STRING) {
+            return String("'error' field must be a string");
+        }
         const String error_msg = result["error"];
+        if (expect["error_contains"].get_type() != Variant::STRING) {
+            return String("'error_contains' field must be a string");
+        }
         const String needle = expect["error_contains"];
         if (error_msg.find(needle) == -1) {
             return String("Error message doesn't contain '") + needle + String("': ") + error_msg;

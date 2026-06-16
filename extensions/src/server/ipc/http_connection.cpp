@@ -12,32 +12,38 @@ namespace godot_mcp {
 void HttpServer::send_response(int /*conn_id*/, Connection &conn, int status_code,
                                 const String &status_text, const String &content_type,
                                 const String &body, const String &extra_headers) {
+    // Encode body once and reuse — avoid double UTF-8 encoding (bug P1-9)
     const PackedByteArray body_bytes = body.to_utf8_buffer();
 
-    String response = vformat("HTTP/1.1 %d %s\r\n", status_code, status_text);
-    response += vformat("Content-Type: %s\r\n", content_type);
-    response += vformat("Content-Length: %d\r\n", body_bytes.size());
+    // Build header as PackedByteArray to avoid re-encoding body
+    String header = vformat("HTTP/1.1 %d %s\r\n", status_code, status_text);
+    header += vformat("Content-Type: %s\r\n", content_type);
+    header += vformat("Content-Length: %d\r\n", body_bytes.size());
 
     if (conn.keep_alive) {
-        response += "Connection: keep-alive\r\n";
+        header += "Connection: keep-alive\r\n";
     } else {
-        response += "Connection: close\r\n";
+        header += "Connection: close\r\n";
     }
 
-    response += "Cache-Control: no-store\r\n";
-    response += vformat("Access-Control-Allow-Origin: %s\r\n", get_cors_origin(conn));
-    response += "Vary: Origin\r\n";
-    response += "Access-Control-Expose-Headers: Last-Event-ID, MCP-Protocol-Version\r\n";
+    header += "Cache-Control: no-store\r\n";
+    header += vformat("Access-Control-Allow-Origin: %s\r\n", get_cors_origin(conn));
+    header += "Vary: Origin\r\n";
+    header += "Access-Control-Expose-Headers: Last-Event-ID, MCP-Protocol-Version\r\n";
 
     if (!extra_headers.is_empty()) {
-        response += extra_headers;
-        if (!extra_headers.ends_with("\r\n")) response += "\r\n";
+        header += extra_headers;
+        if (!header.ends_with("\r\n")) header += "\r\n";
     }
 
-    response += "\r\n";
-    response += body;
+    header += "\r\n";
 
-    const PackedByteArray out = response.to_utf8_buffer();
+    // Concatenate header + body bytes directly (no re-encoding body)
+    PackedByteArray header_bytes = header.to_utf8_buffer();
+    PackedByteArray out;
+    out.resize(header_bytes.size() + body_bytes.size());
+    std::copy_n(header_bytes.ptr(), header_bytes.size(), out.ptrw());
+    std::copy_n(body_bytes.ptr(), body_bytes.size(), out.ptrw() + header_bytes.size());
     if (conn.tcp.is_valid()) {
         conn.tcp->poll();
         const Error send_err = tcp_send(conn.tcp, out);
