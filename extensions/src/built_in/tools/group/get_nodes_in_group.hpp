@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -20,18 +21,10 @@ public:
         return String("Returns the name, type and path of all nodes belonging to the specified group in the current scene tree.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Group name");
-            props["group_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("group_name");
-        return s;
+        return SchemaBuilder()
+            .prop("group_name", "string", "Group name")
+            .required({"group_name"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

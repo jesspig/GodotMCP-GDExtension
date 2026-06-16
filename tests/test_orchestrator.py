@@ -126,21 +126,25 @@ async def run_test_session(cfg: dict) -> TestReport:
         mcp_port=cfg["mcp_port"],
     )
 
-    if cfg.get("no_auto"):
-        if not await manager._check_mcp_ready():
-            raise RuntimeError("MCP server not reachable on port " + str(cfg["mcp_port"]))
-        print("[setup] Skipping Godot auto-start (--no-auto)")
-    else:
-        started = await manager.ensure_running(timeout=60)
-        if not started:
-            raise RuntimeError("Failed to start Godot editor or connect to MCP server")
+    try:
+        if cfg.get("no_auto"):
+            if not await manager._check_mcp_ready():
+                raise RuntimeError("MCP server not reachable on port " + str(cfg["mcp_port"]))
+            print("[setup] Skipping Godot auto-start (--no-auto)")
+        else:
+            started = await manager.ensure_running(timeout=60)
+            if not started:
+                raise RuntimeError("Failed to start Godot editor or connect to MCP server")
 
-    report.set_env(
-        godot_path=cfg["godot_path"],
-        headless=cfg["godot_headless"],
-        mcp_port=cfg["mcp_port"],
-        project_path=cfg["project_path"],
-    )
+        report.set_env(
+            godot_path=cfg["godot_path"],
+            headless=cfg["godot_headless"],
+            mcp_port=cfg["mcp_port"],
+            project_path=cfg["project_path"],
+        )
+    except:
+        await manager.stop()
+        raise
 
     # --- Check for C++ /run-tests endpoint ---
     try:

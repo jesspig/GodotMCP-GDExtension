@@ -20,7 +20,6 @@ class RuntimeBridge;
 using CommandFn = std::function<godot::Dictionary(const godot::Dictionary &args)>;
 
 struct ToolInfo {
-    ITool *tool_ptr = nullptr;
     bool is_destructive = false;
     bool is_custom = false;
     bool enabled = true;
@@ -66,6 +65,11 @@ public:
 
 private:
     godot::Dictionary make_tool_entry(const godot::String &name, const ToolInfo &info) const;
+
+    const ITool *find_itool(const godot::String &name) const {
+        auto it = itool_table_.find(name);
+        return (it != itool_table_.end()) ? it->second.get() : nullptr;
+    }
 
     static godot::PackedStringArray tokenize(const godot::String &text);
 

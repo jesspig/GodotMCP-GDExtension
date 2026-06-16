@@ -169,6 +169,7 @@ Dictionary ToolExecutor::extract_result(const Dictionary &exec_result) {
 
 String ToolExecutor::format_params_for_log(const Dictionary &args) {
     String param_log;
+    param_log.reserve(256);
     Array param_keys = args.keys();
     for (int i = 0; i < param_keys.size(); i++) {
         if (!param_log.is_empty()) param_log += ", ";

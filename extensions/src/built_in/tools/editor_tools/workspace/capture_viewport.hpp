@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/screenshot_utils.hpp"
 
@@ -19,15 +20,12 @@ public:
                       "res://screenshots/. Returns file path, dimensions, and format of the screenshot.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary s;
-        s["type"] = "object";
-        Dictionary props;
-        Dictionary vp_type; vp_type["type"] = "string"; vp_type["description"] = "Viewport type: \"2d\" or \"3d\""; vp_type["default"] = "2d"; props["viewport_type"] = vp_type;
-        Dictionary vp_idx; vp_idx["type"] = "integer"; vp_idx["description"] = "3D viewport index"; vp_idx["default"] = 0; props["viewport_index"] = vp_idx;
-        Dictionary fmt; fmt["type"] = "string"; fmt["description"] = "Image format: \"png\" or \"jpg\""; fmt["default"] = "png"; props["format"] = fmt;
-        Dictionary sp; sp["type"] = "string"; sp["description"] = "Save path (res://), auto-generated if empty"; sp["default"] = ""; props["save_path"] = sp;
-        s["properties"] = props;
-        return s;
+        return SchemaBuilder()
+            .prop("viewport_type", "string", "Viewport type: \"2d\" or \"3d\"", "2d")
+            .prop("viewport_index", "integer", "3D viewport index", 0)
+            .prop("format", "string", "Image format: \"png\" or \"jpg\"", "png")
+            .prop("save_path", "string", "Save path (res://), auto-generated if empty", "")
+            .build();
     }
 
 protected:

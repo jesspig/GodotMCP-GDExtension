@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tools/editor_tools/scripts/script_utils.hpp"
 #include "built_in/tools/editor_tools/filesystem/filesystem_utils.hpp"
 
@@ -47,18 +48,10 @@ public:
         }
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Target file path (must end with ") + ext() + String(")");
-            props["path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+        return SchemaBuilder()
+            .prop("path", "string", String("Target file path (must end with ") + ext() + String(")"))
+            .required(Array::make("path"))
+            .build();
     }
 
 protected:

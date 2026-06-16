@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
@@ -22,25 +23,10 @@ public:
                "max_depth=-1 means recurse to leaf nodes.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = "Maximum recursion depth (-1 = infinite, 0 = root only, 1 = root + children)";
-            p["default"] = static_cast<int64_t>(-1);
-            props["max_depth"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Whether to include each node's script path";
-            p["default"] = false;
-            props["include_scripts"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+        return SchemaBuilder()
+            .prop("max_depth", "integer", "Maximum recursion depth (-1 = infinite, 0 = root only, 1 = root + children)", static_cast<int64_t>(-1))
+            .prop("include_scripts", "boolean", "Whether to include each node's script path", false)
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -21,34 +22,12 @@ public:
                "with the specified mode and optional code template.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Resource path (e.g. res://shaders/my_shader.gdshader)";
-            props["resource_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Shader mode: spatial, canvas_item, particles, sky, or fog";
-            props["mode"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Custom shader code (optional, default template)";
-            props["code"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("resource_path");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("resource_path", "string", "Resource path (e.g. res://shaders/my_shader.gdshader)")
+            .prop("mode", "string", "Shader mode: spatial, canvas_item, particles, sky, or fog")
+            .prop("code", "string", "Custom shader code (optional, default template)")
+            .required({"resource_path"})
+            .build();
     }
 
 protected:

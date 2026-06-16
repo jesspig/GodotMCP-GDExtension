@@ -1,19 +1,20 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
+#include "resource_tool_base.hpp"
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/resource.hpp>
 #include <godot_cpp/classes/resource_saver.hpp>
 
 namespace godot_mcp {
 
-class SaveResourceTool : public ITool {
+class SaveResourceTool : public ResourceToolBase {
 public:
     String name() const noexcept override { return "save_resource"; }
-    String category() const noexcept override { return "node_tools/general"; }
     String brief() const noexcept override {
         return String("Save a resource to file");
     }
@@ -21,33 +22,13 @@ public:
         return String("Saves the resource on a node property to a file path. Supports .tres (text) and .res (binary) formats.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Node path (empty = root node of current edited scene)");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Property name (e.g. texture, material)");
-            props["property_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Save path (res:// or user:// prefix, e.g. res://assets/my_resource.tres)");
-            props["save_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("property_name", "save_path");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path (empty = root node of current edited scene)")
+            .prop("property_name", "string", "Property name (e.g. texture, material)")
+            .prop("save_path", "string", "Save path (res:// or user:// prefix, e.g. res://assets/my_resource.tres)")
+            .required({"property_name", "save_path"})
+            .build();
     }
-    bool needs_scene() const override { return true; }
-    bool needs_node() const override { return false; }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {

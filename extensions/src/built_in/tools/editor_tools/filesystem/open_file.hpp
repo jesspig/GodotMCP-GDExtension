@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -25,24 +26,11 @@ public:
                "other files - selected in the file system panel.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "res:// file path to open";
-            props["path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = "Optional: line number to open the script at (default -1 = not specified)";
-            props["line"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+        return SchemaBuilder()
+            .prop("path", "string", "res:// file path to open")
+            .prop("line", "integer", "Optional: line number to open the script at (default -1 = not specified)")
+            .required({"path"})
+            .build();
     }
 
 protected:

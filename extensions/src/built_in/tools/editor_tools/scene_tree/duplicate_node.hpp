@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
 
@@ -27,31 +28,12 @@ public:
                "All changes are undoable.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node path to duplicate";
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Copy name (empty = <original>_copy)";
-            props["new_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = "Insert position (-1 = after original node)";
-            p["default"] = static_cast<int64_t>(-1);
-            props["index"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("node_path");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path to duplicate")
+            .prop("new_name", "string", "Copy name (empty = <original>_copy)")
+            .prop("index", "integer", "Insert position (-1 = after original node)", static_cast<int64_t>(-1))
+            .required(Array::make("node_path"))
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

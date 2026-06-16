@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -22,24 +23,11 @@ public:
                "Automatically creates target parent directories.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Source path (res:// prefix)";
-            props["source"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Destination path (res:// prefix)";
-            props["destination"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("source", "destination");
-        return s;
+        return SchemaBuilder()
+            .prop("source", "string", "Source path (res:// prefix)")
+            .prop("destination", "string", "Destination path (res:// prefix)")
+            .required({"source", "destination"})
+            .build();
     }
 
 protected:

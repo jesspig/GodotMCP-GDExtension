@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -22,18 +23,10 @@ public:
     }
 
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Target workspace name: 2D / 3D / Script / AssetLib");
-            props["name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("name");
-        return s;
+        return SchemaBuilder()
+            .prop("name", "string", String("Target workspace name: 2D / 3D / Script / AssetLib"))
+            .required({"name"})
+            .build();
     }
 
 protected:

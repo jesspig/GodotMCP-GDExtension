@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
@@ -46,50 +47,15 @@ public:
                "and animation track types. Changes are undoable.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the AnimationPlayer node";
-            props["anim_player_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Library name (empty = auto-find first)";
-            props["library_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Animation clip name";
-            props["clip_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Track type (value/position/rotation/scale/method/bezier/audio/animation)";
-            p["default"] = "value";
-            props["track_type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "NodePath to the target property (e.g. \"Sprite2D/position\")";
-            props["target_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Interpolation mode (nearest/linear/cubic)";
-            p["default"] = "linear";
-            props["interpolation"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("anim_player_path", "clip_name", "target_path");
-        return s;
+        return SchemaBuilder()
+            .prop("anim_player_path", "string", "Path to the AnimationPlayer node")
+            .prop("library_name", "string", "Library name (empty = auto-find first)")
+            .prop("clip_name", "string", "Animation clip name")
+            .prop("track_type", "string", "Track type (value/position/rotation/scale/method/bezier/audio/animation)", "value")
+            .prop("target_path", "string", "NodePath to the target property (e.g. \"Sprite2D/position\")")
+            .prop("interpolation", "string", "Interpolation mode (nearest/linear/cubic)", "linear")
+            .required({"anim_player_path", "clip_name", "target_path"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
@@ -25,35 +26,12 @@ public:
                "the shader on an existing ShaderMaterial.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the target node";
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the shader resource (.gdshader or .tres)";
-            props["shader_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Force create new material even if one exists";
-            props["material_overwrite"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("node_path");
-            req.append("shader_path");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Path to the target node")
+            .prop("shader_path", "string", "Path to the shader resource (.gdshader or .tres)")
+            .prop("material_overwrite", "boolean", "Force create new material even if one exists")
+            .required({"node_path", "shader_path"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

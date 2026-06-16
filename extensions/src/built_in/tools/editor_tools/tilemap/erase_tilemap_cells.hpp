@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/args_get_typed.hpp"
@@ -24,24 +25,11 @@ public:
                             "Captures old cell data before erasing for undo support.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("TileMapLayer node path");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "array";
-            p["description"] = String("Array of [x,y] coordinate pairs to erase");
-            props["cells"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("node_path", "cells");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", String("TileMapLayer node path"))
+            .prop("cells", "array", String("Array of [x,y] coordinate pairs to erase"))
+            .required({"node_path", "cells"})
+            .build();
     }
     bool needs_scene() const override { return true; }
 

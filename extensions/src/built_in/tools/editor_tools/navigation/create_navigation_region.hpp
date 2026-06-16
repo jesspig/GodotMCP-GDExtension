@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
@@ -31,53 +32,15 @@ public:
                "Supports 2D (NavigationPolygon) and 3D (NavigationMesh) with configurable properties.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Parent node path";
-            props["parent_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Dimension: 2d or 3d";
-            p["default"] = "3d";
-            props["dimension"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node name (empty = auto)";
-            props["node_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Cell size for the navigation mesh";
-            props["cell_size"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Agent radius for the navigation mesh";
-            props["agent_radius"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Agent height for the navigation mesh (3D only)";
-            props["agent_height"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("parent_path");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("parent_path", "string", "Parent node path")
+            .prop("dimension", "string", "Dimension: 2d or 3d", "3d")
+            .prop("node_name", "string", "Node name (empty = auto)")
+            .prop("cell_size", "number", "Cell size for the navigation mesh")
+            .prop("agent_radius", "number", "Agent radius for the navigation mesh")
+            .prop("agent_height", "number", "Agent height for the navigation mesh (3D only)")
+            .required({"parent_path"})
+            .build();
     }
     bool needs_scene() const override { return true; }
 

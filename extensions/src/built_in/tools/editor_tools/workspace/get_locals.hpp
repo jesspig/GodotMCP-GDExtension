@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -17,19 +18,9 @@ public:
     String brief() const noexcept override { return String("Get local variables of current stack frame"); }
 
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = String("Stack frame index (default 0)");
-            p["default"] = 0;
-            props["frame"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array();
-        return s;
+        return SchemaBuilder()
+            .prop("frame", "integer", String("Stack frame index (default 0)"), 0)
+            .build();
     }
 
 protected:

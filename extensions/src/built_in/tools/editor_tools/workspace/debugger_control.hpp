@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -17,22 +18,15 @@ public:
     String description() const override {
         return String("Controls the debugger execution flow: break, continue, step_over, step_into, step_out. "
                        "Aligned with the debug_break() / debug_continue() / debug_next() / debug_step() "
-                       "flow in Godot source editor/debugger/editor_debugger_node.cpp.");
+                       "flow in Godot source editor/debugger/editor_debugger_node.cpp. "
+                       "Note: step_out uses debug_next() (same as step_over) since Godot's debugger "
+                       "API does not expose a dedicated step_out command.");
     }
 
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Debug action: break / continue / step_over / step_into / step_out");
-            p["default"] = "continue";
-            props["action"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+        return SchemaBuilder()
+            .prop("action", "string", String("Debug action: break / continue / step_over / step_into / step_out"), "continue")
+            .build();
     }
 
 protected:

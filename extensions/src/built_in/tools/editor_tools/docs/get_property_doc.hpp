@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -21,29 +22,11 @@ public:
                "default value, and usage flags.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Godot class name";
-            props["class_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Property name to inspect";
-            props["property"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("class_name");
-            req.append("property");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("class_name", "string", "Godot class name")
+            .prop("property", "string", "Property name to inspect")
+            .required({"class_name", "property"})
+            .build();
     }
 
 protected:

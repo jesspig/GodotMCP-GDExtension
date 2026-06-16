@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
@@ -32,65 +33,17 @@ public:
                "with optional color, energy, shadow, and range configuration.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Parent node path";
-            props["parent_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Light type: directional/omni/spot";
-            p["default"] = "directional";
-            props["light_type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node name (empty = auto)";
-            props["node_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "object";
-            p["description"] = "Light color {r, g, b} (0-1 range)";
-            props["color"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Light energy";
-            props["energy"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Enable shadows";
-            props["shadow_enabled"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Light range (omni/spot only)";
-            props["range"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Spot angle in degrees (spot only)";
-            props["spot_angle"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("parent_path");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("parent_path", "string", "Parent node path")
+            .prop("light_type", "string", "Light type: directional/omni/spot", "directional")
+            .prop("node_name", "string", "Node name (empty = auto)")
+            .prop("color", "object", "Light color {r, g, b} (0-1 range)")
+            .prop("energy", "number", "Light energy")
+            .prop("shadow_enabled", "boolean", "Enable shadows")
+            .prop("range", "number", "Light range (omni/spot only)")
+            .prop("spot_angle", "number", "Spot angle in degrees (spot only)")
+            .required({"parent_path"})
+            .build();
     }
     bool needs_scene() const override { return true; }
 

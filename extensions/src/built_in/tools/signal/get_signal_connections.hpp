@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
@@ -25,24 +26,11 @@ public:
                             "including target object, method name and flags for each connection.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Node path");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Signal name (leave empty to list connections for all signals)");
-            props["signal_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("node_path");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path")
+            .prop("signal_name", "string", "Signal name (leave empty to list connections for all signals)")
+            .required({"node_path"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
@@ -30,42 +31,14 @@ public:
                "Uses EditorUndoRedoManager for undo support.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Parent node path";
-            props["parent_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Control class name (e.g. Button, Label, Panel, ColorRect, TextureRect)";
-            props["class_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node name (empty = use class name)";
-            props["node_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Layout preset: full_rect/center/top_left/top_right/bottom_left/bottom_right";
-            props["layout_preset"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "object";
-            p["description"] = "Optional size {width, height}";
-            props["size"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("parent_path", "class_name");
-        return s;
+        return SchemaBuilder()
+            .prop("parent_path", "string", "Parent node path")
+            .prop("class_name", "string", "Control class name (e.g. Button, Label, Panel, ColorRect, TextureRect)")
+            .prop("node_name", "string", "Node name (empty = use class name)")
+            .prop("layout_preset", "string", "Layout preset: full_rect/center/top_left/top_right/bottom_left/bottom_right")
+            .prop("size", "object", "Optional size {width, height}")
+            .required({"parent_path", "class_name"})
+            .build();
     }
     bool needs_scene() const override { return true; }
 

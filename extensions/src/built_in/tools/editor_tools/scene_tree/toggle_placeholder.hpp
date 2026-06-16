@@ -1,17 +1,12 @@
 #pragma once
 
-#include "built_in/tool_base.hpp"
-#include "built_in/cmd_utils.hpp"
-#include "scene_tree_utils.hpp"
-
-#include <godot_cpp/classes/editor_undo_redo_manager.hpp>
+#include "toggle_base.hpp"
 
 namespace godot_mcp {
 
-class TogglePlaceholderTool : public ITool {
+class TogglePlaceholderTool : public ToggleBase {
 public:
     String name() const noexcept override { return "toggle_placeholder"; }
-    String category() const noexcept override { return "editor_tools/scene_tree"; }
     String brief() const noexcept override {
         return "Toggle placeholder loading mode on an instanced scene";
     }
@@ -21,28 +16,6 @@ public:
                "When enable is not specified, it automatically toggles the current state. "
                "Only applies to scene instance nodes. All changes are undoable.";
     }
-    Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Scene instance node path";
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "true = enable placeholder, false = disable, empty = auto toggle";
-            props["enable"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("node_path");
-        return s;
-    }
-    bool needs_scene() const override { return true; }
-    bool needs_node() const override { return false; }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {

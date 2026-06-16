@@ -1,18 +1,19 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
+#include "resource_tool_base.hpp"
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/resource.hpp>
 
 namespace godot_mcp {
 
-class NewResourceTool : public ITool {
+class NewResourceTool : public ResourceToolBase {
 public:
     String name() const noexcept override { return "new_resource"; }
-    String category() const noexcept override { return "node_tools/general"; }
     String brief() const noexcept override {
         return String("Create a new default resource");
     }
@@ -22,33 +23,13 @@ public:
                             "The resource type is determined by the property definition, or can be specified via the resource_type parameter.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Node path (empty = root node of current edited scene)");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Property name (e.g. texture, material)");
-            props["property_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Optional resource type name (e.g. Texture2D, Material); auto-detected from property definition if not specified");
-            props["resource_type"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("property_name");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path (empty = root node of current edited scene)")
+            .prop("property_name", "string", "Property name (e.g. texture, material)")
+            .prop("resource_type", "string", "Optional resource type name (e.g. Texture2D, Material); auto-detected from property definition if not specified")
+            .required({"property_name"})
+            .build();
     }
-    bool needs_scene() const override { return true; }
-    bool needs_node() const override { return false; }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {

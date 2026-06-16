@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -21,22 +22,10 @@ public:
                "with their names, types, default values, and hints.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "res:// path to the shader file (.gdshader)";
-            props["shader_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("shader_path");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("shader_path", "string", "res:// path to the shader file (.gdshader)")
+            .required({"shader_path"})
+            .build();
     }
 
 protected:

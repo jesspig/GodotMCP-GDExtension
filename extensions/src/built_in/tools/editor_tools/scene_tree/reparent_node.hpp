@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
@@ -20,31 +21,12 @@ public:
                "If the new parent is a descendant of the original node, the operation is automatically detected and rejected. All changes are undoable.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node path to move";
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "New parent node path";
-            props["new_parent_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = "Insert position in the new parent (-1 = end)";
-            p["default"] = static_cast<int64_t>(-1);
-            props["index"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("node_path", "new_parent_path");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path to move")
+            .prop("new_parent_path", "string", "New parent node path")
+            .prop("index", "integer", "Insert position in the new parent (-1 = end)", static_cast<int64_t>(-1))
+            .required(Array::make("node_path", "new_parent_path"))
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

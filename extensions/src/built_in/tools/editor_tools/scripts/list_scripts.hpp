@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tools/editor_tools/scripts/script_utils.hpp"
 #include "built_in/tools/editor_tools/filesystem/filesystem_utils.hpp"
 
@@ -38,29 +39,11 @@ public:
             return "Recursively traverse the project directory and list all C# script files. Supports filtering by directory, excluding addons, and maximum results limit.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: search root directory (default res://)";
-            props["directory"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Optional: include addons directory (default false)";
-            props["include_addons"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = "Optional: maximum results (default 200)";
-            props["max_results"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+        return SchemaBuilder()
+            .prop("directory", "string", "Optional: search root directory (default res://)")
+            .prop("include_addons", "boolean", "Optional: include addons directory (default false)")
+            .prop("max_results", "integer", "Optional: maximum results (default 200)")
+            .build();
     }
 
 protected:

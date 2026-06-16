@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
@@ -30,78 +31,19 @@ public:
                "Supports ambient light, sky, fog, and tonemap configuration.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to existing WorldEnvironment (empty = create new)";
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Parent node path for new WorldEnvironment";
-            props["parent_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "object";
-            p["description"] = "Ambient light color {r, g, b} (0-1 range)";
-            props["ambient_color"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Ambient light energy";
-            props["ambient_energy"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Enable sky";
-            p["default"] = true;
-            props["sky_enabled"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "object";
-            p["description"] = "Sky top color {r, g, b}";
-            props["sky_color"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Enable fog";
-            props["fog_enabled"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "object";
-            p["description"] = "Fog color {r, g, b}";
-            props["fog_color"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Fog depth begin";
-            props["fog_depth_begin"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Fog depth end";
-            props["fog_depth_end"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Tonemap mode: linear/reinhard/filmic/aces";
-            props["tonemap_mode"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Path to existing WorldEnvironment (empty = create new)")
+            .prop("parent_path", "string", "Parent node path for new WorldEnvironment")
+            .prop("ambient_color", "object", "Ambient light color {r, g, b} (0-1 range)")
+            .prop("ambient_energy", "number", "Ambient light energy")
+            .prop("sky_enabled", "boolean", "Enable sky", true)
+            .prop("sky_color", "object", "Sky top color {r, g, b}")
+            .prop("fog_enabled", "boolean", "Enable fog")
+            .prop("fog_color", "object", "Fog color {r, g, b}")
+            .prop("fog_depth_begin", "number", "Fog depth begin")
+            .prop("fog_depth_end", "number", "Fog depth end")
+            .prop("tonemap_mode", "string", "Tonemap mode: linear/reinhard/filmic/aces")
+            .build();
     }
     bool needs_scene() const override { return true; }
 

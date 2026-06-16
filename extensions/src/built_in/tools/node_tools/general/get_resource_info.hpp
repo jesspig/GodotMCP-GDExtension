@@ -1,18 +1,19 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
+#include "resource_tool_base.hpp"
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/resource.hpp>
 
 namespace godot_mcp {
 
-class GetResourceInfoTool : public ITool {
+class GetResourceInfoTool : public ResourceToolBase {
 public:
     String name() const noexcept override { return "get_resource_info"; }
-    String category() const noexcept override { return "node_tools/general"; }
     String brief() const noexcept override {
         return String("Get resource property metadata");
     }
@@ -20,27 +21,12 @@ public:
         return String("Returns metadata of the resource on a specified node property, including type, path, name, whether it is built-in, and a list of all readable/writable properties.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Node path (empty = root node of current edited scene)");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Property name (e.g. texture, material)");
-            props["property_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("property_name");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path (empty = root node of current edited scene)")
+            .prop("property_name", "string", "Property name (e.g. texture, material)")
+            .required({"property_name"})
+            .build();
     }
-    bool needs_scene() const override { return true; }
-    bool needs_node() const override { return false; }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {

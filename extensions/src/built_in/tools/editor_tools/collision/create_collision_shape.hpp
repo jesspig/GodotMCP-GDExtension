@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/args_get_typed.hpp"
@@ -335,51 +336,15 @@ public:
                             "height_map, world_boundary, separation_ray.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Parent node path");
-            props["parent_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Physics dimension: 2d or 3d (default: 2d)");
-            p["default"] = "2d";
-            props["dimension"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Body type: static/rigid/character/area");
-            p["default"] = "static";
-            props["body_type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Shape type (2D: rectangle/circle/capsule/convex_polygon/concave_polygon/world_boundary/separation_ray/segment; 3D: box/sphere/capsule/cylinder/convex_polygon/concave_polygon/height_map/world_boundary/separation_ray)");
-            props["shape_type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "object";
-            p["description"] = String("Shape-specific properties (e.g. {size: {x:100, y:100}} for rectangle)");
-            props["shape_properties"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Node name for the body");
-            p["default"] = "CollisionShape2D";
-            props["node_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("parent_path", "shape_type");
-        return s;
+        return SchemaBuilder()
+            .prop("parent_path", "string", String("Parent node path"))
+            .prop("dimension", "string", String("Physics dimension: 2d or 3d (default: 2d)"), "2d")
+            .prop("body_type", "string", String("Body type: static/rigid/character/area"), "static")
+            .prop("shape_type", "string", String("Shape type (2D: rectangle/circle/capsule/convex_polygon/concave_polygon/world_boundary/separation_ray/segment; 3D: box/sphere/capsule/cylinder/convex_polygon/concave_polygon/height_map/world_boundary/separation_ray)"))
+            .prop("shape_properties", "object", String("Shape-specific properties (e.g. {size: {x:100, y:100}} for rectangle)"))
+            .prop("node_name", "string", String("Node name for the body"), "CollisionShape2D")
+            .required({"parent_path", "shape_type"})
+            .build();
     }
     bool needs_scene() const override { return true; }
 

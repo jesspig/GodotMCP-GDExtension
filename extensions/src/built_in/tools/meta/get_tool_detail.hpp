@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "server/registry/handler_registry.hpp"
 
@@ -19,18 +20,10 @@ public:
                       "required parameters, category path, and usage example.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary schema;
-        schema["type"] = "object";
-        Dictionary props;
-        Dictionary tn;
-        tn["type"] = "string";
-        tn["description"] = String("Tool name, e.g. get_info, get_canvasitem_position");
-        props["name"] = tn;
-        schema["properties"] = props;
-        Array req;
-        req.push_back("name");
-        schema["required"] = req;
-        return schema;
+        return SchemaBuilder()
+            .prop("name", "string", "Tool name, e.g. get_info, get_canvasitem_position")
+            .required({"name"})
+            .build();
     }
     bool is_meta() const noexcept override { return true; }
 

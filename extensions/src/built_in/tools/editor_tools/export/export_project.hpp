@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -20,28 +21,11 @@ public:
                "Optionally specify an output path for the exported file.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Export preset name to use";
-            props["preset_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Output path for the exported file (optional)";
-            props["output_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("preset_name");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("preset_name", "string", "Export preset name to use")
+            .prop("output_path", "string", "Output path for the exported file (optional)")
+            .required({"preset_name"})
+            .build();
     }
 
 protected:

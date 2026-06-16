@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -20,36 +21,12 @@ public:
                "(e.g. \"res://addons/my_plugin\").";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Plugin name to enable/disable";
-            props["plugin_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the plugin in addons/";
-            props["plugin_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "true = enable plugin, false = disable plugin";
-            p["default"] = true;
-            props["enabled"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("plugin_name");
-            req.append("plugin_path");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("plugin_name", "string", "Plugin name to enable/disable")
+            .prop("plugin_path", "string", "Path to the plugin in addons/")
+            .prop("enabled", "boolean", "true = enable plugin, false = disable plugin", true)
+            .required({"plugin_name", "plugin_path"})
+            .build();
     }
 
 protected:

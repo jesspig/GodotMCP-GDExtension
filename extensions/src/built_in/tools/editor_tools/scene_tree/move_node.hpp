@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
@@ -22,30 +23,12 @@ public:
                "Out-of-range positions are automatically clamped. All changes are undoable.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node path to move";
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target position: up/down/first/last or integer index";
-            props["position"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "New parent path (empty = keep current parent)";
-            props["parent_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("position");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path to move")
+            .prop("position", "string", "Target position: up/down/first/last or integer index")
+            .prop("parent_path", "string", "New parent path (empty = keep current parent)")
+            .required(Array::make("position"))
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

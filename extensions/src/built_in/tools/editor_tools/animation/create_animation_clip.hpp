@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
@@ -25,37 +26,13 @@ public:
                "the first available library. Changes are undoable.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the AnimationPlayer node";
-            props["anim_player_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Library name (empty = auto-find first library)";
-            props["library_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Name for the new animation clip";
-            props["clip_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Animation length in seconds";
-            p["default"] = 1.0;
-            props["length"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("anim_player_path", "clip_name");
-        return s;
+        return SchemaBuilder()
+            .prop("anim_player_path", "string", "Path to the AnimationPlayer node")
+            .prop("library_name", "string", "Library name (empty = auto-find first library)")
+            .prop("clip_name", "string", "Name for the new animation clip")
+            .prop("length", "number", "Animation length in seconds", 1.0)
+            .required({"anim_player_path", "clip_name"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

@@ -46,7 +46,6 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool, bool is_custom)
     const String name = tool->name();
 
     ToolInfo info;
-    info.tool_ptr = tool.get();
     info.is_destructive = tool->is_destructive();
     info.is_custom = is_custom;
     info.enabled = true;
@@ -55,7 +54,7 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool, bool is_custom)
     // 预构建搜索索引，避免 search_tools() 实时 tokenize
     {
         SearchIndexEntry idx_entry;
-        const String search_text = name + String(" ") + info.tool_ptr->brief() + String(" ") + info.tool_ptr->description();
+        const String search_text = name + String(" ") + tool->brief() + String(" ") + tool->description();
         idx_entry.tokens = tokenize(search_text);
         search_index_[name] = idx_entry;
     }
@@ -71,7 +70,11 @@ Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args) 
     record_tool_call(name);
 
     auto info_it = tool_info_.find(name);
-    bool undoable = (info_it != tool_info_.end()) && info_it->value.tool_ptr && info_it->value.tool_ptr->supports_undo();
+    bool undoable = false;
+    if (info_it != tool_info_.end()) {
+        const ITool *tp = find_itool(name);
+        if (tp) undoable = tp->supports_undo();
+    }
 
     // Check ITool table first
     auto it = itool_table_.find(name);
@@ -118,10 +121,12 @@ const ToolInfo *HandlerRegistry::find_tool_info(const String &name) const {
 Dictionary HandlerRegistry::make_tool_entry(const String &name, const ToolInfo &info) const {
     Dictionary d;
     d["name"] = name;
-    d["brief"] = info.tool_ptr->brief();
-    d["description"] = info.tool_ptr->description();
+    const ITool *tool = find_itool(name);
+    if (!tool) return d;
+    d["brief"] = tool->brief();
+    d["description"] = tool->description();
 
-    Dictionary schema = info.tool_ptr->input_schema();
+    Dictionary schema = tool->input_schema();
     if (!schema.has("type")) {
         schema["type"] = "object";
         if (!schema.has("properties")) {
@@ -129,7 +134,7 @@ Dictionary HandlerRegistry::make_tool_entry(const String &name, const ToolInfo &
         }
     }
     d["inputSchema"] = schema;
-    d["supports_undo"] = info.tool_ptr->supports_undo();
+    d["supports_undo"] = tool->supports_undo();
     d["is_destructive"] = info.is_destructive;
     return d;
 }
@@ -214,7 +219,9 @@ Array HandlerRegistry::get_categories() const {
 
     for (const auto &[name, info] : tool_info_) {
         if (!info.enabled) continue;
-        const String orig_cat = info.tool_ptr->category();
+        const ITool *tool = find_itool(name);
+        if (!tool) continue;
+        const String orig_cat = tool->category();
         if (orig_cat.is_empty()) continue;
 
         const PackedStringArray segments = orig_cat.split("/");
@@ -230,7 +237,7 @@ Array HandlerRegistry::get_categories() const {
             node->total++;
 
             if (!node->description.is_empty()) continue;
-            const String cat_desc = info.tool_ptr->category_description();
+            const String cat_desc = tool->category_description();
             if (cat_desc.is_empty()) continue;
 
             node->description = cat_desc;
@@ -245,11 +252,13 @@ Array HandlerRegistry::get_categories() const {
         if (top_level_filled.has(seg)) continue;
         for (const auto &[tool_name, tool_info] : tool_info_) {
             if (!tool_info.enabled) continue;
-            const String tool_cat = tool_info.tool_ptr->category();
+            const ITool *tool = find_itool(tool_name);
+            if (!tool) continue;
+            const String tool_cat = tool->category();
             int slash = static_cast<int>(tool_cat.find("/"));
             String ti_first = (slash >= 0) ? tool_cat.substr(0, slash) : tool_cat;
             if (ti_first != seg) continue;
-            const String cat_desc = tool_info.tool_ptr->category_description();
+            const String cat_desc = tool->category_description();
             if (!cat_node.description.is_empty() && !cat_desc.is_empty()) {
                 cat_node.description = cat_desc;
             }
@@ -294,7 +303,8 @@ Array HandlerRegistry::get_tools_in_category(const String &category) const {
     Array result;
     for (const auto &[name, info] : tool_info_) {
         if (!info.enabled) continue;
-        if (info.tool_ptr->category() == category) {
+        const ITool *tool = find_itool(name);
+        if (tool && tool->category() == category) {
             result.push_back(make_tool_entry(name, info));
         }
     }
@@ -309,7 +319,8 @@ Array HandlerRegistry::get_always_on_tools() const {
     Array result;
     for (const auto &[name, info] : tool_info_) {
         if (!info.enabled) continue;
-        if (info.tool_ptr->is_meta()) {
+        const ITool *tool = find_itool(name);
+        if (tool && tool->is_meta()) {
             result.push_back(make_tool_entry(name, info));
         }
     }
@@ -371,7 +382,9 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
 
     // Single pass: evaluate all matching strategies for each tool (权重降序检查)
     for (const auto &[tool_name, info] : tool_info_) {
-        if (!category.is_empty() && !info.tool_ptr->category().begins_with(category)) continue;
+        const ITool *tool = find_itool(tool_name);
+        if (!tool) continue;
+        if (!category.is_empty() && !tool->category().begins_with(category)) continue;
 
         const String name_lower = tool_name.to_lower();
 
@@ -402,7 +415,7 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
         }
         if (token_matched) continue;
 
-        if (info.tool_ptr->description().to_lower().find(q) >= 0) {
+        if (tool->description().to_lower().find(q) >= 0) {
             best_weight[tool_name] = 50;
         }
     }
@@ -435,11 +448,11 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
     for (int i = 0; i < static_cast<int>(scored.size()) && i < limit; ++i) {
         Dictionary entry;
         entry["name"] = scored[i].name;
-        const ToolInfo *info = find_tool_info(scored[i].name);
-        if (info) {
-            entry["brief"] = info->tool_ptr->brief();
-            entry["category"] = info->tool_ptr->category();
-            entry["description"] = info->tool_ptr->description();
+        const ITool *tool = find_itool(scored[i].name);
+        if (tool) {
+            entry["brief"] = tool->brief();
+            entry["category"] = tool->category();
+            entry["description"] = tool->description();
         }
         entry["frequency"] = scored[i].freq;
         result.push_back(entry);

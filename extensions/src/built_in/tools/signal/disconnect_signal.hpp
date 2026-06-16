@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
@@ -21,36 +22,13 @@ public:
         return String("Disconnects source_node's signal_name from target_node.target_method.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Source node path");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Signal name");
-            props["signal_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Target node path");
-            props["target_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Method name on the target node");
-            props["target_method"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("node_path", "signal_name", "target_path", "target_method");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Source node path")
+            .prop("signal_name", "string", "Signal name")
+            .prop("target_path", "string", "Target node path")
+            .prop("target_method", "string", "Method name on the target node")
+            .required({"node_path", "signal_name", "target_path", "target_method"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

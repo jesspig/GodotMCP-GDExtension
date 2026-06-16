@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "server/registry/handler_registry.hpp"
@@ -23,18 +24,10 @@ public:
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
     Dictionary build_input_schema() const override {
-        Dictionary p;
-        {
-            Dictionary d;
-            d["type"] = "boolean";
-            d["description"] = String("true to pause, false to resume");
-            p["paused"] = d;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = p;
-        s["required"] = Array::make("paused");
-        return s;
+        return SchemaBuilder()
+            .prop("paused", "boolean", "true to pause, false to resume")
+            .required({"paused"})
+            .build();
     }
 
 protected:

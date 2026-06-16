@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "server/registry/handler_registry.hpp"
 
@@ -19,22 +20,11 @@ public:
                       "and only use this fallback when direct invocation is unavailable.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary schema;
-        schema["type"] = "object";
-        Dictionary props;
-        Dictionary tn;
-        tn["type"] = "string";
-        tn["description"] = String("Name of the tool to call");
-        props["tool_name"] = tn;
-        Dictionary args;
-        args["type"] = "object";
-        args["description"] = String("Tool arguments (optional key-value pairs)");
-        props["arguments"] = args;
-        schema["properties"] = props;
-        Array req;
-        req.push_back("tool_name");
-        schema["required"] = req;
-        return schema;
+        return SchemaBuilder()
+            .prop("tool_name", "string", "Name of the tool to call")
+            .prop("arguments", "object", "Tool arguments (optional key-value pairs)")
+            .required({"tool_name"})
+            .build();
     }
     bool is_meta() const noexcept override { return true; }
 

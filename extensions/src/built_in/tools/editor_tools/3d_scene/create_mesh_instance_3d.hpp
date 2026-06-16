@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
@@ -40,53 +41,15 @@ public:
                "For .glb/.gltf/.obj/.tscn files, instances as a PackedScene child.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Parent node path";
-            props["parent_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Mesh type: box/sphere/cylinder/capsule/plane/torus/custom";
-            props["mesh_type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node name (empty = auto)";
-            props["node_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "res:// path for custom mesh (.glb/.obj/.tres/.res/.tscn)";
-            props["custom_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "object";
-            p["description"] = "Size params: {width,height,depth} for box, {radius,height} for cylinder/capsule, {radius} for sphere, {size} for plane";
-            props["size"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional material override (res:// path)";
-            props["material_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("parent_path");
-            req.append("mesh_type");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("parent_path", "string", "Parent node path")
+            .prop("mesh_type", "string", "Mesh type: box/sphere/cylinder/capsule/plane/torus/custom")
+            .prop("node_name", "string", "Node name (empty = auto)")
+            .prop("custom_path", "string", "res:// path for custom mesh (.glb/.obj/.tres/.res/.tscn)")
+            .prop("size", "object", "Size params: {width,height,depth} for box, {radius,height} for cylinder/capsule, {radius} for sphere, {size} for plane")
+            .prop("material_path", "string", "Optional material override (res:// path)")
+            .required({"parent_path", "mesh_type"})
+            .build();
     }
     bool needs_scene() const override { return true; }
 

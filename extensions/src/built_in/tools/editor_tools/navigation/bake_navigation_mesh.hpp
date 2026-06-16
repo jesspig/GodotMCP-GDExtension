@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
@@ -24,29 +25,11 @@ public:
                "NavigationRegion3D node. Baking can be computationally expensive.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the NavigationRegion node";
-            props["region_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Timeout in seconds for baking";
-            p["default"] = 30.0;
-            props["timeout_seconds"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("region_path");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("region_path", "string", "Path to the NavigationRegion node")
+            .prop("timeout_seconds", "number", "Timeout in seconds for baking", 30.0)
+            .required({"region_path"})
+            .build();
     }
     bool needs_scene() const override { return true; }
 

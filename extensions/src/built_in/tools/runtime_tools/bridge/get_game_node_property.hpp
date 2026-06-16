@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "server/registry/handler_registry.hpp"
@@ -22,24 +23,11 @@ public:
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
     Dictionary build_input_schema() const override {
-        Dictionary p;
-        {
-            Dictionary d;
-            d["type"] = "string";
-            d["description"] = String("Node path, e.g. /root/Main/Player");
-            p["node_path"] = d;
-        }
-        {
-            Dictionary d;
-            d["type"] = "string";
-            d["description"] = String("Property name, e.g. position");
-            p["property"] = d;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = p;
-        s["required"] = Array::make("node_path", "property");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path, e.g. /root/Main/Player")
+            .prop("property", "string", "Property name, e.g. position")
+            .required({"node_path", "property"})
+            .build();
     }
 
 protected:

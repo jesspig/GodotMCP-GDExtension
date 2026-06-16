@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
@@ -20,30 +21,12 @@ public:
                             "persistent=true means the group relationship is saved when the scene is saved.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Node path (empty = root node of current edited scene)");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Group name");
-            props["group_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = String("Whether to persist (save to scene file)");
-            props["persistent"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("node_path", "group_name");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path (empty = root node of current edited scene)")
+            .prop("group_name", "string", "Group name")
+            .prop("persistent", "boolean", "Whether to persist (save to scene file)")
+            .required({"node_path", "group_name"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

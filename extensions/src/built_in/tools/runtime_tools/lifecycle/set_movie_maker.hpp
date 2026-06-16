@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -20,18 +21,10 @@ public:
                              "Use is_movie_maker_enabled to query the current state.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary p;
-        {
-            Dictionary d;
-            d["type"] = "boolean";
-            d["description"] = String("Whether to enable Movie Maker mode");
-            p["enabled"] = d;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = p;
-        s["required"] = Array::make("enabled");
-        return s;
+        return SchemaBuilder()
+            .prop("enabled", "boolean", "Whether to enable Movie Maker mode")
+            .required({"enabled"})
+            .build();
     }
 
 protected:

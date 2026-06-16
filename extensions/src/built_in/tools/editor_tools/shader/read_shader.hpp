@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -21,22 +22,10 @@ public:
                "source code, and uniform count.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the shader resource";
-            props["resource_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("resource_path");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("resource_path", "string", "Path to the shader resource")
+            .required({"resource_path"})
+            .build();
     }
 
 protected:

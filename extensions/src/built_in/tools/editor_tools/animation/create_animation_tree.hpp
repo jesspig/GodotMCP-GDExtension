@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
@@ -30,38 +31,13 @@ public:
                "Uses EditorUndoRedoManager for undo support.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Parent node path";
-            props["parent_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the AnimationPlayer node to connect";
-            props["anim_player_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node name for the AnimationTree";
-            p["default"] = "AnimationTree";
-            props["node_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Root node type (currently only state_machine)";
-            p["default"] = "state_machine";
-            props["root_type"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("parent_path", "anim_player_path");
-        return s;
+        return SchemaBuilder()
+            .prop("parent_path", "string", "Parent node path")
+            .prop("anim_player_path", "string", "Path to the AnimationPlayer node to connect")
+            .prop("node_name", "string", "Node name for the AnimationTree", "AnimationTree")
+            .prop("root_type", "string", "Root node type (currently only state_machine)", "state_machine")
+            .required({"parent_path", "anim_player_path"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

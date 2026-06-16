@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_selection.hpp>
@@ -28,24 +29,10 @@ public:
                "All changes are undoable.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "New parent node type (Godot class name)";
-            p["default"] = "Node";
-            props["new_class"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "New parent node name (empty = type name)";
-            props["new_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+        return SchemaBuilder()
+            .prop("new_class", "string", "New parent node type (Godot class name)", "Node")
+            .prop("new_name", "string", "New parent node name (empty = type name)")
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

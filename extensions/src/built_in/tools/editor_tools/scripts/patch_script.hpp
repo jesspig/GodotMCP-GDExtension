@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tools/editor_tools/scripts/script_utils.hpp"
 #include "built_in/tools/editor_tools/filesystem/filesystem_utils.hpp"
 
@@ -45,43 +46,15 @@ public:
         }
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Target file path (must end with ") + ext() + String(")");
-            props["path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Old text to be replaced";
-            props["old_text"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "New text to replace with";
-            props["new_text"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = "Optional: replace Nth occurrence (0=all, default 0)";
-            props["occurrence"] = p;
-        }
+        SchemaBuilder sb;
+        sb.prop("path", "string", String("Target file path (must end with ") + ext() + String(")"));
+        sb.prop("old_text", "string", "Old text to be replaced");
+        sb.prop("new_text", "string", "New text to replace with");
+        sb.prop("occurrence", "integer", "Optional: replace Nth occurrence (0=all, default 0)");
         if constexpr (Lang == ScriptLang::GDScript) {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Optional: match only at identifier boundaries (default false)";
-            p["default"] = false;
-            props["whole_word"] = p;
+            sb.prop("whole_word", "boolean", "Optional: match only at identifier boundaries (default false)", false);
         }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path", "old_text", "new_text");
-        return s;
+        return sb.required(Array::make("path", "old_text", "new_text")).build();
     }
 
 protected:

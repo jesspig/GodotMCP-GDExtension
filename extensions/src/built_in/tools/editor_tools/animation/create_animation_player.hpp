@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/memdelete_guard.hpp"
@@ -26,31 +27,11 @@ public:
                "All changes are committed via EditorUndoRedoManager.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Parent node path (empty = scene root)";
-            props["parent_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node name for the AnimationPlayer";
-            p["default"] = "AnimationPlayer";
-            props["node_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional AnimationLibrary name to create and add";
-            props["library_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make();
-        return s;
+        return SchemaBuilder()
+            .prop("parent_path", "string", "Parent node path (empty = scene root)")
+            .prop("node_name", "string", "Node name for the AnimationPlayer", "AnimationPlayer")
+            .prop("library_name", "string", "Optional AnimationLibrary name to create and add")
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

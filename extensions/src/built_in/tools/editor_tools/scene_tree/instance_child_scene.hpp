@@ -2,7 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
-#include "scene_tree_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
@@ -25,44 +25,14 @@ public:
                "All changes are undoable.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Parent node path (empty = scene root)";
-            props["parent_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = ".tscn file res:// path to instantiate";
-            props["scene_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Instance node name (empty = use .tscn root name)";
-            props["instance_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Allow Editable Children on the instance";
-            p["default"] = false;
-            props["editable_children"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Instantiate as placeholder (don't expand internals)";
-            p["default"] = false;
-            props["load_placeholder"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("scene_path");
-        return s;
+        return SchemaBuilder()
+            .prop("parent_path", "string", "Parent node path (empty = scene root)")
+            .prop("scene_path", "string", ".tscn file res:// path to instantiate")
+            .prop("instance_name", "string", "Instance node name (empty = use .tscn root name)")
+            .prop("editable_children", "boolean", "Allow Editable Children on the instance", false)
+            .prop("load_placeholder", "boolean", "Instantiate as placeholder (don't expand internals)", false)
+            .required(Array::make("scene_path"))
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

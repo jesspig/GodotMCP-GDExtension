@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -20,28 +21,11 @@ public:
                "Supports class, method, and topic queries.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Search query (class name, method, or topic)";
-            props["query"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = "Maximum number of results (default 10)";
-            props["max_results"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("query");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("query", "string", "Search query (class name, method, or topic)")
+            .prop("max_results", "integer", "Maximum number of results (default 10)")
+            .required({"query"})
+            .build();
     }
 
 protected:

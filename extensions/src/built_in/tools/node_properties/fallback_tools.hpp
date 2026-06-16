@@ -1,6 +1,7 @@
 #pragma once
 #pragma warning(disable: 4828)  // non-UTF-8 bytes in file (known, harmless)
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/args_get_typed.hpp"
@@ -26,23 +27,11 @@ public:
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }
     Dictionary build_input_schema() const override {
-        Dictionary s;
-        s["type"] = "object";
-        Dictionary p;
-        Dictionary np;
-        np["type"] = "string";
-        np["description"] = "Node path";
-        p["node_path"] = np;
-        Dictionary pp;
-        pp["type"] = "string";
-        pp["description"] = "Property name to read";
-        p["property"] = pp;
-        s["properties"] = p;
-        Array r;
-        r.push_back("node_path");
-        r.push_back("property");
-        s["required"] = r;
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path")
+            .prop("property", "string", "Property name to read")
+            .required({"node_path", "property"})
+            .build();
     }
 
 protected:

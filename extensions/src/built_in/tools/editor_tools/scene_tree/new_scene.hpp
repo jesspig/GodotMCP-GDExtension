@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
@@ -24,24 +25,11 @@ public:
                "Optionally specify the root name; the scene is held in memory and can be saved via save_scene.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Root node type (Godot class name, e.g. Node2D, Node3D, Control, Node)";
-            props["root_type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Root node name (default = type name)";
-            props["root_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("root_type");
-        return s;
+        return SchemaBuilder()
+            .prop("root_type", "string", "Root node type (Godot class name, e.g. Node2D, Node3D, Control, Node)")
+            .prop("root_name", "string", "Root node name (default = type name)")
+            .required(Array::make("root_type"))
+            .build();
     }
     bool needs_scene() const override { return false; }
     bool needs_node() const override { return false; }

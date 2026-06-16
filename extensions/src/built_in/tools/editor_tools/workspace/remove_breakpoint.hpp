@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -17,24 +18,11 @@ public:
     String brief() const noexcept override { return String("Remove breakpoint from script line"); }
 
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Script path (res:// prefix)");
-            props["script_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = String("Line number");
-            props["line"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("script_path", "line");
-        return s;
+        return SchemaBuilder()
+            .prop("script_path", "string", String("Script path (res:// prefix)"))
+            .prop("line", "integer", String("Line number"))
+            .required({"script_path", "line"})
+            .build();
     }
 
 protected:

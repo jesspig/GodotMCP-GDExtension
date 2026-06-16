@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
@@ -35,58 +36,16 @@ public:
                "Uses EditorUndoRedoManager for undo support.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Parent node path";
-            props["parent_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Player type: standard/2d/3d";
-            p["default"] = "standard";
-            props["player_type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node name (empty = use class name)";
-            props["node_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "res:// path to audio stream resource";
-            props["stream_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Audio bus name";
-            p["default"] = "Master";
-            props["bus"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Auto-play on ready";
-            p["default"] = false;
-            props["autoplay"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Volume in dB";
-            p["default"] = 0.0;
-            props["volume_db"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("parent_path");
-        return s;
+        return SchemaBuilder()
+            .prop("parent_path", "string", "Parent node path")
+            .prop("player_type", "string", "Player type: standard/2d/3d", "standard")
+            .prop("node_name", "string", "Node name (empty = use class name)")
+            .prop("stream_path", "string", "res:// path to audio stream resource")
+            .prop("bus", "string", "Audio bus name", "Master")
+            .prop("autoplay", "boolean", "Auto-play on ready", false)
+            .prop("volume_db", "number", "Volume in dB", 0.0)
+            .required({"parent_path"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

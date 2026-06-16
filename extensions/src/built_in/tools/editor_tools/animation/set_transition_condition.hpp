@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
@@ -25,43 +26,14 @@ public:
                "the transition fires. Uses EditorUndoRedoManager for undo support.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the AnimationTree node";
-            props["tree_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Source state name";
-            props["from"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target state name";
-            props["to"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Condition name to set on the transition";
-            props["condition"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Whether to set or clear the condition (default: true)";
-            p["default"] = true;
-            props["value"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("tree_path", "from", "to", "condition");
-        return s;
+        return SchemaBuilder()
+            .prop("tree_path", "string", "Path to the AnimationTree node")
+            .prop("from", "string", "Source state name")
+            .prop("to", "string", "Target state name")
+            .prop("condition", "string", "Condition name to set on the transition")
+            .prop("value", "boolean", "Whether to set or clear the condition (default: true)", true)
+            .required({"tree_path", "from", "to", "condition"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

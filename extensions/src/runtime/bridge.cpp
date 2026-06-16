@@ -223,7 +223,7 @@ Dictionary RuntimeBridge::make_response(const Dictionary &raw) {
 
     if (!raw.has("ok") || !raw["ok"]) {
         Dictionary error;
-        error["code"] = "BRIDGE_ERROR";
+        error["code"] = String(error_codes::BRIDGE_ERROR);
         error["message"] = raw.get("error", String("Command execution failed"));
         Dictionary r;
         r["success"] = false;

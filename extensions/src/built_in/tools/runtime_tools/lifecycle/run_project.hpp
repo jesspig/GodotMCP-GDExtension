@@ -19,12 +19,7 @@ public:
                              "Equivalent to pressing F5 (or clicking the Run Project button) in the editor. "
                              "Can be stopped via stop_project.");
     }
-    Dictionary build_input_schema() const override {
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = Dictionary();
-        return s;
-    }
+
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {

@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
@@ -25,59 +26,16 @@ public:
                             "it as a theme stylebox override on a Control node.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("StyleBox name (used as theme override name)");
-            props["stylebox_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Optional: node path to apply the stylebox to");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Background color hex (e.g. #ffffff)");
-            p["default"] = "#ffffff";
-            props["bg_color"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Border color hex (e.g. #000000)");
-            p["default"] = "#000000";
-            props["border_color"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = String("Border width in pixels");
-            p["default"] = 0;
-            props["border_width"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = String("Corner radius in pixels");
-            p["default"] = 0;
-            props["corner_radius"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = String("Apply as theme override on the target node");
-            p["default"] = false;
-            props["apply_to_node"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("stylebox_name");
-        return s;
+        return SchemaBuilder()
+            .prop("stylebox_name", "string", "StyleBox name (used as theme override name)")
+            .prop("node_path", "string", "Optional: node path to apply the stylebox to")
+            .prop("bg_color", "string", "Background color hex (e.g. #ffffff)", "#ffffff")
+            .prop("border_color", "string", "Border color hex (e.g. #000000)", "#000000")
+            .prop("border_width", "integer", "Border width in pixels", (int64_t)0)
+            .prop("corner_radius", "integer", "Corner radius in pixels", (int64_t)0)
+            .prop("apply_to_node", "boolean", "Apply as theme override on the target node", false)
+            .required({"stylebox_name"})
+            .build();
     }
     bool needs_scene() const override { return true; }
 

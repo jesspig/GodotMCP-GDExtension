@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -21,24 +22,11 @@ public:
                "When content is not provided, uses the default canvas_item shader template.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target path (must end with .gdshader)";
-            props["path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: shader code (empty uses default canvas_item template)";
-            props["content"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+        return SchemaBuilder()
+            .prop("path", "string", "Target path (must end with .gdshader)")
+            .prop("content", "string", "Optional: shader code (empty uses default canvas_item template)")
+            .required({"path"})
+            .build();
     }
 
 protected:

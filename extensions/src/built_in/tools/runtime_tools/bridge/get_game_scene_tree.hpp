@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "server/registry/handler_registry.hpp"
@@ -24,18 +25,9 @@ public:
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
     Dictionary build_input_schema() const override {
-        Dictionary p;
-        {
-            Dictionary d;
-            d["type"] = "integer";
-            d["description"] = String("Maximum recursion depth, -1 for unlimited");
-            d["default"] = -1;
-            p["max_depth"] = d;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = p;
-        return s;
+        return SchemaBuilder()
+            .prop("max_depth", "integer", "Maximum recursion depth, -1 for unlimited", (int64_t)-1)
+            .build();
     }
 
 protected:

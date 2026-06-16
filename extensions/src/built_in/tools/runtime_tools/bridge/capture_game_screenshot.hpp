@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "server/registry/handler_registry.hpp"
@@ -21,18 +22,9 @@ public:
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
     Dictionary build_input_schema() const override {
-        Dictionary p;
-        {
-            Dictionary d;
-            d["type"] = "string";
-            d["description"] = "Image format: png or jpg (default png)";
-            d["default"] = "png";
-            p["format"] = d;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = p;
-        return s;
+        return SchemaBuilder()
+            .prop("format", "string", "Image format: png or jpg (default png)", "png")
+            .build();
     }
 
 protected:

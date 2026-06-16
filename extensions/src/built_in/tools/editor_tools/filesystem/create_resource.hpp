@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -24,24 +25,11 @@ public:
                "The resource_type parameter can specify a Resource subclass (e.g. StyleBoxFlat, Curve, Gradient).";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target path (ending with .tres or .res)";
-            props["path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: Resource subclass name (e.g. StyleBoxFlat, Curve, Gradient, default Resource)";
-            props["resource_type"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+        return SchemaBuilder()
+            .prop("path", "string", "Target path (ending with .tres or .res)")
+            .prop("resource_type", "string", "Optional: Resource subclass name (e.g. StyleBoxFlat, Curve, Gradient, default Resource)")
+            .required({"path"})
+            .build();
     }
 
 protected:

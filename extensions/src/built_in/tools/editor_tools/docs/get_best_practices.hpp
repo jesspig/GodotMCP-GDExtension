@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -19,18 +20,9 @@ public:
                "and UI design topics.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Topic: scene_organization, scripting, "
-                               "performance, ui_design, or all (default)";
-            props["topic"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+        return SchemaBuilder()
+            .prop("topic", "string", "Topic: scene_organization, scripting, performance, ui_design, or all (default)")
+            .build();
     }
 
 protected:

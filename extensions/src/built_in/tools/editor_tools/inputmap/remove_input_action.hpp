@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -20,22 +21,10 @@ public:
                "Fails if the action does not exist.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Action name to remove";
-            props["action"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("action");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("action", "string", "Action name to remove")
+            .required({"action"})
+            .build();
     }
 
 protected:

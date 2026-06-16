@@ -20,12 +20,7 @@ public:
         return String("Stops the currently running project. Equivalent to pressing F8 (or clicking the Stop button) in the editor. "
                              "Does nothing if the project is not running.");
     }
-    Dictionary build_input_schema() const override {
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = Dictionary();
-        return s;
-    }
+
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {

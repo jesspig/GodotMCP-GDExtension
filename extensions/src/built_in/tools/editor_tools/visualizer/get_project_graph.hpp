@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -27,26 +28,10 @@ public:
     }
 
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = "Maximum recursion depth";
-            p["default"] = 3;
-            props["max_depth"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Whether to include in-scene resource references";
-            p["default"] = true;
-            props["include_scene_resources"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array();
-        return s;
+        return SchemaBuilder()
+            .prop("max_depth", "integer", "Maximum recursion depth", 3)
+            .prop("include_scene_resources", "boolean", "Whether to include in-scene resource references", true)
+            .build();
     }
 
 protected:

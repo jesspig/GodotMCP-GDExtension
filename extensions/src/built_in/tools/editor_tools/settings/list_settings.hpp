@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -25,23 +26,11 @@ public:
     bool needs_scene() const override { return false; }
     bool needs_node() const override { return false; }
     Dictionary build_input_schema() const override {
-        Dictionary s;
-        s["type"] = "object";
-        Dictionary p;
-        Dictionary fp;
-        fp["type"] = "string";
-        fp["description"] = "Optional category filter (e.g. \"display/window\")";
-        p["filter"] = fp;
-        Dictionary sp;
-        sp["type"] = "string";
-        sp["description"] = "Optional search text";
-        p["search"] = sp;
-        Dictionary lp;
-        lp["type"] = "integer";
-        lp["description"] = "Max results (default 200)";
-        p["limit"] = lp;
-        s["properties"] = p;
-        return s;
+        return SchemaBuilder()
+            .prop("filter", "string", "Optional category filter (e.g. \"display/window\")")
+            .prop("search", "string", "Optional search text")
+            .prop("limit", "integer", "Max results (default 200)")
+            .build();
     }
 
 protected:

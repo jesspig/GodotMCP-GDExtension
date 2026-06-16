@@ -1,6 +1,7 @@
 #pragma once
 #pragma warning(disable: 4828)  // non-UTF-8 bytes in file (known, harmless)
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -22,24 +23,11 @@ public:
                "Deleting res:// itself is forbidden.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "res:// path to delete (file or directory)";
-            props["path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Optional: recursively delete directory contents (default false)";
-            props["recursive"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+        return SchemaBuilder()
+            .prop("path", "string", "res:// path to delete (file or directory)")
+            .prop("recursive", "boolean", "Optional: recursively delete directory contents (default false)")
+            .required({"path"})
+            .build();
     }
 
 protected:

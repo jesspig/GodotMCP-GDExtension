@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "server/registry/handler_registry.hpp"
 
@@ -18,18 +19,10 @@ public:
                       "under the given category path. Does not include tools from subcategories.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary schema;
-        schema["type"] = "object";
-        Dictionary props;
-        Dictionary cat;
-        cat["type"] = "string";
-        cat["description"] = String("Category path, e.g. meta_tools, node_tools/property/CanvasItem");
-        props["category"] = cat;
-        schema["properties"] = props;
-        Array req;
-        req.push_back("category");
-        schema["required"] = req;
-        return schema;
+        return SchemaBuilder()
+            .prop("category", "string", "Category path, e.g. meta_tools, node_tools/property/CanvasItem")
+            .required({"category"})
+            .build();
     }
     bool is_meta() const noexcept override { return true; }
 

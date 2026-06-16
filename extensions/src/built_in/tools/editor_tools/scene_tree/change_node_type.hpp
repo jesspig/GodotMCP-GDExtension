@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
@@ -22,36 +23,13 @@ public:
                "Note: properties exclusive to the original type will be lost. All changes are undoable.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node path whose type to change";
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "New type (Godot class name)";
-            props["new_type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "New node name (empty = keep original)";
-            props["new_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "object";
-            p["description"] = "Property mapping {old_property: new_property} (optional)";
-            props["property_mapping"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("node_path", "new_type");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path whose type to change")
+            .prop("new_type", "string", "New type (Godot class name)")
+            .prop("new_name", "string", "New node name (empty = keep original)")
+            .prop("property_mapping", "object", "Property mapping {old_property: new_property} (optional)")
+            .required(Array::make("node_path", "new_type"))
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

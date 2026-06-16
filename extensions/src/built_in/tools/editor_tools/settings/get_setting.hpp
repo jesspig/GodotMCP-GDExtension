@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -25,18 +26,10 @@ public:
     bool needs_scene() const override { return false; }
     bool needs_node() const override { return false; }
     Dictionary build_input_schema() const override {
-        Dictionary s;
-        s["type"] = "object";
-        Dictionary p;
-        Dictionary sp;
-        sp["type"] = "string";
-        sp["description"] = "Full setting path (e.g. \"application/config/name\")";
-        p["setting_path"] = sp;
-        s["properties"] = p;
-        Array r;
-        r.push_back("setting_path");
-        s["required"] = r;
-        return s;
+        return SchemaBuilder()
+            .prop("setting_path", "string", "Full setting path (e.g. \"application/config/name\")")
+            .required({"setting_path"})
+            .build();
     }
 
 protected:

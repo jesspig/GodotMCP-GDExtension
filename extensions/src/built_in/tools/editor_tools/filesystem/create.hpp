@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -27,36 +28,13 @@ public:
                "For .gd/.cs scripts, use the dedicated write_gd_script / write_csharp_script tools.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target path (res:// prefix, extension determines strategy)";
-            props["path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: file content (for .gd/.gdshader/.cs and other text files)";
-            props["content"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: root node type when creating a scene (default Node)";
-            props["root_type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: Resource subclass name when creating a resource (default Resource)";
-            props["resource_type"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+        return SchemaBuilder()
+            .prop("path", "string", "Target path (res:// prefix, extension determines strategy)")
+            .prop("content", "string", "Optional: file content (for .gd/.gdshader/.cs and other text files)")
+            .prop("root_type", "string", "Optional: root node type when creating a scene (default Node)")
+            .prop("resource_type", "string", "Optional: Resource subclass name when creating a resource (default Resource)")
+            .required({"path"})
+            .build();
     }
 
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }

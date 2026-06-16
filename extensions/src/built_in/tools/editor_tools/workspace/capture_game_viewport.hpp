@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/screenshot_utils.hpp"
 
@@ -20,13 +21,10 @@ public:
                       "Returns an error if the game is not running.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary s;
-        s["type"] = "object";
-        Dictionary props;
-        Dictionary fmt; fmt["type"] = "string"; fmt["description"] = "Image format: \"png\" or \"jpg\""; fmt["default"] = "png"; props["format"] = fmt;
-        Dictionary sp; sp["type"] = "string"; sp["description"] = "Save path (res://), auto-generated if empty"; sp["default"] = ""; props["save_path"] = sp;
-        s["properties"] = props;
-        return s;
+        return SchemaBuilder()
+            .prop("format", "string", "Image format: \"png\" or \"jpg\"", "png")
+            .prop("save_path", "string", "Save path (res://), auto-generated if empty", "")
+            .build();
     }
 
 protected:

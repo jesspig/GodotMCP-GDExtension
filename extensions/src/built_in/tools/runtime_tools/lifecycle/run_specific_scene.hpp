@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -20,18 +21,10 @@ public:
                              "Can be stopped via stop_project.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary p;
-        {
-            Dictionary d;
-            d["type"] = "string";
-            d["description"] = String("Scene file path, e.g. res://scenes/level1.tscn");
-            p["scene_path"] = d;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = p;
-        s["required"] = Array::make("scene_path");
-        return s;
+        return SchemaBuilder()
+            .prop("scene_path", "string", "Scene file path, e.g. res://scenes/level1.tscn")
+            .required({"scene_path"})
+            .build();
     }
 
 protected:

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
@@ -24,44 +25,15 @@ public:
     String category_description() const noexcept override {
         return "Signal connection tools for connecting, disconnecting, and inspecting node signals";
     }
-    Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Source node path (the node emitting the signal)");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Signal name to connect");
-            props["signal_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Target node path (the node receiving the signal)");
-            props["target_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Method name on the target node");
-            props["target_method"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = String("Connection flags (1=DEFERRED, 2=ONESHOT, 4=PERSIST, 8=REFERENCE_COUNTED)");
-            props["flags"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        Array required = Array::make("node_path", "signal_name", "target_path", "target_method");
-        s["required"] = required;
-        return s;
+        Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("node_path", "string", "Source node path (the node emitting the signal)")
+            .prop("signal_name", "string", "Signal name to connect")
+            .prop("target_path", "string", "Target node path (the node receiving the signal)")
+            .prop("target_method", "string", "Method name on the target node")
+            .prop("flags", "integer", "Connection flags (1=DEFERRED, 2=ONESHOT, 4=PERSIST, 8=REFERENCE_COUNTED)")
+            .required({"node_path", "signal_name", "target_path", "target_method"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

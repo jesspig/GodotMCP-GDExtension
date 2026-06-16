@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -20,29 +21,11 @@ public:
                "Fails if the action already exists.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Action name";
-            props["action"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Deadzone value (0.0-1.0)";
-            p["default"] = 0.2;
-            props["deadzone"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("action");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("action", "string", "Action name")
+            .prop("deadzone", "number", "Deadzone value (0.0-1.0)", 0.2)
+            .required({"action"})
+            .build();
     }
 
 protected:

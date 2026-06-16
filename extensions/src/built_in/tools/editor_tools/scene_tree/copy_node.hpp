@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 
 namespace godot_mcp {
@@ -20,18 +21,10 @@ public:
                "Carries node and scene instance data (with editor state), separate from the Godot editor's internal clipboard.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node path (empty = scene root, not allowed)";
-            props["node_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("node_path");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path (empty = scene root, not allowed)")
+            .required(Array::make("node_path"))
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

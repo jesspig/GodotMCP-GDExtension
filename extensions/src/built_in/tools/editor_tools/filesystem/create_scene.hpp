@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -25,30 +26,12 @@ public:
                "The scene includes a root Node by default.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target path (must end with .tscn)";
-            props["path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: root node type (e.g. Node2D, Node3D, default Node)";
-            props["root_type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: root node name (default Node)";
-            props["root_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+        return SchemaBuilder()
+            .prop("path", "string", "Target path (must end with .tscn)")
+            .prop("root_type", "string", "Optional: root node type (e.g. Node2D, Node3D, default Node)")
+            .prop("root_name", "string", "Optional: root node name (default Node)")
+            .required({"path"})
+            .build();
     }
 
 protected:

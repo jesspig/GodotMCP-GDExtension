@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -25,38 +26,13 @@ public:
     }
 
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Project path (absolute path)";
-            props["project_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Project name";
-            props["project_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Template type: 2d, 3d, empty";
-            p["default"] = "2d";
-            props["template"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Whether to include default environment";
-            p["default"] = true;
-            props["include_default_env"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("project_path", "project_name");
-        return s;
+        return SchemaBuilder()
+            .prop("project_path", "string", "Project path (absolute path)")
+            .prop("project_name", "string", "Project name")
+            .prop("template", "string", "Template type: 2d, 3d, empty", "2d")
+            .prop("include_default_env", "boolean", "Whether to include default environment", true)
+            .required({"project_path", "project_name"})
+            .build();
     }
 
 protected:

@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -20,17 +21,9 @@ public:
                "Can optionally filter by a parent class to show only subclasses.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional parent class name to filter (e.g., Node, Control, Resource)";
-            props["inherit"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+        return SchemaBuilder()
+            .prop("inherit", "string", "Optional parent class name to filter (e.g., Node, Control, Resource)")
+            .build();
     }
 
 protected:

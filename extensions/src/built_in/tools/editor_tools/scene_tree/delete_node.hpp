@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_selection.hpp>
@@ -23,24 +24,10 @@ public:
                "All changes go through EditorUndoRedoManager and can be restored with Ctrl+Z.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node path to delete (empty = root, not allowed)";
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Force delete root node (dangerous: may lose unsaved data)";
-            p["default"] = false;
-            props["force"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path to delete (empty = root, not allowed)")
+            .prop("force", "boolean", "Force delete root node (dangerous: may lose unsaved data)", false)
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }

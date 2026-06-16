@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
@@ -23,31 +24,12 @@ public:
                             "Undo restores the previous anchor and offset values.");
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Control node path");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Preset name: full_rect/center/top_left/top_right/bottom_left/bottom_right/etc.");
-            props["preset"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = String("Keep current offset values");
-            p["default"] = false;
-            props["keep_offsets"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("node_path", "preset");
-        return s;
+        return SchemaBuilder()
+            .prop("node_path", "string", "Control node path")
+            .prop("preset", "string", "Preset name: full_rect/center/top_left/top_right/bottom_left/bottom_right/etc.")
+            .prop("keep_offsets", "boolean", "Keep current offset values", false)
+            .required({"node_path", "preset"})
+            .build();
     }
     bool needs_scene() const override { return true; }
 

@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -26,37 +27,12 @@ public:
     }
 
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Search keyword (only returns lines containing this keyword)");
-            props["search"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Message type filter: std / error / warning / editor, leave empty for no filter");
-            props["type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = String("Whether to exclude MCP-related log lines (default true)");
-            p["default"] = true;
-            props["exclude_mcp"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = String("Maximum lines to return (-1 = unlimited, default 500)");
-            p["default"] = (int64_t)500;
-            props["max_lines"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+        return SchemaBuilder()
+            .prop("search", "string", String("Search keyword (only returns lines containing this keyword)"))
+            .prop("type", "string", String("Message type filter: std / error / warning / editor, leave empty for no filter"))
+            .prop("exclude_mcp", "boolean", String("Whether to exclude MCP-related log lines (default true)"), true)
+            .prop("max_lines", "integer", String("Maximum lines to return (-1 = unlimited, default 500)"), (int64_t)500)
+            .build();
     }
 
 protected:

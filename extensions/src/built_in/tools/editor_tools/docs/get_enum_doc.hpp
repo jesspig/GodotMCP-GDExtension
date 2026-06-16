@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -21,29 +22,11 @@ public:
                "their values. Supports both regular enums and bitfields.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Godot class name";
-            props["class_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Enum name to inspect (e.g., AlignMode, CornerType). "
-                               "If empty, returns all enums for the class.";
-            props["enum_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("class_name");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("class_name", "string", "Godot class name")
+            .prop("enum_name", "string", "Enum name to inspect (e.g., AlignMode, CornerType). If empty, returns all enums for the class.")
+            .required({"class_name"})
+            .build();
     }
 
 protected:

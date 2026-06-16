@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
@@ -25,53 +26,15 @@ public:
                "Supports optional configuration of target/path distances and avoidance.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Parent node path";
-            props["parent_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Dimension: 2d or 3d";
-            p["default"] = "3d";
-            props["dimension"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node name (empty = auto)";
-            props["node_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Target desired distance";
-            props["target_desired_distance"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Path desired distance";
-            props["path_desired_distance"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Enable avoidance";
-            props["avoidance_enabled"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("parent_path");
-            s["required"] = req;
-        }
-        return s;
+        return SchemaBuilder()
+            .prop("parent_path", "string", "Parent node path")
+            .prop("dimension", "string", "Dimension: 2d or 3d", "3d")
+            .prop("node_name", "string", "Node name (empty = auto)")
+            .prop("target_desired_distance", "number", "Target desired distance")
+            .prop("path_desired_distance", "number", "Path desired distance")
+            .prop("avoidance_enabled", "boolean", "Enable avoidance")
+            .required({"parent_path"})
+            .build();
     }
     bool needs_scene() const override { return true; }
 

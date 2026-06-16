@@ -2,6 +2,7 @@
 #pragma once
 
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "server/registry/handler_registry.hpp"
 
@@ -19,22 +20,10 @@ public:
                       "category, and max_depth to control expansion depth (default 3, -1 for unlimited).");
     }
     Dictionary build_input_schema() const override {
-        Dictionary schema;
-        schema["type"] = "object";
-        Dictionary props;
-
-        Dictionary p;
-        p["type"] = "string";
-        p["description"] = String("Category path, empty starts from root. E.g. node_tools/property/Node/CanvasItem");
-        props["path"] = p;
-
-        Dictionary d;
-        d["type"] = "integer";
-        d["description"] = String("Maximum depth (default 3, -1 for unlimited)");
-        props["max_depth"] = d;
-
-        schema["properties"] = props;
-        return schema;
+        return SchemaBuilder()
+            .prop("path", "string", "Category path, empty starts from root. E.g. node_tools/property/Node/CanvasItem")
+            .prop("max_depth", "integer", "Maximum depth (default 3, -1 for unlimited)")
+            .build();
     }
     bool is_meta() const noexcept override { return true; }
 

@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -25,24 +26,11 @@ public:
                "duplicating resources or forcing a re-save after external edits.";
     }
     Dictionary build_input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Source resource path (res://...)";
-            props["resource_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target save path (empty = re-save in-place)";
-            props["save_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("resource_path");
-        return s;
+        return SchemaBuilder()
+            .prop("resource_path", "string", "Source resource path (res://...)")
+            .prop("save_path", "string", "Target save path (empty = re-save in-place)")
+            .required({"resource_path"})
+            .build();
     }
 
 protected:
