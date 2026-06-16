@@ -8,8 +8,8 @@
 |------|---------|
 | C++ 源码根 | `extensions/src/` |
 | 注册方式 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
-| 工具总数 | **171**（全部 X-macro 注册，无重复，无 codegen） |
-| 工具体系 | **四层体系**：语义专用(~145) + 通用兜底(2) + 文档(8) + 元工具(7) + 运行时(12) |
+| 工具总数 | **152**（全部 X-macro 注册，无重复，无 codegen） |
+| 工具体系 | **四层体系**：语义专用(135，含 12 运行时) + 通用兜底(2) + 文档(8) + 元工具(7) |
 | 指令数据源 | **Godot ClassDB 运行时查询**（零维护） |
 | 顶级分类 | 自动发现：`meta_tools`、`editor_tools`、`node_tools`、`runtime_tools` |
 | 场景树工具 | `editor_tools/scene_tree/`（24 工具） |
@@ -19,7 +19,7 @@
 | HTTP 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） |
 | 桥接端口 | `:9601`（env `GODOT_MCP_BRIDGE_PORT` 覆盖） |
 | Pinned deps | `godot-cpp 10.0.0-rc1`、`ryml v0.7.0` |
-| 版本号 | 仅 `CMakeLists.txt:22` `PROJECT_VERSION` |
+| 版本号 | 仅 `CMakeLists.txt:16` `PROJECT_VERSION` |
 | Python | `>=3.14`（`.python-version` 锁定） |
 | MCP 协议 | **Streamable HTTP 2026-07-28**（无 session，无 GET 端点） |
 
@@ -49,6 +49,7 @@
 | 信号工具 | [modules/signal-tools.md](modules/signal-tools.md) |
 | 资源管理工具 | [modules/resource-tools.md](modules/resource-tools.md) |
 | 动画工具 | [modules/animation-tools.md](modules/animation-tools.md) |
+| 插件管理工具 | [modules/plugin-management.md](modules/plugin-management.md) |
 | 脚本工具 | [modules/script-tools.md](modules/script-tools.md) |
 | SDK 层 | [modules/sdk-layer.md](modules/sdk-layer.md) |
 | HTTP 服务器 | [modules/http-server.md](modules/http-server.md) |

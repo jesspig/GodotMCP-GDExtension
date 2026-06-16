@@ -14,7 +14,7 @@ flowchart TB
     Root --> Opencode[".opencode/<br/>MCP 客户端配置"]
     Root --> Pkg["pyproject.toml + uv.lock<br/>package.json + pnpm-lock.yaml"]
     Root --> Cfg["CMakeLists.txt (顶级)<br/>build.py"]
-    Src --> Cpp["server/ + sdk/ + built_in/<br/>runtime/ + lsp/ + testing/"]
+    Src --> Cpp["server/ + sdk/ + built_in/<br/>runtime/ + testing/ + ui/"]
     Cpp --> Entry["register_types.cpp + editor_plugin.cpp"]
     Example --> Bin["addons/godot_mcp/bin/<br/>(godot_mcp_gdext.{dll,so,dylib})"]
 ```
@@ -43,7 +43,6 @@ GodotMCP/
 │       ├── server/                # ipc/ + mcp/ + registry/
 │       ├── runtime/               # bridge.cpp + game_bridge.cpp
 │       ├── sdk/                   # McpToolDefinition + McpToolRegistry
-│       ├── lsp/                   # GDScript LSP 客户端
 │       └── testing/               # C++ TestEngine
 ├── tests/
 │   ├── test_orchestrator.py       # Python 编排器（管理 Godot 生命周期）

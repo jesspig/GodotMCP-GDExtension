@@ -200,7 +200,7 @@ flowchart TD
 
 ## 新增模板工具（`cmd_utils/` 目录）
 
-`extensions/src/built_in/cmd_utils/` 下三个独立头文件，提供编译期构造的运行时工具：
+`extensions/src/built_in/cmd_utils/` 下七个独立头文件，提供编译期构造的运行时工具：
 
 ### `dispatch_map.hpp` — 编译期构造的静态映射表
 
@@ -258,6 +258,63 @@ auto val = args_get_typed<int>(ctx.args, "count", 0);
 | 浮点（`double`/`float`） | 统一 `Variant::operator double()` |
 
 所有特化均使用一次 `has()` + `operator[]` 模式（不调用 `ptr()`）。
+
+### `error_codes.hpp` — 错误码常量
+
+命名空间 `error_codes` 内的 `inline constexpr const char*` 常量，统一工具返回的错误码：
+
+| 常量 | 类别 |
+|------|------|
+| `MISSING_REQUIRED_PARAM` | 参数错误 |
+| `INVALID_PARAM_TYPE` | 参数错误 |
+| `NODE_NOT_FOUND` | 资源错误 |
+| `SCENE_NOT_OPEN` | 资源错误 |
+| `RESOURCE_NOT_FOUND` | 资源错误 |
+| `PERMISSION_DENIED` | 权限错误 |
+| `INTERNAL_ERROR` | 运行时错误 |
+| `NOT_IMPLEMENTED` | 运行时错误 |
+| `TIMEOUT` | 运行时错误 |
+| `BRIDGE_ERROR` | 桥接错误 |
+| `BRIDGE_DISCONNECTED` | 桥接错误 |
+| `BRIDGE_TIMEOUT` | 桥接错误 |
+
+### `memdelete_guard.hpp` — RAII 内存释放守卫
+
+```cpp
+template <typename T>
+struct MemdeleteGuard {
+    T *ptr;
+    explicit MemdeleteGuard(T *p);
+    ~MemdeleteGuard();       // 自动 memdelete(ptr)
+    void dismiss();          // 放弃所有权（不释放）
+    T *get() const;
+    // 支持 move，禁止 copy
+};
+```
+
+用于确保 Godot `memnew` 分配的对象在异常路径或提前返回时也能被正确释放。调用 `dismiss()` 表示所有权已转移（如节点已加入场景树）。
+
+### `schema_builder.hpp` — JSON Schema 构建器
+
+```cpp
+SchemaBuilder builder;
+auto schema = builder
+    .prop("name", "string", "The node name")
+    .prop("count", "integer", "Repeat count", Variant(1))
+    .required({"name"})
+    .build();
+// → {"type":"object","properties":{...},"required":["name"]}
+```
+
+流式 API 构造 MCP `inputSchema` 字典。`prop()` 支持可选默认值参数。`empty()` 静态方法返回无参数的空 schema。
+
+### `tracked_settings.hpp` — 设置覆盖追踪
+
+```cpp
+HashMap<String, Variant> &overrides = get_setting_overrides();
+```
+
+全局单例 `HashMap`，记录 `set_setting` 工具修改前的原始值。`reset_setting` 从此 map 读取原始值恢复，避免调用 `ProjectSettings::clear()`（后者会从内存和磁盘同时删除 key）。
 
 ## `walk_project_dir()` 改用 `std::filesystem`
 

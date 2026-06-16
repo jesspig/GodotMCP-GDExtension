@@ -13,10 +13,9 @@ flowchart TB
             MCP["server/mcp/mcp_handler.cpp<br/>McpHandler"]
             REG["server/registry/handler_registry.cpp<br/>HandlerRegistry"]
             BASE["built_in/tool_base.hpp<br/>ITool + ToolResult + ToolContext"]
-            TOOLS["built_in/tools/<br/>~171 个 .hpp (X-macro 注册)"]
+            TOOLS["built_in/tools/<br/>152 个 .hpp (X-macro 注册)"]
             UTILS["built_in/cmd_utils.hpp<br/>resolve_node / undoable_set / notify_file_changed"]
             SDK["sdk/<br/>McpToolDefinition / McpToolRegistry"]
-            LSP["lsp/client.cpp<br/>GDScript 验证"]
             TEST["testing/test_engine.cpp<br/>YAML 进程内引擎"]
             BRIDGE["runtime/bridge.cpp<br/>RuntimeBridge (TCP :9601)"]
         end
@@ -104,8 +103,6 @@ extensions/src/
 ├── sdk/
 │   ├── mcp_tool_definition.hpp/.cpp  # GDScript 可继承的 RefCounted 基类
 │   └── mcp_tool_registry.hpp/.cpp    # 单例注册表
-├── lsp/
-│   └── client.cpp/.hpp             # GDScript LSP 验证（StreamPeerTCP）
 ├── ui/
 │   ├── mcp_dock.cpp/.hpp           # 右侧面板（工具浏览）
 │   ├── mcp_console.cpp/.hpp        # 底部面板（MCP 日志输出）
@@ -182,10 +179,10 @@ extensions/src/
 | L15 | `set(GODOTCPP_API_VERSION "4.6")` |
 | L17-22 | `FetchContent` 拉取 `godot-cpp 10.0.0-rc1` |
 | L34-41 | `FetchContent` 拉取 `rapidyaml v0.7.0`（GIT_SUBMODULES 包含 c4core） |
-| L51-91 | `GODOT_MCP_SOURCES`（含 register_types / editor_plugin / server / sdk / lsp / testing / ui） |
+| L51-89 | `GODOT_MCP_SOURCES`（含 register_types / editor_plugin / server / sdk / runtime / testing / ui） |
 | L96 | `file(GLOB_RECURSE TOOL_SOURCES "src/built_in/tools/*.cpp")` — 自动收集 .cpp（当前无 .cpp，工具为 header-only） |
 | L101 | `add_library(godot_mcp_gdext SHARED ...)` |
 | L110-117 | 编译定义 `GODOT_MCP_PLUGIN_VERSION` |
-| L122-151 | Unity Build ON（batch size 自动匹配 CPU 核数，上限 32） |
+| L122-148 | Unity Build ON（batch size 自动匹配 CPU 核数，上限 12） |
 | L161-167 | lld-link 自动检测（MSVC） |
-| L171 | MSVC: `/utf-8 /bigobj /W3 /wd4244 /wd4267` |
+| L163 | MSVC: `/utf-8 /bigobj /W4 /wd4244 /wd4267` |

@@ -2,6 +2,19 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-16 — Wiki 事实校正 + 废弃计划清理
+
+- **修复** 工具总数：`171` → `152`（运行时 12 个工具已含在 register_existing 的 135 中，不应单独计数）
+- **修复** 工具分层描述：`语义专用(~145) + 通用兜底(2) + 文档(8) + 元工具(7) + 运行时(12)` → `语义专用(135，含 12 运行时) + 通用兜底(2) + 文档(8) + 元工具(7)`
+- **修复** `index.md` 版本号行号：`CMakeLists.txt:22` → `:16`
+- **修复** `overview/architecture.md`：工具数 `~171` → `152`；`/utf-8` 位置 `根 CMakeLists.txt:43` → `extensions/CMakeLists.txt:163`；移除不存在的 `lsp/` 目录；新增 `cmd_utils/` 7 文件和 `client_config_registry.hpp`；`plugin/` 3→2；`mcp_handler` 注释 "会话管理"→"处理器（无 session）"
+- **修复** `overview/architecture.md` 时序图：移除已废弃的 `initialize`/`GET /mcp`/`Mcp-Session-Id` 流程，改为 POST-only `tools/list` + `tools/call`
+- **修复** `AGENTS.md`：MSVC UTF-8 位置 `根 CMakeLists.txt` → `extensions/CMakeLists.txt:163`
+- **修复** `modules/plugin-management.md`：工具数 3→2（`enable_plugin`+`disable_plugin` 合并为 `set_plugin_enabled`）
+- **新增** `modules/cmd-utils.md` 4 个缺失文件文档：`error_codes.hpp`、`memdelete_guard.hpp`、`schema_builder.hpp`、`tracked_settings.hpp`
+- **新增** `index.md` 导航：`modules/plugin-management.md`
+- **删除** `plans/` 目录（6 个文件）：已完成优化计划的执行文档，与已删除的 `design/phases/` 和 `design/v2-optimization-plan.md` 同类
+
 ## 2026-06-15 — 全量优化实施 + 协议升级 2026-07-28
 
 - **协议升级**：MCP Streamable HTTP 从 `2025-03-26` 升级至 `2026-07-28`；移除 `GET /mcp` 端点、`DELETE /mcp` 端点、`Mcp-Session-Id` 头、`initialize/initialized` 握手机制；改为纯 `POST+OPTIONS` 通信，SSE 仅内联在 POST 响应中推送
