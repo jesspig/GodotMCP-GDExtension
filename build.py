@@ -12,6 +12,7 @@ Usage:
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -35,6 +36,61 @@ SSL_ERROR_PATTERNS = [
     "CRYPT_E_REVOCATION_OFFLINE",  # schannel CRL check failed (codeload.github.com)
     "SSL connect error",           # generic SSL handshake failure
 ]
+
+
+def _read_cmake_var(path: str | Path, var_name: str) -> str | None:
+    pat = re.compile(rf'\bset\s*\(\s*{re.escape(var_name)}\s+"([^"]+)"')
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            m = pat.search(line)
+            if m:
+                return m.group(1)
+    return None
+
+
+def _generate_addon_configs():
+    root_cmake = PROJECT_ROOT / "CMakeLists.txt"
+    ext_cmake = PROJECT_ROOT / "extensions" / "CMakeLists.txt"
+    version = _read_cmake_var(root_cmake, "PROJECT_VERSION")
+    api_version = _read_cmake_var(ext_cmake, "GODOTCPP_API_VERSION")
+    if not version:
+        print("[ERROR] Could not read PROJECT_VERSION from CMakeLists.txt", flush=True)
+        sys.exit(1)
+    if not api_version:
+        print("[ERROR] Could not read GODOTCPP_API_VERSION from extensions/CMakeLists.txt", flush=True)
+        sys.exit(1)
+
+    addon_dir = PROJECT_ROOT / "example" / "addons" / "godot_mcp"
+    addon_dir.mkdir(parents=True, exist_ok=True)
+    (addon_dir / "bin").mkdir(parents=True, exist_ok=True)
+
+    (addon_dir / "plugin.cfg").write_text(
+        '[plugin]\n'
+        f'name="Godot MCP"\n'
+        f'description="Model Context Protocol bridge for Godot Engine."\n'
+        f'author="JessPig"\n'
+        f'version="{version}"\n'
+        f'script=""\n',
+        encoding="utf-8",
+    )
+    (addon_dir / "godot_mcp.gdextension").write_text(
+        '[configuration]\n'
+        '\n'
+        'entry_symbol = "gdext_mcp_init"\n'
+        f'compatibility_minimum = "{api_version}"\n'
+        'reloadable = true\n'
+        '\n'
+        '[libraries]\n'
+        '\n'
+        'windows.debug.x86_64   = "res://addons/godot_mcp/bin/godot_mcp_gdext.dll"\n'
+        'windows.release.x86_64 = "res://addons/godot_mcp/bin/godot_mcp_gdext.dll"\n'
+        'linux.debug.x86_64     = "res://addons/godot_mcp/bin/libgodot_mcp_gdext.so"\n'
+        'linux.release.x86_64   = "res://addons/godot_mcp/bin/libgodot_mcp_gdext.so"\n'
+        'macos.debug            = "res://addons/godot_mcp/bin/libgodot_mcp_gdext.dylib"\n'
+        'macos.release          = "res://addons/godot_mcp/bin/libgodot_mcp_gdext.dylib"\n',
+        encoding="utf-8",
+    )
+    print(f"[CONFIG] Generated addon config files (version={version}, api={api_version})", flush=True)
 
 
 def _find_msvc_cl() -> str | None:
@@ -256,6 +312,9 @@ def main():
                 shutil.rmtree(item, ignore_errors=True)
             else:
                 item.unlink(missing_ok=True)
+
+    # --- Generate addon config files (plugin.cfg, .gdextension) ---
+    _generate_addon_configs()
 
     # --- Ensure VCTargetsPath is set (fixes .NET SDK preview interference) ---
     if "VCTargetsPath" not in os.environ:

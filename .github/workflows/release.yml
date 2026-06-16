@@ -16,11 +16,8 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            gdext_lib: libgodot_mcp_gdext.so
           - os: macos-latest
-            gdext_lib: libgodot_mcp_gdext.dylib
           - os: windows-2022
-            gdext_lib: godot_mcp_gdext.dll
 
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
@@ -44,20 +41,15 @@ jobs:
           path: build/_deps
           key: godot-cpp-${{ runner.os }}-10.0.0-rc1-v1
 
-      - name: Configure CMake
-        run: >
-          cmake -B build -S . -G Ninja -DRELEASE=ON
-          -DCMAKE_C_COMPILER_LAUNCHER=sccache
-          -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
-
       - name: Build
-        run: cmake --build build --config Release
+        run: python build.py --release --no-zip
 
       - name: Upload GDExtension library
         uses: actions/upload-artifact@v4
         with:
-          name: gdext-${{ matrix.os }}
-          path: build/${{ matrix.gdext_lib }}
+          name: gdext-${{ runner.os }}
+          path: example/addons/godot_mcp/bin/
+          if-no-files-found: error
 
   package:
     needs: build
@@ -70,25 +62,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generate config files
-        run: cmake -B build -S . -G Ninja
-
       - name: Download GDExtension artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: gdext-*
-          path: libs
+          path: dist
 
-      - name: Assemble addons.zip
-        run: |
-          mkdir -p godot/addons/godot_mcp/bin
-          cp libs/gdext-windows-latest/godot_mcp_gdext.dll godot/addons/godot_mcp/bin/
-          cp libs/gdext-ubuntu-latest/libgodot_mcp_gdext.so godot/addons/godot_mcp/bin/
-          cp libs/gdext-macos-latest/libgodot_mcp_gdext.dylib godot/addons/godot_mcp/bin/
-          cp build/example/addons/godot_mcp/plugin.cfg godot/addons/godot_mcp/
-          cp build/example/addons/godot_mcp/godot_mcp.gdextension godot/addons/godot_mcp/
-          cd godot/addons
-          zip -r ../../addons.zip godot_mcp/
+      - name: Package addons.zip
+        run: python package.py --libs-dir dist --recursive
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

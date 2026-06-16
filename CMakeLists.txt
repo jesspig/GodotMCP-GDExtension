@@ -52,28 +52,10 @@ endif()
 add_subdirectory(extensions)
 
 # ---------------------------------------------------------------------------
-# Generate addon config files (plugin.cfg, .gdextension)
+# Copy GDExtension library to addons/bin/ (post-build)
 # ---------------------------------------------------------------------------
 set(_addon_dir "${CMAKE_SOURCE_DIR}/example/addons/godot_mcp")
 set(_gdext_bin_dir "${_addon_dir}/bin")
-file(MAKE_DIRECTORY "${_addon_dir}")
-file(MAKE_DIRECTORY "${_gdext_bin_dir}")
-
-configure_file(
-    "${CMAKE_SOURCE_DIR}/example/addons/godot_mcp/plugin.cfg.in"
-    "${_addon_dir}/plugin.cfg"
-    @ONLY
-)
-
-configure_file(
-    "${CMAKE_SOURCE_DIR}/example/addons/godot_mcp/godot_mcp_gdext.gdextension.in"
-    "${_addon_dir}/godot_mcp.gdextension"
-    @ONLY
-)
-
-# ---------------------------------------------------------------------------
-# Copy GDExtension library to addons/bin/ (post-build)
-# ---------------------------------------------------------------------------
 if(WIN32)
     set(_gdext_lib_name "godot_mcp_gdext.dll")
 elseif(APPLE)

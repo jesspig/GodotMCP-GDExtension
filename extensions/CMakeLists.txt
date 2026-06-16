@@ -125,7 +125,7 @@ set(_unity_batch ${GODOTMCP_UNITY_BATCH_SIZE})
 if(_unity_batch STREQUAL "0")
     include(ProcessorCount)
     ProcessorCount(_cpu_count)
-    # Cap at 12 — ~190 source files / 12 ≈ 16 files/batch, optimal for this project size.
+    # Cap at 12 — ~24 source files / 12 ≈ 2 files/batch, optimal for this project size.
     if(_cpu_count GREATER 12)
         set(_cpu_count 12)
     endif()
@@ -162,7 +162,7 @@ endif()
 if(MSVC)
     target_compile_options(godot_mcp_gdext PRIVATE /utf-8 /bigobj /W4 /wd4244 /wd4267)
 else()
-    target_compile_options(godot_mcp_gdext PRIVATE -Wall -Wno-unused-parameter)
+    target_compile_options(godot_mcp_gdext PRIVATE -Wall -Wextra -Wno-unused-parameter)
 endif()
 
 # ---------------------------------------------------------------------------
