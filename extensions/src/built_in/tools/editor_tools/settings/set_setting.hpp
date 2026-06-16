@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/tracked_settings.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/args_get_typed.hpp"
@@ -53,11 +54,16 @@ protected:
             return ToolResult::err("MISSING_PARAM", "value is required");
         }
         auto *ps = godot::ProjectSettings::get_singleton();
-        if (!ps->has_setting(path)) {
-            return ToolResult::err("SETTING_NOT_FOUND",
-                String("Setting not found: ") + path);
+        const bool existed = ps->has_setting(path);
+        Variant old_val;
+        if (existed) {
+            old_val = ps->get_setting(path);
         }
-        Variant old_val = ps->get_setting(path);
+        // Snapshot the original value once (first time this setting is modified).
+        auto &overrides = get_setting_overrides();
+        if (!overrides.has(path) && existed) {
+            overrides[path] = old_val;
+        }
         Variant new_val = json_to_variant(ctx.args["value"]);
         ps->set_setting(path, new_val);
         Error err = ps->save();

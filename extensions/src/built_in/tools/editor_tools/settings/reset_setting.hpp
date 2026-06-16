@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/tracked_settings.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -17,8 +18,8 @@ public:
         return "Reset a project setting to its default value";
     }
     String description() const override {
-        return "Resets the specified project setting to its default value and removes it from project.godot. "
-               "Equivalent to clicking Reset in the Project Settings dialog.";
+        return "Restore a project setting to the value it had before the last set_setting call. "
+               "If the setting was never modified by set_setting, reports success without changes.";
     }
     bool needs_scene() const override { return false; }
     bool needs_node() const override { return false; }
@@ -49,16 +50,29 @@ protected:
                 String("Setting not found: ") + path);
         }
         Variant old_val = ps->get_setting(path);
-        ps->clear(path);
-        Error err = ps->save();
-        if (err != godot::OK) {
-            return ToolResult::err("SAVE_FAILED",
-                String("Failed to save after reset (error ") + godot::itos(err) + String(")"));
+        auto &overrides = get_setting_overrides();
+        if (overrides.has(path)) {
+            // Restore to the original value (snapshotted by set_setting).
+            const Variant original = overrides[path];
+            overrides.erase(path);
+            ps->set_setting(path, original);
+            Error err = ps->save();
+            if (err != godot::OK) {
+                return ToolResult::err("SAVE_FAILED",
+                    String("Failed to save after reset (error ") + godot::itos(err) + String(")"));
+            }
+            Dictionary data;
+            data["setting"] = path;
+            data["previous_value"] = variant_to_json(old_val);
+            data["reset"] = true;
+            return ToolResult::ok(data);
         }
+        // No prior modification by set_setting — already at original state.
         Dictionary data;
         data["setting"] = path;
         data["previous_value"] = variant_to_json(old_val);
         data["reset"] = true;
+        data["note"] = "already_at_original";
         return ToolResult::ok(data);
     }
 };
