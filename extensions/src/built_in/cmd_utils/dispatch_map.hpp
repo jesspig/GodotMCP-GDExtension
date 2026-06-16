@@ -19,6 +19,8 @@ public:
         return nullptr;
     }
 
+    constexpr const auto& data() const noexcept { return entries_; }
+
     constexpr std::size_t size() const noexcept { return N; }
     constexpr bool empty() const noexcept { return N == 0; }
 

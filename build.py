@@ -38,7 +38,22 @@ SSL_ERROR_PATTERNS = [
 
 
 def _find_msvc_cl() -> str | None:
-    """Find MSVC cl.exe by scanning well-known Visual Studio installation directories."""
+    """Find MSVC cl.exe using vswhere, falling back to directory scanning."""
+    try:
+        result = subprocess.run(
+            ["vswhere", "-latest", "-property", "installationPath"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            vs_path = Path(result.stdout.strip())
+            msvc_root = vs_path / "VC" / "Tools" / "MSVC"
+            if msvc_root.exists():
+                for ver in sorted(msvc_root.iterdir(), reverse=True):
+                    cl_exe = ver / "bin" / "Hostx64" / "x64" / "cl.exe"
+                    if cl_exe.exists():
+                        return str(cl_exe)
+    except FileNotFoundError:
+        pass
     candidate_roots = [
         Path("C:/Program Files/Microsoft Visual Studio"),
         Path("C:/Program Files (x86)/Microsoft Visual Studio"),
@@ -47,7 +62,8 @@ def _find_msvc_cl() -> str | None:
         if not root.exists():
             continue
         for d1 in root.iterdir():
-            for d2 in [d1] + sorted(d1.iterdir()) if d1.is_dir() else [d1]:
+            items = [d1] + sorted(d1.iterdir()) if d1.is_dir() else [d1]
+            for d2 in items:
                 msvc_dir = Path(d2) / "VC" / "Tools" / "MSVC"
                 if not msvc_dir.exists():
                     continue
@@ -122,7 +138,7 @@ def _capture_vs_dev_env() -> dict[str, str] | None:
     if not vcvarsall:
         return None
     bat_content = f'@call "{vcvarsall}" x64 >nul 2>&1\n@python -c "import json,os; print(json.dumps(dict(os.environ)))"'
-    bat_path = PROJECT_ROOT / "build" / "_vs_env.bat"
+    bat_path = PROJECT_ROOT / "build" / f"_vs_env_{os.getpid()}.bat"
     bat_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         bat_path.write_text(bat_content, encoding="utf-8")
@@ -174,23 +190,24 @@ def configure(extra_defs: list) -> tuple[bool, str]:
     # CMake auto-detects MSVC from the vcvarsall environment (no explicit
     # -DCMAKE_CXX_COMPILER needed) — this avoids hardcoding a specific
     # MSVC toolchain version.
-    if platform.system() == "Windows":
-        cl_path = _find_msvc_cl()
-        if shutil.which("ninja") and cl_path:
-            extra_env = _capture_vs_dev_env()
-            cmd += ["-GNinja"]
-            if not extra_env:
-                rc_path, mt_path = _find_windows_sdk_tools()
-                if rc_path:
-                    cmd += ["-DCMAKE_RC_COMPILER:FILEPATH=" + rc_path]
-                if mt_path:
-                    cmd += ["-DCMAKE_MT:FILEPATH=" + mt_path]
-            print("[DETECT] Ninja + MSVC found, using -GNinja", flush=True)
+    if shutil.which("ninja"):
+        if platform.system() == "Windows":
+            cl_path = _find_msvc_cl()
+            if not cl_path:
+                print("[DETECT] Ninja found but MSVC not found, using default generator", flush=True)
+            else:
+                extra_env = _capture_vs_dev_env()
+                cmd += ["-GNinja"]
+                if not extra_env:
+                    rc_path, mt_path = _find_windows_sdk_tools()
+                    if rc_path:
+                        cmd += ["-DCMAKE_RC_COMPILER:FILEPATH=" + rc_path]
+                    if mt_path:
+                        cmd += ["-DCMAKE_MT:FILEPATH=" + mt_path]
+                print("[DETECT] Ninja + MSVC found, using -GNinja", flush=True)
         else:
-            print("[DETECT] Ninja/MSVC not found, using default generator", flush=True)
-    elif shutil.which("ninja"):
-        cmd += ["-GNinja"]
-        print("[DETECT] Ninja found, using -GNinja", flush=True)
+            cmd += ["-GNinja"]
+            print("[DETECT] Ninja found, using -GNinja", flush=True)
     else:
         print("[DETECT] Ninja not found, using default generator", flush=True)
     ok, output = run(cmd, capture=True, extra_env=extra_env)
@@ -218,7 +235,7 @@ def main():
     config = "Release" if args.release else "Debug"
     cmake_defs = []
     if args.release:
-        cmake_defs += ["-DRELEASE=ON"]
+        cmake_defs += ["-DCMAKE_BUILD_TYPE=Release"]
 
     if args.purge_cache:
         deps_dir = BUILD_DIR / "_deps"
@@ -265,8 +282,8 @@ def main():
         if args.jobs > n_cpus:
             print(f"[BUILD] -j {args.jobs} exceeds {n_cpus} CPUs, using {n_cpus}", flush=True)
         elif args.jobs < 1:
-            n_cpus = 1
-            print(f"[BUILD] -j {args.jobs} invalid, using 1", flush=True)
+            print("[BUILD] Error: -j must be >= 1", flush=True)
+            sys.exit(1)
         else:
             n_cpus = args.jobs
             print(f"[BUILD] Using -j {args.jobs}", flush=True)

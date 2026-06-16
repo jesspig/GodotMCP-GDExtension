@@ -19,28 +19,6 @@ Dictionary ToolResult::ok(const Dictionary &data) {
     return r;
 }
 
-Dictionary ToolResult::ok_with_meta(const Dictionary &data, const Dictionary &meta) {
-    Dictionary r;
-    r["success"] = true;
-    if (data.size() > 0) {
-        r["data"] = data;
-    }
-    if (meta.size() > 0) {
-        r["meta"] = meta;
-    }
-    return r;
-}
-
-Dictionary ToolResult::ok_with_confirm(const Dictionary &data, const String &confirm_message) {
-    Dictionary r;
-    r["success"] = true;
-    if (data.size() > 0) {
-        r["data"] = data;
-    }
-    r["confirm"] = confirm_message;
-    return r;
-}
-
 Dictionary ToolResult::err(const String &code, const String &message) {
     Dictionary error;
     error["code"] = code;
@@ -48,18 +26,6 @@ Dictionary ToolResult::err(const String &code, const String &message) {
     Dictionary r;
     r["success"] = false;
     r["error"] = error;
-    return r;
-}
-
-Dictionary ToolResult::err_with_recoverable(const String &code, const String &message, const String &suggestion) {
-    Dictionary error;
-    error["code"] = code;
-    error["message"] = message;
-    Dictionary r;
-    r["success"] = false;
-    r["error"] = error;
-    r["recoverable"] = true;
-    r["suggestion"] = suggestion;
     return r;
 }
 

@@ -39,10 +39,7 @@ class HandlerRegistry; // 前向声明，避免循环依�?
 class ToolResult {
 public:
     [[nodiscard]] static godot::Dictionary ok(const godot::Dictionary &data = {});
-    [[nodiscard]] static godot::Dictionary ok_with_meta(const godot::Dictionary &data, const godot::Dictionary &meta);
-    [[nodiscard]] static godot::Dictionary ok_with_confirm(const godot::Dictionary &data, const godot::String &confirm_message);
     [[nodiscard]] static godot::Dictionary err(const godot::String &code, const godot::String &message);
-    [[nodiscard]] static godot::Dictionary err_with_recoverable(const godot::String &code, const godot::String &message, const godot::String &suggestion);
 };
 
 // ── ToolContext: 前置检查后注入的上下文 ──
@@ -62,7 +59,12 @@ public:
     virtual godot::String brief() const = 0;
     virtual godot::String description() const { return brief(); }
     godot::Dictionary input_schema() const;
-    virtual godot::Dictionary build_input_schema() const = 0;
+    virtual godot::Dictionary build_input_schema() const {
+        godot::Dictionary s;
+        s["type"] = "object";
+        s["properties"] = godot::Dictionary();
+        return s;
+    }
 
     // ── 两轴分类 ──
     // category() 返回分组 key（如 "scene", "node"），用于 list_tool_categories 归类

@@ -4,15 +4,9 @@ project(GodotMCP LANGUAGES CXX C)
 # ---------------------------------------------------------------------------
 # Options
 # ---------------------------------------------------------------------------
-option(RELEASE    "Build with Release configuration" OFF)
-
 # Default to Debug when single-config generator and nothing was requested.
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-    if(RELEASE)
-        set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
-    else()
-        set(CMAKE_BUILD_TYPE "Debug"   CACHE STRING "" FORCE)
-    endif()
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "" FORCE)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -65,30 +59,16 @@ set(_gdext_bin_dir "${_addon_dir}/bin")
 file(MAKE_DIRECTORY "${_addon_dir}")
 file(MAKE_DIRECTORY "${_gdext_bin_dir}")
 
-file(WRITE "${_addon_dir}/plugin.cfg"
-    "[plugin]\n"
-    "name=\"Godot MCP\"\n"
-    "description=\"Model Context Protocol bridge for Godot Engine.\"\n"
-    "author=\"JessPig\"\n"
-    "version=\"${PROJECT_VERSION}\"\n"
-    "script=\"\"\n"
+configure_file(
+    "${CMAKE_SOURCE_DIR}/example/addons/godot_mcp/plugin.cfg.in"
+    "${_addon_dir}/plugin.cfg"
+    @ONLY
 )
 
-file(WRITE "${_addon_dir}/godot_mcp.gdextension"
-    "[configuration]\n"
-    "\n"
-    "entry_symbol = \"gdext_mcp_init\"\n"
-    "compatibility_minimum = \"${GODOTCPP_API_VERSION}\"\n"
-    "reloadable = true\n"
-    "\n"
-    "[libraries]\n"
-    "\n"
-    "windows.debug.x86_64   = \"res://addons/godot_mcp/bin/godot_mcp_gdext.dll\"\n"
-    "windows.release.x86_64 = \"res://addons/godot_mcp/bin/godot_mcp_gdext.dll\"\n"
-    "linux.debug.x86_64     = \"res://addons/godot_mcp/bin/libgodot_mcp_gdext.so\"\n"
-    "linux.release.x86_64   = \"res://addons/godot_mcp/bin/libgodot_mcp_gdext.so\"\n"
-    "macos.debug            = \"res://addons/godot_mcp/bin/libgodot_mcp_gdext.dylib\"\n"
-    "macos.release          = \"res://addons/godot_mcp/bin/libgodot_mcp_gdext.dylib\"\n"
+configure_file(
+    "${CMAKE_SOURCE_DIR}/example/addons/godot_mcp/godot_mcp_gdext.gdextension.in"
+    "${_addon_dir}/godot_mcp.gdextension"
+    @ONLY
 )
 
 # ---------------------------------------------------------------------------

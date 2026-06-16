@@ -36,13 +36,13 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
     GIT_TAG v0.7.0
     GIT_SHALLOW TRUE
-    GIT_PROGRESS TRUE
     GIT_SUBMODULES "ext/c4core"
 )
 
 # Ensure rapidyaml/c4core static libs are compiled with -fPIC (needed for shared lib linking on Linux/macOS).
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 FetchContent_MakeAvailable(rapidyaml)
+
+set_target_properties(ryml PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # ---------------------------------------------------------------------------
 # Source list — all .cpp files for the GDExtension.
@@ -98,6 +98,8 @@ list(APPEND GODOT_MCP_SOURCES ${TOOL_SOURCES})
 
 add_library(godot_mcp_gdext SHARED ${GODOT_MCP_SOURCES})
 
+set_source_files_properties(src/built_in/register_itools.cpp PROPERTIES SKIP_UNITY_BUILD ON)
+
 target_link_libraries(godot_mcp_gdext PRIVATE godot-cpp ryml::ryml)
 
 target_include_directories(godot_mcp_gdext PRIVATE
@@ -105,27 +107,16 @@ target_include_directories(godot_mcp_gdext PRIVATE
     ${godot-cpp_SOURCE_DIR}/include
 )
 
-# Plugin version baked in for runtime reporting via get_plugin_version tool.
-# Falls back to PROJECT_VERSION set in the top-level CMakeLists.txt.
-if(NOT DEFINED GODOT_MCP_PLUGIN_VERSION)
-    set(GODOT_MCP_PLUGIN_VERSION "${PROJECT_VERSION}")
-endif()
-target_compile_definitions(godot_mcp_gdext PRIVATE
-    GODOT_MCP_PLUGIN_VERSION="${GODOT_MCP_PLUGIN_VERSION}"
-)
 
-# Suppress CRT deprecation warnings (fopen, strcpy, etc.) on MSVC.
-# Only needed if raw CRT calls are present; remove if codebase uses Godot API exclusively.
-if(MSVC)
-    target_compile_definitions(godot_mcp_gdext PRIVATE _CRT_SECURE_NO_WARNINGS)
-endif()
+
+
 
 # ---------------------------------------------------------------------------
 # Build optimization options (user-configurable via -D or env)
 # ---------------------------------------------------------------------------
 option(GODOTMCP_UNITY_BUILD "Enable unity (jumbo) build — faster full rebuilds" ON)
 set(GODOTMCP_UNITY_BATCH_SIZE "0" CACHE STRING
-    "Unity batch size (source files per batch; 0 = all in one, max parallelism)")
+    "Unity batch size (source files per batch; 0 = auto-detect CPU count, capped at 12)")
 
 # Auto-tune unity batch size: batch_size=0 means "match CPU count".
 # With N CPU cores and N batches, every core gets exactly one job.
@@ -154,12 +145,7 @@ set_target_properties(godot_mcp_gdext PROPERTIES
     CXX_EXTENSIONS OFF
     UNITY_BUILD ${GODOTMCP_UNITY_BUILD}
     UNITY_BUILD_BATCH_SIZE ${_unity_batch}
-    PREFIX ""
 )
-# Restore the conventional "lib" prefix on Unix.
-if(UNIX)
-    set_target_properties(godot_mcp_gdext PROPERTIES PREFIX "lib")
-endif()
 
 # ---------------------------------------------------------------------------
 # Linker optimization: prefer lld-link on MSVC for faster linking.
@@ -174,7 +160,7 @@ if(MSVC)
 endif()
 
 if(MSVC)
-    target_compile_options(godot_mcp_gdext PRIVATE /utf-8 /bigobj /W3)
+    target_compile_options(godot_mcp_gdext PRIVATE /utf-8 /bigobj /W4 /wd4244 /wd4267)
 else()
     target_compile_options(godot_mcp_gdext PRIVATE -Wall -Wno-unused-parameter)
 endif()
@@ -188,11 +174,11 @@ endif()
 #   4. cmake -B build -DCMAKE_BUILD_TYPE=Release -DGODOTMCP_PGO=USE
 #   5. cmake --build build
 # ---------------------------------------------------------------------------
-if(MSVC AND RELEASE AND GODOTMCP_PGO STREQUAL "GEN")
+if(MSVC AND CMAKE_BUILD_TYPE STREQUAL "Release" AND GODOTMCP_PGO STREQUAL "GEN")
     target_compile_options(godot_mcp_gdext PRIVATE /GL)
     target_link_options(godot_mcp_gdext PRIVATE /LTCG /GENPROFILE)
     message(STATUS "PGO: instrumentation build (GEN)")
-elseif(MSVC AND RELEASE AND GODOTMCP_PGO STREQUAL "USE")
+elseif(MSVC AND CMAKE_BUILD_TYPE STREQUAL "Release" AND GODOTMCP_PGO STREQUAL "USE")
     target_compile_options(godot_mcp_gdext PRIVATE /GL)
     target_link_options(godot_mcp_gdext PRIVATE /LTCG /USEPROFILE)
     message(STATUS "PGO: optimization build (USE)")
@@ -203,6 +189,3 @@ endif()
 # /wd4244 is noisy in godot-cpp (template metaprogramming), but we want it
 # for our own code. /wd4267 similarly.
 # TODO: Gradually fix C4244/C4267 in our own code, then re-enable for our target.
-if(MSVC)
-    add_compile_options(/wd4244 /wd4267)
-endif()
