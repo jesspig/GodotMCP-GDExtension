@@ -23,6 +23,7 @@ struct ToolInfo {
     bool is_destructive = false;
     bool is_custom = false;
     bool enabled = true;
+    const ITool *tool_ptr = nullptr;
 };
 
 class HandlerRegistry {

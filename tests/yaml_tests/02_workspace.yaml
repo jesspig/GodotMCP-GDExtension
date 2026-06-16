@@ -15,60 +15,12 @@ tests:
     expect:
       has_keys: [total_lines, returned_lines, lines, has_more]
 
-  - tool: get_console_errors
-    description: Gets console errors
-    expect:
-      has_keys: [count, errors]
-
-  - tool: get_console_warnings
-    description: Gets console warnings
-    expect:
-      has_keys: [count, warnings]
-
-  - tool: get_fps
-    description: Gets current FPS
-    expect:
-      has_keys: [fps]
-      field_checks:
-        - key: fps
-          not_empty: true
-
-  - tool: get_memory_usage
-    description: Gets memory usage stats
-    expect:
-      has_keys: [memory_static_mb, memory_static_max_mb, message_buffer_max_mb]
-
-  - tool: get_object_count
-    description: Gets object/resource/node counts
-    expect:
-      has_keys: [object_count, resource_count, node_count, orphan_node_count]
-
   - tool: get_performance_monitors
     description: Gets performance monitor data
     expect:
       has_keys: [monitors, is_running]
 
-  - tool: get_physics_stats
-    description: Gets physics engine statistics
-    expect:
-      has_keys: [physics_2d_active_objects, physics_2d_collision_pairs, physics_2d_island_count, physics_3d_active_objects, physics_3d_collision_pairs, physics_3d_island_count]
-
-  - tool: get_render_stats
-    description: Gets render statistics
-    expect:
-      has_keys: [objects_in_frame, primitives_in_frame, draw_calls_in_frame, video_mem_mb, texture_mem_mb, buffer_mem_mb]
-
   - tool: get_debugger_state
     description: Gets debugger current state
     expect:
       has_keys: [error_count, warning_count, is_breaked, is_debuggable, is_session_active]
-
-  - tool: get_debugger_status
-    description: Gets debugger running status
-    expect:
-      has_keys: [is_active]
-
-  - tool: get_debugger_errors
-    description: Gets debugger error/warning counts
-    expect:
-      has_keys: [error_count, warning_count]

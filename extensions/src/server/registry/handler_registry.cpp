@@ -49,6 +49,7 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool, bool is_custom)
     info.is_destructive = tool->is_destructive();
     info.is_custom = is_custom;
     info.enabled = true;
+    info.tool_ptr = tool.get();
     tool_info_[name] = info;
 
     // 预构建搜索索引，避免 search_tools() 实时 tokenize

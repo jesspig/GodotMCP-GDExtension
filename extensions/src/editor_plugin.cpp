@@ -221,7 +221,7 @@ void McpEditorPlugin::_exit_tree() {
     log_info("plugin", "Godot MCP shut down");
 }
 
-void McpEditorPlugin::_process(double delta) {
+void McpEditorPlugin::_process(double /*delta*/) {
     if (!started_) return;
 
     http_server_.poll();

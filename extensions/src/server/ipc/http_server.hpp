@@ -73,7 +73,7 @@ private:
     void handle_post(int conn_id, Connection &conn);
     void handle_options(int conn_id, Connection &conn);
 
-    void send_response(int conn_id, Connection &conn, int status_code,
+    void send_response(int /*conn_id*/, Connection &conn, int status_code,
                        const godot::String &status_text, const godot::String &content_type,
                        const godot::String &body,
                        const godot::String &extra_headers = "");

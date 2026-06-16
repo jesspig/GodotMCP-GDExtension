@@ -98,8 +98,6 @@ void HttpServer::poll() {
     polling_ = true;
 
     try {
-    const uint64_t now = Time::get_singleton()->get_ticks_msec();
-
     check_timeouts();
 
     // Accept new connections
@@ -296,7 +294,10 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
         }
         String body_text;
         if (!conn.body.is_empty()) {
-            body_text.parse_utf8((const char *)conn.body.ptr(), conn.body.size());
+            if (body_text.parse_utf8((const char *)conn.body.ptr(), conn.body.size()) != OK) {
+                send_response(conn_id, conn, 400, "Bad Request", "text/plain", "Body is not valid UTF-8");
+                return;
+            }
         }
         if (body_text.is_empty()) {
             send_response(conn_id, conn, 400, "Bad Request", "text/plain", "Empty body");

@@ -9,7 +9,7 @@ using namespace godot;
 
 namespace godot_mcp {
 
-void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
+void HttpServer::send_response(int /*conn_id*/, Connection &conn, int status_code,
                                 const String &status_text, const String &content_type,
                                 const String &body, const String &extra_headers) {
     const PackedByteArray body_bytes = body.to_utf8_buffer();

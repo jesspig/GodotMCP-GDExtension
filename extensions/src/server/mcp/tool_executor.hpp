@@ -26,7 +26,7 @@ public:
 private:
     godot::String format_params_for_log(const godot::Dictionary &args);
     void log_tool_call(const godot::String &tool_name, const godot::Dictionary &args);
-    godot::Dictionary format_success(const godot::Dictionary &raw_result, const godot::Dictionary &tool_result);
+    godot::Dictionary format_success(const godot::Dictionary & /*raw_result*/, const godot::Dictionary &tool_result);
     godot::Dictionary format_error(int code, const godot::String &message);
     godot::Array tool_result_to_mcp_content(const godot::Dictionary &tool_result);
 

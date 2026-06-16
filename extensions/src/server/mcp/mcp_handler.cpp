@@ -222,7 +222,7 @@ Dictionary McpHandler::handle_ping(const Variant &id) {
 // -------------------------------------------------------------------------
 // tools/list — returns only always-on tools (progressive disclosure)
 // -------------------------------------------------------------------------
-Dictionary McpHandler::handle_tools_list(const Dictionary &params, const Variant &id) {
+Dictionary McpHandler::handle_tools_list(const Dictionary & /*params*/, const Variant &id) {
     if (!registry_) {
         return make_jsonrpc_error(id, kInternalError, "Registry not initialized");
     }
@@ -468,7 +468,7 @@ Dictionary McpHandler::handle_completion_complete(const Dictionary &params, cons
 // -------------------------------------------------------------------------
 // notifications/cancelled
 // -------------------------------------------------------------------------
-void McpHandler::handle_cancelled(const Dictionary &params) {
+void McpHandler::handle_cancelled(const Dictionary & /*params*/) {
     // Synchronous execution model: cancellations are handled by the
     // server polling loop, no action needed at this layer.
 }

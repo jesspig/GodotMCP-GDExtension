@@ -169,7 +169,6 @@ Dictionary ToolExecutor::extract_result(const Dictionary &exec_result) {
 
 String ToolExecutor::format_params_for_log(const Dictionary &args) {
     String param_log;
-    param_log.reserve(256);
     Array param_keys = args.keys();
     for (int i = 0; i < param_keys.size(); i++) {
         if (!param_log.is_empty()) param_log += ", ";
@@ -196,7 +195,7 @@ void ToolExecutor::log_tool_call(const String &tool_name, const Dictionary &args
     }
 }
 
-Dictionary ToolExecutor::format_success(const Dictionary &raw_result, const Dictionary &tool_result) {
+Dictionary ToolExecutor::format_success(const Dictionary & /*raw_result*/, const Dictionary &tool_result) {
     Dictionary result;
     result["content"] = tool_result_to_mcp_content(tool_result);
     result["isError"] = false;

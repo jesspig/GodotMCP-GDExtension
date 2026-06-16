@@ -70,7 +70,7 @@ private:
     Dictionary handle_ping(const Variant &id);
 
     // Tools
-    Dictionary handle_tools_list(const Dictionary &params, const Variant &id);
+    Dictionary handle_tools_list(const Dictionary & /*params*/, const Variant &id);
     Dictionary handle_tools_call(const Dictionary &params, const Variant &id);
 
     // Resources
@@ -83,7 +83,7 @@ private:
     Dictionary handle_completion_complete(const Dictionary &params, const Variant &id);
 
     // Notifications (no return value needed)
-    void handle_cancelled(const Dictionary &params);
+    void handle_cancelled(const Dictionary & /*params*/);
 
     HandlerRegistry *registry_;
     McpLogCallback log_callback_;

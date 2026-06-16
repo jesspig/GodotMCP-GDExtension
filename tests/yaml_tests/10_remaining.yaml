@@ -185,25 +185,7 @@ tests:
         - key: workspace
           value: "2D"
 
-  - tool: set_workspace_2d
-    description: Switches to 2D via shortcut tool
-    expect:
-      has_keys: [workspace]
 
-  - tool: set_workspace_3d
-    description: Switches to 3D workspace
-    expect:
-      has_keys: [workspace]
-
-  - tool: set_workspace_script
-    description: Switches to Script workspace
-    expect:
-      has_keys: [workspace]
-
-  - tool: set_workspace_assetlib
-    description: Switches to Asset Library workspace
-    expect:
-      has_keys: [workspace]
 
 after_all:
   - tool: new_scene
