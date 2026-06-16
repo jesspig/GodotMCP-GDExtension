@@ -34,6 +34,18 @@ static Dictionary make_error(const String &msg) {
     return r;
 }
 
+static constexpr int64_t MAX_MESSAGE_SIZE = 65536;
+
+static void reset_read_state(PackedByteArray &buf, String &text, int64_t &offset,
+                              int &retries, int64_t &fail_offset, int64_t &consumed) {
+    buf.clear();
+    text = String();
+    offset = 0;
+    retries = 0;
+    fail_offset = -1;
+    consumed = 0;
+}
+
 // -----------------------------------------------------------------------
 // Lifecycle
 // -----------------------------------------------------------------------
@@ -112,12 +124,7 @@ void GameBridgeNode::stop_server() {
         server_->stop();
         server_.unref();
     }
-    read_buf_.clear();
-    read_text_ = String();
-    read_offset_ = 0;
-    utf8_retries_ = 0;
-    utf8_fail_offset_ = -1;
-    consumed_bytes_ = 0;
+    reset_read_state_internal();
 }
 
 void GameBridgeNode::accept_clients() {
@@ -132,12 +139,7 @@ void GameBridgeNode::accept_clients() {
     if (new_client.is_valid()) {
         new_client->set_no_delay(true);
         client_ = new_client;
-        read_buf_.clear();
-        read_text_ = String();
-        read_offset_ = 0;
-        utf8_retries_ = 0;
-        utf8_fail_offset_ = -1;
-        consumed_bytes_ = 0;
+        reset_read_state_internal();
         log_info("game_bridge", "Client connected");
     }
 }
@@ -146,56 +148,43 @@ void GameBridgeNode::read_clients() {
     if (!client_.is_valid()) return;
 
     client_->poll();
-    StreamPeerSocket::Status s = client_->get_status();
-    if (s == StreamPeerSocket::STATUS_ERROR || s == StreamPeerSocket::STATUS_NONE) {
+    StreamPeerTCP::Status s = client_->get_status();
+    if (s == StreamPeerTCP::STATUS_ERROR || s == StreamPeerTCP::STATUS_NONE) {
         client_.unref();
-    read_buf_.clear();
-    read_text_ = String();
-    read_offset_ = 0;
-    utf8_retries_ = 0;
-    utf8_fail_offset_ = -1;
-    consumed_bytes_ = 0;
+        reset_read_state_internal();
         log_info("game_bridge", "Client disconnected");
         return;
     }
 
-    int avail = client_->get_available_bytes();
+    int64_t avail = client_->get_available_bytes();
     if (avail <= 0) return;
 
     Array chunk = client_->get_partial_data(avail);
-    if (static_cast<int>(chunk[0]) != OK) {
+    if (static_cast<int64_t>(chunk[0]) != OK) {
         client_->disconnect_from_host();
         client_.unref();
-        read_buf_.clear();
-    read_text_ = String();
-    read_offset_ = 0;
-    utf8_retries_ = 0;
-    utf8_fail_offset_ = -1;
-    consumed_bytes_ = 0;
+        reset_read_state_internal();
         return;
     }
     PackedByteArray data = chunk[1];
     read_buf_.append_array(data);
 
     if (read_buf_.size() > BUFFER_LIMIT) {
-        // Sanity: drop connection if buffer overflows
         Dictionary err = make_error("Message body too large");
         send_response(client_, err);
         client_->disconnect_from_host();
         client_.unref();
-        read_buf_.clear();
-        read_text_ = String();
-        read_offset_ = 0;
-        consumed_bytes_ = 0;
+        reset_read_state_internal();
         return;
     }
 
     // Decode only newly received bytes and accumulate the decoded text
-    int new_bytes = static_cast<int>(read_buf_.size()) - read_offset_;
+    int64_t new_bytes = read_buf_.size() - read_offset_;
     if (new_bytes > 0) {
         const uint8_t* raw = read_buf_.ptr() + read_offset_;
         String chunk_text;
-        Error utf8_err = chunk_text.parse_utf8((const char*)raw, new_bytes);
+        int64_t parse_len = (new_bytes > 65536) ? 65536 : new_bytes;
+        Error utf8_err = chunk_text.parse_utf8((const char*)raw, static_cast<int>(parse_len));
         if (utf8_err != OK) {
             if (read_offset_ == utf8_fail_offset_) {
                 utf8_retries_++;
@@ -204,7 +193,7 @@ void GameBridgeNode::read_clients() {
                 utf8_fail_offset_ = read_offset_;
             }
             if (utf8_retries_ >= 3) {
-                read_offset_ = static_cast<int>(read_buf_.size());
+                read_offset_ = read_buf_.size();
                 utf8_retries_ = 0;
                 utf8_fail_offset_ = -1;
                 log_warn("game_bridge", "Discarding un-decodable UTF-8 data");
@@ -214,50 +203,59 @@ void GameBridgeNode::read_clients() {
         utf8_retries_ = 0;
         utf8_fail_offset_ = -1;
         read_text_ += chunk_text;
-        consumed_bytes_ += new_bytes;
-        read_offset_ = static_cast<int>(read_buf_.size());
+        read_offset_ = read_buf_.size();
     }
 
     if (read_text_.is_empty()) return;
 
-    Ref<JSON> json;
-    json.instantiate();
-    Error parse_err = json->parse(read_text_);
-    if (parse_err != OK) {
-        return;
-    }
-    Variant msg = json->get_data();
+    // Process newline-delimited messages (fixes pipelined messages and JSON parse hang)
+    while (true) {
+        int64_t newline_idx = read_text_.find("\n");
+        if (newline_idx == -1) {
+            // Incomplete message – guard against runaway accumulation
+            if (read_text_.length() > MAX_MESSAGE_SIZE) {
+                log_warn("game_bridge", "Message too large, discarding buffer");
+                reset_read_state_internal();
+            }
+            return;
+        }
 
-    // Calculate consumed bytes and keep any remaining data for next message
-    int consumed = consumed_bytes_;
-    if (consumed > 0 && consumed < read_buf_.size()) {
-        PackedByteArray remaining;
-        remaining.resize(read_buf_.size() - consumed);
-        std::copy_n(read_buf_.ptr() + consumed, remaining.size(), remaining.ptrw());
-        read_buf_ = remaining;
-    } else {
+        String line = read_text_.substr(0, static_cast<int>(newline_idx));
+        read_text_ = read_text_.substr(static_cast<int>(newline_idx) + 1);
+
+        // All of read_buf_ has been decoded, safe to clear
         read_buf_.clear();
+        read_offset_ = 0;
+
+        if (line.is_empty()) continue;
+
+        Ref<JSON> json;
+        json.instantiate();
+        if (json->parse(line) != OK) {
+            log_warn("game_bridge", "Skipping unparseable JSON message");
+            continue;
+        }
+
+        Variant msg = json->get_data();
+        if (msg.get_type() != Variant::DICTIONARY) {
+            log_warn("game_bridge", "Message must be a JSON object, skipping");
+            continue;
+        }
+
+        Dictionary msg_dict = msg;
+        String cmd = msg_dict.get("cmd", "");
+        Dictionary params = msg_dict.get("params", Dictionary());
+        Variant id = msg_dict.get("id", Variant());
+
+        Dictionary result = dispatch(cmd, params);
+        result["id"] = id;
+        send_response(client_, result);
     }
-    read_text_ = String();
-    read_offset_ = 0;
-    consumed_bytes_ = 0;
+}
 
-    if (msg.get_type() != Variant::DICTIONARY) {
-        Dictionary err;
-        err["ok"] = false;
-        err["error"] = String("Message must be a JSON object");
-        send_response(client_, err);
-        return;
-    }
-
-    Dictionary msg_dict = msg;
-    String cmd = msg_dict.get("cmd", "");
-    Dictionary params = msg_dict.get("params", Dictionary());
-    Variant id = msg_dict.get("id", Variant());
-
-    Dictionary result = dispatch(cmd, params);
-    result["id"] = id;
-    send_response(client_, result);
+void GameBridgeNode::reset_read_state_internal() {
+    reset_read_state(read_buf_, read_text_, read_offset_,
+                      utf8_retries_, utf8_fail_offset_, consumed_bytes_);
 }
 
 void GameBridgeNode::send_response(const Ref<StreamPeerTCP> &client, const Dictionary &msg) {
@@ -312,7 +310,7 @@ Dictionary GameBridgeNode::handle_get_scene_tree(const Dictionary &params) {
         r["error"] = String("Scene tree not available");
         return r;
     }
-    int max_depth = params.get("max_depth", -1);
+    int64_t max_depth = static_cast<int64_t>(params.get("max_depth", -1));
     Dictionary result = node_to_dict(root, max_depth, 0);
     Dictionary r;
     r["ok"] = true;
@@ -346,7 +344,7 @@ Dictionary GameBridgeNode::handle_get_property(const Dictionary &params) {
 
     bool has_prop = false;
     Array prop_list = node->get_property_list();
-    for (int i = 0; i < prop_list.size(); i++) {
+    for (int64_t i = 0; i < prop_list.size(); i++) {
         Dictionary pd = prop_list[i];
         if (pd.get("name", "") == property) {
             has_prop = true;
@@ -423,7 +421,7 @@ Dictionary GameBridgeNode::handle_call_method(const Dictionary &params) {
     Array args = params.get("args", Array());
     Array converted_args;
     converted_args.resize(args.size());
-    for (int i = 0; i < args.size(); i++) {
+    for (int64_t i = 0; i < args.size(); i++) {
         converted_args[i] = json_to_variant(args[i], 0);
     }
     Variant result = node->callv(method, converted_args);
@@ -627,7 +625,7 @@ Dictionary GameBridgeNode::handle_set_pause(const Dictionary &params) {
 // Scene tree serialisation
 // -----------------------------------------------------------------------
 
-Dictionary GameBridgeNode::node_to_dict(Node *node, int max_depth, int depth) {
+Dictionary GameBridgeNode::node_to_dict(Node *node, int64_t max_depth, int64_t depth) {
     Dictionary d;
     if (!node) return d;
 
@@ -637,8 +635,8 @@ Dictionary GameBridgeNode::node_to_dict(Node *node, int max_depth, int depth) {
 
     if (max_depth < 0 || depth < max_depth) {
         Array children;
-        int count = node->get_child_count();
-        for (int i = 0; i < count; i++) {
+        int64_t count = node->get_child_count();
+        for (int64_t i = 0; i < count; i++) {
             Node *child = node->get_child(i);
             if (child) {
                 children.push_back(node_to_dict(child, max_depth, depth + 1));

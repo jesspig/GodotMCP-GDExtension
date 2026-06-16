@@ -29,6 +29,7 @@ private:
     void stop_server();
     void accept_clients();
     void read_clients();
+    void reset_read_state_internal();
     void send_response(const godot::Ref<godot::StreamPeerTCP> &client, const godot::Dictionary &msg);
     godot::Dictionary dispatch(const godot::String &cmd, const godot::Dictionary &params);
 
@@ -40,7 +41,7 @@ private:
     godot::Dictionary handle_simulate_input(const godot::Dictionary &params);
     godot::Dictionary handle_set_pause(const godot::Dictionary &params);
 
-    godot::Dictionary node_to_dict(godot::Node *node, int max_depth, int depth);
+    godot::Dictionary node_to_dict(godot::Node *node, int64_t max_depth, int64_t depth);
     static int read_port();
     godot::Node *get_scene_root();
 
@@ -48,12 +49,12 @@ private:
     godot::Ref<godot::StreamPeerTCP> client_;
     godot::PackedByteArray read_buf_;
     godot::String read_text_;
-    int read_offset_ = 0;
+    int64_t read_offset_ = 0;
     int port_ = 9601;
     int utf8_retries_ = 0;
-    int utf8_fail_offset_ = -1;
-    int consumed_bytes_ = 0;
-    static constexpr int BUFFER_LIMIT = 1024 * 1024;
+    int64_t utf8_fail_offset_ = -1;
+    int64_t consumed_bytes_ = 0;
+    static constexpr int64_t BUFFER_LIMIT = 1024 * 1024;
 };
 
 } // namespace godot_mcp

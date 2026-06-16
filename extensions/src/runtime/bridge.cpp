@@ -104,7 +104,7 @@ Dictionary RuntimeBridge::send_command(const String &cmd, const Dictionary &para
     if (raw.has("pending")) {
         return raw;
     }
-    if (raw.has("id") && static_cast<int64_t>(raw["id"]) != id) {
+    if (raw.has("id") && raw["id"].get_type() == Variant::INT && static_cast<int64_t>(raw["id"]) != id) {
         disconnect();
         Dictionary err_dict;
         err_dict["ok"] = false;
