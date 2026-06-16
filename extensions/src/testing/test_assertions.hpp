@@ -135,7 +135,10 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
         String error_msg;
         const Variant err_val = result["error"];
         if (err_val.get_type() == Variant::DICTIONARY) {
-            error_msg = Dictionary(err_val).get("message", JSON::stringify(err_val));
+            const Dictionary err_dict = err_val;
+            const String code = err_dict.get("code", "");
+            const String message = err_dict.get("message", "");
+            error_msg = code.is_empty() ? message : (code + String(": ") + message);
         } else if (err_val.get_type() == Variant::STRING) {
             error_msg = err_val;
         } else {
