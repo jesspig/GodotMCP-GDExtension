@@ -116,25 +116,43 @@ target_include_directories(godot_mcp_gdext PRIVATE
 # ---------------------------------------------------------------------------
 option(GODOTMCP_UNITY_BUILD "Enable unity (jumbo) build — faster full rebuilds" ON)
 set(GODOTMCP_UNITY_BATCH_SIZE "0" CACHE STRING
-    "Unity batch size (source files per batch; 0 = auto-detect CPU count, capped at 12)")
+    "Unity batch count (0 = adaptive: min(cpu, ceil(files/4)))")
 
-# Auto-tune unity batch size: batch_size=0 means "match CPU count".
-# With N CPU cores and N batches, every core gets exactly one job.
-# This maximizes parallelism with minimal memory pressure.
+# Adaptive unity batch sizing:
+#   1 core        → unity disabled (single-thread, no batching benefit)
+#   2+ cores      → batch_count = min(CPU cores, ceil(unity_files / 4))
+#   Each batch gets ≥4 files for effective header amortization.
+#   File count naturally bounds batches on any machine — no hard cap needed.
 set(_unity_batch ${GODOTMCP_UNITY_BATCH_SIZE})
+set(_unity_enabled ${GODOTMCP_UNITY_BUILD})
+set(_unity_files 0)
 if(_unity_batch STREQUAL "0")
     include(ProcessorCount)
     ProcessorCount(_cpu_count)
-    # Cap at 12 — ~24 source files / 12 ≈ 2 files/batch, optimal for this project size.
-    if(_cpu_count GREATER 12)
-        set(_cpu_count 12)
-    endif()
-    # Ensure at least 2 batches for incremental build efficiency
+
+    # Count files participating in unity build (SKIP_UNITY_BUILD excluded)
+    list(LENGTH GODOT_MCP_SOURCES _src_count)
+    math(EXPR _unity_files "${_src_count} - 1")
+
     if(_cpu_count LESS 2)
-        set(_cpu_count 2)
+        # Single core: unity build offers no benefit, disable entirely
+        set(_unity_batch 1)
+        set(_unity_enabled OFF)
+        message(STATUS "Unity build disabled (1 core)")
+    else()
+        # ceil(unity_files / 4) — each batch gets ≥4 files
+        math(EXPR _max_batches "(${_unity_files} + 3) / 4")
+        if(_max_batches LESS 2)
+            set(_max_batches 2)
+        endif()
+
+        if(_cpu_count GREATER _max_batches)
+            set(_cpu_count ${_max_batches})
+        endif()
+
+        set(_unity_batch ${_cpu_count})
+        message(STATUS "Unity batch size: ${_unity_batch} (${_unity_files} files, max ${_max_batches} batches)")
     endif()
-    set(_unity_batch ${_cpu_count})
-    message(STATUS "Unity batch size: ${_unity_batch} (auto = ${_cpu_count} cores)")
 else()
     message(STATUS "Unity batch size: ${_unity_batch} (user-specified)")
 endif()
@@ -143,9 +161,11 @@ set_target_properties(godot_mcp_gdext PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
-    UNITY_BUILD ${GODOTMCP_UNITY_BUILD}
+    UNITY_BUILD ${_unity_enabled}
     UNITY_BUILD_BATCH_SIZE ${_unity_batch}
 )
+message(STATUS "C++ standard: 17")
+message(STATUS "Generator: ${CMAKE_GENERATOR}")
 
 # ---------------------------------------------------------------------------
 # Linker optimization: prefer lld-link on MSVC for faster linking.
@@ -155,7 +175,9 @@ if(MSVC)
     find_program(GODOTMCP_LLD_LINK NAMES lld-link)
     if(GODOTMCP_LLD_LINK)
         target_link_options(godot_mcp_gdext PRIVATE "/lldlink")
-        message(STATUS "Using lld-link for faster linking")
+        message(STATUS "Linker: lld-link (fast)")
+    else()
+        message(STATUS "Linker: default (lld-link not found, install LLVM)")
     endif()
 endif()
 
@@ -183,6 +205,30 @@ elseif(MSVC AND CMAKE_BUILD_TYPE STREQUAL "Release" AND GODOTMCP_PGO STREQUAL "U
     target_link_options(godot_mcp_gdext PRIVATE /LTCG /USEPROFILE)
     message(STATUS "PGO: optimization build (USE)")
 endif()
+
+# ---------------------------------------------------------------------------
+# Write build config for Python summary (read by main.py after configure)
+# ---------------------------------------------------------------------------
+if(CMAKE_GENERATOR MATCHES "Ninja")
+    set(_ninja_found "ON")
+else()
+    set(_ninja_found "OFF")
+endif()
+file(WRITE "${CMAKE_BINARY_DIR}/build_config.txt"
+    "version=${PROJECT_VERSION}\n"
+    "build_type=${CMAKE_BUILD_TYPE}\n"
+    "generator=${CMAKE_GENERATOR}\n"
+    "compiler_id=${CMAKE_CXX_COMPILER_ID}\n"
+    "cxx_standard=17\n"
+    "compiler_launcher=${GODOTMCP_CXX_LAUNCHER}\n"
+    "lto_mode=${GODOTMCP_LTO_MODE}\n"
+    "lto=${GODOTMCP_LTO}\n"
+    "unity_enabled=${_unity_enabled}\n"
+    "unity_batch_count=${_unity_batch}\n"
+    "unity_files=${_unity_files}\n"
+    "lld_link=${GODOTMCP_LLD_LINK}\n"
+    "ninja=${_ninja_found}\n"
+)
 
 # Unity build: third-party headers are included in our unity batch,
 # so warnings from godot-cpp/ryml headers cannot be suppressed per-target.

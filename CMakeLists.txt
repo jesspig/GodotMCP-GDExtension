@@ -22,10 +22,11 @@ message(STATUS "GodotMCP version: ${PROJECT_VERSION}")
 # ---------------------------------------------------------------------------
 find_program(GODOTMCP_CXX_LAUNCHER NAMES sccache ccache)
 if(GODOTMCP_CXX_LAUNCHER)
-    message(STATUS "Using compiler launcher: ${GODOTMCP_CXX_LAUNCHER}")
-    # Propagate to all targets (including godot-cpp via FetchContent)
+    message(STATUS "Compiler launcher: ${GODOTMCP_CXX_LAUNCHER} (cached builds)")
     set(CMAKE_C_COMPILER_LAUNCHER "${GODOTMCP_CXX_LAUNCHER}")
     set(CMAKE_CXX_COMPILER_LAUNCHER "${GODOTMCP_CXX_LAUNCHER}")
+else()
+    message(STATUS "Compiler launcher: not found (direct compilation)")
 endif()
 
 # ---------------------------------------------------------------------------
@@ -39,14 +40,38 @@ endif()
 
 # ---------------------------------------------------------------------------
 # LTO (Link-Time Optimization) — only for Release builds
+#   auto  (default) → Clang ThinLTO if available, else standard IPO
+#   thin             → Clang ThinLTO (falls back to IPO on MSVC/GCC)
+#   full             → Standard CMake IPO (full LTO)
 # ---------------------------------------------------------------------------
+set(GODOTMCP_LTO_MODE "auto" CACHE STRING
+    "LTO mode: auto (detect best), thin (ThinLTO), full (Full LTO)")
+set_property(CACHE GODOTMCP_LTO_MODE PROPERTY STRINGS auto thin full)
+
+set(GODOTMCP_LTO "OFF" CACHE INTERNAL "")
 include(CheckIPOSupported)
-check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
-if(ipo_supported)
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
-    message(STATUS "LTO enabled for Release builds")
+
+macro(_lto_ipo_fallback)
+    check_ipo_supported(RESULT _ipo_ok OUTPUT _ipo_err)
+    if(_ipo_ok)
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+        set(GODOTMCP_LTO "ON (full)" CACHE INTERNAL "")
+        message(STATUS "LTO: full (via IPO, Release only)")
+    else()
+        message(${ARGV0} "LTO not supported: ${_ipo_err}")
+    endif()
+endmacro()
+
+if((GODOTMCP_LTO_MODE STREQUAL "auto" OR GODOTMCP_LTO_MODE STREQUAL "thin")
+    AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options($<$<CONFIG:Release>:-flto=thin>)
+    add_link_options($<$<CONFIG:Release>:-flto=thin>)
+    set(GODOTMCP_LTO "ON (thin)" CACHE INTERNAL "")
+    message(STATUS "LTO: thin (Clang ThinLTO, Release only)")
+elseif(GODOTMCP_LTO_MODE STREQUAL "thin")
+    _lto_ipo_fallback(WARNING "LTO mode 'thin' not available with this compiler")
 else()
-    message(STATUS "LTO not supported: ${ipo_error}")
+    _lto_ipo_fallback(STATUS)
 endif()
 
 add_subdirectory(extensions)
