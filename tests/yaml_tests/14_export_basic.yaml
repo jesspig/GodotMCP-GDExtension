@@ -1,5 +1,6 @@
 name: export_basic
 description: Query export platforms, list presets, clear console
+headless: true
 before_all:
   - tool: new_scene
     args: { root_type: "Node", root_name: "Root" }

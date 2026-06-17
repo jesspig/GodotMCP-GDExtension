@@ -1,5 +1,6 @@
 name: scene_toggle
 description: toggle_editable_children, toggle_placeholder on instanced node
+headless: false
 before_all:
   - tool: create_directory
     args: { path: "res://test_mcp_16" }

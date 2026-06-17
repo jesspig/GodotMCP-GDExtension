@@ -1,5 +1,6 @@
 name: filesystem_settings_smoke
 description: Smoke tests for filesystem CRUD, settings, scripts, and visualizer tools
+headless: true
 
 before_all:
   - tool: create_directory

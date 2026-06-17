@@ -1,5 +1,6 @@
 name: debugger_export
 description: Debugger control, breakpoints, export, project scaffold
+headless: false
 before_all:
   - tool: new_scene
     args: { root_type: "Node", root_name: "Root" }

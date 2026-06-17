@@ -1,5 +1,6 @@
 name: meta_tools_smoke
 description: Smoke tests for all meta discovery tools
+headless: true
 
 tests:
   - tool: get_info

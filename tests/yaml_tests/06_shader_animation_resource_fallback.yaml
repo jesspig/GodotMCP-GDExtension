@@ -1,5 +1,6 @@
 name: shader_animation_resource_fallback_smoke
 description: Smoke tests for shader/read, animation info, resource info, property get/set, fallback tools
+headless: true
 
 before_all:
   - tool: create_directory

@@ -1,5 +1,6 @@
 name: animation_state_machine
 description: create_animation_tree, add_animation_node, get_animation_tree_info
+headless: false
 before_all:
   - tool: new_scene
     args: { root_type: "Node2D", root_name: "Root" }

@@ -1,5 +1,6 @@
 name: perf_console
 description: get_performance_monitors, get_console_output
+headless: false
 before_all:
   - tool: new_scene
     args: { root_type: "Node", root_name: "Root" }

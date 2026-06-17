@@ -17,7 +17,7 @@ def discover_yaml_files(pattern: str | None = None) -> list[str]:
     return sorted(str(p) for p in yaml_dir.glob("*.yaml"))
 
 
-def run_tests(no_auto: bool = False, file: str | None = None, keep_open: bool = False) -> int:
+def run_tests(no_auto: bool = False, file: str | None = None, keep_open: bool = False, headless: bool = False) -> int:
     sys.path.insert(0, str(TESTS_DIR))
 
     from dotenv import load_dotenv
@@ -26,6 +26,9 @@ def run_tests(no_auto: bool = False, file: str | None = None, keep_open: bool = 
     from test_orchestrator import load_config, run_test_session
 
     cfg = load_config()
+
+    if headless:
+        cfg["godot_headless"] = True
 
     if not cfg["godot_path"] or not os.path.isfile(cfg["godot_path"]):
         print("Error: GODOT_PATH not set or file not found.")

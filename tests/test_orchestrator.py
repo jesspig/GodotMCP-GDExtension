@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 GodotMCP Test Orchestrator
 
@@ -73,9 +73,11 @@ def load_config() -> dict:
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
 
+    env_headless = os.getenv("GODOT_HEADLESS", "false").lower() == "true"
+
     return {
         "godot_path": os.getenv("GODOT_PATH", ""),
-        "godot_headless": os.getenv("GODOT_HEADLESS", "true").lower() == "true",
+        "godot_headless": env_headless,
         "mcp_port": int(os.getenv("GODOT_MCP_HTTP_PORT", "9600")),
         "project_path": os.getenv("GODOT_PROJECT_PATH",
                                    os.path.join(project_root, "example")),
@@ -156,6 +158,25 @@ async def run_test_session(cfg: dict) -> TestReport:
             if not yaml_files:
                 print("[setup] No YAML test files found in yaml_tests/")
             else:
+                headless_mode = cfg.get("godot_headless", False)
+                filtered_files = []
+                for yaml_path in yaml_files:
+                    fname = os.path.basename(yaml_path)
+                    with open(yaml_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    yaml_headless = True
+                    for line in content.split('\n')[:10]:
+                        line = line.strip()
+                        if line.startswith('headless:'):
+                            val = line.split(':', 1)[1].strip().lower()
+                            yaml_headless = val in ('true', 'yes', '1')
+                            break
+                    if headless_mode and not yaml_headless:
+                        print(f"[skip] {fname} — requires GUI, skipping in headless mode")
+                        continue
+                    filtered_files.append(yaml_path)
+                yaml_files = filtered_files
+
                 for yaml_path in yaml_files:
                     t0 = time.time()
                     fname = os.path.basename(yaml_path)
@@ -169,9 +190,30 @@ async def run_test_session(cfg: dict) -> TestReport:
                         failed = summary.get("failed", 0)
                         deleted = summary.get("cleanup_deleted", [])
                         skipped = summary.get("cleanup_skipped", [])
+                        skipped_tests = summary.get("skipped", 0)
+                        call_count = summary.get("call_count", 0)
+                        call_success = summary.get("call_success", 0)
+                        call_fail = summary.get("call_fail", 0)
+                        call_skip = summary.get("call_skip", 0)
+                        unique_tools = len(summary.get("unique_tools", []))
+                        unique_success = len(summary.get("unique_success", []))
+                        unique_fail = len(summary.get("unique_fail", []))
+                        unique_skip = len(summary.get("unique_skip", []))
+                        duration_ms = summary.get("duration_ms", 0)
+                        errors = summary.get("errors", [])
 
                         phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
                         phase_report.start_time = t0
+                        phase_report.call_count = call_count
+                        phase_report.call_success = call_success
+                        phase_report.call_fail = call_fail
+                        phase_report.call_skip = call_skip
+                        phase_report.unique_tools = unique_tools
+                        phase_report.unique_success = unique_success
+                        phase_report.unique_fail = unique_fail
+                        phase_report.unique_skip = unique_skip
+                        phase_report.duration_ms = duration_ms
+                        phase_report.errors = errors
                         for t in result.get("tests", []):
                             tr = TestResult(
                                 tool=t.get("tool", ""),
@@ -185,8 +227,9 @@ async def run_test_session(cfg: dict) -> TestReport:
                         report.add_phase(phase_report)
 
                         status = "OK" if failed == 0 else f"FAIL({failed})"
-                        print(f"[{fname}] {total} tests, {passed} passed, {failed} failed "
-                              f"({elapsed:.1f}s) | cleanup: {len(deleted)} del, {len(skipped)} skip")
+                        print(f"[{fname}] {total} tests, {passed} passed, {failed} failed, {skipped_tests} skipped "
+                              f"({elapsed:.1f}s) | calls: {call_count}({call_success}ok/{call_fail}fail/{call_skip}skip) "
+                              f"| tools: {unique_tools}({unique_success}ok/{unique_fail}fail)")
                         if failed > 0:
                             for t in result.get("tests", []):
                                 if not t.get("passed"):

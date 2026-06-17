@@ -1,0 +1,65 @@
+name: workspace_remaining_smoke
+description: Smoke tests for remaining workspace tools (viewport capture, stack trace, locals, debugger control, breakpoints)
+headless: false
+
+before_all:
+  - tool: new_scene
+    args:
+      root_type: "Node2D"
+      root_name: "WorkspaceTestRoot"
+  - tool: add_node
+    args:
+      class_name: "Sprite2D"
+      node_name: "TestSprite"
+      parent_path: ""
+
+tests:
+  - tool: capture_viewport
+    description: Captures editor viewport screenshot
+    expect:
+      has_keys: [file_path, format]
+
+  - tool: get_stack_trace
+    description: Gets current stack trace from debugger (fails when no debugger active)
+    expect:
+      status: error
+      error_contains: "NO_ACTIVE_DEBUGGER"
+
+  - tool: get_locals
+    description: Gets local variables (succeeds with empty locals when no debugger)
+    expect:
+      has_keys: [breaked, frame, locals]
+
+  - tool: debugger_control
+    description: Breaks into debugger
+    args:
+      action: "break"
+    expect:
+      has_keys: [action, performed]
+
+  - tool: list_breakpoints
+    description: Lists all breakpoints
+    expect:
+      has_keys: [breakpoints, count]
+
+  - tool: set_breakpoint
+    description: Sets a breakpoint on a test script
+    args:
+      script_path: "res://test.gd"
+      line: 1
+    expect:
+      status: success
+
+  - tool: remove_breakpoint
+    description: Removes the breakpoint from test script
+    args:
+      script_path: "res://test.gd"
+      line: 1
+    expect:
+      status: success
+
+after_all:
+  - tool: new_scene
+    args:
+      root_type: "Node"
+      root_name: "Cleanup"

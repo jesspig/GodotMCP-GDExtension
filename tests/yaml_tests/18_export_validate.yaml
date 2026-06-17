@@ -1,5 +1,6 @@
 name: export_validate_viewport
 description: validate_export_presets
+headless: true
 before_all:
   - tool: new_scene
     args: { root_type: "Node", root_name: "Root" }

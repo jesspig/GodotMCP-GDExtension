@@ -1,5 +1,6 @@
 name: resource_save
 description: Save shader material to file and re-save as copy
+headless: true
 before_all:
   - tool: create_directory
     args: { path: "res://test_mcp_12" }

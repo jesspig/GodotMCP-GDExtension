@@ -1,5 +1,6 @@
 name: advanced_scene_tree_smoke
 description: Smoke tests for scene tree manipulation tools
+headless: false
 
 before_all:
   - tool: new_scene

@@ -1,5 +1,6 @@
 name: runtime_lifecycle_smoke
 description: Smoke tests for all runtime lifecycle tools (run/stop/movie_maker)
+headless: false
 
 before_all:
   - tool: new_scene
@@ -20,7 +21,7 @@ tests:
       has_keys: [action, scene, status]
 
   - tool: run_project
-    description: Tries to run default main scene (may fail if none set)
+    description: Tries to run main scene (no-op if none set)
     expect:
       has_keys: [action, status]
 

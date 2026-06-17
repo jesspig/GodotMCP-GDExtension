@@ -1,5 +1,6 @@
 name: remaining_tools_smoke
 description: Smoke tests for inputmap, plugin, shader, control/stylebox, audio, filesystem/create, scripts/patch, and workspace switch tools
+headless: true
 
 before_all:
   - tool: create_directory

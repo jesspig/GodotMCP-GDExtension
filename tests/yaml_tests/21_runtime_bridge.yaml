@@ -1,0 +1,143 @@
+name: runtime_bridge_smoke
+description: Smoke tests for runtime bridge tools (game scene tree, properties, method calls, input, pause, screenshot)
+headless: false
+on_failure: continue
+
+before_all:
+  - tool: new_scene
+    args:
+      root_type: "Node2D"
+      root_name: "BridgeTestRoot"
+  - tool: add_node
+    args:
+      class_name: "Sprite2D"
+      node_name: "TestSprite"
+      parent_path: ""
+  - tool: set_node_property
+    args:
+      node_path: "BridgeTestRoot/TestSprite"
+      property: "position"
+      value:
+        x: 100
+        y: 200
+  - tool: create_directory
+    args:
+      path: "res://test_mcp_bridge"
+  - tool: save_scene
+    args:
+      path: "res://test_mcp_bridge/bridge_test.tscn"
+  - tool: set_setting
+    args:
+      setting_path: "application/run/main_scene"
+      value: "res://test_mcp_bridge/bridge_test.tscn"
+
+tests:
+  - tool: run_specific_scene
+    description: Runs the bridge test scene
+    args:
+      scene_path: "res://test_mcp_bridge/bridge_test.tscn"
+    expect:
+      has_keys: [action, scene_path, status]
+
+  - tool: get_game_scene_tree
+    description: Gets runtime scene tree (may fail GAME_NOT_RUNNING if bridge not connected)
+    expect:
+      status: error
+      error_contains: "GAME_NOT_RUNNING"
+
+  - tool: get_game_node_property
+    description: Reads position property from running game
+    args:
+      node_path: "BridgeTestRoot/TestSprite"
+      property: "position"
+    expect:
+      status: error
+      error_contains: "GAME_NOT_RUNNING"
+
+  - tool: set_game_node_property
+    description: Sets position property in running game
+    args:
+      node_path: "BridgeTestRoot/TestSprite"
+      property: "position"
+      value:
+        x: 150
+        y: 250
+    expect:
+      status: error
+      error_contains: "GAME_NOT_RUNNING"
+
+  - tool: get_game_node_property
+    description: Verifies position was updated in running game
+    args:
+      node_path: "BridgeTestRoot/TestSprite"
+      property: "position"
+    expect:
+      status: error
+      error_contains: "GAME_NOT_RUNNING"
+
+  - tool: call_method_in_game
+    description: Calls get_name() on TestSprite in running game
+    args:
+      node_path: "BridgeTestRoot/TestSprite"
+      method: "get_name"
+    expect:
+      status: error
+      error_contains: "GAME_NOT_RUNNING"
+
+  - tool: pause_project
+    description: Pauses the running project
+    args:
+      paused: true
+    expect:
+      status: error
+      error_contains: "GAME_NOT_RUNNING"
+
+  - tool: pause_project
+    description: Resumes the running project
+    args:
+      paused: false
+    expect:
+      status: error
+      error_contains: "GAME_NOT_RUNNING"
+
+  - tool: capture_game_screenshot
+    description: Captures a screenshot of the running game
+    expect:
+      status: error
+      error_contains: "GAME_NOT_RUNNING"
+
+  - tool: simulate_game_input
+    description: Simulates ui_accept input in running game
+    args:
+      actions:
+        - type: "action"
+          action: "ui_accept"
+          pressed: true
+    expect:
+      status: error
+      error_contains: "GAME_NOT_RUNNING"
+
+  - tool: stop_project
+    description: Stops the running project
+    expect:
+      has_keys: [action, was_running]
+
+  - tool: get_game_scene_tree
+    description: Verifies GAME_NOT_RUNNING error after stop
+    expect:
+      status: error
+      error_contains: "GAME_NOT_RUNNING"
+
+after_all:
+  - tool: set_setting
+    args:
+      setting_path: "application/run/main_scene"
+      value: ""
+  - tool: new_scene
+    args:
+      root_type: "Node"
+      root_name: "Cleanup"
+  - tool: delete_file
+    args:
+      path: "res://test_mcp_bridge"
+      recursive: true

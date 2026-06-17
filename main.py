@@ -4,7 +4,7 @@
 Usage:
     main.py build [--release] [--clean] [--clean-all] [--purge-cache] [--zip] [-j N]
     main.py package [--libs-dir PATH] [--recursive] [-o OUTPUT]
-    main.py test [--no-auto] [--file PATTERN] [--keep-open]
+    main.py test [--no-auto] [--file PATTERN] [--keep-open] [--headless]
 """
 
 import argparse
@@ -73,6 +73,7 @@ def _add_test_parser(sub):
     p.add_argument("--no-auto", action="store_true", help="不自动启动 Godot")
     p.add_argument("--file", type=str, default=None, help="选定 YAML 文件（glob 模式）")
     p.add_argument("--keep-open", action="store_true", help="测试结束后保持 Godot 运行")
+    p.add_argument("--headless", action="store_true", help="仅运行 headless 兼容的测试")
 
 
 def _cmd_build(args):
@@ -185,7 +186,7 @@ def _cmd_package(args):
 
 
 def _cmd_test(args):
-    sys.exit(run_tests(no_auto=args.no_auto, file=args.file, keep_open=args.keep_open))
+    sys.exit(run_tests(no_auto=args.no_auto, file=args.file, keep_open=args.keep_open, headless=args.headless))
 
 
 def main():

@@ -1,5 +1,6 @@
 name: workspace_smoke
 description: Smoke tests for workspace console, performance monitors, and debugger
+headless: false
 
 tests:
   - tool: clear_console

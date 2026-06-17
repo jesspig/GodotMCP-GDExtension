@@ -1,5 +1,6 @@
 name: 3d_nav_collision_tilemap_smoke
 description: Smoke tests for 3D, navigation, collision, and tilemap tools
+headless: false
 
 before_all:
   - tool: new_scene

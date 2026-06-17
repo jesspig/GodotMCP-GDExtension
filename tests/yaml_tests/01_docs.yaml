@@ -1,5 +1,6 @@
 name: docs_tools_smoke
 description: Smoke tests for all documentation query tools
+headless: true
 
 tests:
   - tool: get_class_list

@@ -1,5 +1,6 @@
 name: csharp_tilemap
 description: Tilemap tools, C# tools (needs .NET SDK)
+headless: true
 before_all:
   - tool: create_directory
     args: { path: "res://test_mcp_19" }

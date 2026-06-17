@@ -1,5 +1,6 @@
 name: animation_playback
 description: Create clip, add position track, set keyframes on AnimationPlayer
+headless: false
 before_all:
   - tool: new_scene
     args: { root_type: "Node2D", root_name: "Root" }
