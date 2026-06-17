@@ -63,6 +63,8 @@ def copy_built_libs(config: str) -> int:
         return 0
 
     candidates = [
+        BUILD_DIR / "extensions" / config / lib_name,
+        BUILD_DIR / "extensions" / lib_name,
         BUILD_DIR / config / lib_name,
         BUILD_DIR / lib_name,
     ]

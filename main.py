@@ -2,7 +2,7 @@
 """GodotMCP 工具入口。
 
 Usage:
-    main.py build [--release] [--clean] [--clean-all] [--purge-cache] [--no-zip] [-j N]
+    main.py build [--release] [--clean] [--clean-all] [--purge-cache] [--zip] [-j N]
     main.py package [--libs-dir PATH] [--recursive] [-o OUTPUT]
     main.py test [--no-auto] [--file PATTERN] [--keep-open]
 """
@@ -52,7 +52,7 @@ def _add_build_parser(sub):
     p.add_argument("--clean", action="store_true", help="清空 build/ 缓存（保留 _deps/）")
     p.add_argument("--clean-all", action="store_true", help="删除整个 build/ 目录（含 _deps/）")
     p.add_argument("--purge-cache", action="store_true", help="仅清 _deps/，保留 build 缓存")
-    p.add_argument("--no-zip", action="store_true", help="跳过 addons.zip 生成")
+    p.add_argument("--zip", action="store_true", help="构建完成后额外打包 addons.zip")
     p.add_argument("-j", "--jobs", type=int, default=None, help="并行编译作业数（默认 CPU 核心数）")
     p.add_argument("--lto", choices=["auto", "thin", "full"], default=None,
                    help="LTO 模式：auto (默认)/thin/full")
@@ -137,12 +137,10 @@ def _cmd_build(args):
 
     copy_built_libs(config)
 
-    if not args.no_zip:
+    if args.zip:
         from scripts._cmake import run
         if not run(["cmake", "--build", str(BUILD_DIR), "--config", config, "--target", "package", "-j", str(n_cpus)]):
             sys.exit(1)
-    else:
-        print("\n[SKIP] addons.zip (--no-zip)")
 
 
 def _cmd_package(args):

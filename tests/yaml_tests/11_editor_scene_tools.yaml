@@ -1,0 +1,65 @@
+name: editor_scene_tools
+description: Instanced scene, branch save, toggle edit group, nav region/agent, animation player, light
+before_all:
+  - tool: create_directory
+    args: { path: "res://test_mcp_11" }
+  - tool: create
+    args:
+      path: "res://test_mcp_11/bg_shader.gdshader"
+      content: "shader_type canvas_item; render_mode unshaded; void fragment() { COLOR = vec4(0.2, 0.4, 0.8, 1.0); }"
+  - tool: create_scene
+    args: { path: "res://test_mcp_11/sub_scene.tscn", root_type: "Node2D", root_name: "SubRoot" }
+  - tool: new_scene
+    args: { root_type: "Node2D", root_name: "Root" }
+  - tool: add_node
+    args: { class_name: "Sprite2D", node_name: "TestSprite", parent_path: "" }
+tests:
+  - tool: apply_shader_preset
+    description: Applies gdshader to sprite
+    args: { node_path: "Root/TestSprite", shader_path: "res://test_mcp_11/bg_shader.gdshader" }
+    expect: { status: success }
+  - tool: duplicate_resource
+    description: Duplicates the material
+    args: { node_path: "Root/TestSprite", property_name: "material" }
+    expect: { status: success }
+  - tool: clear_resource
+    description: Clears the material
+    args: { node_path: "Root/TestSprite", property_name: "material" }
+    expect: { status: success }
+  - tool: toggle_edit_group
+    description: Enables edit group
+    args: { node_path: "Root", enable: true }
+    expect: { status: success }
+  - tool: instance_child_scene
+    description: Instances sub_scene
+    args: { parent_path: "Root", scene_path: "res://test_mcp_11/sub_scene.tscn", instance_name: "Instanced" }
+    expect: { status: success }
+  - tool: make_local
+    description: Makes instanced scene local
+    args: { node_path: "Root/Instanced" }
+    expect: { status: success }
+  - tool: save_branch_as_scene
+    description: Saves sprite branch as scene
+    args: { node_path: "Root/TestSprite", path: "res://test_mcp_11/branch_scene.tscn" }
+    expect: { status: success }
+  - tool: create_animation_player
+    description: Creates an AnimationPlayer
+    args: { parent_path: "Root", node_name: "AnimPlayer" }
+    expect: { status: success }
+  - tool: create_light_3d
+    description: Creates a directional light
+    args: { parent_path: "Root", light_type: "directional", node_name: "TestLight" }
+    expect: { status: success }
+  - tool: create_navigation_region
+    description: Creates a 3D nav region
+    args: { parent_path: "Root", dimension: "3d", node_name: "TestNavRegion" }
+    expect: { status: success }
+  - tool: create_navigation_agent
+    description: Creates a 3D nav agent
+    args: { parent_path: "Root", dimension: "3d", node_name: "TestNavAgent" }
+    expect: { status: success }
+after_all:
+  - tool: new_scene
+    args: { root_type: "Node", root_name: "Cleanup" }
+  - tool: delete_file
+    args: { path: "res://test_mcp_11", recursive: true }

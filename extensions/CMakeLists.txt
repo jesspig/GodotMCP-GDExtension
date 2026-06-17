@@ -102,6 +102,10 @@ set_source_files_properties(src/built_in/register_itools.cpp PROPERTIES SKIP_UNI
 
 target_link_libraries(godot_mcp_gdext PRIVATE godot-cpp ryml::ryml)
 
+target_compile_definitions(godot_mcp_gdext PRIVATE
+    GODOT_MCP_PLUGIN_VERSION="${PROJECT_VERSION}"
+)
+
 target_include_directories(godot_mcp_gdext PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${godot-cpp_SOURCE_DIR}/include

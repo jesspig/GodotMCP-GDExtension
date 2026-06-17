@@ -7,7 +7,7 @@ Godot 4.6+ 编辑器 MCP 服务器（C++ GDExtension，纯主线程无锁，Stre
 ```bash
 uv run python main.py build               # Debug 构建 + 复制到 example/
 uv run python main.py build --release     # Release
-uv run python main.py build --no-zip      # 跳过 zip 快速迭代
+uv run python main.py build --zip         # 构建后额外打包 addons.zip
 uv run python main.py build --clean       # 清 build/（保留 _deps/）
 uv run python main.py build --clean-all   # 删整个 build/（含 _deps/）
 uv run python main.py build -j 16         # 并行 16 作业
@@ -83,6 +83,7 @@ GODOT_MCP_TOOL(cls, is_destructive_val)
 ### 属性工具
 - **`set_node_property` 的 value 参数 schema** 不应声明 `"type": "object"` — 否则 string 值会被拒绝。
 - **`add_animation_node` 的 name 参数**：schema 中为 `node_name`，但客户端可能传 `name`。需 `args_string(ctx.args, "name")` 后备。
+- **`ToolResult::err("CODE", "msg")` 的 error 是 Dictionary**（`{code, message}`），非 String。测试 `error_contains` 匹配的是 `"CODE: msg"` 格式，同时支持 code 和 msg 子串匹配。
 
 ## 参考
 
