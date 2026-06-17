@@ -1,6 +1,6 @@
 # Godot MCP
 
-[![Version](https://img.shields.io/badge/version-0.2.1-dev2-blue?logo=github)](https://github.com/jessp/godot-mcp)
+[![Version](https://img.shields.io/badge/version-0.2.1-dev3-blue?logo=github)](https://github.com/jessp/godot-mcp)
 [![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=c%2B%2B)](https://isocpp.org)
 [![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?logo=godot%20engine)](https://godotengine.org)
 [![MCP](https://badge.mcpx.dev/?type=plugin&plugin_id=github.com/jessp/godot-mcp&logo=true)](https://modelcontextprotocol.io)
@@ -66,6 +66,7 @@ uv run python main.py build
 ```
 
 构建产物：
+
 - `build/addons.zip` — 解压到任意 Godot 项目根目录即可安装编辑器插件
 - `example/addons/godot_mcp/` — 直接用于编辑器的插件目录
 

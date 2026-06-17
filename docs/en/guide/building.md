@@ -14,6 +14,7 @@ py -3 build.py --purge-cache          # clear _deps/ only (force re-download)
 ```
 
 CMake handles automatically:
+
 - `FetchContent` pulls `godot-cpp 10.0.0-rc1` + `ryml v0.7.0` (header-only)
 - Generates `plugin.cfg` and `godot_mcp.gdextension`
 - Copies dll/dylib/so to `example/addons/godot_mcp/bin/`
@@ -43,7 +44,7 @@ cmake --build build --config Debug --target package  # Package
 
 ## Version Management
 
-- Single version source in `CMakeLists.txt`: `set(PROJECT_VERSION "0.2.1-dev2")`
+- Single version source in `CMakeLists.txt`: `set(PROJECT_VERSION "0.2.1-dev3")`
 - CMake auto-fills this version when generating `plugin.cfg`
 - Update the CMake version; no need to manually edit `plugin.cfg`
 

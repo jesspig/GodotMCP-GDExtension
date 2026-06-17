@@ -16,6 +16,7 @@ cmake --build build --target deep-clean  # 仅清 example/addons/godot_mcp/bin/ 
 ```
 
 CMake 自动处理：
+
 - `FetchContent` 拉取 `godot-cpp 10.0.0-rc1` 和 `ryml v0.7.0`
 - 生成 `plugin.cfg` 和 `godot_mcp.gdextension`（根 `CMakeLists.txt:59-83`）
 - 复制 DLL/SO/DYLIB 到 `example/addons/godot_mcp/bin/`（`copy-gdext` target）
@@ -60,6 +61,7 @@ cmake --build build --target deep-clean      # 仅清 addons/bin/ + _deps/
 ## Release 构建
 
 `.github/workflows/release.yml` 在 tag `v*` 推送时触发：
+
 - 矩阵构建：ubuntu-latest / macos-latest / windows-2022
 - 使用 `cmake --build --config Release` + sccache + Ninja
 - 分别上传 GDExtension 库到 Release artifacts
@@ -83,7 +85,7 @@ cmake --build build --target deep-clean      # 仅清 addons/bin/ + _deps/
 
 ## 版本管理
 
-- 单版本源在根 `CMakeLists.txt:22`：`set(PROJECT_VERSION "0.2.1-dev2")`
+- 单版本源在根 `CMakeLists.txt:22`：`set(PROJECT_VERSION "0.2.1-dev3")`
 - `plugin.cfg` 和 `godot_mcp.gdextension` 由 CMake 从 `PROJECT_VERSION` 自动生成（`CMakeLists.txt:59-83`）
 - 升级 CMake 版本即可；不需要手动编辑 `plugin.cfg`
 - `pyproject.toml` 中的 `version` 需手动同步

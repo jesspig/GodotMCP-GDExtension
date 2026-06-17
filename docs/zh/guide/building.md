@@ -14,6 +14,7 @@ py -3 build.py --purge-cache          # 仅清 _deps/（强制重下载）
 ```
 
 CMake 自动处理：
+
 - `FetchContent` 拉取 `godot-cpp 10.0.0-rc1` + `ryml v0.7.0`（header-only）
 - 生成 `plugin.cfg` 和 `godot_mcp.gdextension`
 - 复制 dll/dylib/so 到 `example/addons/godot_mcp/bin/`
@@ -43,7 +44,7 @@ cmake --build build --config Debug --target package  # 打包
 
 ## 版本管理
 
-- 单版本源在 `CMakeLists.txt`：`set(PROJECT_VERSION "0.2.1-dev2")`
+- 单版本源在 `CMakeLists.txt`：`set(PROJECT_VERSION "0.2.1-dev3")`
 - CMake 生成 `plugin.cfg` 时自动填充此版本号
 - 升级 CMake 版本即可；不需要手动编辑 `plugin.cfg`
 

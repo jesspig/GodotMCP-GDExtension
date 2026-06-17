@@ -10,11 +10,11 @@ importers:
     dependencies:
       rspress-plugin-mermaid:
         specifier: ^1.0.1
-        version: 1.0.1(@rspress/core@2.0.13(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2))
+        version: 1.0.1(@rspress/core@2.0.14(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2))
     devDependencies:
       '@rspress/core':
-        specifier: ^2.0.0
-        version: 2.0.13(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2)
+        specifier: ^2.0.14
+        version: 2.0.14(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
 packages:
 
@@ -77,21 +77,25 @@ packages:
     resolution: {integrity: sha512-JI8+//woanJPNsfL7iGjX39zyiWumnrKHznWQM/7lEtE5nPmk+j+X7TYXxczSWC9zfZegiqI74D3L5JPDC84Fw==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@rspack/binding-linux-arm64-musl@2.0.5':
     resolution: {integrity: sha512-5LujilxLtJFRiiPz5i5iWcWJriK9oy4gN7gZtTo8YRB7wwmwA8LMypTjjO0GLbkPS4/KeCfY4fDfTC29KmK+tA==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@rspack/binding-linux-x64-gnu@2.0.5':
     resolution: {integrity: sha512-241wqE132jh+/U/pn97qUPV4KpIy4bSrTH0tqfzQCocgw+8hrUj02GqNG+3MXVC3qtwaQeJFYgEBy3TqFKsrIQ==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rspack/binding-linux-x64-musl@2.0.5':
     resolution: {integrity: sha512-BhaXZD064Lci3Kia0kLDAb4TyxO2C+0UidMlj44e8+ctasxIfFZgnrhCJrhTFHAtOiAwqhU3FHun2UuxPqX0Eg==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@rspack/binding-wasm32-wasi@2.0.5':
     resolution: {integrity: sha512-duEkRoXrl9SW8uGHv7JURJ5lgKu87qFDQ4Exy6UQPvsUJVXhtRXTfvMHCb/CejVJuW2Bw2D632/axZq3qRSuBQ==}
@@ -136,13 +140,13 @@ packages:
       '@rspack/core':
         optional: true
 
-  '@rspress/core@2.0.13':
-    resolution: {integrity: sha512-lbaBA5eqh7wKdH98TUQEI+SfS3Z6YgaNCup3X+ttrYVLOrxN8PJvbedo6fFAcl+wP3XLy6D0pcnnzAgu8y3tdg==}
+  '@rspress/core@2.0.14':
+    resolution: {integrity: sha512-k59i08zwBGgHrjHw8CK1m4CeTrKPvZRmV54bxubQl6AdDdmhJK6WrNg3UthwWmd38scKtqF40ATXDE8RMiNcNA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
-  '@rspress/shared@2.0.13':
-    resolution: {integrity: sha512-LmDfr7+MDNWRBbxcNoWkW68A35oRonpDJq2Jlx3L8GCzG4sAsyd6Yw0DebTWAxx7hVOXGMf37nEf1J4aOLEZfg==}
+  '@rspress/shared@2.0.14':
+    resolution: {integrity: sha512-sCe9tAo+s9tR4DmFSjMyHOxQvhzTSYXkkMUfVEo5w+uMCNXXGAIC6D0xAVDMHq1jIFF9ix47VxzlCo+CYNS14g==}
 
   '@shikijs/core@4.1.0':
     resolution: {integrity: sha512-jLJtSJeuFffqX6/inRE1zqU5aFv2hrszvYgq3OjbAgFRZiWv7abKMDdQzYxuSDfmUPQozZvI/kuy6VMTvnvqTQ==}
@@ -1406,13 +1410,13 @@ snapshots:
     optionalDependencies:
       '@rspack/core': 2.0.5(@swc/helpers@0.5.23)
 
-  '@rspress/core@2.0.13(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2)':
+  '@rspress/core@2.0.14(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2)':
     dependencies:
       '@mdx-js/mdx': 3.1.1
       '@mdx-js/react': 3.1.1(@types/react@19.2.15)(react@19.2.6)
       '@rsbuild/core': 2.0.9
       '@rsbuild/plugin-react': 2.0.1(@rsbuild/core@2.0.9)(@rspack/core@2.0.5(@swc/helpers@0.5.23))
-      '@rspress/shared': 2.0.13
+      '@rspress/shared': 2.0.14
       '@shikijs/rehype': 4.1.0
       '@types/unist': 3.0.3
       '@unhead/react': 2.1.15(react@19.2.6)
@@ -1456,7 +1460,7 @@ snapshots:
       - micromark-util-types
       - supports-color
 
-  '@rspress/shared@2.0.13':
+  '@rspress/shared@2.0.14':
     dependencies:
       '@rsbuild/core': 2.0.9
       '@shikijs/rehype': 4.1.0
@@ -2947,9 +2951,9 @@ snapshots:
 
   robust-predicates@3.0.3: {}
 
-  rspress-plugin-devkit@1.0.0(@rspress/core@2.0.13(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2)):
+  rspress-plugin-devkit@1.0.0(@rspress/core@2.0.14(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2)):
     dependencies:
-      '@rspress/core': 2.0.13(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2)
+      '@rspress/core': 2.0.14(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2)
       '@types/estree-jsx': 1.0.5
       '@types/hast': 3.0.4
       '@types/mdast': 4.0.4
@@ -2972,11 +2976,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  rspress-plugin-mermaid@1.0.1(@rspress/core@2.0.13(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2)):
+  rspress-plugin-mermaid@1.0.1(@rspress/core@2.0.14(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2)):
     dependencies:
-      '@rspress/core': 2.0.13(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2)
+      '@rspress/core': 2.0.14(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2)
       mermaid: 10.9.6
-      rspress-plugin-devkit: 1.0.0(@rspress/core@2.0.13(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2))
+      rspress-plugin-devkit: 1.0.0(@rspress/core@2.0.14(@rspack/core@2.0.5(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.2.15)(micromark-util-types@2.0.2)(micromark@4.0.2))
     transitivePeerDependencies:
       - supports-color
 

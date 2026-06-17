@@ -20,7 +20,7 @@
   "plugins": [
     {
       "name": "Godot MCP",
-      "version": "0.2.1-dev2",
+      "version": "0.2.1-dev3",
       "author": "",
       "description": "Model Context Protocol bridge for Godot Engine.",
       "enabled": true
@@ -32,10 +32,12 @@
 ## `set_plugin_enabled`
 
 **参数**：
+
 - `plugin`：插件名称（匹配 `plugin.cfg` 中的 `name` 字段）
 - `enabled`：`true` 启用，`false` 禁用
 
 **实现**：
+
 1. 扫描 `res://addons/` 查找匹配插件
 2. 读取其 `plugin.cfg` 确认名称
 3. 调用 `EditorInterface::set_plugin_enabled(name, enabled)`
