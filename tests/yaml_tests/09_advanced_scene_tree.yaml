@@ -2,68 +2,73 @@ name: advanced_scene_tree_smoke
 description: Smoke tests for scene tree manipulation tools
 headless: false
 
-before_all:
-  - tool: new_scene
-    args:
-      root_type: "Node2D"
-      root_name: "Root"
-  - tool: add_node
-    args:
-      class_name: "Sprite2D"
-      node_name: "Child1"
-      parent_path: ""
-  - tool: add_node
-    args:
-      class_name: "Node2D"
-      node_name: "Child2"
-      parent_path: ""
-  - tool: add_node
-    args:
-      class_name: "Node2D"
-      node_name: "GrandChild"
-      parent_path: "Child2"
+pipeline:
+  before_all:
+    - tool: new_scene
+      args:
+        root_type: "Node2D"
+        root_name: "Root"
+    - tool: add_node
+      args:
+        class_name: "Sprite2D"
+        node_name: "Child1"
+        parent_path: ""
+    - tool: add_node
+      args:
+        class_name: "Node2D"
+        node_name: "Child2"
+        parent_path: ""
+    - tool: add_node
+      args:
+        class_name: "Node2D"
+        node_name: "GrandChild"
+        parent_path: "Child2"
+  after_all:
+    - tool: new_scene
+      args:
+        root_type: "Node"
+        root_name: "Cleanup"
+  stages:
+    - id: main
+      name: Main tests
+      steps:
+        - id: change_node_type
+          tool: change_node_type
+          description: Changes Child2 from Node2D to Sprite2D
+          args:
+            node_path: "Root/Child2"
+            new_type: "Sprite2D"
+          expect:
+            has_keys: [old_type, new_type, changed]
+            field_checks:
+              - key: old_type
+                value: "Node2D"
+              - key: new_type
+                value: "Sprite2D"
+              - key: changed
+                value: true
 
-tests:
-  - tool: change_node_type
-    description: Changes Child2 from Node2D to Sprite2D
-    args:
-      node_path: "Root/Child2"
-      new_type: "Sprite2D"
-    expect:
-      has_keys: [old_type, new_type, changed]
-      field_checks:
-        - key: old_type
-          value: "Node2D"
-        - key: new_type
-          value: "Sprite2D"
-        - key: changed
-          value: true
+        - id: reparent_node
+          tool: reparent_node
+          description: Moves GrandChild from Child2 to Root
+          args:
+            node_path: "Root/Child2/GrandChild"
+            new_parent_path: "Root"
+          expect:
+            has_keys: [node, old_parent, new_parent, changed]
+            field_checks:
+              - key: new_parent
+                not_empty: true
 
-  - tool: reparent_node
-    description: Moves GrandChild from Child2 to Root
-    args:
-      node_path: "Root/Child2/GrandChild"
-      new_parent_path: "Root"
-    expect:
-      has_keys: [node, old_parent, new_parent, changed]
-      field_checks:
-        - key: new_parent
-          not_empty: true
-
-  - tool: reparent_to_new_node
-    description: Wraps GrandChild in a new Node2D
-    args:
-      node_path: "Root/GrandChild"
-      new_class: "Node2D"
-      new_name: "Wrapper"
-    expect:
-      has_keys: [source, wrapper, wrapper_type]
-      field_checks:
-        - key: wrapper_type
-          value: "Node2D"
-
-after_all:
-  - tool: new_scene
-    args:
-      root_type: "Node"
-      root_name: "Cleanup"
+        - id: reparent_to_new_node
+          tool: reparent_to_new_node
+          description: Wraps GrandChild in a new Node2D
+          args:
+            node_path: "Root/GrandChild"
+            new_class: "Node2D"
+            new_name: "Wrapper"
+          expect:
+            has_keys: [source, wrapper, wrapper_type]
+            field_checks:
+              - key: wrapper_type
+                value: "Node2D"

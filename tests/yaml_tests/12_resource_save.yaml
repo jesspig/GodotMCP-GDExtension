@@ -1,34 +1,47 @@
 name: resource_save
 description: Save shader material to file and re-save as copy
 headless: true
-before_all:
-  - tool: create_directory
-    args: { path: "res://test_mcp_12" }
-  - tool: create
-    args:
-      path: "res://test_mcp_12/bg_shader.gdshader"
-      content: "shader_type canvas_item; render_mode unshaded; void fragment() { COLOR = vec4(0.2, 0.4, 0.8, 1.0); }"
-  - tool: new_scene
-    args: { root_type: "Node2D", root_name: "Root" }
-  - tool: add_node
-    args: { class_name: "Sprite2D", node_name: "TS", parent_path: "" }
-  - tool: apply_shader_preset
-    args: { node_path: "Root/TS", shader_path: "res://test_mcp_12/bg_shader.gdshader" }
-tests:
-  - tool: save_resource
-    description: Saves shader material to file
-    args: { node_path: "Root/TS", property_name: "material", save_path: "res://test_mcp_12/saved_mat.tres" }
-    expect: { status: success }
-  - tool: save_resource_as
-    description: Re-saves resource copy
-    args: { resource_path: "res://test_mcp_12/saved_mat.tres", save_path: "res://test_mcp_12/saved_copy.tres" }
-    expect: { status: success }
-  - tool: load_resource
-    description: Loads shader as material on sprite (property setter variant)
-    args: { node_path: "Root/TS", property_name: "material", resource_path: "res://test_mcp_12/bg_shader.gdshader" }
-    expect: { status: success }
-after_all:
-  - tool: new_scene
-    args: { root_type: "Node", root_name: "Cleanup" }
-  - tool: delete_file
-    args: { path: "res://test_mcp_12", recursive: true }
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: create_directory
+      args: { path: "res://test_mcp_12" }
+    - tool: create
+      args:
+        path: "res://test_mcp_12/bg_shader.gdshader"
+        content: "shader_type canvas_item; render_mode unshaded; void fragment() { COLOR = vec4(0.2, 0.4, 0.8, 1.0); }"
+    - tool: new_scene
+      args: { root_type: "Node2D", root_name: "Root" }
+    - tool: add_node
+      args: { class_name: "Sprite2D", node_name: "TS", parent_path: "" }
+    - tool: apply_shader_preset
+      args: { node_path: "Root/TS", shader_path: "res://test_mcp_12/bg_shader.gdshader" }
+  after_all:
+    - tool: new_scene
+      args: { root_type: "Node", root_name: "Cleanup" }
+    - tool: delete_file
+      args: { path: "res://test_mcp_12", recursive: true }
+  stages:
+    - id: main
+      name: Main tests
+      before_each: []
+      after_each: []
+      steps:
+        - id: save_resource
+          tool: save_resource
+          description: Saves shader material to file
+          args: { node_path: "Root/TS", property_name: "material", save_path: "res://test_mcp_12/saved_mat.tres" }
+          expect: { status: success }
+
+        - id: save_resource_as
+          tool: save_resource_as
+          description: Re-saves resource copy
+          args: { resource_path: "res://test_mcp_12/saved_mat.tres", save_path: "res://test_mcp_12/saved_copy.tres" }
+          expect: { status: success }
+
+        - id: load_resource
+          tool: load_resource
+          description: Loads shader as material on sprite (property setter variant)
+          args: { node_path: "Root/TS", property_name: "material", resource_path: "res://test_mcp_12/bg_shader.gdshader" }
+          expect: { status: success }

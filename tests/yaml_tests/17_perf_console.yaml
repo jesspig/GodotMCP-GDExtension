@@ -1,18 +1,25 @@
 name: perf_console
 description: get_performance_monitors, get_console_output
 headless: false
-before_all:
-  - tool: new_scene
-    args: { root_type: "Node", root_name: "Root" }
-tests:
-  - tool: get_performance_monitors
-    description: Gets performance monitor values
-    args: {}
-    expect: { has_keys: [monitors, is_running] }
-  - tool: get_console_output
-    description: Gets console output
-    args: {}
-    expect: { status: success }
-after_all:
-  - tool: new_scene
-    args: { root_type: "Node", root_name: "Cleanup" }
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: new_scene
+      args: { root_type: "Node", root_name: "Root" }
+  after_all:
+    - tool: new_scene
+      args: { root_type: "Node", root_name: "Cleanup" }
+  stages:
+    - id: main
+      steps:
+        - id: get_performance_monitors
+          tool: get_performance_monitors
+          description: Gets performance monitor values
+          args: {}
+          expect: { has_keys: [monitors, is_running] }
+        - id: get_console_output
+          tool: get_console_output
+          description: Gets console output
+          args: {}
+          expect: { status: success }

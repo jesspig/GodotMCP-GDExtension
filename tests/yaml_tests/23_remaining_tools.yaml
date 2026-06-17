@@ -2,32 +2,38 @@ name: remaining_tools_smoke
 description: Smoke tests for remaining uncovered tools (create_project, export_project, bake_navigation_mesh)
 headless: false
 
-tests:
-  - tool: create_project
-    description: Creates a new Godot project
-    args:
-      project_path: "res://test_mcp_newproj"
-      project_name: "TestProject"
-    expect:
-      has_keys: [project_path, project_name, files_created]
+pipeline:
+  on_failure: fail_fast
+  after_all:
+    - tool: delete_file
+      args:
+        path: "res://test_mcp_newproj"
+        recursive: true
+  stages:
+    - id: main
+      steps:
+        - id: create_project
+          tool: create_project
+          description: Creates a new Godot project
+          args:
+            project_path: "res://test_mcp_newproj"
+            project_name: "TestProject"
+          expect:
+            has_keys: [project_path, project_name, files_created]
 
-  - tool: export_project
-    description: Exports with HTML5 preset (succeeds if preset exists)
-    args:
-      preset_name: "HTML5"
-    expect:
-      has_keys: [exported, preset_name]
+        - id: export_project
+          tool: export_project
+          description: Exports with HTML5 preset (succeeds if preset exists)
+          args:
+            preset_name: "HTML5"
+          expect:
+            has_keys: [exported, preset_name]
 
-  - tool: bake_navigation_mesh
-    description: Attempts to bake navigation mesh (fails without nav region)
-    args:
-      region_path: "WorkspaceTestRoot/NavigationRegion3D"
-      timeout_seconds: 1
-    expect:
-      status: error
-
-after_all:
-  - tool: delete_file
-    args:
-      path: "res://test_mcp_newproj"
-      recursive: true
+        - id: bake_navigation_mesh
+          tool: bake_navigation_mesh
+          description: Attempts to bake navigation mesh (fails without nav region)
+          args:
+            region_path: "WorkspaceTestRoot/NavigationRegion3D"
+            timeout_seconds: 1
+          expect:
+            status: error

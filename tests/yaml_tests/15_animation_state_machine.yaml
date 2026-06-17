@@ -1,38 +1,48 @@
 name: animation_state_machine
 description: create_animation_tree, add_animation_node, get_animation_tree_info
 headless: false
-before_all:
-  - tool: new_scene
-    args: { root_type: "Node2D", root_name: "Root" }
-  - tool: add_node
-    args: { class_name: "Sprite2D", node_name: "TS", parent_path: "" }
-  - tool: create_animation_player
-    args: { parent_path: "Root", node_name: "AP", library_name: "lib" }
-  - tool: create_animation_clip
-    args: { anim_player_path: "Root/AP", clip_name: "idle", length: 1.0, library_name: "lib" }
-  - tool: create_animation_tree
-    args: { parent_path: "Root", anim_player_path: "Root/AP", node_name: "AT" }
-tests:
-  - tool: add_animation_node
-    description: Adds animation node referencing idle clip
-    args: { tree_path: "Root/AT", node_type: "animation", name: "Idle", animation_name: "lib/idle" }
-    expect: { status: success }
-  - tool: add_animation_node
-    description: Adds a blend2 node
-    args: { tree_path: "Root/AT", node_type: "blend2", name: "Blend" }
-    expect: { status: success }
-  - tool: add_transition
-    description: Adds transition from Idle to Blend
-    args: { tree_path: "Root/AT", from: "Idle", to: "Blend", xfade_time: 0.1 }
-    expect: { status: success }
-  - tool: set_transition_condition
-    description: Sets condition on transition
-    args: { tree_path: "Root/AT", from: "Idle", to: "Blend", condition: "enabled", value: true }
-    expect: { status: success }
-  - tool: get_animation_tree_info
-    description: Gets animation tree info (has transitions now)
-    args: { node_path: "Root/AT" }
-    expect: { status: success }
-after_all:
-  - tool: new_scene
-    args: { root_type: "Node", root_name: "Cleanup" }
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: new_scene
+      args: { root_type: "Node2D", root_name: "Root" }
+    - tool: add_node
+      args: { class_name: "Sprite2D", node_name: "TS", parent_path: "" }
+    - tool: create_animation_player
+      args: { parent_path: "Root", node_name: "AP", library_name: "lib" }
+    - tool: create_animation_clip
+      args: { anim_player_path: "Root/AP", clip_name: "idle", length: 1.0, library_name: "lib" }
+    - tool: create_animation_tree
+      args: { parent_path: "Root", anim_player_path: "Root/AP", node_name: "AT" }
+  after_all:
+    - tool: new_scene
+      args: { root_type: "Node", root_name: "Cleanup" }
+  stages:
+    - id: main
+      steps:
+        - id: add_animation_node_idle
+          tool: add_animation_node
+          description: Adds animation node referencing idle clip
+          args: { tree_path: "Root/AT", node_type: "animation", name: "Idle", animation_name: "lib/idle" }
+          expect: { status: success }
+        - id: add_animation_node_blend
+          tool: add_animation_node
+          description: Adds a blend2 node
+          args: { tree_path: "Root/AT", node_type: "blend2", name: "Blend" }
+          expect: { status: success }
+        - id: add_transition
+          tool: add_transition
+          description: Adds transition from Idle to Blend
+          args: { tree_path: "Root/AT", from: "Idle", to: "Blend", xfade_time: 0.1 }
+          expect: { status: success }
+        - id: set_transition_condition
+          tool: set_transition_condition
+          description: Sets condition on transition
+          args: { tree_path: "Root/AT", from: "Idle", to: "Blend", condition: "enabled", value: true }
+          expect: { status: success }
+        - id: get_animation_tree_info
+          tool: get_animation_tree_info
+          description: Gets animation tree info (has transitions now)
+          args: { node_path: "Root/AT" }
+          expect: { status: success }

@@ -2,149 +2,164 @@ name: signals_groups_control_audio_smoke
 description: Smoke tests for signal, group, control, and audio tools
 headless: false
 
-before_all:
-  - tool: new_scene
-    args:
-      root_type: "Node2D"
-      root_name: "TestRoot"
-  - tool: add_node
-    args:
-      class_name: "Sprite2D"
-      node_name: "TestSprite"
-      parent_path: ""
-  - tool: add_node
-    args:
-      class_name: "Button"
-      node_name: "TestButton"
-      parent_path: ""
+pipeline:
+  before_all:
+    - tool: new_scene
+      args:
+        root_type: "Node2D"
+        root_name: "TestRoot"
+    - tool: add_node
+      args:
+        class_name: "Sprite2D"
+        node_name: "TestSprite"
+        parent_path: ""
+    - tool: add_node
+      args:
+        class_name: "Button"
+        node_name: "TestButton"
+        parent_path: ""
+  after_all:
+    - tool: new_scene
+      args:
+        root_type: "Node"
+        root_name: "Cleanup"
+  stages:
+    - id: main
+      name: Main tests
+      steps:
+        - id: list_signals
+          tool: list_signals
+          description: Lists available signals on TestSprite
+          args:
+            node_path: "TestRoot/TestSprite"
+          expect:
+            has_keys: [node, signals, count]
 
-tests:
-  - tool: list_signals
-    description: Lists available signals on TestSprite
-    args:
-      node_path: "TestRoot/TestSprite"
-    expect:
-      has_keys: [node, signals, count]
+        - id: get_signal_connections
+          tool: get_signal_connections
+          description: Gets signal connections on TestSprite (should be empty)
+          args:
+            node_path: "TestRoot/TestSprite"
+          expect:
+            has_keys: [node, connections, count]
 
-  - tool: get_signal_connections
-    description: Gets signal connections on TestSprite (should be empty)
-    args:
-      node_path: "TestRoot/TestSprite"
-    expect:
-      has_keys: [node, connections, count]
+        - id: connect_signal
+          tool: connect_signal
+          description: Connects TestSprite.tree_entered to TestButton.test_method via Callable
+          args:
+            node_path: "TestRoot/TestSprite"
+            signal_name: "tree_entered"
+            target_path: "TestRoot/TestButton"
+            target_method: "set_text"
+          expect:
+            has_keys: [node, signal, target, target_method]
 
-  - tool: connect_signal
-    description: Connects TestSprite.tree_entered to TestButton.test_method via Callable
-    args:
-      node_path: "TestRoot/TestSprite"
-      signal_name: "tree_entered"
-      target_path: "TestRoot/TestButton"
-      target_method: "set_text"
-    expect:
-      has_keys: [node, signal, target, target_method]
+        - id: disconnect_signal
+          tool: disconnect_signal
+          description: Disconnects the previously connected signal
+          args:
+            node_path: "TestRoot/TestSprite"
+            signal_name: "tree_entered"
+            target_path: "TestRoot/TestButton"
+            target_method: "set_text"
+          expect:
+            has_keys: [node, signal, target, target_method]
 
-  - tool: disconnect_signal
-    description: Disconnects the previously connected signal
-    args:
-      node_path: "TestRoot/TestSprite"
-      signal_name: "tree_entered"
-      target_path: "TestRoot/TestButton"
-      target_method: "set_text"
-    expect:
-      has_keys: [node, signal, target, target_method]
+        - id: add_to_group
+          tool: add_to_group
+          description: Adds TestSprite to test_group
+          args:
+            node_path: "TestRoot/TestSprite"
+            group_name: "smoke_test_group"
+          expect:
+            has_keys: [node, group]
+            field_checks:
+              - key: group
+                value: "smoke_test_group"
 
-  - tool: add_to_group
-    description: Adds TestSprite to test_group
-    args:
-      node_path: "TestRoot/TestSprite"
-      group_name: "smoke_test_group"
-    expect:
-      has_keys: [node, group]
-      field_checks:
-        - key: group
-          value: "smoke_test_group"
+        - id: get_node_groups
+          tool: get_node_groups
+          description: Lists groups for TestSprite
+          args:
+            node_path: "TestRoot/TestSprite"
+          expect:
+            has_keys: [node, groups, count]
+            field_checks:
+              - key: count
+                not_empty: true
 
-  - tool: get_node_groups
-    description: Lists groups for TestSprite
-    args:
-      node_path: "TestRoot/TestSprite"
-    expect:
-      has_keys: [node, groups, count]
-      field_checks:
-        - key: count
-          not_empty: true
+        - id: get_nodes_in_group
+          tool: get_nodes_in_group
+          description: Gets all nodes in smoke_test_group
+          args:
+            group_name: "smoke_test_group"
+          expect:
+            has_keys: [group, nodes, count]
+            field_checks:
+              - key: count
+                not_empty: true
 
-  - tool: get_nodes_in_group
-    description: Gets all nodes in smoke_test_group
-    args:
-      group_name: "smoke_test_group"
-    expect:
-      has_keys: [group, nodes, count]
-      field_checks:
-        - key: count
-          not_empty: true
+        - id: remove_from_group
+          tool: remove_from_group
+          description: Removes TestSprite from test_group
+          args:
+            node_path: "TestRoot/TestSprite"
+            group_name: "smoke_test_group"
+          expect:
+            has_keys: [node, group]
+            field_checks:
+              - key: group
+                value: "smoke_test_group"
 
-  - tool: remove_from_group
-    description: Removes TestSprite from test_group
-    args:
-      node_path: "TestRoot/TestSprite"
-      group_name: "smoke_test_group"
-    expect:
-      has_keys: [node, group]
-      field_checks:
-        - key: group
-          value: "smoke_test_group"
+        - id: create_control
+          tool: create_control
+          description: Creates a Button control node
+          args:
+            class_name: "Button"
+            node_name: "TestControlBtn"
+            parent_path: ""
+          expect:
+            has_keys: [node_name, node_path, class_name]
+            field_checks:
+              - key: class_name
+                value: "Button"
 
-  - tool: create_control
-    description: Creates a Button control node
-    args:
-      class_name: "Button"
-      node_name: "TestControlBtn"
-      parent_path: ""
-    expect:
-      has_keys: [node_name, node_path, class_name]
-      field_checks:
-        - key: class_name
-          value: "Button"
+        - id: set_layout_preset
+          tool: set_layout_preset
+          description: Sets layout preset on the control
+          args:
+            node_path: "TestRoot/TestControlBtn"
+            preset: "center"
+          expect:
+            has_keys: [preset, keep_offsets]
 
-  - tool: set_layout_preset
-    description: Sets layout preset on the control
-    args:
-      node_path: "TestRoot/TestControlBtn"
-      preset: "center"
-    expect:
-      has_keys: [preset, keep_offsets]
+        - id: set_theme_override
+          tool: set_theme_override
+          description: Sets a theme override on the control
+          args:
+            node_path: "TestRoot/TestControlBtn"
+            overrides:
+              - type: "color"
+                name: "font_color"
+                value: "#ff0000"
+          expect:
+            has_keys: [overrides_applied]
 
-  - tool: set_theme_override
-    description: Sets a theme override on the control
-    args:
-      node_path: "TestRoot/TestControlBtn"
-      overrides:
-        - type: "color"
-          name: "font_color"
-          value: "#ff0000"
-    expect:
-      has_keys: [overrides_applied]
+        - id: create_audio_player
+          tool: create_audio_player
+          description: Creates an AudioStreamPlayer2D node
+          args:
+            node_name: "TestAudio"
+            player_type: "2d"
+            parent_path: ""
+          expect:
+            has_keys: [node_name, node_path, player_type, class_name, stream_loaded, bus]
+            field_checks:
+              - key: class_name
+                value: "AudioStreamPlayer2D"
 
-  - tool: create_audio_player
-    description: Creates an AudioStreamPlayer2D node
-    args:
-      node_name: "TestAudio"
-      player_type: "2d"
-      parent_path: ""
-    expect:
-      has_keys: [node_name, node_path, player_type, class_name, stream_loaded, bus]
-      field_checks:
-        - key: class_name
-          value: "AudioStreamPlayer2D"
-
-  - tool: list_audio_buses
-    description: Lists available audio buses
-    expect:
-      has_keys: [buses, bus_count]
-
-after_all:
-  - tool: new_scene
-    args:
-      root_type: "Node"
-      root_name: "Cleanup"
+        - id: list_audio_buses
+          tool: list_audio_buses
+          description: Lists available audio buses
+          expect:
+            has_keys: [buses, bus_count]

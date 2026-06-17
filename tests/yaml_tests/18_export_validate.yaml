@@ -1,14 +1,20 @@
 name: export_validate_viewport
 description: validate_export_presets
 headless: true
-before_all:
-  - tool: new_scene
-    args: { root_type: "Node", root_name: "Root" }
-tests:
-  - tool: validate_export_presets
-    description: Validates all export presets
-    args: {}
-    expect: { has_keys: [presets, preset_count, all_valid] }
-after_all:
-  - tool: new_scene
-    args: { root_type: "Node", root_name: "Cleanup" }
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: new_scene
+      args: { root_type: "Node", root_name: "Root" }
+  after_all:
+    - tool: new_scene
+      args: { root_type: "Node", root_name: "Cleanup" }
+  stages:
+    - id: main
+      steps:
+        - id: validate_export_presets
+          tool: validate_export_presets
+          description: Validates all export presets
+          args: {}
+          expect: { has_keys: [presets, preset_count, all_valid] }
