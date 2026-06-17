@@ -39,6 +39,50 @@ class TestReport:
         return sum(pr.skipped for pr in self.phases)
 
     @property
+    def total_call_count(self) -> int:
+        return sum(pr.call_count for pr in self.phases)
+
+    @property
+    def total_call_success(self) -> int:
+        return sum(pr.call_success for pr in self.phases)
+
+    @property
+    def total_call_fail(self) -> int:
+        return sum(pr.call_fail for pr in self.phases)
+
+    @property
+    def total_call_skip(self) -> int:
+        return sum(pr.call_skip for pr in self.phases)
+
+    @property
+    def total_unique_tools(self) -> int:
+        return sum(pr.unique_tools for pr in self.phases)
+
+    @property
+    def total_unique_success(self) -> int:
+        return sum(pr.unique_success for pr in self.phases)
+
+    @property
+    def total_unique_fail(self) -> int:
+        return sum(pr.unique_fail for pr in self.phases)
+
+    @property
+    def total_unique_skip(self) -> int:
+        return sum(pr.unique_skip for pr in self.phases)
+
+    @property
+    def all_errors(self) -> list[dict]:
+        seen = set()
+        unique = []
+        for p in self.phases:
+            for err in p.errors:
+                key = (err.get("tool", ""), err.get("error", ""))
+                if key not in seen:
+                    seen.add(key)
+                    unique.append(err)
+        return unique
+
+    @property
     def total_duration(self) -> float:
         return sum(pr.duration for pr in self.phases)
 
@@ -52,19 +96,17 @@ class TestReport:
                 "failed": self.failed,
                 "skipped": self.skipped,
                 "duration_seconds": round(self.total_duration, 1),
+                "total_call_count": self.total_call_count,
+                "total_call_success": self.total_call_success,
+                "total_call_fail": self.total_call_fail,
+                "total_call_skip": self.total_call_skip,
+                "total_unique_tools": self.total_unique_tools,
+                "total_unique_success": self.total_unique_success,
+                "total_unique_fail": self.total_unique_fail,
+                "total_unique_skip": self.total_unique_skip,
+                "unique_errors": len(self.all_errors),
             },
-            "phases": [
-                {
-                    "name": p.name,
-                    "duration": round(p.duration, 1),
-                    "tested": p.tested,
-                    "passed": p.passed,
-                    "failed": p.failed,
-                    "skipped": p.skipped,
-                    "results": [r.to_dict() for r in p.results],
-                }
-                for p in self.phases
-            ],
+            "phases": [p.to_dict() for p in self.phases],
             "failures": [
                 {
                     "tool": r.tool,
@@ -119,6 +161,15 @@ class TestReport:
             f"| Failed | {summary['failed']} |",
             f"| Skipped | {summary['skipped']} |",
             f"| Duration | {summary['duration_seconds']}s |",
+            f"| Total Calls | {summary['total_call_count']} |",
+            f"| Call Success | {summary['total_call_success']} |",
+            f"| Call Fail | {summary['total_call_fail']} |",
+            f"| Call Skip | {summary['total_call_skip']} |",
+            f"| Unique Tools | {summary['total_unique_tools']} |",
+            f"| Unique Success | {summary['total_unique_success']} |",
+            f"| Unique Fail | {summary['total_unique_fail']} |",
+            f"| Unique Skip | {summary['total_unique_skip']} |",
+            f"| Unique Errors | {summary['unique_errors']} |",
             "",
             "## Results by Phase",
             "",
@@ -153,6 +204,20 @@ class TestReport:
                     f"- **Error**: {f_['error']}",
                     "",
                 ]
+
+        all_errors = self.all_errors
+        if all_errors:
+            lines += [
+                "## Error Summary",
+                "",
+                "| Tool | Error |",
+                "|------|-------|",
+            ]
+            for err in all_errors:
+                tool = err.get("tool", "")
+                error = err.get("error", "")
+                lines.append(f"| {tool} | {error} |")
+            lines.append("")
 
         lines.append("")
 

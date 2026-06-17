@@ -6,6 +6,7 @@
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/json.hpp>
+#include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
 
 #include <deque>
@@ -280,35 +281,98 @@ void TestEngine::restore_project_godot() {
 
 // ---------------------------------------------------------------------------
 // Execute a chain of tool calls (before_all, after_all, before_each, after_each)
+// Returns {error, skipped_count, errors}
 // ---------------------------------------------------------------------------
 
-godot::String TestEngine::execute_chain(const Array &chain, const char *chain_name) {
-    for (int i = 0; i < chain.size(); ++i) {
+Dictionary TestEngine::execute_chain(const Array &chain, const char *chain_name,
+                                      const String &on_failure, CallStats &stats) {
+    Dictionary result;
+    result["error"] = String();
+    result["skipped_count"] = 0;
+    result["errors"] = Array();
+
+    Array chain_errors;
+    const int chain_size = static_cast<int>(chain.size());
+
+    for (int i = 0; i < chain_size; ++i) {
         const Dictionary step = chain[i];
         const String tool_name = step.get("tool", "");
         const Dictionary tool_args = step.get("args", Dictionary());
         if (tool_name.is_empty()) continue;
+
+        // Per-step on_failure overrides the chain-level default
+        const String step_on_failure = step.has("on_failure")
+            ? String(step["on_failure"])
+            : on_failure;
+
         record_setting_before_call(tool_name, tool_args);
-        const Dictionary result = registry_->execute(tool_name, tool_args);
-        if (result.has("error")) {
-            const Variant err = result["error"];
-            String err_msg = err.get_type() == Variant::DICTIONARY
+        const Dictionary exec_result = registry_->execute(tool_name, tool_args);
+
+        stats.call_count++;
+        stats.unique_tools.insert(tool_name);
+
+        bool step_failed = false;
+        String err_msg;
+
+        if (exec_result.has("error")) {
+            const Variant err = exec_result["error"];
+            err_msg = err.get_type() == Variant::DICTIONARY
                 ? String(Dictionary(err).get("message", "Unknown error"))
                 : String(err);
-            return String(chain_name) + String(" step '") + tool_name + String("' failed: ") + err_msg;
+            step_failed = true;
+        } else if (exec_result.has("success") && !exec_result["success"].operator bool()) {
+            err_msg = String("returned success=false");
+            step_failed = true;
         }
-        if (result.has("success") && !result["success"].operator bool()) {
-            return String(chain_name) + String(" step '") + tool_name + String("' returned success=false");
+
+        if (step_failed) {
+            stats.call_fail++;
+            stats.unique_fail.insert(tool_name);
+
+            const String full_err = String(chain_name) + String(" step '") + tool_name + String("' failed: ") + err_msg;
+
+            Dictionary err_entry;
+            err_entry["tool"] = tool_name;
+            err_entry["error"] = full_err;
+            chain_errors.push_back(err_entry);
+            stats.errors.push_back(err_entry);
+
+            // Record skipped steps for skip_remaining
+            if (step_on_failure == "skip_remaining") {
+                const int remaining = chain_size - i - 1;
+                stats.call_skip += remaining;
+                for (int s = i + 1; s < chain_size; ++s) {
+                    const Dictionary skipped_step = chain[s];
+                    const String skipped_tool = skipped_step.get("tool", "");
+                    if (!skipped_tool.is_empty()) {
+                        stats.unique_skip.insert(skipped_tool);
+                    }
+                }
+                result["error"] = full_err;
+                result["skipped_count"] = remaining;
+                result["errors"] = chain_errors;
+                return result;
+            } else if (step_on_failure == "stop") {
+                result["error"] = full_err;
+                result["errors"] = chain_errors;
+                return result;
+            }
+            // "continue": record error, keep going
+        } else {
+            stats.call_success++;
+            stats.unique_success.insert(tool_name);
         }
     }
-    return String();
+
+    result["errors"] = chain_errors;
+    return result;
 }
 
 // ---------------------------------------------------------------------------
 // Execute a single test and return its result Dictionary
 // ---------------------------------------------------------------------------
 
-Dictionary TestEngine::execute_test(const Dictionary &test_def) {
+Dictionary TestEngine::execute_test(const Dictionary &test_def, CallStats &stats) {
     Dictionary test_result;
     const String tool_name = test_def.get("tool", "");
     const String description = test_def.get("description", "");
@@ -319,17 +383,33 @@ Dictionary TestEngine::execute_test(const Dictionary &test_def) {
     test_result["tool"] = tool_name;
     test_result["description"] = description;
 
+    const int64_t start_us = Time::get_singleton()->get_ticks_usec();
+
     // Execute tool
     record_setting_before_call(tool_name, tool_args);
     const Dictionary raw_result = registry_->execute(tool_name, tool_args);
+
+    stats.call_count++;
+    stats.unique_tools.insert(tool_name);
+
     test_result["raw_result"] = raw_result;
     test_result["tracked_paths"] = track_paths(raw_result);
 
     // Run assertions
     const String assert_error = run_assertions(expect, raw_result);
     if (!assert_error.is_empty()) {
+        stats.call_fail++;
+        stats.unique_fail.insert(tool_name);
+
+        Dictionary err_entry;
+        err_entry["tool"] = tool_name;
+        err_entry["error"] = assert_error;
+        stats.errors.push_back(err_entry);
+
         test_result["passed"] = false;
+        test_result["status"] = "FAIL";
         test_result["error"] = assert_error;
+        test_result["duration_us"] = Time::get_singleton()->get_ticks_usec() - start_us;
         return test_result;
     }
 
@@ -337,13 +417,29 @@ Dictionary TestEngine::execute_test(const Dictionary &test_def) {
     if (!disk_verify.is_empty()) {
         const Array disk_errors = run_disk_verification(disk_verify);
         if (disk_errors.size() > 0) {
+            stats.call_fail++;
+            stats.unique_fail.insert(tool_name);
+
+            const String disk_err = String("Disk verification failed: ") + JSON::stringify(disk_errors);
+            Dictionary err_entry;
+            err_entry["tool"] = tool_name;
+            err_entry["error"] = disk_err;
+            stats.errors.push_back(err_entry);
+
             test_result["passed"] = false;
-            test_result["error"] = String("Disk verification failed: ") + JSON::stringify(disk_errors);
+            test_result["status"] = "FAIL";
+            test_result["error"] = disk_err;
+            test_result["duration_us"] = Time::get_singleton()->get_ticks_usec() - start_us;
             return test_result;
         }
     }
 
+    stats.call_success++;
+    stats.unique_success.insert(tool_name);
+
     test_result["passed"] = true;
+    test_result["status"] = "PASS";
+    test_result["duration_us"] = Time::get_singleton()->get_ticks_usec() - start_us;
     return test_result;
 }
 
@@ -366,6 +462,12 @@ Dictionary TestEngine::run(const String &yaml_content) {
     suite_result["name"] = config.get("name", "");
     suite_result["description"] = config.get("description", "");
 
+    const int64_t start_time_us = Time::get_singleton()->get_ticks_usec();
+
+    CallStats stats;
+
+    const String suite_on_failure = config.get("on_failure", "stop");
+
     // --- Backup project.godot raw content (before any tool touches it) ---
     backup_project_godot();
 
@@ -373,30 +475,37 @@ Dictionary TestEngine::run(const String &yaml_content) {
     const FileSnapshot before = take_snapshot();
 
     // --- before_all chain ---
-    String before_all_error;
+    Dictionary before_all_result;
+    bool before_all_failed = false;
     if (config.has("before_all")) {
-        before_all_error = execute_chain(config["before_all"], "before_all");
+        before_all_result = execute_chain(config["before_all"], "before_all", suite_on_failure, stats);
+        if (!String(before_all_result["error"]).is_empty()) {
+            before_all_failed = true;
+        }
     }
 
     // --- Tests ---
     Array test_results;
-    int total = 0, passed = 0, failed = 0;
+    int total = 0, passed = 0, failed = 0, skipped = 0;
     bool teardown_failed = false;
     String teardown_error;
+    bool skip_remaining = false;
 
-    if (!before_all_error.is_empty()) {
-        // before_all failed — report error and skip all tests
+    if (before_all_failed) {
+        // before_all failed — skip all tests
         if (config.has("tests")) {
             const Array tests = config["tests"];
             total = static_cast<int>(tests.size());
-            failed = total;
+            skipped = total;
+            stats.call_skip += total;
             for (int i = 0; i < tests.size(); ++i) {
                 const Dictionary test_def = tests[i];
                 Dictionary entry;
                 entry["tool"] = test_def.get("tool", "");
                 entry["description"] = test_def.get("description", "");
                 entry["passed"] = false;
-                entry["error"] = before_all_error;
+                entry["status"] = "SKIP";
+                entry["error"] = before_all_result["error"];
                 test_results.push_back(entry);
             }
         }
@@ -407,21 +516,43 @@ Dictionary TestEngine::run(const String &yaml_content) {
         for (int i = 0; i < tests.size(); ++i) {
             const Dictionary test_def = tests[i];
 
+            if (skip_remaining) {
+                Dictionary entry;
+                entry["tool"] = test_def.get("tool", "");
+                entry["description"] = test_def.get("description", "");
+                entry["passed"] = false;
+                entry["status"] = "SKIP";
+                skipped++;
+                stats.call_skip++;
+                test_results.push_back(entry);
+                continue;
+            }
+
+            const String test_on_failure = test_def.has("on_failure")
+                ? String(test_def["on_failure"])
+                : suite_on_failure;
+
             // before_each
-            String before_each_err;
+            Dictionary before_each_result;
+            bool before_each_failed = false;
             if (config.has("before_each")) {
-                before_each_err = execute_chain(config["before_each"], "before_each");
+                before_each_result = execute_chain(config["before_each"], "before_each", test_on_failure, stats);
+                if (!String(before_each_result["error"]).is_empty()) {
+                    before_each_failed = true;
+                }
             }
 
             Dictionary result;
-            if (!before_each_err.is_empty()) {
+            if (before_each_failed) {
                 result["tool"] = test_def.get("tool", "");
                 result["description"] = test_def.get("description", "");
                 result["passed"] = false;
-                result["error"] = before_each_err;
+                result["status"] = "FAIL";
+                result["error"] = before_each_result["error"];
+                result["duration_us"] = 0;
             } else {
                 // Execute the test
-                result = execute_test(test_def);
+                result = execute_test(test_def, stats);
 
                 // Collect tracked paths
                 if (result.has("tracked_paths")) {
@@ -441,15 +572,12 @@ Dictionary TestEngine::run(const String &yaml_content) {
 
             // after_each
             if (config.has("after_each")) {
-                const String after_each_err = execute_chain(config["after_each"], "after_each");
-                if (!after_each_err.is_empty()) {
-                    log_warn("test_engine", after_each_err);
-                    // A teardown failure leaves the suite in a dirty state; the
-                    // old code only log_warn'd and left the test green, which
-                    // hid real problems. Flip the result to failed and surface
-                    // the teardown error.
+                const Dictionary after_each_result = execute_chain(config["after_each"], "after_each", test_on_failure, stats);
+                if (!String(after_each_result["error"]).is_empty()) {
+                    log_warn("test_engine", String(after_each_result["error"]));
                     result["passed"] = false;
-                    result["error"] = String("after_each failed: ") + after_each_err;
+                    result["status"] = "FAIL";
+                    result["error"] = String("after_each failed: ") + String(after_each_result["error"]);
                 }
             }
 
@@ -458,24 +586,39 @@ Dictionary TestEngine::run(const String &yaml_content) {
             entry["tool"] = result.get("tool", "");
             entry["description"] = result.get("description", "");
             entry["passed"] = result.get("passed", false);
+            entry["status"] = result.get("status", "PASS");
+            if (result.has("duration_us")) {
+                entry["duration_ms"] = static_cast<int64_t>(result["duration_us"]) / 1000;
+            }
             if (result.has("error")) {
                 entry["error"] = result["error"];
-                failed++;
-            } else {
-                passed++;
             }
+
+            const String status = result.get("status", "");
+            if (status == "PASS") {
+                passed++;
+            } else if (status == "SKIP") {
+                skipped++;
+            } else {
+                failed++;
+            }
+
+            // Handle on_failure for test-level skip_remaining
+            if (status == "FAIL" && test_on_failure == "skip_remaining") {
+                skip_remaining = true;
+            }
+
             test_results.push_back(entry);
         }
     }
 
     // --- after_all chain ---
     if (config.has("after_all")) {
-        const String after_all_err = execute_chain(config["after_all"], "after_all");
-        if (!after_all_err.is_empty()) {
-            log_warn("test_engine", after_all_err);
-            // Surface suite-level teardown failure instead of swallowing it.
+        const Dictionary after_all_result = execute_chain(config["after_all"], "after_all", suite_on_failure, stats);
+        if (!String(after_all_result["error"]).is_empty()) {
+            log_warn("test_engine", String(after_all_result["error"]));
             teardown_failed = true;
-            teardown_error = after_all_err;
+            teardown_error = after_all_result["error"];
         }
     }
 
@@ -487,16 +630,49 @@ Dictionary TestEngine::run(const String &yaml_content) {
     const FileSnapshot after = take_snapshot();
 
     Array all_tracked = suite_result.get("_all_tracked", Array());
-    Array deleted, skipped;
-    cleanup(all_tracked, before, after, deleted, skipped);
+    Array deleted, skipped_cleanup;
+    cleanup(all_tracked, before, after, deleted, skipped_cleanup);
+
+    const int64_t end_time_us = Time::get_singleton()->get_ticks_usec();
+    const int64_t duration_ms = (end_time_us - start_time_us) / 1000;
 
     // --- Build summary ---
     Dictionary summary;
     summary["total"] = total;
     summary["passed"] = passed;
     summary["failed"] = failed;
+    summary["skipped"] = skipped;
+    summary["call_count"] = stats.call_count;
+    summary["call_success"] = stats.call_success;
+    summary["call_fail"] = stats.call_fail;
+    summary["call_skip"] = stats.call_skip;
+
+    // Convert std::set<String> to PackedStringArray
+    {
+        PackedStringArray ut;
+        for (const auto &s : stats.unique_tools) ut.push_back(s);
+        summary["unique_tools"] = ut;
+    }
+    {
+        PackedStringArray us;
+        for (const auto &s : stats.unique_success) us.push_back(s);
+        summary["unique_success"] = us;
+    }
+    {
+        PackedStringArray uf;
+        for (const auto &s : stats.unique_fail) uf.push_back(s);
+        summary["unique_fail"] = uf;
+    }
+    {
+        PackedStringArray usk;
+        for (const auto &s : stats.unique_skip) usk.push_back(s);
+        summary["unique_skip"] = usk;
+    }
+
+    summary["duration_ms"] = duration_ms;
+    summary["errors"] = stats.errors;
     summary["cleanup_deleted"] = deleted;
-    summary["cleanup_skipped"] = skipped;
+    summary["cleanup_skipped"] = skipped_cleanup;
     if (teardown_failed) {
         summary["teardown_failed"] = true;
         summary["teardown_error"] = teardown_error;
