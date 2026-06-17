@@ -1,8 +1,0 @@
-class: Mesh
-inherits: Resource
-properties:
-- name: lightmap_size_hint
-  type: 6
-  type_name: Vector2i
-description: ''
-aliases: []

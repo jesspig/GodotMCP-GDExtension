@@ -1,5 +1,0 @@
-class: VideoStreamTheora
-inherits: VideoStream
-properties: []
-description: ''
-aliases: []

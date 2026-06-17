@@ -1,8 +1,0 @@
-class: ShaderInclude
-inherits: Resource
-properties:
-- name: code
-  type: 4
-  type_name: String
-description: ''
-aliases: []

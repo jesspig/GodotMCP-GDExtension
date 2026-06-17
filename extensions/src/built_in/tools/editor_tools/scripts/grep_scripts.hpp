@@ -11,20 +11,21 @@ namespace godot_mcp {
 
 class GrepScriptsTool : public ITool {
 public:
-    String name() const override { return "grep_scripts"; }
-    String category() const override { return "editor_tools/scripts"; }
-    String brief() const override {
+    String name() const noexcept override { return "grep_scripts"; }
+    String category() const noexcept override { return "editor_tools/scripts"; }
+    String brief() const noexcept override {
         return "Search for text content in script files";
     }
     String description() const override {
         return "Search for a text pattern in project script files, returning matching file paths, line numbers, and line content. Supports filtering by language (gdscript/csharp/all), case sensitivity, and maximum results limit.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
             p["description"] = "Search text pattern";
+            p["x-mcp-header"] = true;
             props["pattern"] = p;
         }
         {
@@ -110,7 +111,7 @@ protected:
                 if (match_line.find(search_pattern) >= 0) {
                     Dictionary entry;
                     entry["path"] = file_path;
-                    entry["line"] = (int64_t)(ln + 1);
+                    entry["line"] = static_cast<int64_t>((ln + 1));
                     entry["content"] = line;
                     entry["language"] = file_lang;
                     matches.append(entry);
@@ -122,7 +123,7 @@ protected:
 
         Dictionary data;
         data["matches"] = matches;
-        data["total"] = (int64_t)matches.size();
+        data["total"] = static_cast<int64_t>(matches.size());
         data["truncated"] = truncated;
         data["pattern"] = pattern;
         return ToolResult::ok(data);

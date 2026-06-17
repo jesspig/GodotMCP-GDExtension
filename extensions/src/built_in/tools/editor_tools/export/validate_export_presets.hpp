@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -10,32 +11,24 @@ namespace godot_mcp {
 
 class ValidateExportPresetsTool : public ITool {
 public:
-    String name() const override { return "validate_export_presets"; }
-    String category() const override { return "editor_tools/export"; }
-    String brief() const override {
+    String name() const noexcept override { return "validate_export_presets"; }
+    String category() const noexcept override { return "editor_tools/export"; }
+    String brief() const noexcept override {
         return "Validate export preset configuration completeness";
     }
     String description() const override {
         return "Validates export presets for completeness, checking platform, "
                "export path, features, and template installation status.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Preset name to validate (empty = validate all)";
-            props["preset_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("preset_name", "string", "Preset name to validate (empty = validate all)")
+            .build();
     }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
@@ -45,7 +38,7 @@ protected:
         Array presets = ei->call("get_export_presets");
         Array results;
 
-        for (int i = 0; i < presets.size(); i++) {
+        for (int64_t i = 0; i < presets.size(); i++) {
             Dictionary preset = presets[i];
             String name = preset.get("name", "");
 
@@ -81,8 +74,8 @@ protected:
             entry["valid"] = errors.size() == 0;
             entry["warnings"] = warnings;
             entry["errors"] = errors;
-            entry["warning_count"] = (int64_t)warnings.size();
-            entry["error_count"] = (int64_t)errors.size();
+            entry["warning_count"] = static_cast<int64_t>(warnings.size());
+            entry["error_count"] = static_cast<int64_t>(errors.size());
             results.append(entry);
         }
 
@@ -93,17 +86,17 @@ protected:
 
         int total_errors = 0;
         int total_warnings = 0;
-        for (int i = 0; i < results.size(); i++) {
+        for (int64_t i = 0; i < results.size(); i++) {
             Dictionary r = results[i];
-            total_errors += (int)r["error_count"];
-            total_warnings += (int)r["warning_count"];
+            total_errors += static_cast<int>(r["error_count"]);
+            total_warnings += static_cast<int>(r["warning_count"]);
         }
 
         Dictionary data;
         data["presets"] = results;
-        data["preset_count"] = (int64_t)results.size();
-        data["total_errors"] = (int64_t)total_errors;
-        data["total_warnings"] = (int64_t)total_warnings;
+        data["preset_count"] = static_cast<int64_t>(results.size());
+        data["total_errors"] = static_cast<int64_t>(total_errors);
+        data["total_warnings"] = static_cast<int64_t>(total_warnings);
         data["all_valid"] = total_errors == 0;
         return ToolResult::ok(data);
     }

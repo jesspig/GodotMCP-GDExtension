@@ -1,5 +1,0 @@
-class: AudioListener2D
-inherits: Node2D
-properties: []
-description: Overrides the location sounds are heard from in 2D.
-aliases: []

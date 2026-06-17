@@ -4,15 +4,9 @@ project(GodotMCP LANGUAGES CXX C)
 # ---------------------------------------------------------------------------
 # Options
 # ---------------------------------------------------------------------------
-option(RELEASE    "Build with Release configuration" OFF)
-
 # Default to Debug when single-config generator and nothing was requested.
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-    if(RELEASE)
-        set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
-    else()
-        set(CMAKE_BUILD_TYPE "Debug"   CACHE STRING "" FORCE)
-    endif()
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "" FORCE)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -28,10 +22,11 @@ message(STATUS "GodotMCP version: ${PROJECT_VERSION}")
 # ---------------------------------------------------------------------------
 find_program(GODOTMCP_CXX_LAUNCHER NAMES sccache ccache)
 if(GODOTMCP_CXX_LAUNCHER)
-    message(STATUS "Using compiler launcher: ${GODOTMCP_CXX_LAUNCHER}")
-    # Propagate to all targets (including godot-cpp via FetchContent)
+    message(STATUS "Compiler launcher: ${GODOTMCP_CXX_LAUNCHER} (cached builds)")
     set(CMAKE_C_COMPILER_LAUNCHER "${GODOTMCP_CXX_LAUNCHER}")
     set(CMAKE_CXX_COMPILER_LAUNCHER "${GODOTMCP_CXX_LAUNCHER}")
+else()
+    message(STATUS "Compiler launcher: not found (direct compilation)")
 endif()
 
 # ---------------------------------------------------------------------------
@@ -40,53 +35,52 @@ endif()
 
 # MSVC: treat source files & execution charset as UTF-8 (fixes CJK in string literals)
 if(MSVC)
-    add_compile_options(/utf-8 /bigobj /D_CRT_SECURE_NO_WARNINGS)
-    # Embed debug info in .obj files (/Z7) to avoid C1041 PDB conflicts with sccache + /MP.
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded)
+endif()
+
+# ---------------------------------------------------------------------------
+# LTO (Link-Time Optimization) — only for Release builds
+#   auto  (default) → Clang ThinLTO if available, else standard IPO
+#   thin             → Clang ThinLTO (falls back to IPO on MSVC/GCC)
+#   full             → Standard CMake IPO (full LTO)
+# ---------------------------------------------------------------------------
+set(GODOTMCP_LTO_MODE "auto" CACHE STRING
+    "LTO mode: auto (detect best), thin (ThinLTO), full (Full LTO)")
+set_property(CACHE GODOTMCP_LTO_MODE PROPERTY STRINGS auto thin full)
+
+set(GODOTMCP_LTO "OFF" CACHE INTERNAL "")
+include(CheckIPOSupported)
+
+macro(_lto_ipo_fallback)
+    check_ipo_supported(RESULT _ipo_ok OUTPUT _ipo_err)
+    if(_ipo_ok)
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+        set(GODOTMCP_LTO "ON (full)" CACHE INTERNAL "")
+        message(STATUS "LTO: full (via IPO, Release only)")
+    else()
+        message(${ARGV0} "LTO not supported: ${_ipo_err}")
+    endif()
+endmacro()
+
+if((GODOTMCP_LTO_MODE STREQUAL "auto" OR GODOTMCP_LTO_MODE STREQUAL "thin")
+    AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options($<$<CONFIG:Release>:-flto=thin>)
+    add_link_options($<$<CONFIG:Release>:-flto=thin>)
+    set(GODOTMCP_LTO "ON (thin)" CACHE INTERNAL "")
+    message(STATUS "LTO: thin (Clang ThinLTO, Release only)")
+elseif(GODOTMCP_LTO_MODE STREQUAL "thin")
+    _lto_ipo_fallback(WARNING "LTO mode 'thin' not available with this compiler")
+else()
+    _lto_ipo_fallback(STATUS)
 endif()
 
 add_subdirectory(extensions)
 
 # ---------------------------------------------------------------------------
-# Generate addon config files (plugin.cfg, .gdextension)
+# Copy GDExtension library to addons/bin/ (post-build)
 # ---------------------------------------------------------------------------
 set(_addon_dir "${CMAKE_SOURCE_DIR}/example/addons/godot_mcp")
 set(_gdext_bin_dir "${_addon_dir}/bin")
-file(MAKE_DIRECTORY "${_addon_dir}")
-file(MAKE_DIRECTORY "${_gdext_bin_dir}")
-
-# ---------------------------------------------------------------------------
-# Generate addon config files (plugin.cfg, .gdextension)
-# ---------------------------------------------------------------------------
-file(WRITE "${_addon_dir}/plugin.cfg"
-    "[plugin]\n"
-    "name=\"Godot MCP\"\n"
-    "description=\"Model Context Protocol bridge for Godot Engine.\"\n"
-    "author=\"JessPig\"\n"
-    "version=\"${PROJECT_VERSION}\"\n"
-    "script=\"\"\n"
-)
-
-file(WRITE "${_addon_dir}/godot_mcp.gdextension"
-    "[configuration]\n"
-    "\n"
-    "entry_symbol = \"gdext_mcp_init\"\n"
-    "compatibility_minimum = \"4.6\"\n"
-    "reloadable = true\n"
-    "\n"
-    "[libraries]\n"
-    "\n"
-    "windows.debug.x86_64   = \"res://addons/godot_mcp/bin/godot_mcp_gdext.dll\"\n"
-    "windows.release.x86_64 = \"res://addons/godot_mcp/bin/godot_mcp_gdext.dll\"\n"
-    "linux.debug.x86_64     = \"res://addons/godot_mcp/bin/libgodot_mcp_gdext.so\"\n"
-    "linux.release.x86_64   = \"res://addons/godot_mcp/bin/libgodot_mcp_gdext.so\"\n"
-    "macos.debug            = \"res://addons/godot_mcp/bin/libgodot_mcp_gdext.dylib\"\n"
-    "macos.release          = \"res://addons/godot_mcp/bin/libgodot_mcp_gdext.dylib\"\n"
-)
-
-# ---------------------------------------------------------------------------
-# Copy GDExtension library to addons/bin/ (post-build)
-# ---------------------------------------------------------------------------
 if(WIN32)
     set(_gdext_lib_name "godot_mcp_gdext.dll")
 elseif(APPLE)
@@ -117,9 +111,9 @@ install(
 )
 
 set(CPACK_GENERATOR "ZIP")
-set(CPACK_PACKAGE_FILE_NAME "addons")
+set(CPACK_PACKAGE_FILE_NAME "godot-mcp-${PROJECT_VERSION}")
 set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
-set(CPACK_STRIP_FILES OFF)
+set(CPACK_STRIP_FILES ON)
 include(CPack)
 
 # ---------------------------------------------------------------------------

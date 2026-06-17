@@ -1,5 +1,0 @@
-class: VisualShaderNodeTextureSDFNormal
-inherits: VisualShaderNode
-properties: []
-description: ''
-aliases: []

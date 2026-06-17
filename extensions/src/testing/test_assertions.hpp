@@ -32,6 +32,9 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
 
     // 1. status check
     if (expect.has("status")) {
+        if (expect["status"].get_type() != Variant::STRING) {
+            return String("'status' field must be a string");
+        }
         const String expected_status = expect["status"];
         if (expected_status == "success") {
             if (result.has("error")) {
@@ -46,6 +49,9 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
 
     // 2. has_keys check
     if (expect.has("has_keys")) {
+        if (expect["has_keys"].get_type() != Variant::ARRAY) {
+            return String("'has_keys' field must be an array");
+        }
         const Array keys = expect["has_keys"];
         for (int i = 0; i < keys.size(); ++i) {
             const String key = keys[i];
@@ -67,13 +73,20 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
 
             Variant actual = data;
             if (!path.is_empty()) {
-                const Array parts = path.split(".");
-                for (int p = 0; p < parts.size(); ++p) {
-                    if (actual.get_type() == Variant::DICTIONARY) {
-                        Dictionary d = actual;
-                        actual = d.get(parts[p], Variant());
+                String remaining = path;
+                while (!remaining.is_empty()) {
+                    if (actual.get_type() != Variant::DICTIONARY) {
+                        return String("Field path '") + path + String("' cannot be traversed at '") + remaining + String("'");
+                    }
+                    Dictionary d = actual;
+                    int dot = static_cast<int>(remaining.find("."));
+                    if (dot != -1) {
+                        String key = remaining.substr(0, dot);
+                        remaining = remaining.substr(dot + 1);
+                        actual = d.get(key, Variant());
                     } else {
-                        return String("Field path '") + path + String("' cannot be traversed at '") + String(parts[p]) + String("'");
+                        actual = d.get(remaining, Variant());
+                        break;
                     }
                 }
             }
@@ -83,13 +96,13 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
                 if (actual.get_type() == Variant::NIL) {
                     return String("Field '") + path + String("' is nil, expected non-empty");
                 }
-                if (actual.get_type() == Variant::STRING && ((String)actual).is_empty()) {
+                if (actual.get_type() == Variant::STRING && (static_cast<String>(actual)).is_empty()) {
                     return String("Field '") + path + String("' is empty string");
                 }
-                if (actual.get_type() == Variant::ARRAY && ((Array)actual).is_empty()) {
+                if (actual.get_type() == Variant::ARRAY && (static_cast<Array>(actual)).is_empty()) {
                     return String("Field '") + path + String("' is empty array");
                 }
-                if (actual.get_type() == Variant::DICTIONARY && ((Dictionary)actual).is_empty()) {
+                if (actual.get_type() == Variant::DICTIONARY && (static_cast<Dictionary>(actual)).is_empty()) {
                     return String("Field '") + path + String("' is empty dict");
                 }
             }
@@ -103,87 +116,10 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
                 return String("Field '") + path + String("' is nil, expected value");
             }
 
-            // Compare based on type
-            if (type_hint == "Vector2" || type_hint == "Vector2i") {
-                if (actual.get_type() != Variant::VECTOR2 && actual.get_type() != Variant::VECTOR2I) {
-                    return String("Field '") + path + String("' is not Vector2");
-                }
-                const Vector2 actual_v = actual;
-                const Array expected_arr = expected_val;
-                const double tolerance = check.get("tolerance", kDefaultTolerance);
-                if (expected_arr.size() >= 2) {
-                    if (Math::abs(actual_v.x - (double)expected_arr[0]) > tolerance ||
-                        Math::abs(actual_v.y - (double)expected_arr[1]) > tolerance) {
-                        return String("Field '") + path + String("' mismatch: expected (") +
-                               String::num(expected_arr[0]) + String(", ") + String::num(expected_arr[1]) +
-                               String("), got (") + String::num(actual_v.x) + String(", ") + String::num(actual_v.y) + String(")");
-                    }
-                }
-            } else if (type_hint == "Vector3" || type_hint == "Vector3i") {
-                if (actual.get_type() != Variant::VECTOR3 && actual.get_type() != Variant::VECTOR3I) {
-                    return String("Field '") + path + String("' is not Vector3");
-                }
-                const Vector3 actual_v = actual;
-                const Array expected_arr = expected_val;
-                const double tolerance = check.get("tolerance", kDefaultTolerance);
-                if (expected_arr.size() >= 3) {
-                    if (Math::abs(actual_v.x - (double)expected_arr[0]) > tolerance ||
-                        Math::abs(actual_v.y - (double)expected_arr[1]) > tolerance ||
-                        Math::abs(actual_v.z - (double)expected_arr[2]) > tolerance) {
-                        return String("Field '") + path + String("' mismatch");
-                    }
-                }
-            } else if (type_hint == "Color") {
-                if (actual.get_type() != Variant::COLOR) {
-                    return String("Field '") + path + String("' is not Color");
-                }
-                const Color actual_c = actual;
-                const Array expected_arr = expected_val;
-                const double tolerance = check.get("tolerance", kDefaultTolerance);
-                if (expected_arr.size() >= 3) {
-                    const double er = expected_arr[0];
-                    const double eg = expected_arr[1];
-                    const double eb = expected_arr[2];
-                    const double ea = expected_arr.size() > 3 ? (double)expected_arr[3] : 1.0;
-                    if (Math::abs(actual_c.r - er) > tolerance ||
-                        Math::abs(actual_c.g - eg) > tolerance ||
-                        Math::abs(actual_c.b - eb) > tolerance ||
-                        Math::abs(actual_c.a - ea) > tolerance) {
-                        return String("Field '") + path + String("' color mismatch");
-                    }
-                }
-            } else if (type_hint == "float" || type_hint == "double") {
-                const double tolerance = check.get("tolerance", kDefaultTolerance);
-                const double expected_num = expected_val;
-                const double actual_num = actual;
-                if (Math::abs(actual_num - expected_num) > tolerance) {
-                    return String("Field '") + path + String("' float mismatch: expected ") +
-                           String::num(expected_num) + String(", got ") + String::num(actual_num);
-                }
-            } else if (type_hint == "int" || type_hint == "integer") {
-                const int64_t expected_int = expected_val;
-                const int64_t actual_int = actual;
-                if (actual_int != expected_int) {
-                    return String("Field '") + path + String("' int mismatch: expected ") +
-                           String::num_int64(expected_int) + String(", got ") + String::num_int64(actual_int);
-                }
-            } else if (type_hint == "bool") {
-                if ((bool)actual != (bool)expected_val) {
-                    return String("Field '") + path + String("' bool mismatch");
-                }
-            } else if (type_hint == "String" || type_hint == "string") {
-                const String actual_s = actual;
-                const String expected_s = expected_val;
-                if (actual_s != expected_s) {
-                    return String("Field '") + path + String("' string mismatch: expected '") +
-                           expected_s + String("', got '") + actual_s + String("'");
-                }
-            } else {
-                // Generic equality
-                if (actual != expected_val) {
-                    return String("Field '") + path + String("' mismatch: expected ") +
-                           JSON::stringify(expected_val) + String(", got ") + JSON::stringify(actual);
-                }
+            const double tolerance = check.get("tolerance", kDefaultTolerance);
+            const String cmp_err = compare_variant_fields(actual, expected_val, type_hint, tolerance);
+            if (!cmp_err.is_empty()) {
+                return String("Field '") + path + String("' ") + cmp_err;
             }
         }
     }
@@ -193,7 +129,21 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
         if (!result.has("error")) {
             return String("Expected error containing '") + expect["error_contains"].operator String() + String("', but no error");
         }
-        const String error_msg = result["error"];
+        if (expect["error_contains"].get_type() != Variant::STRING) {
+            return String("'error_contains' field must be a string");
+        }
+        String error_msg;
+        const Variant err_val = result["error"];
+        if (err_val.get_type() == Variant::DICTIONARY) {
+            const Dictionary err_dict = err_val;
+            const String code = err_dict.get("code", "");
+            const String message = err_dict.get("message", "");
+            error_msg = code.is_empty() ? message : (code + String(": ") + message);
+        } else if (err_val.get_type() == Variant::STRING) {
+            error_msg = err_val;
+        } else {
+            error_msg = JSON::stringify(err_val);
+        }
         const String needle = expect["error_contains"];
         if (error_msg.find(needle) == -1) {
             return String("Error message doesn't contain '") + needle + String("': ") + error_msg;

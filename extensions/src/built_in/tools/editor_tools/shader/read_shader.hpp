@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -11,32 +12,20 @@ namespace godot_mcp {
 
 class ReadShaderTool : public ITool {
 public:
-    String name() const override { return "read_shader"; }
-    String category() const override { return "editor_tools/shader"; }
-    String brief() const override {
+    String name() const noexcept override { return "read_shader"; }
+    String category() const noexcept override { return "editor_tools/shader"; }
+    String brief() const noexcept override {
         return "Read an existing shader resource's code";
     }
     String description() const override {
         return "Load a shader resource and return its shader type (mode), "
                "source code, and uniform count.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the shader resource";
-            props["resource_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("resource_path");
-            s["required"] = req;
-        }
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("resource_path", "string", "Path to the shader resource")
+            .required({"resource_path"})
+            .build();
     }
 
 protected:
@@ -92,7 +81,7 @@ protected:
         data["resource_path"] = resource_path;
         data["mode"] = mode;
         data["code"] = code;
-        data["uniform_count"] = (int64_t)uniform_count;
+        data["uniform_count"] = static_cast<int64_t>(uniform_count);
         return ToolResult::ok(data);
     }
 };

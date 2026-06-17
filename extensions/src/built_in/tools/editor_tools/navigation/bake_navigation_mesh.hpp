@@ -1,8 +1,10 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/navigation_region3d.hpp>
 #include <godot_cpp/classes/navigation_region2d.hpp>
@@ -13,39 +15,21 @@ namespace godot_mcp {
 
 class BakeNavigationMeshTool : public ITool {
 public:
-    String name() const override { return "bake_navigation_mesh"; }
-    String category() const override { return "editor_tools/navigation"; }
-    String brief() const override {
+    String name() const noexcept override { return "bake_navigation_mesh"; }
+    String category() const noexcept override { return "editor_tools/navigation"; }
+    String brief() const noexcept override {
         return "Bake navigation mesh for a NavigationRegion node";
     }
     String description() const override {
         return "Triggers navigation mesh baking on a NavigationRegion2D or "
                "NavigationRegion3D node. Baking can be computationally expensive.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the NavigationRegion node";
-            props["region_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Timeout in seconds for baking";
-            p["default"] = 30.0;
-            props["timeout_seconds"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("region_path");
-            s["required"] = req;
-        }
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("region_path", "string", "Path to the NavigationRegion node")
+            .prop("timeout_seconds", "number", "Timeout in seconds for baking", 30.0)
+            .required({"region_path"})
+            .build();
     }
     bool needs_scene() const override { return true; }
 
@@ -57,9 +41,9 @@ protected:
             return ToolResult::err("BAD_PARAM", "region_path is required");
         }
 
-        Node *node = resolve_node(ctx.root, region_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND", "NavigationRegion not found: " + region_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, region_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         String node_class = node->get_class();
@@ -72,7 +56,7 @@ protected:
         }
 
         if (is_3d) {
-            godot::NavigationRegion3D *region = Object::cast_to<godot::NavigationRegion3D>(node);
+            auto *region = Object::cast_to<godot::NavigationRegion3D>(node);
             if (!region) {
                 return ToolResult::err("CAST_FAILED", "Failed to cast to NavigationRegion3D");
             }
@@ -94,7 +78,7 @@ protected:
             return ToolResult::ok(data);
         }
 
-        godot::NavigationRegion2D *region = Object::cast_to<godot::NavigationRegion2D>(node);
+        auto *region = Object::cast_to<godot::NavigationRegion2D>(node);
         if (!region) {
             return ToolResult::err("CAST_FAILED", "Failed to cast to NavigationRegion2D");
         }

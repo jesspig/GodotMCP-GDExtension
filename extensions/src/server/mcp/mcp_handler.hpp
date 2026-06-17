@@ -1,7 +1,10 @@
 #pragma once
 
+#include "tool_executor.hpp"
+#include "prompt_provider.hpp"
 #include "../registry/handler_registry.hpp"
 
+#include <deque>
 #include <functional>
 
 #include <godot_cpp/classes/editor_interface.hpp>
@@ -20,21 +23,12 @@ class McpHandler {
 public:
     McpHandler(HandlerRegistry *registry);
 
-    // io_session_id is in/out: for initialize, the newly created session ID is
-    // written back into this reference so the transport layer can return it
-    // in the MCP-Session-Id response header.
-    Dictionary handle_message(const Dictionary &jsonrpc_msg, String &io_session_id);
+    Dictionary handle_message(const Dictionary &jsonrpc_msg);
 
-    String create_session();
-    bool destroy_session(const String &session_id);
-    bool validate_session(const String &session_id) const;
-    bool is_session_initialized(const String &session_id) const;
-    Array get_active_sessions() const;
+    bool has_pending_events() const;
+    Dictionary consume_event();
 
-    bool has_pending_events(const String &session_id) const;
-    Dictionary consume_event(const String &session_id);
-
-    // Notify all initialized sessions that the tool list has changed
+    // Notify all consumers that the tool list has changed
     void notify_tools_list_changed();
 
     // Structured log data for tool calls
@@ -49,9 +43,6 @@ public:
 
     using McpLogCallback = std::function<void(const ToolCallLog &)>;
     void set_log_callback(McpLogCallback cb);
-    bool has_pending_requests() const;
-    int pending_request_count() const;
-    void clear_sessions();
 
     // Utility: parse a MCP-Protocol-Version header and return a compatible version.
     static String negotiate_protocol_version(const String &header_value);
@@ -65,68 +56,44 @@ public:
     static constexpr int kResourceNotFound = -32002;
     static constexpr int kServerTerminated = -32001;
 
-    static constexpr double kSessionTtl = 3600.0;
-    static constexpr int kMaxSessions = 16;
-
 private:
-    struct Session {
-        String id;
-        String protocol_version;
-        Dictionary capabilities;
-        Dictionary client_info;
-        bool initialized = false;
-        double created_at;
-        double last_activity = 0.0;
-        int log_level = 3; // RFC 5424: Error=3
-        Vector<Dictionary> sse_event_queue;
-    };
-
-    Session *find_session(const String &id);
-    void cleanup_expired_sessions();
-
-    static String generate_uuid();
     static Dictionary make_jsonrpc_response(const Variant &id, const Variant &result);
     static Dictionary make_jsonrpc_result(const Variant &id, const Dictionary &result);
     static Dictionary make_jsonrpc_error(const Variant &id, int code, const String &message,
                                          const Variant &data = {});
     static Dictionary make_notification(const String &method, const Variant &params);
 
-    static Array tool_result_to_mcp_content(const Dictionary &tool_result);
-
-    void enqueue_event(const String &session_id, const Dictionary &event);
+    void enqueue_event(const Dictionary &event);
 
     // Lifecycle
-    // session_id is in/out: when a new session is created, the ID is written back here.
-    Dictionary handle_initialize(String &session_id, const Dictionary &params, const Variant &id);
+    Dictionary handle_initialize(const Dictionary &params, const Variant &id);
+    Dictionary handle_server_discover(const Variant &id);
     Dictionary handle_ping(const Variant &id);
 
     // Tools
-    Dictionary handle_tools_list(const String &session_id, const Dictionary &params, const Variant &id);
-    Dictionary handle_tools_call(const String &session_id, const Dictionary &params, const Variant &id);
+    Dictionary handle_tools_list(const Dictionary & /*params*/, const Variant &id);
+    Dictionary handle_tools_call(const Dictionary &params, const Variant &id);
 
     // Resources
     Dictionary handle_resources_list(const Variant &id);
     Dictionary handle_resources_read(const Dictionary &params, const Variant &id);
     Dictionary handle_resources_templates_list(const Variant &id);
-    Dictionary _build_scene_tree_node(Node *node) const;
-
-    // Prompts
-    Dictionary handle_prompts_list(const Variant &id);
-    Dictionary handle_prompts_get(const Dictionary &params, const Variant &id);
+    Dictionary _build_scene_tree_node(Node *node, int depth = 0, int max_depth = 15, int max_children = 200) const;
 
     // Utilities
-    Dictionary handle_logging_setLevel(const String &session_id, const Dictionary &params, const Variant &id);
     Dictionary handle_completion_complete(const Dictionary &params, const Variant &id);
 
+    // Logging
+    Dictionary handle_logging_set_level(const Dictionary &params, const Variant &id);
+
     // Notifications (no return value needed)
-    void handle_cancelled(const Dictionary &params);
-    void handle_progress(const Dictionary &params);
+    void handle_cancelled(const Dictionary & /*params*/);
 
     HandlerRegistry *registry_;
-    HashMap<String, Session> sessions_;
-    HashMap<String, String> pending_requests_; // request id (as string) -> session id, for cancellation
-    HashMap<String, Variant> cancelled_requests_; // session_id -> request ids that are cancelled
     McpLogCallback log_callback_;
+    ToolExecutor tool_executor_;
+    std::deque<Dictionary> global_event_queue_;
+    String log_level_ = "info";
 };
 
 } // namespace godot_mcp

@@ -1,8 +1,0 @@
-class: ScrollBar
-inherits: Range
-properties:
-- name: custom_step
-  type: 3
-  type_name: float
-description: ''
-aliases: []

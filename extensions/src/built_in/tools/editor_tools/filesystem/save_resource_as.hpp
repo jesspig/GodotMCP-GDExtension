@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -13,9 +14,9 @@ namespace godot_mcp {
 
 class SaveResourceAsTool : public ITool {
 public:
-    String name() const override { return "save_resource_as"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "save_resource_as"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Save a resource file to a target path";
     }
     String description() const override {
@@ -24,25 +25,12 @@ public:
                "Supports .tres (text) and .res (binary) formats. Useful for "
                "duplicating resources or forcing a re-save after external edits.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Source resource path (res://...)";
-            props["resource_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target save path (empty = re-save in-place)";
-            props["save_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("resource_path");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("resource_path", "string", "Source resource path (res://...)")
+            .prop("save_path", "string", "Target save path (empty = re-save in-place)")
+            .required({"resource_path"})
+            .build();
     }
 
 protected:
@@ -88,7 +76,7 @@ protected:
         if (err != godot::OK) {
             return ToolResult::err("SAVE_FAILED",
                 String("Failed to save resource (error ") +
-                String::num_int64((int64_t)err) + String("): ") + save_path);
+                String::num_int64(static_cast<int64_t>(err)) + String("): ") + save_path);
         }
 
         fs_utils::notify_file_changed(save_path);

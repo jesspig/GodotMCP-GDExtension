@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -10,27 +11,19 @@ namespace godot_mcp {
 
 class GetClassListTool : public ITool {
 public:
-    String name() const override { return "get_class_list"; }
-    String category() const override { return "editor_tools/docs"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_class_list"; }
+    String category() const noexcept override { return "editor_tools/docs"; }
+    String brief() const noexcept override {
         return "List all registered Godot classes";
     }
     String description() const override {
         return "Returns a list of all Godot classes registered in ClassDB. "
                "Can optionally filter by a parent class to show only subclasses.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional parent class name to filter (e.g., Node, Control, Resource)";
-            props["inherit"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("inherit", "string", "Optional parent class name to filter (e.g., Node, Control, Resource)")
+            .build();
     }
 
 protected:
@@ -55,7 +48,7 @@ protected:
 
         Dictionary data;
         data["classes"] = result;
-        data["count"] = (int64_t)result.size();
+        data["count"] = static_cast<int64_t>(result.size());
         data["filter"] = inherit_filter.is_empty() ? Variant() : Variant(inherit_filter);
         return ToolResult::ok(data);
     }

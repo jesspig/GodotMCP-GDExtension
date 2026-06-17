@@ -1,5 +1,0 @@
-class: PhysicalBoneSimulator3D
-inherits: SkeletonModifier3D
-properties: []
-description: ''
-aliases: []

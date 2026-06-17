@@ -1,5 +1,0 @@
-class: VisualShaderNodeParticleOutput
-inherits: VisualShaderNodeOutput
-properties: []
-description: ''
-aliases: []

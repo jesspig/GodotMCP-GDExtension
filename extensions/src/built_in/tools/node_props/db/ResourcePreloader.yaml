@@ -1,8 +1,0 @@
-class: ResourcePreloader
-inherits: Node
-properties:
-- name: resources
-  type: 28
-  type_name: Array
-description: A node that preloads resources.
-aliases: []

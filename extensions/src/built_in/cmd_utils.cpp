@@ -1,5 +1,5 @@
 // =====================================================================
-// commands/cmd_utils.cpp �?Implementation of cmd_utils.hpp helpers.
+// commands/cmd_utils.cpp -- Implementation of cmd_utils.hpp helpers.
 //
 // Every function runs on the main thread (called from EditorPlugin::_process
 // via the WebSocket dispatch loop). No locking or thread-safety required.
@@ -84,7 +84,7 @@ Node *resolve_node(Node *root, const String &path, int depth) {
     if (found) return found;
     if (depth >= kMaxResolveDepth) return nullptr;
     for (int64_t i = 0; i < root->get_child_count(); i++) {
-        Node *c = Object::cast_to<Node>(root->get_child(i));
+        Node *c = Object::cast_to<Node>(root->get_child(static_cast<int>(i)));
         if (!c) continue;
         Node *sub = resolve_node(c, path, depth + 1);
         if (sub) return sub;
@@ -121,9 +121,9 @@ int64_t args_int(const Dictionary &args, const String &key, int64_t default_valu
     }
     const Variant v = args[key];
     switch (v.get_type()) {
-        case Variant::INT:   return (int64_t)v;
-        case Variant::FLOAT: return (int64_t)(double)v;
-        case Variant::BOOL:  return (bool)v ? 1 : 0;
+        case Variant::INT:   return static_cast<int64_t>(v);
+        case Variant::FLOAT: return static_cast<int64_t>(static_cast<double>(v));
+        case Variant::BOOL:  return static_cast<bool>(v) ? 1 : 0;
         default:             return default_value;
     }
 }
@@ -134,8 +134,8 @@ double args_float(const Dictionary &args, const String &key, double default_valu
     }
     const Variant v = args[key];
     switch (v.get_type()) {
-        case Variant::FLOAT: return (double)v;
-        case Variant::INT:   return (double)(int64_t)v;
+        case Variant::FLOAT: return static_cast<double>(v);
+        case Variant::INT:   return static_cast<double>(static_cast<int64_t>(v));
         default:             return default_value;
     }
 }
@@ -146,10 +146,10 @@ bool args_bool(const Dictionary &args, const String &key, bool default_value) {
     }
     const Variant v = args[key];
     if (v.get_type() == Variant::BOOL) {
-        return (bool)v;
+        return static_cast<bool>(v);
     }
     if (v.get_type() == Variant::INT) {
-        return (int64_t)v != 0;
+        return static_cast<int64_t>(v) != 0;
     }
     return default_value;
 }
@@ -200,7 +200,7 @@ bool ensure_parent_dir(const String &res_path) {
     if (res_path.begins_with("user://") && res_path.find("/", 7) < 0) {
         return true;
     }
-    const int slash = res_path.rfind("/");
+    const int slash = static_cast<int>(res_path.rfind("/"));
     if (slash <= 0) {
         return true;
     }
@@ -263,43 +263,6 @@ void notify_file_changed(const String &path) {
     if (fs) {
         fs->update_file(path);
     }
-}
-
-// ---------------------------------------------------------------------
-// Scene tool helpers
-// ---------------------------------------------------------------------
-
-void save_version_marker(Node *root) {
-    if (!root) return;
-    EditorInterface *ei = EditorInterface::get_singleton();
-    if (!ei) return;
-    EditorUndoRedoManager *ur = ei->get_editor_undo_redo();
-    if (!ur) return;
-    int64_t hid = ur->get_object_history_id(root);
-    UndoRedo *undo_redo = ur->get_history_undo_redo((uint32_t)hid);
-    if (!undo_redo) return;
-    uint64_t ver = undo_redo->get_version();
-    root->set_meta("__mcp_saved_version", Variant((int64_t)ver));
-}
-
-Array collect_owner_warnings(Node *root) {
-    Array warnings;
-    if (!root) return warnings;
-    TypedArray<Node> stack;
-    stack.append(root);
-    while (stack.size() > 0) {
-        Node *node = Object::cast_to<Node>(stack[stack.size() - 1]);
-        stack.resize(stack.size() - 1);
-        for (int64_t i = 0; i < node->get_child_count(); i++) {
-            Node *c = Object::cast_to<Node>(node->get_child(i));
-            if (!c) continue;
-            if (!c->get_owner() && c != root) {
-                warnings.append(c->get_name() + String(" (") + c->get_class() + String(")"));
-            }
-            stack.append(c);
-        }
-    }
-    return warnings;
 }
 
 }  // namespace godot_mcp

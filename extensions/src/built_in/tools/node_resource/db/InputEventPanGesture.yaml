@@ -1,8 +1,0 @@
-class: InputEventPanGesture
-inherits: InputEventGesture
-properties:
-- name: delta
-  type: 5
-  type_name: Vector2
-description: ''
-aliases: []

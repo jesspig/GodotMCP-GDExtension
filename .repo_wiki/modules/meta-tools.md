@@ -140,7 +140,7 @@ return a.weight > b.weight;                      // 权重次之
 | `client` | string (enum) | 是 | 客户端名称 |
 | `write_to_project` | bool | 否 | 默认 false，true 时写入项目配置文件 |
 
-支持 **11 个客户端**（`client_registry.hpp:151-163`）：
+支持 **11 个客户端**（`client_config_registry.hpp:151-163`）：
 
 `claude_code`、`cursor`、`vscode_copilot`、`cline`、`opencode`、`codex`、`trae`、`qoder`、`codebuddy`、`pi`、`openclaw`
 

@@ -26,8 +26,8 @@
 - 端口环境变量：`GODOT_MCP_BRIDGE_PORT`（默认 9601）（`game_bridge.cpp:40-48`）
 - `start_server()` 监听 `localhost:port_`（`game_bridge.cpp:90-99`）
 - **单客户端**：`client_` 为单个 `Ref<StreamPeerTCP>`，已有连接时拒绝新连接（`game_bridge.cpp:113-128`）
-- 接收缓冲区上限 **65536 字节（64KB）**（`game_bridge.hpp:50`）
-- `read_clients()` 累积数据到 `read_buf_`，尝试 JSON 解析，成功后清空缓冲并分发（`game_bridge.cpp:130-199`）
+- 接收缓冲区上限 **1048576 字节（1MB）**（`game_bridge.hpp:53`）
+- `read_clients()` 通过 `read_text_`/`read_offset_` 增量累积解码（仅处理新收到的字节，避免每帧重新解码整个缓冲），尝试 JSON 解析，成功后清理已处理数据并分发（`game_bridge.cpp:139-214`）
 
 **7 个命令**（`game_bridge.cpp:213-226`）：
 
@@ -75,7 +75,7 @@ stateDiagram-v2
   2. TCP 发送
   3. 调用 `read_response()` 忙等待读取响应
   4. **返回原始 `{ok, data}` 字典**，不做展平
-- **`read_response(timeout_ms)`**（私有，`bridge.cpp:96-132`）：忙等待（`OS::delay_msec(50)` 轮询，最长 `timeout_ms`），累积数据并尝试 JSON 解析
+- **`read_response(timeout_ms)`**（私有，`bridge.cpp:113-199`）：忙等待（`OS::delay_msec(5)` 轮询，最长 `timeout_ms`），累积数据并通过 `try_parse_line` lambda 尝试 JSON 解析。该 lambda 使用 `consumed_offset` 跟踪已解析位置（O(n²)→O(n) 优化——每次只扫描新数据，而非从头重新扫描整个缓冲）
 - **`make_response(raw)`**（静态，`bridge.cpp:134-148`）：将桥接原始响应展平为工具友好信封：
   - 成功：`{ok:true, data:X}` → `{success:true, data:X}`
   - 失败：`{ok:false, error:msg}` → `{success:false, error:{code:"BRIDGE_ERROR", message:msg}}`

@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_selection.hpp>
@@ -15,9 +16,9 @@ namespace godot_mcp {
 
 class GroupSelectedNodesTool : public ITool {
 public:
-    String name() const override { return "group_selected_nodes"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "group_selected_nodes"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Group multiple selected nodes under a new parent node";
     }
     String description() const override {
@@ -27,25 +28,11 @@ public:
                "Requires at least 2 selected nodes sharing the same parent. "
                "All changes are undoable.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "New parent node type (Godot class name)";
-            p["default"] = "Node";
-            props["new_class"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "New parent node name (empty = type name)";
-            props["new_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("new_class", "string", "New parent node type (Godot class name)", "Node")
+            .prop("new_name", "string", "New parent node name (empty = type name)")
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }
@@ -60,11 +47,11 @@ protected:
         }
         if (new_name.is_empty()) new_name = new_class;
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
-        godot::EditorSelection *sel = ei->get_selection();
+        auto *sel = ei->get_selection();
         if (!sel) {
             return ToolResult::err("NO_SELECTION", "Failed to get EditorSelection");
         }
@@ -72,12 +59,12 @@ protected:
         if (top.size() < 2) {
             return ToolResult::err("INSUFFICIENT_SELECTION",
                 "Need at least 2 top-level selected nodes (current: " +
-                String::num_int64((int64_t)top.size()) + String(")"));
+                String::num_int64(static_cast<int64_t>(top.size())) + String(")"));
         }
         // Validate all share the same parent
         Node *common_parent = nullptr;
         godot::TypedArray<int64_t> indices;
-        for (int i = 0; i < top.size(); i++) {
+        for (int64_t i = 0; i < top.size(); i++) {
             Node *n = godot::Object::cast_to<godot::Node>(top[i]);
             if (!n) continue;
             Node *p = n->get_parent();
@@ -112,54 +99,50 @@ protected:
         // capture indices and nodes for undo
         godot::Array nodes_arr;
         godot::Array indices_arr;
-        for (int i = 0; i < top.size(); i++) {
+        for (int64_t i = 0; i < top.size(); i++) {
             Node *n = godot::Object::cast_to<godot::Node>(top[i]);
             if (!n) continue;
             nodes_arr.append(n);
-            indices_arr.append((int64_t)n->get_index());
+            indices_arr.append(static_cast<int64_t>(n->get_index()));
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Group Selected Nodes");
         if (ur) {
-            ur->create_action("MCP: Group Selected Nodes",
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
-
-            // do: add wrapper at the smallest index among selected
-            int64_t min_idx = (int64_t)indices_arr[0];
+            int64_t min_idx = static_cast<int64_t>(indices_arr[0]);
             for (int i = 1; i < indices_arr.size(); i++) {
-                if ((int64_t)indices_arr[i] < min_idx) min_idx = (int64_t)indices_arr[i];
+                if (static_cast<int64_t>(indices_arr[i]) < min_idx) min_idx = static_cast<int64_t>(indices_arr[i]);
             }
             ur->add_do_method(common_parent, "add_child", wrapper, true,
-                              (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                              static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(common_parent, "move_child", wrapper, min_idx);
 
             // do: move each selected into wrapper
-            for (int i = 0; i < nodes_arr.size(); i++) {
+            for (int64_t i = 0; i < nodes_arr.size(); i++) {
                 Node *n = godot::Object::cast_to<godot::Node>(nodes_arr[i]);
-                int64_t old_idx = (int64_t)indices_arr[i];
+                int64_t old_idx = static_cast<int64_t>(indices_arr[i]);
                 ur->add_do_method(common_parent, "remove_child", n);
                 ur->add_do_method(wrapper, "add_child", n, true,
-                                  (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                                  static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
                 ur->add_do_reference(n);
                 ur->add_undo_reference(n);
                 // undo: move back
                 ur->add_undo_method(wrapper, "remove_child", n);
                 ur->add_undo_method(common_parent, "add_child", n, true,
-                                    (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
+                                    static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
                 ur->add_undo_method(common_parent, "move_child", n, old_idx);
             }
 
             ur->add_do_reference(wrapper);
             ur->add_undo_reference(wrapper);
-            ur->commit_action();
+            commit_undo_action(ur);
         } else {
-            int64_t min_idx = (int64_t)indices_arr[0];
+            int64_t min_idx = static_cast<int64_t>(indices_arr[0]);
             for (int i = 1; i < indices_arr.size(); i++) {
-                if ((int64_t)indices_arr[i] < min_idx) min_idx = (int64_t)indices_arr[i];
+                if (static_cast<int64_t>(indices_arr[i]) < min_idx) min_idx = static_cast<int64_t>(indices_arr[i]);
             }
             common_parent->add_child(wrapper, true, godot::Node::INTERNAL_MODE_DISABLED);
             common_parent->move_child(wrapper, min_idx);
-            for (int i = 0; i < nodes_arr.size(); i++) {
+            for (int64_t i = 0; i < nodes_arr.size(); i++) {
                 Node *n = godot::Object::cast_to<godot::Node>(nodes_arr[i]);
                 common_parent->remove_child(n);
                 wrapper->add_child(n, true, godot::Node::INTERNAL_MODE_DISABLED);
@@ -169,7 +152,7 @@ protected:
         Dictionary data;
         data["wrapper"] = relative_path(ctx.root, wrapper);
         data["wrapper_type"] = wrapper->get_class();
-        data["grouped"] = (int64_t)nodes_arr.size();
+        data["grouped"] = static_cast<int64_t>(nodes_arr.size());
         return ToolResult::ok(data);
     }
 };

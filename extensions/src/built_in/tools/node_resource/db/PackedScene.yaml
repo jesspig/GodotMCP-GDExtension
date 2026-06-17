@@ -1,8 +1,0 @@
-class: PackedScene
-inherits: Resource
-properties:
-- name: _bundled
-  type: 27
-  type_name: Dictionary
-description: ''
-aliases: []

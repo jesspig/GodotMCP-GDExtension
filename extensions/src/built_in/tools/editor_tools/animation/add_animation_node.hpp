@@ -2,6 +2,9 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
+#include "built_in/cmd_utils/dispatch_map.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation_node.hpp>
 #include <godot_cpp/classes/animation_node_animation.hpp>
@@ -20,9 +23,9 @@ namespace godot_mcp {
 
 class AddAnimationNodeTool : public ITool {
 public:
-    String name() const override { return "add_animation_node"; }
-    String category() const override { return "editor_tools/animation"; }
-    String brief() const override {
+    String name() const noexcept override { return "add_animation_node"; }
+    String category() const noexcept override { return "editor_tools/animation"; }
+    String brief() const noexcept override {
         return "Add an animation node to an AnimationTree state machine";
     }
     String description() const override {
@@ -30,7 +33,7 @@ public:
                "one_shot, time_seek, transition) to the root AnimationNodeStateMachine "
                "of an AnimationTree. Uses EditorUndoRedoManager for undo support.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
@@ -54,6 +57,20 @@ public:
             Dictionary p;
             p["type"] = "object";
             p["description"] = "Position in graph {x, y}";
+            Dictionary pos_props;
+            {
+                Dictionary px;
+                px["type"] = "number";
+                px["description"] = "X position";
+                px["default"] = 0;
+                pos_props["x"] = px;
+                Dictionary py;
+                py["type"] = "number";
+                py["description"] = "Y position";
+                py["default"] = 0;
+                pos_props["y"] = py;
+            }
+            p["properties"] = pos_props;
             props["position"] = p;
         }
         {
@@ -76,21 +93,21 @@ protected:
         String tree_path = args_string(ctx.args, "tree_path");
         String node_type = args_string(ctx.args, "node_type");
         String node_name = args_string(ctx.args, "name");
+        if (node_name.is_empty()) node_name = args_string(ctx.args, "node_name");
         String animation_name = args_string(ctx.args, "animation_name", "");
 
         godot::Vector2 position;
-        if (ctx.args.has("position") && ctx.args["position"].get_type() == Variant::DICTIONARY) {
-            Dictionary pos = ctx.args["position"];
-            position.x = (real_t)args_float(pos, "x", 0.0);
-            position.y = (real_t)args_float(pos, "y", 0.0);
+        Dictionary pos = args_get_typed<Dictionary>(ctx.args, "position", Dictionary());
+        if (!pos.is_empty()) {
+            position.x = static_cast<real_t>(args_float(pos, "x", 0.0));
+            position.y = static_cast<real_t>(args_float(pos, "y", 0.0));
         }
 
-        Node *node = resolve_node(ctx.root, tree_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("AnimationTree not found: ") + tree_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, tree_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
-        godot::AnimationTree *tree = Object::cast_to<godot::AnimationTree>(node);
+        auto *tree = Object::cast_to<godot::AnimationTree>(node);
         if (!tree) {
             return ToolResult::err("WRONG_TYPE",
                 String("Node is not an AnimationTree: ") + tree_path);
@@ -113,18 +130,23 @@ protected:
                 String("State already exists: ") + node_name);
         }
 
-        String class_name;
-        if (node_type == "animation") class_name = "AnimationNodeAnimation";
-        else if (node_type == "blend2") class_name = "AnimationNodeBlend2";
-        else if (node_type == "blend3") class_name = "AnimationNodeBlend3";
-        else if (node_type == "blend_tree") class_name = "AnimationNodeBlendTree";
-        else if (node_type == "one_shot") class_name = "AnimationNodeOneShot";
-        else if (node_type == "time_seek") class_name = "AnimationNodeTimeSeek";
-        else if (node_type == "transition") class_name = "AnimationNodeTransition";
-        else {
+        static const auto kAnimationNodeClasses = godot_mcp::make_dispatch_map<godot::String, godot::String>(
+            std::pair{godot::String("animation"),  godot::String("AnimationNodeAnimation")},
+            std::pair{godot::String("blend2"),     godot::String("AnimationNodeBlend2")},
+            std::pair{godot::String("blend3"),     godot::String("AnimationNodeBlend3")},
+            std::pair{godot::String("blend_tree"), godot::String("AnimationNodeBlendTree")},
+            std::pair{godot::String("one_shot"),   godot::String("AnimationNodeOneShot")},
+            std::pair{godot::String("time_seek"),  godot::String("AnimationNodeTimeSeek")},
+            std::pair{godot::String("transition"), godot::String("AnimationNodeTransition")}
+        );
+        assert(kAnimationNodeClasses.validate() && "Duplicate key");
+
+        const godot::String* matched = kAnimationNodeClasses.find(godot::String(node_type));
+        if (!matched) {
             return ToolResult::err("INVALID_NODE_TYPE",
                 String("Unknown node_type: ") + node_type);
         }
+        godot::String class_name = *matched;
 
         godot::Ref<godot::AnimationNode> anim_node =
             Object::cast_to<godot::AnimationNode>(
@@ -135,25 +157,22 @@ protected:
         }
 
         if (node_type == "animation" && !animation_name.is_empty()) {
-            godot::AnimationNodeAnimation *anim =
-                Object::cast_to<godot::AnimationNodeAnimation>(anim_node.ptr());
+            auto *anim = Object::cast_to<godot::AnimationNodeAnimation>(anim_node.ptr());
             if (anim) {
                 anim->set_animation(godot::StringName(animation_name));
             }
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Add AnimationNode " + node_name);
         if (!ur) {
             sm->add_node(godot::StringName(node_name), anim_node, position);
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Add AnimationNode ") + node_name,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(sm.ptr(), "add_node",
                               godot::StringName(node_name), anim_node, position);
             ur->add_undo_method(sm.ptr(), "remove_node",
                                 godot::StringName(node_name));
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
         Dictionary data;

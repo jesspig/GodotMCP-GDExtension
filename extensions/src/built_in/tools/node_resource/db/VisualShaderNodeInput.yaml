@@ -1,8 +1,0 @@
-class: VisualShaderNodeInput
-inherits: VisualShaderNode
-properties:
-- name: input_name
-  type: 21
-  type_name: StringName
-description: ''
-aliases: []

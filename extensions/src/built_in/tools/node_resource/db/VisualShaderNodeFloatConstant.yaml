@@ -1,8 +1,0 @@
-class: VisualShaderNodeFloatConstant
-inherits: VisualShaderNodeConstant
-properties:
-- name: constant
-  type: 3
-  type_name: float
-description: ''
-aliases: []

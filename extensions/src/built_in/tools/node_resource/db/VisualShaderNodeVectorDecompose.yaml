@@ -1,5 +1,0 @@
-class: VisualShaderNodeVectorDecompose
-inherits: VisualShaderNodeVectorBase
-properties: []
-description: ''
-aliases: []

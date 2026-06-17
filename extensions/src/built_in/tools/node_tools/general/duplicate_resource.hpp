@@ -1,46 +1,33 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
+#include "resource_tool_base.hpp"
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/resource.hpp>
 
 namespace godot_mcp {
 
-class DuplicateResourceTool : public ITool {
+class DuplicateResourceTool : public ResourceToolBase {
 public:
-    String name() const override { return "duplicate_resource"; }
-    String category() const override { return "node_tools/general"; }
-    String brief() const override {
+    String name() const noexcept override { return "duplicate_resource"; }
+    String brief() const noexcept override {
         return String("Duplicate a resource");
     }
     String description() const override {
         return String("Deep-copies the resource on a node property and assigns the duplicate back to the property. "
                             "The copy is disconnected from the original; modifications to the copy will not affect the original.");
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Node path (empty = root node of current edited scene)");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Property name (e.g. texture, material)");
-            props["property_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("property_name");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path (empty = root node of current edited scene)")
+            .prop("property_name", "string", "Property name (e.g. texture, material)")
+            .required({"property_name"})
+            .build();
     }
-    bool needs_scene() const override { return true; }
-    bool needs_node() const override { return false; }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
@@ -51,10 +38,9 @@ protected:
             return ToolResult::err("MISSING_ARG", String("property_name cannot be empty"));
         }
 
-        Node *node = resolve_node(ctx.root, path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("Node not found ") + path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         Variant val = node->get(prop_name);
@@ -71,7 +57,7 @@ protected:
         }
 
         undoable_set(node, prop_name, dup,
-            String::utf8("Duplicate ") + prop_name + String::utf8(" on ") + relative_path(ctx.root, node));
+            String("Duplicate ") + prop_name + String(" on ") + relative_path(ctx.root, node));
 
         Dictionary data;
         data["node_path"] = relative_path(ctx.root, node);

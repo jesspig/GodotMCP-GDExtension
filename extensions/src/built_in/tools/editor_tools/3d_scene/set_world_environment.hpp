@@ -1,8 +1,12 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/editor_selection.hpp>
@@ -17,88 +21,29 @@ namespace godot_mcp {
 
 class SetWorldEnvironmentTool : public ITool {
 public:
-    String name() const override { return "set_world_environment"; }
-    String category() const override { return "editor_tools/3d_scene"; }
-    String brief() const override {
+    String name() const noexcept override { return "set_world_environment"; }
+    String category() const noexcept override { return "editor_tools/3d_scene"; }
+    String brief() const noexcept override {
         return "Create or modify a WorldEnvironment with Environment settings";
     }
     String description() const override {
         return "Creates or modifies a WorldEnvironment node with Environment resource. "
                "Supports ambient light, sky, fog, and tonemap configuration.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to existing WorldEnvironment (empty = create new)";
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Parent node path for new WorldEnvironment";
-            props["parent_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "object";
-            p["description"] = "Ambient light color {r, g, b} (0-1 range)";
-            props["ambient_color"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Ambient light energy";
-            props["ambient_energy"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Enable sky";
-            p["default"] = true;
-            props["sky_enabled"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "object";
-            p["description"] = "Sky top color {r, g, b}";
-            props["sky_color"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Enable fog";
-            props["fog_enabled"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "object";
-            p["description"] = "Fog color {r, g, b}";
-            props["fog_color"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Fog depth begin";
-            props["fog_depth_begin"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Fog depth end";
-            props["fog_depth_end"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Tonemap mode: linear/reinhard/filmic/aces";
-            props["tonemap_mode"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("node_path", "string", "Path to existing WorldEnvironment (empty = create new)")
+            .prop("parent_path", "string", "Parent node path for new WorldEnvironment")
+            .prop("ambient_color", "object", "Ambient light color {r, g, b} (0-1 range)")
+            .prop("ambient_energy", "number", "Ambient light energy")
+            .prop("sky_enabled", "boolean", "Enable sky", true)
+            .prop("sky_color", "object", "Sky top color {r, g, b}")
+            .prop("fog_enabled", "boolean", "Enable fog")
+            .prop("fog_color", "object", "Fog color {r, g, b}")
+            .prop("fog_depth_begin", "number", "Fog depth begin")
+            .prop("fog_depth_end", "number", "Fog depth end")
+            .prop("tonemap_mode", "string", "Tonemap mode: linear/reinhard/filmic/aces")
+            .build();
     }
     bool needs_scene() const override { return true; }
 
@@ -113,10 +58,9 @@ protected:
         bool created = false;
 
         if (!node_path.is_empty()) {
-            Node *found = resolve_node(ctx.root, node_path);
-            if (!found) {
-                return ToolResult::err("NODE_NOT_FOUND",
-                    "WorldEnvironment not found: " + node_path);
+            Node *found = nullptr;
+            if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, found)) {
+                return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
             }
             world_env = Object::cast_to<godot::WorldEnvironment>(found);
             if (!world_env) {
@@ -124,8 +68,8 @@ protected:
                     "Node is not a WorldEnvironment: " + found->get_class());
             }
         } else {
-            Node *parent = resolve_node(ctx.root, parent_path);
-            if (!parent) {
+            Node *parent = nullptr;
+            if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
                 parent = ctx.root;
             }
 
@@ -136,20 +80,13 @@ protected:
             world_env->set_name("WorldEnvironment");
             created = true;
 
-            godot::EditorUndoRedoManager *ur = get_undo_redo();
+            auto *ur = begin_undo_action("MCP: Create WorldEnvironment");
             if (!ur) {
                 parent->add_child(world_env, true, Node::INTERNAL_MODE_DISABLED);
                 world_env->set_owner(ctx.root);
                 mark_scene_dirty();
             } else {
-                ur->create_action("MCP: Create WorldEnvironment",
-                                  godot::UndoRedo::MERGE_DISABLE, ctx.root);
-                ur->add_do_method(parent, "add_child", world_env, true,
-                                  (int64_t)Node::INTERNAL_MODE_DISABLED);
-                ur->add_do_method(world_env, "set_owner", ctx.root);
-                ur->add_undo_method(parent, "remove_child", world_env);
-                ur->add_do_reference(world_env);
-                ur->commit_action();
+                commit_add_child_undo(ur, "MCP: Create WorldEnvironment", parent, world_env, ctx.root);
             }
         }
 
@@ -159,17 +96,17 @@ protected:
             world_env->set_environment(env);
         }
 
-        if (ctx.args.has("ambient_color") && ctx.args["ambient_color"].get_type() == Variant::DICTIONARY) {
-            Dictionary cd = ctx.args["ambient_color"];
-            real_t r = (real_t)args_float(cd, "r", 0.5);
-            real_t g = (real_t)args_float(cd, "g", 0.5);
-            real_t b = (real_t)args_float(cd, "b", 0.5);
+        Dictionary cd = args_get_typed<Dictionary>(ctx.args, "ambient_color", Dictionary());
+        if (!cd.is_empty()) {
+            real_t r = static_cast<real_t>(args_float(cd, "r", 0.5));
+            real_t g = static_cast<real_t>(args_float(cd, "g", 0.5));
+            real_t b = static_cast<real_t>(args_float(cd, "b", 0.5));
             env->set_ambient_light_color(godot::Color(r, g, b));
         }
 
         double ambient_energy = args_float(ctx.args, "ambient_energy", 0.0);
         if (ambient_energy > 0.0) {
-            env->set_ambient_light_energy((real_t)ambient_energy);
+            env->set_ambient_light_energy(static_cast<real_t>(ambient_energy));
         }
 
         if (sky_enabled) {
@@ -185,11 +122,11 @@ protected:
                 env->set_background(godot::Environment::BG_SKY);
             }
 
-            if (ctx.args.has("sky_color") && ctx.args["sky_color"].get_type() == Variant::DICTIONARY) {
-                Dictionary cd = ctx.args["sky_color"];
-                real_t r = (real_t)args_float(cd, "r", 0.4);
-                real_t g = (real_t)args_float(cd, "g", 0.6);
-                real_t b = (real_t)args_float(cd, "b", 0.9);
+            Dictionary sky_cd = args_get_typed<Dictionary>(ctx.args, "sky_color", Dictionary());
+            if (!sky_cd.is_empty()) {
+                real_t r = static_cast<real_t>(args_float(sky_cd, "r", 0.6));
+                real_t g = static_cast<real_t>(args_float(sky_cd, "g", 0.6));
+                real_t b = static_cast<real_t>(args_float(sky_cd, "b", 0.9));
                 godot::Ref<godot::ProceduralSkyMaterial> sky_mat = sky->get_material();
                 if (sky_mat.is_valid()) {
                     sky_mat->set_sky_top_color(godot::Color(r, g, b));
@@ -201,21 +138,21 @@ protected:
         env->set_fog_enabled(fog_enabled);
 
         if (fog_enabled) {
-            if (ctx.args.has("fog_color") && ctx.args["fog_color"].get_type() == Variant::DICTIONARY) {
-                Dictionary cd = ctx.args["fog_color"];
-                real_t r = (real_t)args_float(cd, "r", 0.5);
-                real_t g = (real_t)args_float(cd, "g", 0.5);
-                real_t b = (real_t)args_float(cd, "b", 0.5);
+            Dictionary fog_cd = args_get_typed<Dictionary>(ctx.args, "fog_color", Dictionary());
+            if (!fog_cd.is_empty()) {
+                real_t r = static_cast<real_t>(args_float(fog_cd, "r", 0.5));
+                real_t g = static_cast<real_t>(args_float(fog_cd, "g", 0.5));
+                real_t b = static_cast<real_t>(args_float(fog_cd, "b", 0.5));
                 env->set_fog_light_color(godot::Color(r, g, b));
             }
 
             double fog_depth_begin = args_float(ctx.args, "fog_depth_begin", 0.0);
             if (fog_depth_begin > 0.0) {
-                env->set_fog_depth_begin((real_t)fog_depth_begin);
+                env->set_fog_depth_begin(static_cast<real_t>(fog_depth_begin));
             }
             double fog_depth_end = args_float(ctx.args, "fog_depth_end", 0.0);
             if (fog_depth_end > 0.0) {
-                env->set_fog_depth_end((real_t)fog_depth_end);
+                env->set_fog_depth_end(static_cast<real_t>(fog_depth_end));
             }
         }
 
@@ -233,9 +170,9 @@ protected:
             env->set_tonemapper(static_cast<godot::Environment::ToneMapper>(mode));
         }
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei && world_env->is_inside_tree()) {
-            godot::EditorSelection *sel = ei->get_selection();
+            auto *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(world_env);

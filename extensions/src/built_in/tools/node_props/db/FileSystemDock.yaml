@@ -1,5 +1,0 @@
-class: FileSystemDock
-inherits: EditorDock
-properties: []
-description: ''
-aliases: []

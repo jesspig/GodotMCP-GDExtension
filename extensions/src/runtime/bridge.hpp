@@ -7,6 +7,9 @@
 
 namespace godot_mcp {
 
+constexpr int DEFAULT_TIMEOUT_MS = 100;
+constexpr int CONNECT_TIMEOUT_MS = 10000;
+
 class RuntimeBridge {
 public:
     enum Status { DISCONNECTED, CONNECTING, CONNECTED };
@@ -20,12 +23,8 @@ public:
     bool is_connected() const { return status_ == CONNECTED; }
     Status status() const { return status_; }
 
-    godot::Dictionary send_command(const godot::String &cmd, const godot::Dictionary &params, int timeout_ms = 5000);
+    godot::Dictionary send_command(const godot::String &cmd, const godot::Dictionary &params, int timeout_ms = DEFAULT_TIMEOUT_MS);
 
-    // Flatten a bridge JSON-RPC response into a tool-friendly envelope.
-    // Bridge responses have {"ok":bool,"data":...,"id":int}.
-    // This extracts the inner data and wraps in {"success":true,"data":...}
-    // or {"success":false,"error":{"code":"BRIDGE_ERROR","message":"..."}}.
     static godot::Dictionary make_response(const godot::Dictionary &raw);
 
     void set_port(int port) { port_ = port; }
@@ -37,7 +36,8 @@ private:
     Status status_ = DISCONNECTED;
     godot::Ref<godot::StreamPeerTCP> tcp_;
     int port_ = 9601;
-    int next_id_ = 1;
+    int64_t next_id_ = 1;
+    uint64_t connecting_since_ = 0;
 };
 
 } // namespace godot_mcp

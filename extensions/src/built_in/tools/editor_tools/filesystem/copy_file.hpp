@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -10,9 +11,9 @@ namespace godot_mcp {
 
 class CopyFileTool : public ITool {
 public:
-    String name() const override { return "copy_file"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "copy_file"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Copy a file or directory";
     }
     String description() const override {
@@ -21,25 +22,12 @@ public:
                "directories use recursive copy (automatically creates target directories). "
                "The addons directory is not modified.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Source path (res:// prefix)";
-            props["source"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Destination path (res:// prefix)";
-            props["destination"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("source", "destination");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("source", "string", "Source path (res:// prefix)")
+            .prop("destination", "string", "Destination path (res:// prefix)")
+            .required({"source", "destination"})
+            .build();
     }
 
 protected:
@@ -73,7 +61,7 @@ protected:
 
         if (err != Error::OK) {
             return ToolResult::err("COPY_FAILED",
-                "Copy failed, error code: " + String::num_int64((int64_t)err));
+                "Copy failed, error code: " + String::num_int64(static_cast<int64_t>(err)));
         }
 
         fs_utils::notify_fs_changes();

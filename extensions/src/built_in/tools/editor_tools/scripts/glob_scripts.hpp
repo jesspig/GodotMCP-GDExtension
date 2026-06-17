@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tools/editor_tools/scripts/script_utils.hpp"
 #include "built_in/tools/editor_tools/filesystem/filesystem_utils.hpp"
 
@@ -9,51 +10,23 @@ namespace godot_mcp {
 
 class GlobScriptsTool : public ITool {
 public:
-    String name() const override { return "glob_scripts"; }
-    String category() const override { return "editor_tools/scripts"; }
-    String brief() const override {
+    String name() const noexcept override { return "glob_scripts"; }
+    String category() const noexcept override { return "editor_tools/scripts"; }
+    String brief() const noexcept override {
         return "Match script files by path pattern";
     }
     String description() const override {
         return "Match script file paths in the project using glob patterns. Supports wildcards: * (any characters), ? (single character). Supports filtering by language (gdscript/csharp/all).";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Glob match pattern (e.g. **/enemy*)";
-            props["pattern"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: language filter (gdscript/csharp/all, default all)";
-            props["language"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: search root directory (default res://)";
-            props["directory"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Optional: include addons directory (default false)";
-            props["include_addons"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = "Optional: maximum results (default 200)";
-            props["max_results"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("pattern");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("pattern", "string", "Glob match pattern (e.g. **/enemy*)")
+            .prop("language", "string", "Optional: language filter (gdscript/csharp/all, default all)")
+            .prop("directory", "string", "Optional: search root directory (default res://)")
+            .prop("include_addons", "boolean", "Optional: include addons directory (default false)")
+            .prop("max_results", "integer", "Optional: maximum results (default 200)")
+            .required(Array::make("pattern"))
+            .build();
     }
 
 protected:
@@ -105,7 +78,7 @@ protected:
 
         Dictionary data;
         data["files"] = matched;
-        data["total"] = (int64_t)matched.size();
+        data["total"] = static_cast<int64_t>(matched.size());
         data["truncated"] = truncated;
         data["pattern"] = pattern;
         return ToolResult::ok(data);

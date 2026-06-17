@@ -1,0 +1,82 @@
+name: meta_tools_smoke
+description: Smoke tests for all meta discovery tools
+
+tests:
+  - tool: get_info
+    description: Returns editor and plugin runtime info
+    expect:
+      has_keys: [connection, engine, plugin, project, editor]
+      field_checks:
+        - key: connection.status
+          value: "ok"
+        - key: engine.version
+          not_empty: true
+        - key: plugin.builtin_tools
+          not_empty: true
+
+  - tool: get_categories
+    description: Returns category tree
+    expect:
+      has_keys: [categories]
+      field_checks:
+        - key: categories
+          not_empty: true
+
+  - tool: get_tools
+    description: Lists tools in meta_tools category
+    args:
+      category: "meta_tools"
+    expect:
+      has_keys: [category, tools, count]
+      field_checks:
+        - key: category
+          value: "meta_tools"
+        - key: count
+          not_empty: true
+
+  - tool: get_tool_detail
+    description: Gets full detail for get_info
+    args:
+      name: "get_info"
+    expect:
+      has_keys: [id, name, description, parameters, required, category_path]
+      field_checks:
+        - key: id
+          value: "get_info"
+        - key: required
+          not_empty: false
+
+  - tool: find_tool
+    description: Searches for get_info tool
+    args:
+      query: "get_info"
+    expect:
+      has_keys: [query, results, count]
+      field_checks:
+        - key: query
+          value: "get_info"
+        - key: count
+          not_empty: true
+
+  - tool: generate_client_config
+    description: Generates Claude Code client config (no write)
+    args:
+      client: "claude_code"
+      write_to_project: false
+    expect:
+      has_keys: [client, config_path, config_content, format, url]
+      field_checks:
+        - key: client
+          value: "claude_code"
+        - key: config_content
+          not_empty: true
+
+  - tool: call_tool
+    description: Calls get_info via call_tool fallback
+    args:
+      tool_name: "get_info"
+    expect:
+      has_keys: [connection, engine, plugin, project]
+      field_checks:
+        - key: connection.status
+          value: "ok"

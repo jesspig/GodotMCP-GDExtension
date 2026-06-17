@@ -1,9 +1,0 @@
-class: VisualInstance3D
-inherits: Node3D
-properties:
-- name: layers
-  type: 2
-  type_name: int
-description: Base class for all visual 3D nodes.
-aliases:
-- GeometryInstance3D

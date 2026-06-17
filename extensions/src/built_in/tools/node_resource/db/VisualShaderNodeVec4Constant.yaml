@@ -1,8 +1,0 @@
-class: VisualShaderNodeVec4Constant
-inherits: VisualShaderNodeConstant
-properties:
-- name: constant
-  type: 15
-  type_name: Quaternion
-description: ''
-aliases: []

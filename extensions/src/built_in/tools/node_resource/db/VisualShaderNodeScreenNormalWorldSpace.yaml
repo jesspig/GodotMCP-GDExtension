@@ -1,5 +1,0 @@
-class: VisualShaderNodeScreenNormalWorldSpace
-inherits: VisualShaderNode
-properties: []
-description: ''
-aliases: []

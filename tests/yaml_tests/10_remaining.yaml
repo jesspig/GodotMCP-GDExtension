@@ -1,0 +1,198 @@
+name: remaining_tools_smoke
+description: Smoke tests for inputmap, plugin, shader, control/stylebox, audio, filesystem/create, scripts/patch, and workspace switch tools
+
+before_all:
+  - tool: create_directory
+    args:
+      path: "res://test_mcp_10"
+  - tool: new_scene
+    args:
+      root_type: "Node2D"
+      root_name: "Root"
+  - tool: add_node
+    args:
+      class_name: "Sprite2D"
+      node_name: "TestSprite"
+      parent_path: ""
+  - tool: add_node
+    args:
+      class_name: "AudioStreamPlayer2D"
+      node_name: "TestAudio"
+      parent_path: ""
+  - tool: write_gd_script
+    args:
+      path: "res://test_mcp_10/patch_test.gd"
+      content: "extends Node2D\n\nfunc hello():\n\treturn \"old\"\n"
+
+tests:
+# -- inputmap --
+  - tool: add_input_action
+    description: Adds a temporary input action
+    args:
+      action: "mcp_test_action"
+      deadzone: 0.5
+    expect:
+      has_keys: [action, deadzone, created]
+      field_checks:
+        - key: action
+          value: "mcp_test_action"
+        - key: created
+          value: true
+
+  - tool: add_input_event_binding
+    description: Binds Space key to the new action
+    args:
+      action: "mcp_test_action"
+      event_type: "key"
+      keycode: "KEY_SPACE"
+    expect:
+      has_keys: [action, event_type, added]
+      field_checks:
+        - key: action
+          value: "mcp_test_action"
+        - key: added
+          value: true
+
+  - tool: remove_input_action
+    description: Removes the temporary input action
+    args:
+      action: "mcp_test_action"
+    expect:
+      has_keys: [action, removed]
+      field_checks:
+        - key: action
+          value: "mcp_test_action"
+
+# -- plugin (self-disable protection) --
+  - tool: set_plugin_enabled
+    description: Attempts to enable self, expects SELF_MODIFY error
+    args:
+      plugin_name: "GodotMCP"
+      plugin_path: "res://addons/godot_mcp"
+      enabled: true
+    expect:
+      status: error
+      error_contains: "SELF_MODIFY"
+
+  - tool: set_plugin_enabled
+    description: Attempts to disable self, expects SELF_MODIFY error
+    args:
+      plugin_name: "GodotMCP"
+      plugin_path: "res://addons/godot_mcp"
+      enabled: false
+    expect:
+      status: error
+      error_contains: "SELF_MODIFY"
+
+# -- shader --
+  - tool: create_shader
+    description: Creates a .gdshader resource file
+    args:
+      resource_path: "res://test_mcp_10/test_shader.gdshader"
+      mode: "canvas_item"
+    expect:
+      has_keys: [resource_path, mode, saved]
+      field_checks:
+        - key: resource_path
+          value: "res://test_mcp_10/test_shader.gdshader"
+
+  - tool: get_shader_uniforms
+    description: Reads uniforms from the created shader (should be empty)
+    args:
+      shader_path: "res://test_mcp_10/test_shader.gdshader"
+    expect:
+      has_keys: [shader_path, uniforms, count]
+
+  - tool: set_shader_uniform
+    description: Tries to set uniform on Sprite2D (no ShaderMaterial), error expected
+    args:
+      node_path: "Root/TestSprite"
+      uniform_name: "test_param"
+      value: 1.0
+    expect:
+      status: error
+      error_contains: "NO_SHADER_MATERIAL"
+
+# -- control / stylebox --
+  - tool: create_stylebox
+    description: Creates a StyleBoxFlat without applying to node
+    args:
+      stylebox_name: "panel"
+      bg_color: "#ff0000"
+      border_color: "#00ff00"
+      border_width: 2
+      corner_radius: 4
+    expect:
+      has_keys: [stylebox_created, bg_color, border_color]
+      field_checks:
+        - key: stylebox_created
+          value: true
+
+# -- audio --
+  - tool: set_audio_stream
+    description: Tries to load nonexistent audio file, error expected
+    args:
+      node_path: "Root/TestAudio"
+      stream_path: "res://nonexistent.ogg"
+    expect:
+      status: error
+      error_contains: "LOAD_FAILED"
+
+# -- filesystem create tools --
+  - tool: create_scene
+    description: Creates a .tscn file via filesystem tool
+    args:
+      path: "res://test_mcp_10/sub_scene.tscn"
+      root_type: "Node2D"
+    expect:
+      has_keys: [path, root_type, root_name]
+      field_checks:
+        - key: path
+          value: "res://test_mcp_10/sub_scene.tscn"
+
+  - tool: create_gdshader
+    description: Creates a .gdshader file via filesystem tool
+    args:
+      path: "res://test_mcp_10/new_shader.gdshader"
+    expect:
+      has_keys: [path, name]
+
+  - tool: create_resource
+    description: Creates a .tres resource file
+    args:
+      path: "res://test_mcp_10/test_resource.tres"
+    expect:
+      has_keys: [path, name, resource_type]
+
+# -- script patching --
+  - tool: patch_gd_script
+    description: Patches old->new in the test script
+    args:
+      path: "res://test_mcp_10/patch_test.gd"
+      old_text: "\"old\""
+      new_text: "\"new\""
+    expect:
+      has_keys: [path, replacements_made, old_size, new_size]
+
+# -- workspace switching --
+  - tool: set_workspace
+    description: Switches to 2D workspace via generic tool
+    args:
+      name: "2D"
+    expect:
+      has_keys: [workspace]
+      field_checks:
+        - key: workspace
+          value: "2D"
+
+
+
+after_all:
+  - tool: new_scene
+    args:
+      root_type: "Node"
+      root_name: "Cleanup"
+  - tool: delete_file
+    args:
+      path: "res://test_mcp_10"
+      recursive: true

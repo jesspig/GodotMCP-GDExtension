@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -10,37 +11,25 @@ namespace godot_mcp {
 
 class RemoveInputActionTool : public ITool {
 public:
-    String name() const override { return "remove_input_action"; }
-    String category() const override { return "editor_tools/inputmap"; }
-    String brief() const override {
+    String name() const noexcept override { return "remove_input_action"; }
+    String category() const noexcept override { return "editor_tools/inputmap"; }
+    String brief() const noexcept override {
         return "Remove an InputMap action";
     }
     String description() const override {
         return "Removes an action and all its event bindings from the InputMap. "
                "Fails if the action does not exist.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Action name to remove";
-            props["action"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("action");
-            s["required"] = req;
-        }
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("action", "string", "Action name to remove")
+            .required({"action"})
+            .build();
     }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        godot::InputMap *im = godot::InputMap::get_singleton();
+        auto *im = godot::InputMap::get_singleton();
         if (!im) {
             return ToolResult::err("NO_INPUT_MAP", "InputMap not available");
         }
@@ -55,7 +44,7 @@ protected:
 
         godot::TypedArray<godot::StringName> actions = im->get_actions();
         bool found = false;
-        for (int i = 0; i < actions.size(); i++) {
+        for (int64_t i = 0; i < actions.size(); i++) {
             if (actions[i] == action_sn) {
                 found = true;
                 break;

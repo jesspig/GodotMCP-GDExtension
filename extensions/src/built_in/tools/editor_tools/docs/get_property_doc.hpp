@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -10,9 +11,9 @@ namespace godot_mcp {
 
 class GetPropertyDocTool : public ITool {
 public:
-    String name() const override { return "get_property_doc"; }
-    String category() const override { return "editor_tools/docs"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_property_doc"; }
+    String category() const noexcept override { return "editor_tools/docs"; }
+    String brief() const noexcept override {
         return "Get detailed documentation for a class property";
     }
     String description() const override {
@@ -20,30 +21,12 @@ public:
                "of a Godot class, including type, getter/setter, "
                "default value, and usage flags.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Godot class name";
-            props["class_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Property name to inspect";
-            props["property"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("class_name");
-            req.append("property");
-            s["required"] = req;
-        }
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("class_name", "string", "Godot class name")
+            .prop("property", "string", "Property name to inspect")
+            .required({"class_name", "property"})
+            .build();
     }
 
 protected:
@@ -72,11 +55,11 @@ protected:
         Dictionary data;
         data["class_name"] = class_name;
         data["property"] = property;
-        data["type"] = (int64_t)found.get("type", 0);
+        data["type"] = static_cast<int64_t>(found.get("type", 0));
         data["class_name_hint"] = found.get("class_name", "");
-        data["hint"] = (int64_t)found.get("hint", 0);
+        data["hint"] = static_cast<int64_t>(found.get("hint", 0));
         data["hint_string"] = found.get("hint_string", "");
-        data["usage"] = (int64_t)found.get("usage", 0);
+        data["usage"] = static_cast<int64_t>(found.get("usage", 0));
         data["getter"] = String(ClassDB::class_get_property_getter(class_name, property));
         data["setter"] = String(ClassDB::class_get_property_setter(class_name, property));
 

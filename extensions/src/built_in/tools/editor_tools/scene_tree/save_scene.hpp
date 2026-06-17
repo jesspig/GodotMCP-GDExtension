@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning(disable: 4828)  // non-UTF-8 bytes in file (known, harmless)
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
@@ -9,21 +10,22 @@ namespace godot_mcp {
 
 class SaveSceneTool : public ITool {
 public:
-    String name() const override { return "save_scene"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "save_scene"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Save the current edited scene to a res:// path";
     }
     String description() const override {
         return "Saves the currently open scene to disk. If path is empty, saves to the original .tscn path. "
                "Returns an error if the scene was never saved and path is empty.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
             p["description"] = "res:// path (empty = save to original path, must end with .tscn/.scn)";
+            p["x-mcp-header"] = true;
             props["path"] = p;
         }
         Dictionary s;
@@ -37,14 +39,14 @@ public:
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String path = args_string(ctx.args, "path");
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
 
         if (path.is_empty()) {
-            // Capture path BEFORE save �?ei->save_scene() may reload the scene
-            // and invalidate ctx.root (dangling pointer �?crash).
+            // Capture path BEFORE save ??ei->save_scene() may reload the scene
+            // and invalidate ctx.root (dangling pointer ??crash).
             path = ctx.root->get_scene_file_path();
             if (path.is_empty()) {
                 return ToolResult::err("NO_PATH",
@@ -53,7 +55,7 @@ protected:
             // Use save_scene_as(path, false) directly to bypass EditorProgress
             // (_save_scene_with_preview). EditorProgress::step() calls
             // Main::iteration() internally, which triggers a recursive
-            // _process() �?http_server_.poll() and causes crashes.
+            // _process() ??http_server_.poll() and causes crashes.
             ei->save_scene_as(path, false);
         } else {
             if (!path.ends_with(".tscn") && !path.ends_with(".scn")) {

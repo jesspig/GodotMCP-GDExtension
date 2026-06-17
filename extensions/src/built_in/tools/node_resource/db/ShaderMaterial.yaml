@@ -1,9 +1,0 @@
-class: ShaderMaterial
-inherits: Material
-properties:
-- name: shader
-  type: 24
-  type_name: Object
-  class_name: Shader
-description: ''
-aliases: []

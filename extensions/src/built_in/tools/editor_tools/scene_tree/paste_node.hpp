@@ -3,18 +3,20 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "scene_tree_utils.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
 
 #include <godot_cpp/classes/editor_selection.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/variant/callable_method_pointer.hpp>
 
 namespace godot_mcp {
 
 class PasteNodeTool : public ITool {
 public:
-    String name() const override { return "paste_node"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "paste_node"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Paste a node from the clipboard";
     }
     String description() const override {
@@ -24,7 +26,7 @@ public:
                "replacement (replaces the target_path node). "
                "Returns an error if the clipboard is empty. Ctrl+Z restores a replaced node.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
@@ -35,7 +37,7 @@ public:
         {
             Dictionary p;
             p["type"] = "string";
-            p["description"] = String::utf8("child | sibling | replacement");
+            p["description"] = String("child | sibling | replacement");
             p["default"] = "child";
             p["enum"] = Array::make("child", "sibling", "replacement");
             props["mode"] = p;
@@ -70,10 +72,8 @@ protected:
         Node *parent = nullptr;
         int64_t target_index = -1;
         if (!target_path.is_empty()) {
-            target = resolve_node(ctx.root, target_path);
-            if (!target) {
-                return ToolResult::err("TARGET_NOT_FOUND",
-                    "Target node not found: " + target_path);
+            if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, target_path, target)) {
+                return ToolResult::err("TARGET_NOT_FOUND", err->get("message", ""));
             }
         }
         if (mode == "child") {
@@ -115,53 +115,29 @@ protected:
         }
         // owner wired post-add_child (use a do_method so it captures in undo)
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
-        if (ur) {
-            ur->create_action("MCP: Paste " + inst->get_name(),
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
-            if (mode == "replacement") {
+        auto *ur = get_undo_redo();
+        if (mode == "replacement") {
+            if (ur) {
+                ur->create_action("MCP: Paste " + inst->get_name());
                 ur->add_do_method(target, "replace_by", inst, true);
                 ur->add_undo_method(inst, "replace_by", target, true);
                 ur->add_do_reference(inst);
                 ur->add_undo_reference(inst);
                 ur->add_do_reference(target);
                 ur->add_undo_reference(target);
+                commit_undo_action(ur);
             } else {
-                ur->add_do_method(parent, "add_child", inst, true,
-                                  (int64_t)godot::Node::INTERNAL_MODE_DISABLED);
-                if (target_index >= 0) {
-                    ur->add_do_method(parent, "move_child", inst, target_index);
-                }
-                ur->add_undo_method(parent, "remove_child", inst);
-                ur->add_do_reference(inst);
-                ur->add_undo_reference(inst);
-            }
-            ur->commit_action();
-
-            // After commit, set_owner
-            scene_tree_utils::assign_owner_recursive(inst, ctx.root);
-
-            // In replacement mode, also re-set owner on target subtree
-            if (mode == "replacement") {
-                // (inst has now replaced target; ensure all its descendants have owner)
-                scene_tree_utils::assign_owner_recursive(inst, ctx.root);
+                target->replace_by(inst, true);
             }
         } else {
-            if (mode == "replacement") {
-                target->replace_by(inst, true);
-            } else {
-                parent->add_child(inst, true, godot::Node::INTERNAL_MODE_DISABLED);
-                if (target_index >= 0) {
-                    parent->move_child(inst, target_index);
-                }
-            }
-            scene_tree_utils::assign_owner_recursive(inst, ctx.root);
+            commit_add_child_undo(ur, "MCP: Paste " + inst->get_name(), parent, inst, ctx.root, target_index);
         }
+        scene_tree_utils::assign_owner_recursive(inst, ctx.root);
 
         // select new node
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            godot::EditorSelection *sel = ei->get_selection();
+            auto *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(inst);

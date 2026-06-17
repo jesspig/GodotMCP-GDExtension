@@ -2,6 +2,36 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-16 — Wiki 事实校正 + 废弃计划清理
+
+- **修复** 工具总数：`171` → `152`（运行时 12 个工具已含在 register_existing 的 135 中，不应单独计数）
+- **修复** 工具分层描述：`语义专用(~145) + 通用兜底(2) + 文档(8) + 元工具(7) + 运行时(12)` → `语义专用(135，含 12 运行时) + 通用兜底(2) + 文档(8) + 元工具(7)`
+- **修复** `index.md` 版本号行号：`CMakeLists.txt:22` → `:16`
+- **修复** `overview/architecture.md`：工具数 `~171` → `152`；`/utf-8` 位置 `根 CMakeLists.txt:43` → `extensions/CMakeLists.txt:163`；移除不存在的 `lsp/` 目录；新增 `cmd_utils/` 7 文件和 `client_config_registry.hpp`；`plugin/` 3→2；`mcp_handler` 注释 "会话管理"→"处理器（无 session）"
+- **修复** `overview/architecture.md` 时序图：移除已废弃的 `initialize`/`GET /mcp`/`Mcp-Session-Id` 流程，改为 POST-only `tools/list` + `tools/call`
+- **修复** `AGENTS.md`：MSVC UTF-8 位置 `根 CMakeLists.txt` → `extensions/CMakeLists.txt:163`
+- **修复** `modules/plugin-management.md`：工具数 3→2（`enable_plugin`+`disable_plugin` 合并为 `set_plugin_enabled`）
+- **新增** `modules/cmd-utils.md` 4 个缺失文件文档：`error_codes.hpp`、`memdelete_guard.hpp`、`schema_builder.hpp`、`tracked_settings.hpp`
+- **新增** `index.md` 导航：`modules/plugin-management.md`
+- **删除** `plans/` 目录（6 个文件）：已完成优化计划的执行文档，与已删除的 `design/phases/` 和 `design/v2-optimization-plan.md` 同类
+
+## 2026-06-15 — 全量优化实施 + 协议升级 2026-07-28
+
+- **协议升级**：MCP Streamable HTTP 从 `2025-03-26` 升级至 `2026-07-28`；移除 `GET /mcp` 端点、`DELETE /mcp` 端点、`Mcp-Session-Id` 头、`initialize/initialized` 握手机制；改为纯 `POST+OPTIONS` 通信，SSE 仅内联在 POST 响应中推送
+- **Session 移除**：`mcp_handler` 中删除全部 ~200 行 session 管理代码（`Session` 结构体、`create_session`、`validate_session`、`cleanup_expired_sessions`、`generate_uuid`）；事件队列从 session 索引改为全局单队列
+- **Header 校验**：新增 `Mcp-Method`/`Mcp-Name` HTTP 头解析（`http_parser.cpp`） + 请求 body 一致性校验（`handle_post`）
+- **P0 bug 修复**：6 个安全/崩溃 bug（CRLF 注入、TreeItem 双重释放、类型验证旁路、ctx.root 悬挂指针、register 泄漏）
+- **死代码删除**：移除 `SearchEngine`（170 行）、`refactor_casts.py`（223 行）、`rebuild_metadata_indices`
+- **架构模板化**：新增 `dispatch_map.hpp`、`undo_helpers.hpp`、`args_get_typed.hpp` 三个共享模板；描述默认实现消除 21 处 boilerplate；DispatchMap 替代 6 个工具的 if/else 链
+- **性能优化**：`bridge.cpp` step 50ms→5ms（-90% 响应延迟）；增量解析 O(n²)→O(n)；`BUFFER_LIMIT` 64KB→1MB；`walk_project_dir` 改用 `std::filesystem`（10x 加速）；CPack STRIP ON（Release zip -80%）；unity batch_size 32→12
+- **知识库同步**：更新 `ipc-bridge.md`、`http-server.md`、`cmd-utils.md`、`runtime-bridge.md`、`editor-plugin.md`、`ipc-protocol.md` 以反映当前代码状态
+
+## 2026-06-15 — 新增 tool-base.md + cmd-utils.md 模块文档
+
+- **新增** `modules/tool-base.md`：ITool 基类体系完整文档，含 ToolResult/ToolContext/ITool 类图、`execute()` 模板方法流程图、类型验证映射表
+- **新增** `modules/cmd-utils.md`：共享工具函数文档，含场景辅助、JSON↔Variant 转换序列图、undoable_set 流程、树遍历流程图
+- **更新** `index.md`：新增两个模块的导航链接
+
 ## 2026-06-14 — Wiki 全面校正 + ADR 压缩 + 废弃文档清理
 
 ### 源码深度验证（5 路并行子代理审计，修复 23 个文件）
@@ -21,8 +51,8 @@
 - **修复** `modules/http-server.md`：补全会话级限制（max sessions 16, TTL 3600s）
 - **重写** `reference/ci-cd.md`：`ci.yml` 不存在，完全重写为 `release.yml`+`docs.yml` 两个工作流的准确描述
 - **修复** `reference/build-and-package.md`：移除虚构的 CI 门禁段；修正 GLOB 描述为 header-only
-- **重写** `reference/client-config.md`：修正 opencode 格式（`"mcp"`+`"type":"remote"`，非 `"mcpServers"`+`"streamable-http"`）；新增 `client_registry.hpp` 11 种客户端参考
-- **修复** `specification/project-structure.md`：移除不存在的 `yaml_tests/`；修正 CI 工作流名称；新增 `client_registry.hpp`
+- **重写** `reference/client-config.md`：修正 opencode 格式（`"mcp"`+`"type":"remote"`，非 `"mcpServers"`+`"streamable-http"`）；新增 `client_config_registry.hpp` 11 种客户端参考
+- **修复** `specification/project-structure.md`：移除不存在的 `yaml_tests/`；修正 CI 工作流名称；新增 `client_config_registry.hpp`（后重命名）
 - **修复** `modules/fallback-tools.md`：移除不存在的 Layer 2（`NodePropertyGetTool`/`NodePropertySetTool`）
 - **修复** `modules/scene-tree-tools.md`：`attach_script` 支持 C#
 - **修复** `modules/sdk-layer.md`：`call("execute",args)` 行号 73→49
@@ -34,7 +64,7 @@
 
 - **修复** 工具计数：元工具 6→8（新增 `generate_client_config` + `list_settings`）；场景树 20→24；工作区 24→31；动画 5→10；导出 2→4；着色器 3→5；输入映射 1→4
 - **修复** `overview/architecture.md` 目录树：补齐缺失分类（audio/navigation/3d_scene），修正所有工具计数
-- **修复** `extensions/gdext.md` 文件树：移除已删除的 `pch.hpp`/`screenshot_utils.hpp`/`node_tools`/`node_props` 条目，修正工具计数
+- **修复** `extensions/gdext.md` 文件树：移除已删除的 `pch.hpp`/`node_tools`/`node_props` 条目；修正 `screenshot_utils.hpp` 条目（文件实际存在，保留引用），修正工具计数
 - **修复** `modules/filesystem-tools.md`：移除不存在的 `create_gd_script`/`create_csharp_script`/`filesystem_utils.hpp`，新增 `save_resource_as`，计数 14→12
 - **修复** `modules/input-map.md`：工具名 `list_input_actions`→`input_list_actions`、`set_input_action_events`→`add_input_event_binding`
 - **修复** `modules/workspace-tools.md`：新增 5 个调试器工具（get_locals/debugger_step_out/list_breakpoints/set_breakpoint/remove_breakpoint）+ 2 个截图工具（capture_viewport/capture_game_viewport）

@@ -1,7 +1,9 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation_node_state_machine.hpp>
 #include <godot_cpp/classes/animation_node_state_machine_transition.hpp>
@@ -13,9 +15,9 @@ namespace godot_mcp {
 
 class SetTransitionConditionTool : public ITool {
 public:
-    String name() const override { return "set_transition_condition"; }
-    String category() const override { return "editor_tools/animation"; }
-    String brief() const override {
+    String name() const noexcept override { return "set_transition_condition"; }
+    String category() const noexcept override { return "editor_tools/animation"; }
+    String brief() const noexcept override {
         return "Set a condition on a state machine transition";
     }
     String description() const override {
@@ -23,44 +25,15 @@ public:
                "in the root AnimationNodeStateMachine. The condition controls when "
                "the transition fires. Uses EditorUndoRedoManager for undo support.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the AnimationTree node";
-            props["tree_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Source state name";
-            props["from"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target state name";
-            props["to"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Condition name to set on the transition";
-            props["condition"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Whether to set or clear the condition (default: true)";
-            p["default"] = true;
-            props["value"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("tree_path", "from", "to", "condition");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("tree_path", "string", "Path to the AnimationTree node")
+            .prop("from", "string", "Source state name")
+            .prop("to", "string", "Target state name")
+            .prop("condition", "string", "Condition name to set on the transition")
+            .prop("value", "boolean", "Whether to set or clear the condition (default: true)", true)
+            .required({"tree_path", "from", "to", "condition"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }
@@ -73,12 +46,11 @@ protected:
         String condition = args_string(ctx.args, "condition");
         bool value = args_bool(ctx.args, "value", true);
 
-        Node *node = resolve_node(ctx.root, tree_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("AnimationTree not found: ") + tree_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, tree_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
-        godot::AnimationTree *tree = Object::cast_to<godot::AnimationTree>(node);
+        auto *tree = Object::cast_to<godot::AnimationTree>(node);
         if (!tree) {
             return ToolResult::err("WRONG_TYPE",
                 String("Node is not an AnimationTree: ") + tree_path);
@@ -123,16 +95,14 @@ protected:
         godot::StringName old_condition = trans->get_advance_condition();
         godot::StringName new_condition = value ? godot::StringName(condition) : godot::StringName();
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Set Transition Condition " + from + " -> " + to);
         if (!ur) {
             trans->set_advance_condition(new_condition);
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Set Transition Condition ") + from + " -> " + to,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(trans.ptr(), "set_advance_condition", new_condition);
             ur->add_undo_method(trans.ptr(), "set_advance_condition", old_condition);
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
         Dictionary data;

@@ -1,13 +1,13 @@
-﻿
+
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
-#include <godot_cpp/classes/control.hpp>
-#include <godot_cpp/classes/editor_interface.hpp>
-#include <godot_cpp/classes/rich_text_label.hpp>
-#include <godot_cpp/variant/array.hpp>
+#include "workspace_utils.hpp"
+
+#include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/packed_string_array.hpp>
 #include <godot_cpp/variant/string.hpp>
@@ -16,9 +16,9 @@ namespace godot_mcp {
 
 class GetConsoleOutputTool : public ITool {
 public:
-    String name() const override { return "get_console_output"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Get editor console output"); }
+    String name() const noexcept override { return "get_console_output"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Get editor console output"); }
     String description() const override {
         return String("Retrieves log content from the editor Output panel. Supports keyword search, "
                       "message type filtering, and MCP line exclusion. Messages are read from "
@@ -26,38 +26,13 @@ public:
                       "Godot source editor/editor_log.cpp.");
     }
 
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Search keyword (only returns lines containing this keyword)");
-            props["search"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Message type filter: std / error / warning / editor, leave empty for no filter");
-            props["type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = String("Whether to exclude MCP-related log lines (default true)");
-            p["default"] = true;
-            props["exclude_mcp"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = String("Maximum lines to return (-1 = unlimited, default 500)");
-            p["default"] = (int64_t)500;
-            props["max_lines"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("search", "string", String("Search keyword (only returns lines containing this keyword)"))
+            .prop("type", "string", String("Message type filter: std / error / warning / editor, leave empty for no filter"))
+            .prop("exclude_mcp", "boolean", String("Whether to exclude MCP-related log lines (default true)"), true)
+            .prop("max_lines", "integer", String("Maximum lines to return (-1 = unlimited, default 500)"), (int64_t)500)
+            .build();
     }
 
 protected:
@@ -67,37 +42,14 @@ protected:
         bool exclude_mcp = args_bool(ctx.args, "exclude_mcp", true);
         int64_t max_lines = args_int(ctx.args, "max_lines", 500);
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
-        if (!ei) {
-            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
-        }
-
-        godot::Control *base = ei->get_base_control();
-        if (!base) {
-            return ToolResult::err("NO_BASE", "Editor base control not available");
-        }
-
-        Array log_nodes = base->find_children("*", "EditorLog", true, false);
-        if (log_nodes.size() == 0) {
-            return ToolResult::err("NO_LOG", "EditorLog node not found");
-        }
-
-        Node *editor_log = Object::cast_to<Node>(log_nodes[0]);
-        if (!editor_log) {
-            return ToolResult::err("INVALID_LOG", "EditorLog node is invalid");
-        }
-
-        Array rtl_nodes = editor_log->find_children("*", "RichTextLabel", true, false);
-        if (rtl_nodes.size() == 0) {
-            return ToolResult::err("NO_RTL", "RichTextLabel child node not found");
-        }
-
-        godot::RichTextLabel *rtl = Object::cast_to<godot::RichTextLabel>(rtl_nodes[0]);
+        auto *rtl = find_console_rtl();
         if (!rtl) {
-            return ToolResult::err("INVALID_RTL", "RichTextLabel node is invalid");
+            return ToolResult::err("NO_CONSOLE", "Console not found");
         }
 
-        String full_text = rtl->get_text();
+        static ConsoleCache cache;
+        uint64_t now = Time::get_singleton()->get_ticks_msec();
+        String full_text = cache.get_text(rtl, now);
 
         PackedStringArray lines = full_text.split("\n", false);
 

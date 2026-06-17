@@ -1,6 +1,7 @@
-﻿
+
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -8,9 +9,9 @@ namespace godot_mcp {
 
 class GetBestPracticesTool : public ITool {
 public:
-    String name() const override { return "get_best_practices"; }
-    String category() const override { return "editor_tools/docs"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_best_practices"; }
+    String category() const noexcept override { return "editor_tools/docs"; }
+    String brief() const noexcept override {
         return "Return Godot best practices and coding guidelines";
     }
     String description() const override {
@@ -18,19 +19,10 @@ public:
                "across scene organization, scripting, performance, "
                "and UI design topics.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Topic: scene_organization, scripting, "
-                               "performance, ui_design, or all (default)";
-            props["topic"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("topic", "string", "Topic: scene_organization, scripting, performance, ui_design, or all (default)")
+            .build();
     }
 
 protected:
@@ -162,7 +154,7 @@ protected:
         Dictionary data;
         data["topic"] = topic;
         data["guidelines"] = guidelines;
-        data["count"] = (int64_t)guidelines.size();
+        data["count"] = static_cast<int64_t>(guidelines.size());
         return ToolResult::ok(data);
     }
 };

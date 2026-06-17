@@ -1,4 +1,11 @@
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4244) // int64_t→int from Godot API calls in tool headers
+#endif
+
 #include "server/registry/handler_registry.hpp"
+#include "built_in/cmd_utils/dispatch_map.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
 
 // ── Meta tools ──
 #include "built_in/tools/meta/get_info.hpp"
@@ -114,25 +121,19 @@
 
 // ── Plugin tools ──
 #include "built_in/tools/editor_tools/plugin/list_plugins.hpp"
-#include "built_in/tools/editor_tools/plugin/enable_plugin.hpp"
-#include "built_in/tools/editor_tools/plugin/disable_plugin.hpp"
+#include "built_in/tools/editor_tools/plugin/set_plugin_enabled.hpp"
 
 // ── Scaffold tools ──
 #include "built_in/tools/editor_tools/scaffold/create_project.hpp"
 
 // ── Script tools ──
-#include "built_in/tools/editor_tools/scripts/read_gd_script.hpp"
-#include "built_in/tools/editor_tools/scripts/write_gd_script.hpp"
-#include "built_in/tools/editor_tools/scripts/patch_gd_script.hpp"
-#include "built_in/tools/editor_tools/scripts/validate_gd_script.hpp"
-#include "built_in/tools/editor_tools/scripts/list_gd_scripts.hpp"
+#include "built_in/tools/editor_tools/scripts/read_script.hpp"
+#include "built_in/tools/editor_tools/scripts/write_script.hpp"
+#include "built_in/tools/editor_tools/scripts/patch_script.hpp"
+#include "built_in/tools/editor_tools/scripts/validate_script.hpp"
+#include "built_in/tools/editor_tools/scripts/list_scripts.hpp"
 #include "built_in/tools/editor_tools/scripts/grep_scripts.hpp"
 #include "built_in/tools/editor_tools/scripts/glob_scripts.hpp"
-#include "built_in/tools/editor_tools/scripts/read_csharp_script.hpp"
-#include "built_in/tools/editor_tools/scripts/write_csharp_script.hpp"
-#include "built_in/tools/editor_tools/scripts/patch_csharp_script.hpp"
-#include "built_in/tools/editor_tools/scripts/validate_csharp_script.hpp"
-#include "built_in/tools/editor_tools/scripts/list_csharp_scripts.hpp"
 
 // ── Settings tools ──
 #include "built_in/tools/editor_tools/settings/get_setting.hpp"
@@ -175,33 +176,15 @@
 #include "built_in/tools/editor_tools/workspace/capture_game_viewport.hpp"
 #include "built_in/tools/editor_tools/workspace/clear_console.hpp"
 #include "built_in/tools/editor_tools/workspace/get_console_output.hpp"
-#include "built_in/tools/editor_tools/workspace/get_console_errors.hpp"
-#include "built_in/tools/editor_tools/workspace/get_console_warnings.hpp"
 #include "built_in/tools/editor_tools/workspace/get_debugger_state.hpp"
-#include "built_in/tools/editor_tools/workspace/get_debugger_status.hpp"
-#include "built_in/tools/editor_tools/workspace/get_debugger_errors.hpp"
-#include "built_in/tools/editor_tools/workspace/get_fps.hpp"
-#include "built_in/tools/editor_tools/workspace/get_memory_usage.hpp"
-#include "built_in/tools/editor_tools/workspace/get_object_count.hpp"
 #include "built_in/tools/editor_tools/workspace/get_performance_monitors.hpp"
-#include "built_in/tools/editor_tools/workspace/get_physics_stats.hpp"
-#include "built_in/tools/editor_tools/workspace/get_render_stats.hpp"
 #include "built_in/tools/editor_tools/workspace/get_stack_trace.hpp"
 #include "built_in/tools/editor_tools/workspace/get_locals.hpp"
-#include "built_in/tools/editor_tools/workspace/debugger_break.hpp"
-#include "built_in/tools/editor_tools/workspace/debugger_continue.hpp"
 #include "built_in/tools/editor_tools/workspace/debugger_control.hpp"
-#include "built_in/tools/editor_tools/workspace/debugger_step_into.hpp"
-#include "built_in/tools/editor_tools/workspace/debugger_step_out.hpp"
-#include "built_in/tools/editor_tools/workspace/debugger_step_over.hpp"
 #include "built_in/tools/editor_tools/workspace/list_breakpoints.hpp"
 #include "built_in/tools/editor_tools/workspace/set_breakpoint.hpp"
 #include "built_in/tools/editor_tools/workspace/remove_breakpoint.hpp"
 #include "built_in/tools/editor_tools/workspace/set_workspace.hpp"
-#include "built_in/tools/editor_tools/workspace/set_workspace_2d.hpp"
-#include "built_in/tools/editor_tools/workspace/set_workspace_3d.hpp"
-#include "built_in/tools/editor_tools/workspace/set_workspace_script.hpp"
-#include "built_in/tools/editor_tools/workspace/set_workspace_assetlib.hpp"
 
 // ── Runtime bridge tools ──
 #include "built_in/tools/runtime_tools/bridge/get_game_scene_tree.hpp"
@@ -226,7 +209,8 @@ using namespace godot;
 
 namespace godot_mcp {
 
-#define GODOT_MCP_TOOL(cls, name_str, cat, is_meta_val, need_scene_val, need_node_val, is_destructive_val) \
+// is_destructive_val — the tool's virtual method overrides (name(), category(), etc.) are authoritative.
+#define GODOT_MCP_TOOL(cls, is_destructive_val) \
     { \
         auto tool = std::make_unique<cls>(); \
         tool->set_is_destructive(is_destructive_val); \
@@ -241,3 +225,7 @@ void register_itools(HandlerRegistry &reg) {
 }
 
 } // namespace godot_mcp
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

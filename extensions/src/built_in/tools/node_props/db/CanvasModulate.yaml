@@ -1,8 +1,0 @@
-class: CanvasModulate
-inherits: Node2D
-properties:
-- name: color
-  type: 20
-  type_name: Color
-description: A node that applies a color tint to a canvas.
-aliases: []

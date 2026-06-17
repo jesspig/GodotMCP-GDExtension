@@ -1,8 +1,0 @@
-class: ViewportTexture
-inherits: Texture2D
-properties:
-- name: viewport_path
-  type: 22
-  type_name: NodePath
-description: ''
-aliases: []

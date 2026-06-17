@@ -1,7 +1,9 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation_node_state_machine.hpp>
 #include <godot_cpp/classes/animation_node_state_machine_transition.hpp>
@@ -13,9 +15,9 @@ namespace godot_mcp {
 
 class AddTransitionTool : public ITool {
 public:
-    String name() const override { return "add_transition"; }
-    String category() const override { return "editor_tools/animation"; }
-    String brief() const override {
+    String name() const noexcept override { return "add_transition"; }
+    String category() const noexcept override { return "editor_tools/animation"; }
+    String brief() const noexcept override {
         return "Add a transition between two states in an AnimationTree state machine";
     }
     String description() const override {
@@ -23,45 +25,15 @@ public:
                "Configures crossfade time and switch mode. "
                "Uses EditorUndoRedoManager for undo support.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the AnimationTree node";
-            props["tree_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Source state name";
-            props["from"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target state name";
-            props["to"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "number";
-            p["description"] = "Crossfade time in seconds";
-            p["default"] = 0.0;
-            props["xfade_time"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Switch mode: immediate/sync/at_end";
-            p["default"] = "immediate";
-            props["switch_mode"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("tree_path", "from", "to");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("tree_path", "string", "Path to the AnimationTree node")
+            .prop("from", "string", "Source state name")
+            .prop("to", "string", "Target state name")
+            .prop("xfade_time", "number", "Crossfade time in seconds", 0.0)
+            .prop("switch_mode", "string", "Switch mode: immediate/sync/at_end", "immediate")
+            .required({"tree_path", "from", "to"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }
@@ -74,12 +46,11 @@ protected:
         double xfade_time = args_float(ctx.args, "xfade_time", 0.0);
         String switch_mode_str = args_string(ctx.args, "switch_mode", "immediate");
 
-        Node *node = resolve_node(ctx.root, tree_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("AnimationTree not found: ") + tree_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, tree_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
-        godot::AnimationTree *tree = Object::cast_to<godot::AnimationTree>(node);
+        auto *tree = Object::cast_to<godot::AnimationTree>(node);
         if (!tree) {
             return ToolResult::err("WRONG_TYPE",
                 String("Node is not an AnimationTree: ") + tree_path);
@@ -123,21 +94,19 @@ protected:
             return ToolResult::err("CREATE_FAILED",
                 "Failed to create AnimationNodeStateMachineTransition");
         }
-        trans->set_xfade_time((float)xfade_time);
+        trans->set_xfade_time(static_cast<float>(xfade_time));
         trans->set_switch_mode(switch_mode);
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Add Transition " + from + " -> " + to);
         if (!ur) {
             sm->add_transition(godot::StringName(from), godot::StringName(to), trans);
             mark_scene_dirty();
         } else {
-            ur->create_action(String("MCP: Add Transition ") + from + " -> " + to,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(sm.ptr(), "add_transition",
                               godot::StringName(from), godot::StringName(to), trans);
             ur->add_undo_method(sm.ptr(), "remove_transition",
                                 godot::StringName(from), godot::StringName(to));
-            ur->commit_action();
+            commit_undo_action(ur);
         }
 
         Dictionary data;

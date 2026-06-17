@@ -1,6 +1,7 @@
-﻿
+
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "server/registry/handler_registry.hpp"
@@ -11,9 +12,9 @@ namespace godot_mcp {
 class GetGameSceneTreeTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
-    String name() const override { return "get_game_scene_tree"; }
-    String category() const override { return "runtime_tools/bridge"; }
-    String brief() const override { return String("Get the scene tree of a running game"); }
+    String name() const noexcept override { return "get_game_scene_tree"; }
+    String category() const noexcept override { return "runtime_tools/bridge"; }
+    String brief() const noexcept override { return String("Get the scene tree of a running game"); }
     String description() const override {
         return String("Gets the full scene tree of the running game, including name, type and path of all nodes. "
                              "Optional max_depth parameter limits recursion depth (-1 for unlimited).");
@@ -21,22 +22,12 @@ public:
     String category_description() const override {
         return "Game runtime bridge tools: scene tree queries, property read/write, script execution, input simulation, screenshot, UI discovery, etc.";
     }
-    bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
-    Dictionary input_schema() const override {
-        Dictionary p;
-        {
-            Dictionary d;
-            d["type"] = "integer";
-            d["description"] = String("Maximum recursion depth, -1 for unlimited");
-            d["default"] = -1;
-            p["max_depth"] = d;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = p;
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("max_depth", "integer", "Maximum recursion depth, -1 for unlimited", (int64_t)-1)
+            .build();
     }
 
 protected:

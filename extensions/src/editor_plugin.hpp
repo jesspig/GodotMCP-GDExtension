@@ -27,8 +27,17 @@ public:
 
     godot::String _get_plugin_name() const override;
 
+    void set_http_port(int port) { http_port_ = port; }
+    void set_bridge_port(int port) { bridge_port_ = port; }
+    void set_http_host(const godot::String &host) { http_host_ = host; }
+    int http_port() const { return http_port_; }
+    int bridge_port() const { return bridge_port_; }
+    const godot::String &http_host() const { return http_host_; }
+    bool is_started() const { return started_; }
+    bool is_bridge_connected() const { return runtime_bridge_.is_connected(); }
+
     void save_config();
-    void restart_server(bool force = false);
+    void restart_server();
 
 protected:
     static void _bind_methods();
@@ -51,10 +60,7 @@ private:
     godot::String http_host_ = "127.0.0.1";
     bool started_ = false;
     bool game_was_running_ = false;
-    bool pending_restart_ = false;
-    bool force_restart_ = false;
-    double restart_deadline_ = 0.0;
-    static constexpr double kRestartTimeoutSec = 10.0;
+
 
     void load_config();
 };

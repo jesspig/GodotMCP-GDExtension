@@ -55,20 +55,21 @@ AI 客户端通过 MCP Streamable HTTP 协议直接连接 Godot 编辑器内的 
 - [CMake 3.22+](https://cmake.org/download)
 - [Visual Studio 2022](https://visualstudio.microsoft.com)（Windows）或等效的 C++ 工具链（macOS/Linux）
 
-> 构建脚本 `build.py` 需要 Python，但 Python 仅作为构建运行器使用，运行时不需要。
+> 构建命令 `main.py` 需要 Python，但 Python 仅作为构建运行器使用，运行时不需要。
 
 ### 构建
 
 ```bash
 git clone https://github.com/jessp/godot-mcp.git
 cd godot-mcp
-py -3 build.py
+uv run python main.py build
 ```
 
 构建产物：
 - `build/addons.zip` — 解压到任意 Godot 项目根目录即可安装编辑器插件
+- `example/addons/godot_mcp/` — 直接用于编辑器的插件目录
 
-> **Windows 下**务必使用 `py -3` 而非 `python`——Microsoft Store 的路由桩会静默卡死。
+> **Windows 下**务必使用 `uv run python` 确保使用 `.venv` 环境——避免 Microsoft Store 路由桩静默卡死。
 
 ### 在 Godot 中安装插件
 
@@ -185,14 +186,17 @@ cmake -B build -S .                           # 配置 CMake
 cmake --build build --config Debug            # 构建 gdext
 ```
 
-### 构建选项
+### 命令说明
 
 ```bash
-py -3 build.py                                # Debug + addons.zip
-py -3 build.py --release                      # Release + addons.zip
-py -3 build.py --clean                        # 清空 CMake 缓存（保留 _deps/）
-py -3 build.py --no-zip                       # 跳过打包（快速迭代）
-cmake --build build --target deep-clean       # 同时删除 _deps/（FetchContent 缓存）
+uv run python main.py build                           # Debug 构建 + 复制到 example/
+uv run python main.py build --release                 # Release 构建
+uv run python main.py build --clean                   # 清空 CMake 缓存（保留 _deps/）
+uv run python main.py build --no-zip                  # 跳过打包（快速迭代）
+uv run python main.py build -j 8                      # 8 路并行编译
+uv run python main.py package                         # 打包 addons.zip
+uv run python main.py test                            # 无头测试流水线
+uv run python main.py test --file 03_*.yaml           # 指定测试文件
 ```
 
 ### 文件锁定问题

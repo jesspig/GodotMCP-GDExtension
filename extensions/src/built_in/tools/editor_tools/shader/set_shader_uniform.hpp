@@ -1,19 +1,49 @@
-
 #pragma once
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/shader.hpp>
 
 namespace godot_mcp {
 
+// Coarse compatibility check between a shader uniform's declared GLSL class
+// name and a Godot Variant. Returns true when the value can plausibly be
+// assigned without Godot silently ignoring it. Sampler types require an
+// Object/Resource; numeric scalars/vectors accept matching numeric types.
+inline bool uniform_type_compatible(const godot::String &declared, const godot::Variant &value) {
+    const godot::String c = declared.to_lower();
+    const godot::Variant::Type vt = value.get_type();
+
+    if (c.find("sampler") >= 0 || c.find("texture") >= 0) {
+        return vt == godot::Variant::OBJECT || vt == godot::Variant::NIL;
+    }
+    if (c == "bool") {
+        return vt == godot::Variant::BOOL || vt == godot::Variant::INT || vt == godot::Variant::FLOAT;
+    }
+    if (c == "int" || c == "uint" || c == "ivec2" || c == "ivec3" || c == "ivec4") {
+        return vt == godot::Variant::INT || vt == godot::Variant::FLOAT;
+    }
+    if (c == "float") {
+        return vt == godot::Variant::FLOAT || vt == godot::Variant::INT;
+    }
+    if (c == "vec2" || c == "vector2") return vt == godot::Variant::VECTOR2 || vt == godot::Variant::VECTOR2I;
+    if (c == "vec3" || c == "vector3") return vt == godot::Variant::VECTOR3 || vt == godot::Variant::VECTOR3I;
+    if (c == "vec4" || c == "vector4" || c == "quat" || c == "quaternion") {
+        return vt == godot::Variant::VECTOR4 || vt == godot::Variant::VECTOR4I || vt == godot::Variant::QUATERNION;
+    }
+    if (c == "color") return vt == godot::Variant::COLOR;
+    return true;
+}
+
 class SetShaderUniformTool : public ITool {
 public:
-    String name() const override { return "set_shader_uniform"; }
-    String category() const override { return "editor_tools/shader"; }
-    String brief() const override {
+    String name() const noexcept override { return "set_shader_uniform"; }
+    String category() const noexcept override { return "editor_tools/shader"; }
+    String brief() const noexcept override {
         return "Set a shader uniform parameter on a ShaderMaterial";
     }
     String description() const override {
@@ -21,7 +51,7 @@ public:
                "set_shader_parameter(). This is the correct API for shader uniforms "
                "and cannot be covered by the generic set_node_property tool.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
@@ -69,9 +99,9 @@ protected:
             return ToolResult::err("BAD_PARAM", "value is required");
         }
 
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND", "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         godot::ShaderMaterial *material = nullptr;
@@ -93,10 +123,14 @@ protected:
         godot::StringName uniform_sn = godot::StringName(uniform_name);
         Array uniforms = shader->get_shader_uniform_list();
         bool found = false;
+        String declared_class; // uniform's declared value class, if available
         for (int i = 0; i < uniforms.size(); i++) {
             Dictionary u = uniforms[i];
             if (u.get("name", "") == uniform_sn) {
                 found = true;
+                // get_shader_uniform_list exposes a "class_name" hint for
+                // typed uniforms (e.g. "float", "vec2", "Texture2D").
+                declared_class = u.get("class_name", "");
                 break;
             }
         }
@@ -106,7 +140,24 @@ protected:
         }
 
         Variant converted = json_to_variant(ctx.args["value"]);
-        material->set_shader_parameter(uniform_sn, converted);
+        // Validate the converted value's type against the uniform's declared
+        // class. Silently passing a wrong type (float into a sampler, Vector2
+        // into a bool) used to report success even when Godot ignored it.
+        if (!declared_class.is_empty() &&
+            !uniform_type_compatible(declared_class, converted)) {
+            return ToolResult::err("TYPE_MISMATCH",
+                String("Value type incompatible with uniform '") + uniform_name +
+                String("' (declared ") + declared_class + String(")"));
+        }
+        Variant old_val = material->get_shader_parameter(uniform_sn);
+        auto *ur = begin_undo_action("MCP: Set Shader Uniform " + uniform_name);
+        if (ur) {
+            ur->add_do_method(material, "set_shader_parameter", uniform_sn, converted);
+            ur->add_undo_method(material, "set_shader_parameter", uniform_sn, old_val);
+            commit_undo_action(ur);
+        } else {
+            material->set_shader_parameter(uniform_sn, converted);
+        }
         mark_scene_dirty();
 
         Dictionary data;

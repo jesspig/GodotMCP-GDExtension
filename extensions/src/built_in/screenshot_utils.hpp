@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "built_in/cmd_utils.hpp"
 
@@ -17,14 +17,14 @@
 namespace godot_mcp {
 
 inline String generate_screenshot_path(const String &viewport_type, const String &format = "png") {
-    godot::Time *t = godot::Time::get_singleton();
+    auto *t = godot::Time::get_singleton();
     Dictionary dt = t->get_datetime_dict_from_system();
-    String ts = String::num_int64((int64_t)dt["year"]) +
-                String::num_int64((int64_t)dt["month"]).pad_zeros(2) +
-                String::num_int64((int64_t)dt["day"]).pad_zeros(2) + String("_") +
-                String::num_int64((int64_t)dt["hour"]).pad_zeros(2) +
-                String::num_int64((int64_t)dt["minute"]).pad_zeros(2) +
-                String::num_int64((int64_t)dt["second"]).pad_zeros(2);
+    String ts = String::num_int64(static_cast<int64_t>(dt["year"])) +
+                String::num_int64(static_cast<int64_t>(dt["month"])).pad_zeros(2) +
+                String::num_int64(static_cast<int64_t>(dt["day"])).pad_zeros(2) + String("_") +
+                String::num_int64(static_cast<int64_t>(dt["hour"])).pad_zeros(2) +
+                String::num_int64(static_cast<int64_t>(dt["minute"])).pad_zeros(2) +
+                String::num_int64(static_cast<int64_t>(dt["second"])).pad_zeros(2);
     String ext = (format == "jpg" || format == "jpeg") ? "jpg" : "png";
     return String("res://screenshots/") + ts + String("_") + viewport_type + String(".") + ext;
 }
@@ -45,7 +45,7 @@ inline String save_screenshot(const godot::Ref<godot::Image> &img, const String 
 
 inline Dictionary capture_editor_viewport(const String &viewport_type, int viewport_index,
                                            const String &format, const String &save_path) {
-    godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+    auto *ei = godot::EditorInterface::get_singleton();
     if (!ei) {
         return ToolResult::err("NO_EDITOR", "EditorInterface not available");
     }
@@ -82,7 +82,7 @@ inline Dictionary capture_editor_viewport(const String &viewport_type, int viewp
 }
 
 inline Dictionary capture_game_viewport_impl(const String &format, const String &save_path) {
-    godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+    auto *ei = godot::EditorInterface::get_singleton();
     if (!ei) {
         return ToolResult::err("NO_EDITOR", "EditorInterface not available");
     }
@@ -90,7 +90,7 @@ inline Dictionary capture_game_viewport_impl(const String &format, const String 
         return ToolResult::err("GAME_NOT_RUNNING", "Game not running");
     }
 
-    godot::DisplayServer *ds = godot::DisplayServer::get_singleton();
+    auto *ds = godot::DisplayServer::get_singleton();
     godot::Ref<godot::Image> img = ds->screen_get_image(0);
     if (img.is_null()) {
         return ToolResult::err("CAPTURE_FAILED", "Game screenshot failed");

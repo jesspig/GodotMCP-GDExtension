@@ -1,9 +1,0 @@
-category: editor_plugins
-settings:
-- name: editor_plugins/enabled
-  type: 34
-  type_name: PackedStringArray
-  hint: 0
-  hint_string: ''
-  basic: false
-  restart: false

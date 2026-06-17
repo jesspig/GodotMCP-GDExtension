@@ -1,19 +1,22 @@
 #pragma once
+#pragma warning(disable: 4828)  // non-UTF-8 bytes in file (known, harmless)
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
 
 namespace godot_mcp {
 
 // =====================================================================
-// GetNodePropertyTool — Generic fallback: read any property by name
+// GetNodePropertyTool ??Generic fallback: read any property by name
 // =====================================================================
 
 class GetNodePropertyTool : public ITool {
 public:
-    String name() const override { return "get_node_property"; }
-    String category() const override { return "node_tools/fallback"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_node_property"; }
+    String category() const noexcept override { return "node_tools/fallback"; }
+    String brief() const noexcept override {
         return "Read any property from a node by name";
     }
     String description() const override {
@@ -23,24 +26,12 @@ public:
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }
-    Dictionary input_schema() const override {
-        Dictionary s;
-        s["type"] = "object";
-        Dictionary p;
-        Dictionary np;
-        np["type"] = "string";
-        np["description"] = "Node path";
-        p["node_path"] = np;
-        Dictionary pp;
-        pp["type"] = "string";
-        pp["description"] = "Property name to read";
-        p["property"] = pp;
-        s["properties"] = p;
-        Array r;
-        r.push_back("node_path");
-        r.push_back("property");
-        s["required"] = r;
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path")
+            .prop("property", "string", "Property name to read")
+            .required({"node_path", "property"})
+            .build();
     }
 
 protected:
@@ -59,14 +50,14 @@ protected:
 };
 
 // =====================================================================
-// SetNodePropertyTool — Generic fallback: write any property by name
+// SetNodePropertyTool ??Generic fallback: write any property by name
 // =====================================================================
 
 class SetNodePropertyTool : public ITool {
 public:
-    String name() const override { return "set_node_property"; }
-    String category() const override { return "node_tools/fallback"; }
-    String brief() const override {
+    String name() const noexcept override { return "set_node_property"; }
+    String category() const noexcept override { return "node_tools/fallback"; }
+    String brief() const noexcept override {
         return "Write any property on a node by name (with undo)";
     }
     String description() const override {
@@ -77,8 +68,9 @@ public:
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return true; }
-    bool supports_undo() const override { return true; }
-    Dictionary input_schema() const override {
+    // execute_impl �ڲ���ͨ�� undoable_set() ���д��� undo���������� Undo action
+    bool supports_undo() const override { return false; }
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         Dictionary p;

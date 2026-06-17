@@ -1,8 +1,0 @@
-class: VisualShaderNodeParticleMultiplyByAxisAngle
-inherits: VisualShaderNode
-properties:
-- name: degrees_mode
-  type: 1
-  type_name: bool
-description: ''
-aliases: []

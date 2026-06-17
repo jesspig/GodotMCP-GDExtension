@@ -1,8 +1,0 @@
-class: ColorPalette
-inherits: Resource
-properties:
-- name: colors
-  type: 37
-  type_name: PackedColorArray
-description: ''
-aliases: []

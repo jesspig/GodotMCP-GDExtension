@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -10,9 +11,9 @@ namespace godot_mcp {
 
 class CreateGdshaderTool : public ITool {
 public:
-    String name() const override { return "create_gdshader"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_gdshader"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Create a Godot shader (.gdshader) file";
     }
     String description() const override {
@@ -20,25 +21,12 @@ public:
                "Uses FileAccess to write text content, then notifies EditorFileSystem to refresh. "
                "When content is not provided, uses the default canvas_item shader template.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target path (must end with .gdshader)";
-            props["path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: shader code (empty uses default canvas_item template)";
-            props["content"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("path", "string", "Target path (must end with .gdshader)")
+            .prop("content", "string", "Optional: shader code (empty uses default canvas_item template)")
+            .required({"path"})
+            .build();
     }
 
 protected:

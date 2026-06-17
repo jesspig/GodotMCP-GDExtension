@@ -24,7 +24,7 @@ void McpToolDefinition::set_brief(const String &v) { brief_ = v; }
 String McpToolDefinition::get_description() const { return description_; }
 void McpToolDefinition::set_description(const String &v) { description_ = v; }
 
-Dictionary McpToolDefinition::get_input_schema() const { return input_schema_; }
+const Dictionary &McpToolDefinition::get_input_schema() const { return input_schema_; }
 void McpToolDefinition::set_input_schema(const Dictionary &v) { input_schema_ = v; }
 
 bool McpToolDefinition::get_is_meta() const { return is_meta_; }
@@ -37,26 +37,25 @@ bool McpToolDefinition::get_is_destructive() const { return is_destructive_; }
 void McpToolDefinition::set_is_destructive(bool v) { is_destructive_ = v; }
 
 // ---------------------------------------------------------------------------
-// execute — virtual dispatch via script instance check
-// GDScript subclasses override func execute(args: Dictionary) -> Dictionary
-// C++ base class instances (no script attached) return an error.
-// has_method("execute") is always true due to ClassDB binding (line 103),
-// so we check get_script() to distinguish GDScript overrides.
+// execute — virtual dispatch via GDVIRTUAL_CALL
+// Scripts (GDScript, C#) override via GDVIRTUAL; C++ base returns an error
+// if no script override is present.  Mode B (Callable-based) users go through
+// McpToolRegistry::register_tool() and don't need this method.
 // ---------------------------------------------------------------------------
 
 Dictionary McpToolDefinition::execute(const Dictionary &args) {
-    if (get_script().get_type() != Variant::NIL) {
-        Variant ret = call("execute", args);
-        if (ret.get_type() == Variant::DICTIONARY) {
-            return Dictionary(ret);
-        }
-        Dictionary d;
-        d["result"] = ret;
-        return d;
+    Dictionary ret;
+    if (GDVIRTUAL_CALL(execute, args, ret)) {
+        return ret;
     }
-    Dictionary d;
-    d["error"] = "execute() not implemented";
-    return d;
+    ERR_PRINT("McpToolDefinition.execute() not overridden — register a script or use register_tool() with a Callable.");
+    Dictionary r;
+    r["success"] = false;
+    Dictionary err;
+    err["code"] = "NOT_IMPLEMENTED";
+    err["message"] = "execute() not overridden";
+    r["error"] = err;
+    return r;
 }
 
 // ---------------------------------------------------------------------------
@@ -115,8 +114,9 @@ void McpToolDefinition::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_is_destructive", "v"), &McpToolDefinition::set_is_destructive);
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "is_destructive"), "set_is_destructive", "get_is_destructive");
 
-    // execute — exposed as a regular method (GDScript overrides via inheritance)
+    // execute — bound as both regular method (for C++ callers) and virtual (for script overrides)
     ClassDB::bind_method(D_METHOD("execute", "args"), &McpToolDefinition::execute);
+    GDVIRTUAL_BIND(execute, "args");
 
     // Registration
     ClassDB::bind_method(D_METHOD("register_tool"), &McpToolDefinition::register_tool);

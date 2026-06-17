@@ -1,8 +1,0 @@
-class: VisualShaderNodeVec2Constant
-inherits: VisualShaderNodeConstant
-properties:
-- name: constant
-  type: 5
-  type_name: Vector2
-description: ''
-aliases: []

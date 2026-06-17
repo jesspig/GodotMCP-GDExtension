@@ -1,7 +1,7 @@
 #pragma once
 
 #include "built_in/tool_base.hpp"
-#include "client_registry.hpp"
+#include "client_config_registry.hpp"
 #include <godot_cpp/classes/dir_access.hpp>
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
@@ -10,16 +10,16 @@ namespace godot_mcp {
 
 class GenerateClientConfigTool : public ITool {
 public:
-    String name() const override { return "generate_client_config"; }
-    String category() const override { return "meta_tools"; }
-    String brief() const override { return "Generate MCP client configuration for various AI coding assistants"; }
+    String name() const noexcept override { return "generate_client_config"; }
+    String category() const noexcept override { return "meta_tools"; }
+    String brief() const noexcept override { return "Generate MCP client configuration for various AI coding assistants"; }
     String description() const override {
         return String("Generates the appropriate MCP configuration file content for the specified AI client. "
                       "Supports 11+ clients including Claude Code, Cursor, VS Code Copilot, Codex, Trae, and more. "
                       "Can optionally write the config file directly to the project directory.");
     }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary schema;
         schema["type"] = "object";
 
@@ -51,7 +51,7 @@ public:
         return schema;
     }
 
-    bool is_meta() const override { return true; }
+    bool is_meta() const noexcept override { return true; }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
@@ -67,7 +67,7 @@ protected:
         if (ps) {
             Variant port_v = ps->get_setting("godot_mcp/http_port");
             if (port_v.get_type() == Variant::INT) {
-                port = (int)(int64_t)port_v;
+                port = static_cast<int>(static_cast<int64_t>(port_v));
             }
         }
         String url = String("http://127.0.0.1:") + String::num_int64(port) + String("/mcp");

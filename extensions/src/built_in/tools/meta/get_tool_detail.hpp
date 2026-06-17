@@ -1,6 +1,7 @@
-﻿
+
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "server/registry/handler_registry.hpp"
 
@@ -10,29 +11,21 @@ class GetToolDetailTool : public ITool {
 public:
     void set_registry(HandlerRegistry *reg) override { reg_ = reg; }
 
-    String name() const override { return "get_tool_detail"; }
-    String category() const override { return "meta_tools"; }
-    String brief() const override { return String("Get full details of a specific tool"); }
+    String name() const noexcept override { return "get_tool_detail"; }
+    String category() const noexcept override { return "meta_tools"; }
+    String brief() const noexcept override { return String("Get full details of a specific tool"); }
     String description() const override {
         return String("Returns complete metadata for the specified tool, including name, id, "
                       "description, parameters, parameter types, return value, return type, "
                       "required parameters, category path, and usage example.");
     }
-    Dictionary input_schema() const override {
-        Dictionary schema;
-        schema["type"] = "object";
-        Dictionary props;
-        Dictionary tn;
-        tn["type"] = "string";
-        tn["description"] = String("Tool name, e.g. get_info, get_canvasitem_position");
-        props["name"] = tn;
-        schema["properties"] = props;
-        Array req;
-        req.push_back("name");
-        schema["required"] = req;
-        return schema;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("name", "string", "Tool name, e.g. get_info, get_canvasitem_position")
+            .required({"name"})
+            .build();
     }
-    bool is_meta() const override { return true; }
+    bool is_meta() const noexcept override { return true; }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
@@ -44,21 +37,21 @@ protected:
             return ToolResult::err("MISSING_PARAM", "Missing required parameter: name");
         }
 
-        const ToolInfo *info = reg_->get_tool_schema(tool_name);
+        const ToolInfo *info = reg_->find_tool_info(tool_name);
         if (!info) {
             return ToolResult::err("TOOL_NOT_FOUND", String("Tool not found: ") + tool_name);
         }
 
-        const String &cat_path = info->category;
+        const String cat_path = info->tool_ptr->category();
         const PackedStringArray cat_segments = cat_path.split("/");
         const String cat_id = cat_segments.is_empty() ? cat_path : cat_segments[cat_segments.size() - 1];
 
         Dictionary data;
-        data["id"] = info->name;
-        data["name"] = info->brief;
-        data["description"] = info->description;
+        data["id"] = tool_name;
+        data["name"] = info->tool_ptr->brief();
+        data["description"] = info->tool_ptr->description();
 
-        Dictionary schema = info->input_schema;
+        Dictionary schema = info->tool_ptr->input_schema();
         Dictionary props = schema.get("properties", Dictionary());
         Array param_names = props.keys();
         Array params;
@@ -84,7 +77,7 @@ protected:
         data["category_id"] = cat_id;
         data["category_path"] = cat_path;
 
-        // 鐢熸垚浣跨敤绀轰緥锛圡CP 宸ュ叿璋冪敤鏍煎紡锛岀洿鎺ヤ紶鍙傦級
+        // 生成使用示例（MCP 工具调用格式，直接传参）
         String example = String("{\n");
         for (int i = 0; i < param_names.size(); ++i) {
             String pn = param_names[i];

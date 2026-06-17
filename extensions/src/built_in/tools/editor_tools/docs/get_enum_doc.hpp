@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -10,9 +11,9 @@ namespace godot_mcp {
 
 class GetEnumDocTool : public ITool {
 public:
-    String name() const override { return "get_enum_doc"; }
-    String category() const override { return "editor_tools/docs"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_enum_doc"; }
+    String category() const noexcept override { return "editor_tools/docs"; }
+    String brief() const noexcept override {
         return "Get documentation for a class enum";
     }
     String description() const override {
@@ -20,30 +21,12 @@ public:
                "of a Godot class, including all enum constants and "
                "their values. Supports both regular enums and bitfields.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Godot class name";
-            props["class_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Enum name to inspect (e.g., AlignMode, CornerType). "
-                               "If empty, returns all enums for the class.";
-            props["enum_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("class_name");
-            s["required"] = req;
-        }
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("class_name", "string", "Godot class name")
+            .prop("enum_name", "string", "Enum name to inspect (e.g., AlignMode, CornerType). If empty, returns all enums for the class.")
+            .required({"class_name"})
+            .build();
     }
 
 protected:
@@ -69,17 +52,17 @@ protected:
                 for (int j = 0; j < constants.size(); j++) {
                     Dictionary c;
                     c["name"] = constants[j];
-                    c["value"] = (int64_t)ClassDB::class_get_integer_constant(class_name, constants[j]);
+                    c["value"] = static_cast<int64_t>(ClassDB::class_get_integer_constant(class_name, constants[j]));
                     const_list.append(c);
                 }
                 entry["constants"] = const_list;
-                entry["constant_count"] = (int64_t)const_list.size();
+                entry["constant_count"] = static_cast<int64_t>(const_list.size());
                 result.append(entry);
             }
             Dictionary data;
             data["class_name"] = class_name;
             data["enums"] = result;
-            data["count"] = (int64_t)result.size();
+            data["count"] = static_cast<int64_t>(result.size());
             return ToolResult::ok(data);
         }
 
@@ -94,7 +77,7 @@ protected:
         for (int i = 0; i < constants.size(); i++) {
             Dictionary c;
             c["name"] = constants[i];
-            c["value"] = (int64_t)ClassDB::class_get_integer_constant(class_name, constants[i]);
+            c["value"] = static_cast<int64_t>(ClassDB::class_get_integer_constant(class_name, constants[i]));
             const_list.append(c);
         }
 
@@ -103,7 +86,7 @@ protected:
         data["enum_name"] = enum_name;
         data["is_bitfield"] = ClassDB::is_class_enum_bitfield(class_name, enum_name, false);
         data["constants"] = const_list;
-        data["constant_count"] = (int64_t)const_list.size();
+        data["constant_count"] = static_cast<int64_t>(const_list.size());
         return ToolResult::ok(data);
     }
 };

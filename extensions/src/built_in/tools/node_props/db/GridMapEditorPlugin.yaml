@@ -1,5 +1,0 @@
-class: GridMapEditorPlugin
-inherits: EditorPlugin
-properties: []
-description: ''
-aliases: []

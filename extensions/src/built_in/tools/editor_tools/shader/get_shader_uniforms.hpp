@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -11,32 +12,20 @@ namespace godot_mcp {
 
 class GetShaderUniformsTool : public ITool {
 public:
-    String name() const override { return "get_shader_uniforms"; }
-    String category() const override { return "editor_tools/shader"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_shader_uniforms"; }
+    String category() const noexcept override { return "editor_tools/shader"; }
+    String brief() const noexcept override {
         return "Query shader uniform parameters with type info";
     }
     String description() const override {
         return "Loads a shader resource and returns all uniform parameters "
                "with their names, types, default values, and hints.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "res:// path to the shader file (.gdshader)";
-            props["shader_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("shader_path");
-            s["required"] = req;
-        }
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("shader_path", "string", "res:// path to the shader file (.gdshader)")
+            .required({"shader_path"})
+            .build();
     }
 
 protected:
@@ -60,18 +49,18 @@ protected:
             Dictionary entry;
             entry["name"] = u.get("name", "");
 
-            int type_int = (int)u.get("type", 0);
+            int type_int = static_cast<int>(u.get("type", 0));
             String type_str;
             switch (type_int) {
-                case (int)Variant::BOOL: type_str = "bool"; break;
-                case (int)Variant::INT: type_str = "int"; break;
-                case (int)Variant::FLOAT: type_str = "float"; break;
-                case (int)Variant::STRING: type_str = "String"; break;
-                case (int)Variant::VECTOR2: type_str = "Vector2"; break;
-                case (int)Variant::VECTOR3: type_str = "Vector3"; break;
-                case (int)Variant::VECTOR4: type_str = "Vector4"; break;
-                case (int)Variant::COLOR: type_str = "Color"; break;
-                case (int)Variant::ARRAY: type_str = "Array"; break;
+                case static_cast<int>(Variant::BOOL): type_str = "bool"; break;
+                case static_cast<int>(Variant::INT): type_str = "int"; break;
+                case static_cast<int>(Variant::FLOAT): type_str = "float"; break;
+                case static_cast<int>(Variant::STRING): type_str = "String"; break;
+                case static_cast<int>(Variant::VECTOR2): type_str = "Vector2"; break;
+                case static_cast<int>(Variant::VECTOR3): type_str = "Vector3"; break;
+                case static_cast<int>(Variant::VECTOR4): type_str = "Vector4"; break;
+                case static_cast<int>(Variant::COLOR): type_str = "Color"; break;
+                case static_cast<int>(Variant::ARRAY): type_str = "Array"; break;
                 default: type_str = String::num(type_int); break;
             }
             entry["type"] = type_str;
@@ -94,7 +83,7 @@ protected:
         Dictionary data;
         data["shader_path"] = shader_path;
         data["uniforms"] = results;
-        data["count"] = (int64_t)results.size();
+        data["count"] = static_cast<int64_t>(results.size());
         return ToolResult::ok(data);
     }
 };

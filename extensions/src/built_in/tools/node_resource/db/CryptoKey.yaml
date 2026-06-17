@@ -1,5 +1,0 @@
-class: CryptoKey
-inherits: Resource
-properties: []
-description: ''
-aliases: []

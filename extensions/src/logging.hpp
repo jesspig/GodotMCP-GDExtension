@@ -1,10 +1,5 @@
 // =====================================================================
 // logging.hpp — Thin wrapper around UtilityFunctions::print*.
-//
-// The original Rust implementation used an MPSC channel because worker
-// threads couldn't safely call godot_print!. The C++ rewrite executes
-// every command on the main thread (inside EditorPlugin::_process()),
-// so we can call into the engine directly.
 // =====================================================================
 
 #pragma once

@@ -1,5 +1,0 @@
-class: VisualShaderNodeParticleBoxEmitter
-inherits: VisualShaderNodeParticleEmitter
-properties: []
-description: ''
-aliases: []

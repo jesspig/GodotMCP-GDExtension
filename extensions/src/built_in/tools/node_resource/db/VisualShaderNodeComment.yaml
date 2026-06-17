@@ -1,8 +1,0 @@
-class: VisualShaderNodeComment
-inherits: VisualShaderNodeFrame
-properties:
-- name: description
-  type: 4
-  type_name: String
-description: ''
-aliases: []

@@ -1,0 +1,25 @@
+name: scene_toggle
+description: toggle_editable_children, toggle_placeholder on instanced node
+before_all:
+  - tool: create_directory
+    args: { path: "res://test_mcp_16" }
+  - tool: create_scene
+    args: { path: "res://test_mcp_16/sub.tscn", root_type: "Node2D", root_name: "Sub" }
+  - tool: new_scene
+    args: { root_type: "Node2D", root_name: "Root" }
+  - tool: instance_child_scene
+    args: { parent_path: "Root", scene_path: "res://test_mcp_16/sub.tscn", instance_name: "Inst" }
+tests:
+  - tool: toggle_placeholder
+    description: Enables placeholder on instanced node
+    args: { node_path: "Root/Inst", enable: true }
+    expect: { status: success }
+  - tool: toggle_editable_children
+    description: Enables editable children on instanced node
+    args: { node_path: "Root/Inst", enable: true }
+    expect: { status: success }
+after_all:
+  - tool: new_scene
+    args: { root_type: "Node", root_name: "Cleanup" }
+  - tool: delete_file
+    args: { path: "res://test_mcp_16", recursive: true }

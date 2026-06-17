@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
 
 #include <godot_cpp/classes/input_map.hpp>
 #include <godot_cpp/classes/input_event_key.hpp>
@@ -14,16 +15,16 @@ namespace godot_mcp {
 
 class AddInputEventBindingTool : public ITool {
 public:
-    String name() const override { return "add_input_event_binding"; }
-    String category() const override { return "editor_tools/inputmap"; }
-    String brief() const override {
+    String name() const noexcept override { return "add_input_event_binding"; }
+    String category() const noexcept override { return "editor_tools/inputmap"; }
+    String brief() const noexcept override {
         return "Add an InputEvent binding to an existing action";
     }
     String description() const override {
         return "Adds an input event binding (key, mouse button, joypad button, or joypad axis) "
                "to an existing InputMap action.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
@@ -80,7 +81,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        godot::InputMap *im = godot::InputMap::get_singleton();
+        auto *im = godot::InputMap::get_singleton();
         if (!im) {
             return ToolResult::err("NO_INPUT_MAP", "InputMap not available");
         }
@@ -98,7 +99,7 @@ protected:
         godot::StringName action_sn = godot::StringName(action);
         godot::TypedArray<godot::StringName> actions = im->get_actions();
         bool found = false;
-        for (int i = 0; i < actions.size(); i++) {
+        for (int64_t i = 0; i < actions.size(); i++) {
             if (actions[i] == action_sn) {
                 found = true;
                 break;
@@ -112,7 +113,7 @@ protected:
         godot::Ref<godot::InputEvent> event;
 
         if (event_type == "key") {
-            godot::InputEventKey *ev = memnew(godot::InputEventKey);
+            auto *ev = memnew(godot::InputEventKey);
 
             int64_t keycode = args_int(ctx.args, "keycode", 0);
             if (keycode == 0) {
@@ -120,7 +121,7 @@ protected:
                 if (!keycode_str.is_empty()) {
                     if (keycode_str.begins_with("KEY_")) {
                         Variant v = godot::Variant(godot::String("Key.") + keycode_str.substr(4, -1).capitalize().replace("_", ""));
-                        keycode = (int64_t)v;
+                        keycode = static_cast<int64_t>(v);
                     }
                     if (keycode == 0) {
                         keycode = keycode_str.to_int();
@@ -131,8 +132,8 @@ protected:
                 ev->set_keycode(static_cast<godot::Key>(keycode));
             }
 
-            if (ctx.args.has("modifiers") && ctx.args["modifiers"].get_type() == Variant::DICTIONARY) {
-                Dictionary mods = ctx.args["modifiers"];
+            Dictionary mods = args_get_typed<Dictionary>(ctx.args, "modifiers", Dictionary());
+            if (!mods.is_empty()) {
                 if (args_bool(mods, "ctrl", false)) ev->set_ctrl_pressed(true);
                 if (args_bool(mods, "shift", false)) ev->set_shift_pressed(true);
                 if (args_bool(mods, "alt", false)) ev->set_alt_pressed(true);
@@ -143,25 +144,25 @@ protected:
             event = godot::Ref<godot::InputEvent>(ev);
 
         } else if (event_type == "mouse_button" || event_type == "mb") {
-            godot::InputEventMouseButton *ev = memnew(godot::InputEventMouseButton);
+            auto *ev = memnew(godot::InputEventMouseButton);
             int64_t btn = args_int(ctx.args, "button_index", 1);
             ev->set_button_index(static_cast<godot::MouseButton>(btn));
             ev->set_pressed(true);
             event = godot::Ref<godot::InputEvent>(ev);
 
         } else if (event_type == "joy_button" || event_type == "jb") {
-            godot::InputEventJoypadButton *ev = memnew(godot::InputEventJoypadButton);
+            auto *ev = memnew(godot::InputEventJoypadButton);
             int64_t btn = args_int(ctx.args, "button_index", 0);
             ev->set_button_index(static_cast<godot::JoyButton>(btn));
             ev->set_pressed(true);
             event = godot::Ref<godot::InputEvent>(ev);
 
         } else if (event_type == "joy_axis" || event_type == "ja") {
-            godot::InputEventJoypadMotion *ev = memnew(godot::InputEventJoypadMotion);
+            auto *ev = memnew(godot::InputEventJoypadMotion);
             int64_t axis = args_int(ctx.args, "axis", 0);
             double axis_sign = args_float(ctx.args, "axis_sign", 1.0);
             ev->set_axis(static_cast<godot::JoyAxis>(axis));
-            ev->set_axis_value((real_t)axis_sign);
+            ev->set_axis_value(static_cast<real_t>(axis_sign));
             event = godot::Ref<godot::InputEvent>(ev);
 
         } else {

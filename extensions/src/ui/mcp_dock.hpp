@@ -26,7 +26,7 @@ public:
     McpDock();
     ~McpDock() override;
 
-    void set_plugin(McpEditorPlugin *p) { plugin_ = p; }
+    void set_plugin(McpEditorPlugin *p);
     void set_registry(HandlerRegistry *r) { registry_ = r; refresh_preview(); }
     void set_logger(McpLogger *l) { logger_ = l; }
     void update_status();
@@ -62,6 +62,13 @@ private:
 
     godot::String last_config_content_;
 
+    // Status cache (avoid redundant UI updates)
+    godot::String cached_status_text_;
+    godot::Color cached_status_color_;
+    godot::String cached_tools_text_;
+    godot::String cached_bridge_text_;
+    godot::Color cached_bridge_color_;
+
     McpEditorPlugin *plugin_ = nullptr;
     HandlerRegistry *registry_ = nullptr;
     McpLogger *logger_ = nullptr;
@@ -74,6 +81,7 @@ private:
     void _on_copy_pressed();
     void _on_apply_restart_pressed();
     void _on_force_restart_pressed();
+    void _restart_server();
     void _on_bind_mode_changed(int index);
     void _on_max_entries_changed(double value);
     void _on_log_dir_changed(const godot::String &text);

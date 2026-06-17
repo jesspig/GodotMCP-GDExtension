@@ -1,8 +1,9 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
@@ -11,34 +12,21 @@ namespace godot_mcp {
 
 class RenameNodeTool : public ITool {
 public:
-    String name() const override { return "rename_node"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "rename_node"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Rename a node in the scene";
     }
     String description() const override {
         return "Changes the name of the specified node. An empty name means no change (invalid operation). "
                "The new name must be unique among siblings under the same parent. All changes are undoable.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node path (empty = scene root)";
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "New node name";
-            props["new_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("new_name");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path (empty = scene root)")
+            .prop("new_name", "string", "New node name")
+            .required(Array::make("new_name"))
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }
@@ -51,10 +39,9 @@ protected:
         if (new_name.is_empty()) {
             return ToolResult::err("MISSING_ARG", "new_name cannot be empty");
         }
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
         if (node->get_name() == new_name) {
             Dictionary data;
@@ -73,13 +60,11 @@ protected:
         }
 
         String old_name = node->get_name();
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Rename " + old_name);
         if (ur) {
-            ur->create_action("MCP: Rename " + old_name,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "set_name", new_name);
             ur->add_undo_method(node, "set_name", old_name);
-            ur->commit_action();
+            commit_undo_action(ur);
         } else {
             node->set_name(new_name);
         }

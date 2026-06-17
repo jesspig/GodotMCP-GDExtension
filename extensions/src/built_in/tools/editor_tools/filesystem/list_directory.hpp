@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
 #include "filesystem_utils.hpp"
 
 #include <godot_cpp/classes/dir_access.hpp>
@@ -14,9 +15,9 @@ namespace godot_mcp {
 
 class ListDirectoryTool : public ITool {
 public:
-    String name() const override { return "list_directory"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "list_directory"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "List directory contents";
     }
     String description() const override {
@@ -24,7 +25,7 @@ public:
                "Prefers EditorFileSystemDirectory for structured information, "
                "falling back to DirAccess for direct traversal. Supports filtering by extension.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
@@ -80,7 +81,7 @@ protected:
                 if (extensions.size() > 0) {
                     String ext = fs_utils::get_file_extension(name);
                     bool ext_match = false;
-                    for (int e = 0; e < extensions.size(); e++) {
+                    for (int64_t e = 0; e < extensions.size(); e++) {
                         if (ext == String(extensions[e]).to_lower()) {
                             ext_match = true;
                             break;
@@ -100,7 +101,7 @@ protected:
         // Subdirectories
         if (include_dirs) {
             for (int i = 0; i < dir->get_subdir_count(); i++) {
-                godot::EditorFileSystemDirectory *sub = dir->get_subdir(i);
+                auto *sub = dir->get_subdir(i);
                 Dictionary entry;
                 entry["name"] = sub->get_name();
                 entry["path"] = sub->get_path();
@@ -147,7 +148,7 @@ protected:
                 if (extensions.size() > 0) {
                     String ext = fs_utils::get_file_extension(n);
                     bool ext_match = false;
-                    for (int e = 0; e < extensions.size(); e++) {
+                    for (int64_t e = 0; e < extensions.size(); e++) {
                         if (ext == String(extensions[e]).to_lower()) {
                             ext_match = true;
                             break;
@@ -168,8 +169,7 @@ protected:
         String path = args_string(ctx.args, "path", "res://");
         bool include_files = args_bool(ctx.args, "include_files", true);
         bool include_dirs = args_bool(ctx.args, "include_dirs", true);
-        Array extensions = ctx.args.has("extensions")
-            ? (Array)ctx.args["extensions"] : Array();
+        Array extensions = args_get_typed<Array>(ctx.args, "extensions", Array());
         bool recursive = args_bool(ctx.args, "recursive", false);
 
         Dictionary verr = fs_utils::validate_res_path(path);
@@ -185,10 +185,10 @@ protected:
         Array dir_list;
 
         // Try EditorFileSystem first for structured data
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         bool efs_used = false;
         if (ei) {
-            godot::EditorFileSystem *efs = ei->get_resource_filesystem();
+            auto *efs = ei->get_resource_filesystem();
             if (efs) {
                 godot::EditorFileSystemDirectory *efs_dir;
                 if (path == "res://") {
@@ -214,8 +214,8 @@ protected:
         data["path"] = path;
         data["files"] = file_list;
         data["directories"] = dir_list;
-        data["total_files"] = (int64_t)file_list.size();
-        data["total_dirs"] = (int64_t)dir_list.size();
+        data["total_files"] = static_cast<int64_t>(file_list.size());
+        data["total_dirs"] = static_cast<int64_t>(dir_list.size());
         return ToolResult::ok(data);
     }
 };

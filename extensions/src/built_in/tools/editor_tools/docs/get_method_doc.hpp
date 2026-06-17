@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -10,9 +11,9 @@ namespace godot_mcp {
 
 class GetMethodDocTool : public ITool {
 public:
-    String name() const override { return "get_method_doc"; }
-    String category() const override { return "editor_tools/docs"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_method_doc"; }
+    String category() const noexcept override { return "editor_tools/docs"; }
+    String brief() const noexcept override {
         return "Get detailed documentation for a class method";
     }
     String description() const override {
@@ -20,30 +21,12 @@ public:
                "of a Godot class, including arguments, return type, "
                "and flags.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Godot class name";
-            props["class_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Method name to inspect";
-            props["method"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("class_name");
-            req.append("method");
-            s["required"] = req;
-        }
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("class_name", "string", "Godot class name")
+            .prop("method", "string", "Method name to inspect")
+            .required({"class_name", "method"})
+            .build();
     }
 
 protected:
@@ -72,10 +55,10 @@ protected:
         Dictionary data;
         data["class_name"] = class_name;
         data["method"] = method;
-        data["arg_count"] = (int64_t)ClassDB::class_get_method_argument_count(class_name, method, false);
+        data["arg_count"] = static_cast<int64_t>(ClassDB::class_get_method_argument_count(class_name, method, false));
 
         if (!found.is_empty()) {
-            data["flags"] = (int64_t)found.get("flags", 0);
+            data["flags"] = static_cast<int64_t>(found.get("flags", 0));
             Variant ret = found.get("return", Variant());
             if (ret.get_type() == Variant::DICTIONARY) {
                 Dictionary ret_dict = ret;

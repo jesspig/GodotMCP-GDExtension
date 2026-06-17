@@ -6,21 +6,22 @@
 
 #include <godot_cpp/classes/dir_access.hpp>
 #include <godot_cpp/classes/config_file.hpp>
+#include <godot_cpp/classes/file_access.hpp>
 
 namespace godot_mcp {
 
 class ListPluginsTool : public ITool {
 public:
-    String name() const override { return "list_plugins"; }
-    String category() const override { return "editor_tools/plugin"; }
-    String brief() const override {
+    String name() const noexcept override { return "list_plugins"; }
+    String category() const noexcept override { return "editor_tools/plugin"; }
+    String brief() const noexcept override {
         return "List all editor plugins in the project";
     }
     String description() const override {
         return "Scan res://addons/ for plugins (plugin.cfg) and report "
                "each plugin's name, path, and enabled status.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         s["properties"] = Dictionary();
@@ -29,6 +30,7 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
+        (void)ctx;
         godot::Ref<godot::DirAccess> da = godot::DirAccess::open("res://addons");
         Array results;
 
@@ -48,9 +50,11 @@ protected:
                 String plugin_name = cfg->get_value("plugin", "name", n);
                 bool enabled = false;
                 {
+                    // `.enabled` is a FILE marker, not a directory. DirAccess::open
+                    // only opens directories, so it always returned an invalid Ref
+                    // here and `enabled` was unconditionally false. Use file_exists.
                     String enabled_path = "res://addons/" + n + "/.enabled";
-                    godot::Ref<godot::DirAccess> check = godot::DirAccess::open(enabled_path);
-                    enabled = check.is_valid();
+                    enabled = godot::FileAccess::file_exists(enabled_path);
                 }
 
                 Dictionary entry;
@@ -68,7 +72,7 @@ protected:
 
         Dictionary data;
         data["plugins"] = results;
-        data["count"] = (int64_t)results.size();
+        data["count"] = static_cast<int64_t>(results.size());
         return ToolResult::ok(data);
     }
 };

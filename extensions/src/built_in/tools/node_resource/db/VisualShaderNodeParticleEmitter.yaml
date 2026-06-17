@@ -1,8 +1,0 @@
-class: VisualShaderNodeParticleEmitter
-inherits: VisualShaderNode
-properties:
-- name: mode_2d
-  type: 1
-  type_name: bool
-description: ''
-aliases: []

@@ -1,5 +1,0 @@
-class: VisualShaderNodeTexture2DArrayParameter
-inherits: VisualShaderNodeTextureParameter
-properties: []
-description: ''
-aliases: []

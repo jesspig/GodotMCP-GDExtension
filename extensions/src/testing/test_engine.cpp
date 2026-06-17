@@ -5,6 +5,10 @@
 #include <godot_cpp/classes/editor_file_system_directory.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/file_access.hpp>
+#include <godot_cpp/classes/json.hpp>
+#include <godot_cpp/classes/project_settings.hpp>
+
+#include <deque>
 
 using namespace godot;
 
@@ -22,17 +26,23 @@ TestEngine::FileSnapshot TestEngine::take_snapshot() {
     EditorFileSystem *efs = ei->get_resource_filesystem();
     if (!efs) return snap;
 
+    // Force a rescan so the in-memory cache reflects the actual disk state.
+    // Without this, a tool that just wrote a file may not appear in `after`,
+    // so cleanup() would miss it (or worse, a stale cache entry could cause a
+    // pre-existing file to be misclassified as "new" and deleted.
+    efs->scan();
+
     EditorFileSystemDirectory *root = efs->get_filesystem();
     if (!root) return snap;
 
     // BFS over the file tree
-    Vector<EditorFileSystemDirectory *> queue;
+    std::deque<EditorFileSystemDirectory *> queue;
     queue.push_back(root);
 
     PackedStringArray all_paths;
-    while (!queue.is_empty()) {
+    while (!queue.empty()) {
         EditorFileSystemDirectory *dir = queue[0];
-        queue.remove_at(0);
+        queue.pop_front();
 
         if (!dir) continue;
 
@@ -114,7 +124,7 @@ void TestEngine::cleanup(const Array &tracked,
 
     // Find new files (after - before)
     Vector<String> new_files;
-    for (const KeyValue<String, bool> &kv : after_set) {
+    for (const auto &kv : after_set) {
         if (!before_set.has(kv.key)) {
             new_files.push_back(kv.key);
         }
@@ -133,8 +143,11 @@ void TestEngine::cleanup(const Array &tracked,
             continue;
         }
 
-        // Safety: never delete res:// itself (protect project root)
-        if (path == "res://") {
+        // Safety: never touch anything outside res:// or res:// itself.
+        // The diff comes from the EditorFileSystem cache, which should only
+        // ever contain res:// paths, but guard defensively against a
+        // malformed/symlinked layout escaping the project root.
+        if (path == "res://" || !path.begins_with("res://")) {
             out_skipped.push_back(path);
             continue;
         }
@@ -151,9 +164,12 @@ void TestEngine::cleanup(const Array &tracked,
             }
         }
 
-        // Clean up empty parent directories (walk up, stop at res://)
+        // Clean up empty parent directories (walk up, stop at res://).
+        // Cap iterations to defend against pathological/symlink layouts that
+        // could otherwise make get_base_dir() spin, and check every remove()'s
+        // return value (the old code ignored failures silently).
         String dir_path = path.get_base_dir();
-        while (dir_path != "res://") {
+        for (int hop = 0; hop < 64 && dir_path != "res://" && dir_path.begins_with("res://"); ++hop) {
             Ref<DirAccess> d = DirAccess::open(dir_path);
             if (d.is_null()) break;
 
@@ -172,7 +188,14 @@ void TestEngine::cleanup(const Array &tracked,
                 Ref<DirAccess> parent = DirAccess::open(dir_path.get_base_dir());
                 if (parent.is_valid()) {
                     const String dir_name = dir_path.get_file();
-                    parent->remove(dir_name);
+                    const Error rm_err = parent->remove(dir_name);
+                    if (rm_err != OK) {
+                        log_warn("test_engine",
+                                 String("Failed to remove empty dir: ") + dir_path);
+                        break;  // stop walking if we can't remove this level
+                    }
+                } else {
+                    break;
                 }
             } else {
                 break;
@@ -183,25 +206,99 @@ void TestEngine::cleanup(const Array &tracked,
 }
 
 // ---------------------------------------------------------------------------
+// Settings snapshot — record initial values before mutation
+// ---------------------------------------------------------------------------
+
+void TestEngine::record_setting_before_call(const String &tool_name,
+                                             const Dictionary &args) {
+    if (tool_name != "set_setting" && tool_name != "reset_setting")
+        return;
+    const String path = args.get("setting_path", "");
+    if (path.is_empty() || settings_snapshot_.has(path))
+        return;
+
+    auto *ps = ProjectSettings::get_singleton();
+    if (ps && ps->has_setting(path)) {
+        settings_snapshot_[path] = ps->get_setting(path);
+    } else {
+        settings_snapshot_[path] = Variant(); // NIL = didn't exist
+    }
+}
+
+void TestEngine::restore_settings() {
+    if (settings_snapshot_.size() == 0)
+        return;
+    auto *ps = ProjectSettings::get_singleton();
+    if (!ps)
+        return;
+
+    const Array keys = settings_snapshot_.keys();
+    for (int i = 0; i < keys.size(); ++i) {
+        const String key = keys[i];
+        const Variant val = settings_snapshot_[key];
+        if (val.get_type() == Variant::NIL) {
+            if (ps->has_setting(key))
+                ps->clear(key);
+        } else {
+            ps->set_setting(key, val);
+        }
+    }
+    // NOTE: intentionally no ps->save() here — the file on disk was already
+    // rewritten by the tool's ps->save() calls with Godot's internal
+    // formatting. We restore in-memory values only; the raw file content is
+    // restored separately in restore_project_godot() to preserve the original
+    // formatting, comments, and section ordering.
+    settings_snapshot_.clear();
+}
+
+void TestEngine::backup_project_godot() {
+    Ref<FileAccess> fa = FileAccess::open("res://project.godot", FileAccess::READ);
+    if (fa.is_null()) return;
+    project_godot_backup_ = fa->get_as_text();
+    fa->close();
+}
+
+void TestEngine::restore_project_godot() {
+    if (project_godot_backup_.is_empty()) return;
+
+    Ref<FileAccess> fa = FileAccess::open("res://project.godot", FileAccess::WRITE);
+    if (fa.is_null()) {
+        log_warn("test_engine", "Cannot write project.godot for restoration");
+        return;
+    }
+    fa->store_string(project_godot_backup_);
+    fa->close();
+    project_godot_backup_ = String();
+
+    // Refresh the editor file system cache so the restored file is visible.
+    EditorInterface *ei = EditorInterface::get_singleton();
+    if (ei) {
+        EditorFileSystem *efs = ei->get_resource_filesystem();
+        if (efs) efs->scan();
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Execute a chain of tool calls (before_all, after_all, before_each, after_each)
 // ---------------------------------------------------------------------------
 
-godot::String TestEngine::execute_chain(const Array &chain) {
+godot::String TestEngine::execute_chain(const Array &chain, const char *chain_name) {
     for (int i = 0; i < chain.size(); ++i) {
         const Dictionary step = chain[i];
         const String tool_name = step.get("tool", "");
         const Dictionary tool_args = step.get("args", Dictionary());
         if (tool_name.is_empty()) continue;
+        record_setting_before_call(tool_name, tool_args);
         const Dictionary result = registry_->execute(tool_name, tool_args);
         if (result.has("error")) {
             const Variant err = result["error"];
             String err_msg = err.get_type() == Variant::DICTIONARY
                 ? String(Dictionary(err).get("message", "Unknown error"))
                 : String(err);
-            return String("before_all step '") + tool_name + String("' failed: ") + err_msg;
+            return String(chain_name) + String(" step '") + tool_name + String("' failed: ") + err_msg;
         }
         if (result.has("success") && !result["success"].operator bool()) {
-            return String("before_all step '") + tool_name + String("' returned success=false");
+            return String(chain_name) + String(" step '") + tool_name + String("' returned success=false");
         }
     }
     return String();
@@ -223,6 +320,7 @@ Dictionary TestEngine::execute_test(const Dictionary &test_def) {
     test_result["description"] = description;
 
     // Execute tool
+    record_setting_before_call(tool_name, tool_args);
     const Dictionary raw_result = registry_->execute(tool_name, tool_args);
     test_result["raw_result"] = raw_result;
     test_result["tracked_paths"] = track_paths(raw_result);
@@ -268,24 +366,29 @@ Dictionary TestEngine::run(const String &yaml_content) {
     suite_result["name"] = config.get("name", "");
     suite_result["description"] = config.get("description", "");
 
+    // --- Backup project.godot raw content (before any tool touches it) ---
+    backup_project_godot();
+
     // --- Snapshot before ---
     const FileSnapshot before = take_snapshot();
 
     // --- before_all chain ---
     String before_all_error;
     if (config.has("before_all")) {
-        before_all_error = execute_chain(config["before_all"]);
+        before_all_error = execute_chain(config["before_all"], "before_all");
     }
 
     // --- Tests ---
     Array test_results;
     int total = 0, passed = 0, failed = 0;
+    bool teardown_failed = false;
+    String teardown_error;
 
     if (!before_all_error.is_empty()) {
         // before_all failed — report error and skip all tests
         if (config.has("tests")) {
             const Array tests = config["tests"];
-            total = tests.size();
+            total = static_cast<int>(tests.size());
             failed = total;
             for (int i = 0; i < tests.size(); ++i) {
                 const Dictionary test_def = tests[i];
@@ -299,35 +402,55 @@ Dictionary TestEngine::run(const String &yaml_content) {
         }
     } else if (config.has("tests")) {
         const Array tests = config["tests"];
-        total = tests.size();
+        total = static_cast<int>(tests.size());
 
         for (int i = 0; i < tests.size(); ++i) {
             const Dictionary test_def = tests[i];
 
             // before_each
+            String before_each_err;
             if (config.has("before_each")) {
-                execute_chain(config["before_each"]);
+                before_each_err = execute_chain(config["before_each"], "before_each");
             }
 
-            // Execute the test
-            Dictionary result = execute_test(test_def);
+            Dictionary result;
+            if (!before_each_err.is_empty()) {
+                result["tool"] = test_def.get("tool", "");
+                result["description"] = test_def.get("description", "");
+                result["passed"] = false;
+                result["error"] = before_each_err;
+            } else {
+                // Execute the test
+                result = execute_test(test_def);
 
-            // Collect tracked paths
-            if (result.has("tracked_paths")) {
-                const Array paths = result["tracked_paths"];
-                if (!suite_result.has("_all_tracked")) {
-                    suite_result["_all_tracked"] = Array();
+                // Collect tracked paths
+                if (result.has("tracked_paths")) {
+                    const Array paths = result["tracked_paths"];
+                    if (!suite_result.has("_all_tracked")) {
+                        suite_result["_all_tracked"] = Array();
+                    }
+                    Array all_tracked = suite_result["_all_tracked"];
+                    const int old_size = static_cast<int>(all_tracked.size());
+                    all_tracked.resize(old_size + paths.size());
+                    for (int p = 0; p < paths.size(); ++p) {
+                        all_tracked[old_size + p] = paths[p];
+                    }
+                    suite_result["_all_tracked"] = all_tracked;
                 }
-                Array all_tracked = suite_result["_all_tracked"];
-                for (int p = 0; p < paths.size(); ++p) {
-                    all_tracked.push_back(paths[p]);
-                }
-                suite_result["_all_tracked"] = all_tracked;
             }
 
             // after_each
             if (config.has("after_each")) {
-                execute_chain(config["after_each"]);
+                const String after_each_err = execute_chain(config["after_each"], "after_each");
+                if (!after_each_err.is_empty()) {
+                    log_warn("test_engine", after_each_err);
+                    // A teardown failure leaves the suite in a dirty state; the
+                    // old code only log_warn'd and left the test green, which
+                    // hid real problems. Flip the result to failed and surface
+                    // the teardown error.
+                    result["passed"] = false;
+                    result["error"] = String("after_each failed: ") + after_each_err;
+                }
             }
 
             // Gather result (strip internal fields)
@@ -347,8 +470,18 @@ Dictionary TestEngine::run(const String &yaml_content) {
 
     // --- after_all chain ---
     if (config.has("after_all")) {
-        execute_chain(config["after_all"]);
+        const String after_all_err = execute_chain(config["after_all"], "after_all");
+        if (!after_all_err.is_empty()) {
+            log_warn("test_engine", after_all_err);
+            // Surface suite-level teardown failure instead of swallowing it.
+            teardown_failed = true;
+            teardown_error = after_all_err;
+        }
     }
+
+    // --- Restore project settings to pre-test values ---
+    restore_settings();       // in-memory: set back pre-test values
+    restore_project_godot();  // on-disk: byte-identical backup
 
     // --- Snapshot after + cleanup ---
     const FileSnapshot after = take_snapshot();
@@ -364,6 +497,10 @@ Dictionary TestEngine::run(const String &yaml_content) {
     summary["failed"] = failed;
     summary["cleanup_deleted"] = deleted;
     summary["cleanup_skipped"] = skipped;
+    if (teardown_failed) {
+        summary["teardown_failed"] = true;
+        summary["teardown_error"] = teardown_error;
+    }
 
     suite_result["summary"] = summary;
     suite_result["tests"] = test_results;

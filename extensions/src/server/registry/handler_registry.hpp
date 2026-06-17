@@ -20,18 +20,10 @@ class RuntimeBridge;
 using CommandFn = std::function<godot::Dictionary(const godot::Dictionary &args)>;
 
 struct ToolInfo {
-    godot::String name;
-    godot::String description;
-    godot::String brief;
-    godot::String category;
-    godot::String category_label;
-    godot::String category_description;
-    bool is_meta = false;
-    bool supports_undo = false;
     bool is_destructive = false;
     bool is_custom = false;
-    godot::Dictionary input_schema;
     bool enabled = true;
+    const ITool *tool_ptr = nullptr;
 };
 
 class HandlerRegistry {
@@ -39,43 +31,32 @@ public:
     HandlerRegistry();
     ~HandlerRegistry();
 
-    // ── SDK 自定义工具注册（CommandFn）──
-    void register_custom_tool(const godot::String &name, const godot::String &category,
-                              const godot::String &brief, const godot::String &description,
-                              const godot::Dictionary &schema, CommandFn fn,
-                              bool is_meta = false);
-    bool unregister_custom_tool(const godot::String &name);
+    [[nodiscard]] bool unregister_custom_tool(const godot::String &name);
 
-    // ── ITool 注册──
     void register_tool(std::unique_ptr<ITool> tool, bool is_custom = false);
-    godot::Dictionary execute(const godot::String &name, const godot::Dictionary &args);
+    [[nodiscard]] godot::Dictionary execute(const godot::String &name, const godot::Dictionary &args);
 
-    const ToolInfo *find_tool_info(const godot::String &name) const;
-    godot::Array get_all_tools() const;
-    godot::Array get_enabled_tools() const;
-    bool is_tool_enabled(const godot::String &name) const;
-    void set_tool_enabled(const godot::String &name, bool enabled);
+    [[nodiscard]] const ToolInfo *find_tool_info(const godot::String &name) const;
 
     // --- Category queries (for progressive disclosure) ---
-    godot::Array get_categories() const;
-    godot::Array get_tools_in_category(const godot::String &category) const;
-    const ToolInfo *get_tool_schema(const godot::String &name) const;
+    [[nodiscard]] godot::Array get_categories() const;
+    [[nodiscard]] godot::Array get_tools_in_category(const godot::String &category) const;
 
     // --- Always-on tools list ---
-    godot::Array get_always_on_tools() const;
+    [[nodiscard]] godot::Array get_always_on_tools() const;
 
     // --- Counts ---
-    int builtin_tool_count() const;
-    int custom_tool_count() const;
+    [[nodiscard]] int builtin_tool_count() const;
+    [[nodiscard]] int custom_tool_count() const;
 
     // --- Runtime bridge ---
     void set_runtime_bridge(RuntimeBridge *bridge) { runtime_bridge_ = bridge; }
     RuntimeBridge *get_runtime_bridge() const { return runtime_bridge_; }
 
     // --- Search engine ---
-    godot::Array search_tools(const godot::String &query, const godot::String &category = "", int limit = 20) const;
+    [[nodiscard]] godot::Array search_tools(const godot::String &query, const godot::String &category = "", int limit = 20) const;
     void record_tool_call(const godot::String &name);
-    godot::Array get_search_suggestions(const godot::String &prefix, int limit = 10) const;
+    [[nodiscard]] godot::Array get_search_suggestions(const godot::String &prefix, int limit = 10) const;
 
     // --- Version info ---
     void set_engine_version(const godot::String &v) { engine_version_ = v; }
@@ -84,15 +65,27 @@ public:
     const godot::String &plugin_version() const { return plugin_version_; }
 
 private:
-    godot::Dictionary make_tool_entry(const ToolInfo &info) const;
+    godot::Dictionary make_tool_entry(const godot::String &name, const ToolInfo &info) const;
+
+    const ITool *find_itool(const godot::String &name) const {
+        auto it = itool_table_.find(name);
+        return (it != itool_table_.end()) ? it->second.get() : nullptr;
+    }
 
     static godot::PackedStringArray tokenize(const godot::String &text);
-    void rebuild_search_index();
 
-    godot::HashMap<godot::String, CommandFn> table_;
+    // 使用 std::map 而非 godot::HashMap，因�?unique_ptr 不可复制（HashMap 要求 value 可复制）
     std::map<godot::String, std::unique_ptr<ITool>> itool_table_;
     godot::HashMap<godot::String, ToolInfo> tool_info_;
-    godot::HashMap<godot::String, godot::Array> search_index_;
+
+    // 预构建搜索索引：在 register_tool() 时增量构建，避免 search_tools() 实时 tokenize
+    struct SearchIndexEntry {
+        godot::PackedStringArray tokens;
+    };
+    godot::HashMap<godot::String, SearchIndexEntry> search_index_;
+
+    mutable godot::Array categories_cache_;
+    mutable bool categories_dirty_ = true;
     godot::HashMap<godot::String, int> freq_index_;
     RuntimeBridge *runtime_bridge_ = nullptr;
     godot::String engine_version_;

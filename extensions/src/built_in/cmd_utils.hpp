@@ -1,29 +1,38 @@
-// =====================================================================
-// commands/cmd_utils.hpp — Shared helpers for every command handler.
+﻿// =====================================================================
+// commands/cmd_utils.hpp �?Shared helpers for every command handler.
 //
 // Shared helper functions for command handlers and ITool implementations:
-//   * resolve_node()             — flexible path resolution
-//   * get_root() / get_undo_redo() — edited-scene accessors
+//   * resolve_node()             �?flexible path resolution
+//   * get_root() / get_undo_redo() �?edited-scene accessors
 //   * variant_to_json() / json_to_variant()
-//                                  — j2v/v2j equivalents using Godot's
+//                                  �?j2v/v2j equivalents using Godot's
 //                                    native Variant + Dictionary types
-//   * undoable_set()             — "apply now + register undo" idiom
-//   * ensure_parent_dir()        — mkdir -p for res:// paths
-//   * relative_path()            — node path relative to scene root
-//   * globalize_path()           — res:// -> absolute disk path
+//   * undoable_set()             �?"apply now + register undo" idiom
+//   * ensure_parent_dir()        �?mkdir -p for res:// paths
+//   * relative_path()            �?node path relative to scene root
+//   * globalize_path()           �?res:// -> absolute disk path
 //
 // All functions in this header MUST be called from the main thread.
 // =====================================================================
 
 #pragma once
 
+#include <filesystem>
 #include <functional>
+#include <cstdint>
+#include <type_traits>
 #include <godot_cpp/classes/dir_access.hpp>
+#include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
+#include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/node.hpp>
+#include <godot_cpp/variant/array.hpp>
+#include <godot_cpp/variant/color.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/variant.hpp>
+#include <godot_cpp/variant/vector2.hpp>
+#include <godot_cpp/variant/vector3.hpp>
 
 namespace godot_mcp {
 
@@ -61,7 +70,7 @@ godot::EditorUndoRedoManager *get_undo_redo();
 // Convert a Godot Variant into a JSON-friendly Variant for stringify().
 // Recursively expands Vector2/3/4, Color, Rect2, Quaternion, Resource paths,
 // Dictionaries and Arrays into plain JSON containers.
-godot::Variant variant_to_json(const godot::Variant &v);
+[[nodiscard]] godot::Variant variant_to_json(const godot::Variant &v, int depth = 0);
 
 // Convert a JSON-parsed Variant back into the most specific Godot type:
 //   {x,y}            -> Vector2
@@ -73,7 +82,7 @@ godot::Variant variant_to_json(const godot::Variant &v);
 //   [a,b]/[a,b,c]/[a,b,c,d] -> Vector2/3 or Color shortcut
 //   "res://..."      -> ResourceLoader::load()
 //   primitives       -> passed through unchanged
-godot::Variant json_to_variant(const godot::Variant &jv);
+[[nodiscard]] godot::Variant json_to_variant(const godot::Variant &jv, int depth = 0);
 
 // ---------------------------------------------------------------------
 // Editor write helpers
@@ -86,6 +95,19 @@ void undoable_set(godot::Node *node,
                   const godot::Variant &new_value,
                   const godot::String &action_name);
 
+// Begin a named undo/redo action. Returns the EditorUndoRedoManager or
+// nullptr if undo is unavailable (e.g. in runtime/game mode).
+inline godot::EditorUndoRedoManager *begin_undo_action(const godot::String &name) {
+    auto *ur = get_undo_redo();
+    if (ur) ur->create_action(name);
+    return ur;
+}
+
+// Commit a previously-begun undo/redo action. Safe to call with nullptr.
+inline void commit_undo_action(godot::EditorUndoRedoManager *ur) {
+    if (ur) ur->commit_action();
+}
+
 // Mark the currently-edited scene as dirty so the editor shows the
 // unsaved-changes indicator on its tab.
 void mark_scene_dirty();
@@ -93,14 +115,6 @@ void mark_scene_dirty();
 // Notify EditorFileSystem that `path` (a res:// or absolute path) changed
 // on disk. Safe to call from any tool that writes script/scene files.
 void notify_file_changed(const godot::String &path);
-
-// Record the current undo-redo version as the "saved" marker on a node.
-// Used by scene tools to track whether a scene is dirty.
-void save_version_marker(godot::Node *root);
-
-// Collect names of nodes under `root` that have no owner (potential issue).
-// Returns an Array of warning strings.
-godot::Array collect_owner_warnings(godot::Node *root);
 
 // ---------------------------------------------------------------------
 // Path helpers
@@ -143,10 +157,28 @@ bool args_bool(const godot::Dictionary &args,
                bool default_value = false);
 
 // ---------------------------------------------------------------------
+// Env helpers
+// ---------------------------------------------------------------------
+
+// Read a port number from environment variable with validation.
+// Returns default_port if env var is empty, unset, or out of range [1, 65535].
+inline int read_port_from_env(const godot::String &env_var, int default_port) {
+    auto *os = godot::OS::get_singleton();
+    if (!os) return default_port;
+    const godot::String raw = os->get_environment(env_var);
+    if (raw.is_empty()) return default_port;
+    const int64_t parsed = raw.to_int();
+    if (parsed < 1 || parsed > 65535) {
+        return default_port;
+    }
+    return static_cast<int>(parsed);
+}
+
+// ---------------------------------------------------------------------
 // Response builders
 // ---------------------------------------------------------------------
 
-godot::String json_stringify_safe(const godot::Variant &v);
+[[nodiscard]] godot::String json_stringify_safe(const godot::Variant &v);
 
 // ---------------------------------------------------------------------
 // Tree traversal
@@ -165,7 +197,7 @@ inline void collect_nodes_by(godot::Node *node,
         out.append(d);
     }
     for (int64_t i = 0; i < node->get_child_count(); i++) {
-        godot::Node *c = godot::Object::cast_to<godot::Node>(node->get_child(i));
+        auto *c = godot::Object::cast_to<godot::Node>(node->get_child(static_cast<int>(i)));
         if (c) collect_nodes_by(c, predicate, out, max_results, root);
     }
 }
@@ -177,25 +209,96 @@ inline void collect_nodes_by(godot::Node *node,
 inline void walk_project_dir(const godot::String &dir, const godot::Array &extensions,
                                bool include_addons, int64_t max_results, godot::Array &out) {
     if (out.size() >= max_results) return;
-    godot::Ref<godot::DirAccess> d = godot::DirAccess::open(dir);
-    if (d.is_null()) return;
-    d->list_dir_begin();
-    while (true) {
-        godot::String n = d->get_next();
-        if (n.is_empty()) break;
-        if (n == "." || n == "..") continue;
-        godot::String full = dir == "res://" ? godot::String("res://") + n : dir + godot::String("/") + n;
-        if (d->current_is_dir()) {
-            if (!include_addons && (n == "addons" || n == ".godot" || n == ".import")) continue;
-            walk_project_dir(full, extensions, include_addons, max_results, out);
-        } else {
-            bool match = extensions.size() == 0;
-            for (int i = 0; i < extensions.size() && !match; i++) {
-                if (n.ends_with(godot::String(extensions[i]))) match = true;
+    namespace fs = std::filesystem;
+    godot::String abs = godot::ProjectSettings::get_singleton()->globalize_path(dir);
+    fs::path root(abs.utf8().get_data());
+    if (!fs::exists(root)) return;
+
+    for (auto &entry : fs::recursive_directory_iterator(root, fs::directory_options::skip_permission_denied)) {
+        if (out.size() >= max_results) break;
+        if (!entry.is_regular_file()) continue;
+
+        fs::path rel = fs::relative(entry.path(), root);
+        godot::String p = godot::String("res://") + godot::String::utf8(rel.generic_string().c_str());
+
+        if (!include_addons) {
+            if (p.begins_with("res://addons/") ||
+                p.begins_with("res://.godot/") ||
+                p.begins_with("res://.import/")) {
+                continue;
             }
-            if (match && out.size() < max_results) out.append(full);
         }
+
+        bool match = extensions.size() == 0;
+        for (int64_t i = 0; i < extensions.size() && !match; i++) {
+            if (p.ends_with(godot::String(extensions[i]))) match = true;
+        }
+        if (match) out.append(p);
     }
+}
+
+// ---------------------------------------------------------------------
+// args_get — single-lookup type-safe arg extraction
+// ---------------------------------------------------------------------
+
+template<typename T>
+struct always_false_args : std::false_type {};
+
+template<typename T>
+T args_get(const godot::Dictionary &args, const godot::String &key, const T &default_value) {
+    if (!args.has(key)) return default_value;
+    const godot::Variant v = args[key];
+    if constexpr (std::is_same_v<T, godot::String>) {
+        return v.get_type() == godot::Variant::STRING ? godot::String(v) : default_value;
+    } else if constexpr (std::is_same_v<T, godot::Dictionary>) {
+        return v.get_type() == godot::Variant::DICTIONARY ? godot::Dictionary(v) : default_value;
+    } else if constexpr (std::is_same_v<T, godot::Array>) {
+        return v.get_type() == godot::Variant::ARRAY ? godot::Array(v) : default_value;
+    } else if constexpr (std::is_same_v<T, godot::Vector2>) {
+        if (v.get_type() == godot::Variant::VECTOR2) return godot::Vector2(v);
+        if (v.get_type() == godot::Variant::VECTOR3) {
+            auto v3 = godot::Vector3(v);
+            return godot::Vector2(v3.x, v3.y);
+        }
+        return default_value;
+    } else if constexpr (std::is_same_v<T, godot::Vector3>) {
+        if (v.get_type() == godot::Variant::VECTOR3) return godot::Vector3(v);
+        if (v.get_type() == godot::Variant::VECTOR2) {
+            auto v2 = godot::Vector2(v);
+            return godot::Vector3(v2.x, v2.y, 0.0f);
+        }
+        return default_value;
+    } else if constexpr (std::is_same_v<T, godot::Color>) {
+        if (v.get_type() == godot::Variant::COLOR) return godot::Color(v);
+        if (v.get_type() == godot::Variant::DICTIONARY) {
+            auto d = godot::Dictionary(v);
+            return godot::Color(
+                static_cast<float>(d.get("r", 1.0)),
+                static_cast<float>(d.get("g", 1.0)),
+                static_cast<float>(d.get("b", 1.0)),
+                static_cast<float>(d.get("a", 1.0))
+            );
+        }
+        return default_value;
+    } else if constexpr (std::is_same_v<T, bool>) {
+        return v.get_type() == godot::Variant::BOOL ? static_cast<bool>(v) : default_value;
+    } else if constexpr (std::is_integral_v<T>) {
+        if (v.get_type() == godot::Variant::INT) return static_cast<T>(static_cast<int64_t>(v));
+        if (v.get_type() == godot::Variant::FLOAT) return static_cast<T>(static_cast<double>(v));
+        return default_value;
+    } else if constexpr (std::is_floating_point_v<T>) {
+        if (v.get_type() == godot::Variant::FLOAT) return static_cast<T>(static_cast<double>(v));
+        if (v.get_type() == godot::Variant::INT) return static_cast<T>(static_cast<int64_t>(v));
+        return default_value;
+    } else {
+        static_assert(always_false_args<T>::value, "args_get: unsupported type T");
+        return default_value;
+    }
+}
+
+template<typename T>
+inline T args_get_typed(const godot::Dictionary &args, const godot::String &key, const T &default_value) {
+    return args_get<T>(args, key, default_value);
 }
 
 }  // namespace godot_mcp

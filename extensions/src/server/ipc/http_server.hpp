@@ -3,6 +3,7 @@
 #include "../mcp/mcp_handler.hpp"
 
 #include <godot_cpp/classes/os.hpp>
+#include <algorithm>
 #include <godot_cpp/classes/tcp_server.hpp>
 #include <godot_cpp/classes/stream_peer_tcp.hpp>
 #include <godot_cpp/classes/time.hpp>
@@ -30,9 +31,10 @@ public:
     bool is_listening() const;
 
     void set_test_engine(TestEngine *te) { test_engine_ = te; }
-    void set_auth_token(const godot::String &token) { auth_token_ = token; }
 
     static constexpr int kMaxConnections = 32;
+    static constexpr auto kSseRetryIntervalMsec = 5000;
+    static constexpr auto kSseKeepaliveIntervalMsec = 15000;
     static constexpr int kMaxBodyLength = 1048576; // 1 MB — prevent OOM on oversized payloads
     static constexpr int kMaxHeaders = 100;
     static constexpr int kCorsMaxAgeSeconds = 86400;
@@ -40,34 +42,10 @@ public:
     Error start(uint16_t port, McpHandler *mcp_handler, const String &bind_address = "127.0.0.1");
 
 private:
-    struct RateLimiter {
-        int tokens = 30;
-        double last_refill_sec = 0.0;
-        static constexpr int kMaxTokens = 30;
-        static constexpr double kRefillRate = 30.0; // tokens/sec
-
-        bool try_consume() {
-            refill();
-            if (tokens > 0) { tokens--; return true; }
-            return false;
-        }
-
-        void refill() {
-            double now = godot::Time::get_singleton()->get_ticks_msec() / 1000.0;
-            double elapsed = now - last_refill_sec;
-            if (elapsed > 0.0) {
-                tokens = MIN(kMaxTokens, tokens + (int)(elapsed * kRefillRate));
-                last_refill_sec = now;
-            }
-        }
-    };
-
     struct Connection {
         godot::Ref<godot::StreamPeerTCP> tcp;
         godot::Vector<uint8_t> read_buf;
         uint64_t last_activity_msec = 0;
-        godot::String session_id;
-
         bool headers_done = false;
         godot::String method;
         godot::String path;
@@ -76,39 +54,48 @@ private:
         int content_length = 0;
         int header_end_pos = -1;
 
-        bool is_sse_stream = false;
         bool sse_write_errored = false;
         int sse_event_id = 0;
+        uint64_t sse_last_event_msec = 0;
         bool keep_alive = true;
+        bool is_sse_stream = false;
+        godot::String mcp_method;
+        godot::String mcp_name;
 
-        RateLimiter rate_limiter;
     };
 
     enum ParseResult { NEED_MORE, COMPLETE, ERROR_PARSE };
 
     ParseResult parse_headers(Connection &conn);
     void try_read_body(Connection &conn);
+    void finish_header_to_body(Connection &conn);
 
     void dispatch_request(int conn_id, Connection &conn);
     void handle_post(int conn_id, Connection &conn);
     void handle_get(int conn_id, Connection &conn);
-    void handle_delete(int conn_id, Connection &conn);
     void handle_options(int conn_id, Connection &conn);
 
-    void send_response(int conn_id, Connection &conn, int status_code,
+    void send_response(int /*conn_id*/, Connection &conn, int status_code,
                        const godot::String &status_text, const godot::String &content_type,
                        const godot::String &body,
                        const godot::String &extra_headers = "");
-    void send_sse_headers(int conn_id, Connection &conn);
-    void send_sse_event(int conn_id, Connection &conn, const godot::String &event_type,
+    void send_sse_headers(Connection &conn);
+    void send_sse_event(Connection &conn, const godot::String &event_type,
                         const godot::String &data, int id = 0);
-    void send_sse_comment(int conn_id, Connection &conn, const godot::String &comment);
-    void flush_sse(int conn_id, Connection &conn);
+    void send_sse_comment(Connection &conn, const godot::String &comment);
+    void flush_sse(Connection &conn);
 
     void close_connection(int conn_id);
     void check_timeouts();
     bool validate_origin(const Connection &conn) const;
     String get_cors_origin(const Connection &conn) const;
+    static bool is_local_origin(const String &origin);
+
+    int rate_tokens_ = 30;
+    double rate_last_refill_ = 0.0;
+    static constexpr int kMaxTokens = 30;
+    static constexpr double kRefillRate = 30.0;
+    bool try_consume_rate();
 
     godot::Ref<godot::TCPServer> tcp_server_;
     godot::HashMap<int, Connection> connections_;
@@ -117,7 +104,7 @@ private:
     TestEngine *test_engine_ = nullptr;
     int port_ = 0;
     String bind_address_;
-    uint64_t timeout_msec_ = 30000;
+    static constexpr uint64_t kTimeoutMsec = 30000;
     bool polling_ = false;
     godot::String auth_token_;
 

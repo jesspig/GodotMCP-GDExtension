@@ -1,5 +1,0 @@
-class: VideoStreamPlayback
-inherits: Resource
-properties: []
-description: ''
-aliases: []

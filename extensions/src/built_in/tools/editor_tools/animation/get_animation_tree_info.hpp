@@ -1,7 +1,9 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation_node.hpp>
 #include <godot_cpp/classes/animation_node_state_machine.hpp>
@@ -13,28 +15,20 @@ namespace godot_mcp {
 
 class GetAnimationTreeInfoTool : public ITool {
 public:
-    String name() const override { return "get_animation_tree_info"; }
-    String category() const override { return "editor_tools/animation"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_animation_tree_info"; }
+    String category() const noexcept override { return "editor_tools/animation"; }
+    String brief() const noexcept override {
         return "Get AnimationTree structure info (states, transitions, parameters)";
     }
     String description() const override {
         return "Returns the tree_root type, states (name + type + position), "
                "transitions (from, to, conditions), and parameter list for an AnimationTree node.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the AnimationTree node";
-            props["node_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("node_path");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("node_path", "string", "Path to the AnimationTree node")
+            .required({"node_path"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }
@@ -43,12 +37,11 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         String node_path = args_string(ctx.args, "node_path");
 
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String("AnimationTree not found: ") + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
-        godot::AnimationTree *tree = Object::cast_to<godot::AnimationTree>(node);
+        auto *tree = Object::cast_to<godot::AnimationTree>(node);
         if (!tree) {
             return ToolResult::err("WRONG_TYPE",
                 String("Node is not an AnimationTree: ") + node_path);
@@ -67,7 +60,7 @@ protected:
         godot::Ref<godot::AnimationNodeStateMachine> sm = Object::cast_to<godot::AnimationNodeStateMachine>(root.ptr());
         if (sm.is_valid()) {
             godot::TypedArray<godot::StringName> node_list = sm->get_node_list();
-            for (int i = 0; i < node_list.size(); i++) {
+            for (int64_t i = 0; i < node_list.size(); i++) {
                 godot::StringName sn = node_list[i];
                 godot::Ref<godot::AnimationNode> an = sm->get_node(sn);
                 godot::Vector2 pos = sm->get_node_position(sn);
@@ -89,9 +82,9 @@ protected:
                 td["from"] = String(sm->get_transition_from(i));
                 td["to"] = String(sm->get_transition_to(i));
                 td["xfade_time"] = trans.is_valid() ? trans->get_xfade_time() : 0.0;
-                td["switch_mode"] = trans.is_valid() ? (int64_t)trans->get_switch_mode() : (int64_t)0;
+                td["switch_mode"] = trans.is_valid() ? static_cast<int64_t>(trans->get_switch_mode()) : (int64_t)0;
                 td["advance_condition"] = trans.is_valid() ? String(trans->get_advance_condition()) : "";
-                td["advance_mode"] = trans.is_valid() ? (int64_t)trans->get_advance_mode() : (int64_t)0;
+                td["advance_mode"] = trans.is_valid() ? static_cast<int64_t>(trans->get_advance_mode()) : (int64_t)0;
                 transitions.append(td);
             }
         }
@@ -104,9 +97,9 @@ protected:
         Dictionary data;
         data["tree_root_type"] = root_type;
         data["states"] = states;
-        data["state_count"] = (int64_t)states.size();
+        data["state_count"] = static_cast<int64_t>(states.size());
         data["transitions"] = transitions;
-        data["transition_count"] = (int64_t)transitions.size();
+        data["transition_count"] = static_cast<int64_t>(transitions.size());
         data["parameters"] = param_list;
         data["animation_player"] = String(tree->get_animation_player());
         return ToolResult::ok(data);
