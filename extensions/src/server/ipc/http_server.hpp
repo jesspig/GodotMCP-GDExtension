@@ -58,6 +58,7 @@ private:
         int sse_event_id = 0;
         uint64_t sse_last_event_msec = 0;
         bool keep_alive = true;
+        bool is_sse_stream = false;
         godot::String mcp_method;
         godot::String mcp_name;
 
@@ -71,6 +72,7 @@ private:
 
     void dispatch_request(int conn_id, Connection &conn);
     void handle_post(int conn_id, Connection &conn);
+    void handle_get(int conn_id, Connection &conn);
     void handle_options(int conn_id, Connection &conn);
 
     void send_response(int /*conn_id*/, Connection &conn, int status_code,

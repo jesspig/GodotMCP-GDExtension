@@ -114,7 +114,6 @@ void HttpServer::poll() {
         const int conn_id = next_conn_id_++;
         Connection conn;
         conn.tcp = tcp;
-        conn.tcp->set_no_delay(true);
         conn.tcp->poll();
         conn.last_activity_msec = Time::get_singleton()->get_ticks_msec();
         connections_[conn_id] = conn;
@@ -189,6 +188,23 @@ void HttpServer::poll() {
                     }
                 }
             }
+        }
+
+        // SSE stream connections: keep alive, send events, skip normal request processing
+        if (conn.is_sse_stream) {
+            if (avail <= 0 && conn.tcp->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
+                dead.push_back(conn_id);
+                continue;
+            }
+            const uint64_t now = Time::get_singleton()->get_ticks_msec();
+            if (now - conn.sse_last_event_msec > kSseKeepaliveIntervalMsec) {
+                send_sse_comment(conn, "keepalive");
+                conn.sse_last_event_msec = now;
+            }
+            if (mcp_handler_ && mcp_handler_->has_pending_events()) {
+                flush_sse(conn);
+            }
+            continue;
         }
 
         // Even if avail == 0, try parsing leftover read_buf when headers not done
@@ -273,9 +289,10 @@ void HttpServer::dispatch_request(int conn_id, Connection &conn) {
     }
 
     if (conn.method == "POST") handle_post(conn_id, conn);
+    else if (conn.method == "GET") handle_get(conn_id, conn);
     else if (conn.method == "OPTIONS") handle_options(conn_id, conn);
     else {
-        log_warn("http", String("Unsupported method: ") + conn.method);
+        log_info("http", String("Unsupported method: ") + conn.method);
         send_response(conn_id, conn, 405, "Method Not Allowed", "text/plain",
                       "405 Method Not Allowed");
     }
@@ -492,10 +509,37 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
     send_response(conn_id, conn, 200, "OK", "application/json; charset=utf-8", result_json);
 }
 
+void HttpServer::handle_get(int conn_id, Connection &conn) {
+    if (conn.path != "/mcp") {
+        send_response(conn_id, conn, 404, "Not Found", "text/plain", "404 Not Found");
+        return;
+    }
+
+    auto accept_it = conn.headers.find("accept");
+    const String accept = accept_it != conn.headers.end() ? accept_it->value : "";
+    if (accept.find("text/event-stream") == -1 && accept.find("*/*") == -1) {
+        send_response(conn_id, conn, 406, "Not Acceptable", "text/plain",
+                      "Client must accept text/event-stream");
+        return;
+    }
+
+    send_sse_headers(conn);
+    conn.is_sse_stream = true;
+    conn.sse_last_event_msec = Time::get_singleton()->get_ticks_msec();
+
+    Dictionary endpoint_event;
+    endpoint_event["endpoint"] = "/mcp";
+    send_sse_event(conn, "endpoint", json_stringify_safe(endpoint_event));
+
+    if (mcp_handler_ && mcp_handler_->has_pending_events()) {
+        flush_sse(conn);
+    }
+}
+
 void HttpServer::handle_options(int conn_id, Connection &conn) {
     String cors_headers = String("Access-Control-Allow-Origin: ") + get_cors_origin(conn) + String("\r\n") +
         "Vary: Origin\r\n"
-        "Access-Control-Allow-Methods: POST, OPTIONS\r\n"
+        "Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n"
         "Access-Control-Allow-Headers: Content-Type, Accept, MCP-Protocol-Version\r\n"
         "Access-Control-Max-Age: " + String::num_int64(kCorsMaxAgeSeconds) +
         "\r\nAccess-Control-Expose-Headers: MCP-Protocol-Version\r\n";
