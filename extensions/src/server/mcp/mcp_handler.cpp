@@ -134,6 +134,10 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg) {
         return handle_server_discover(id_v);
     }
 
+    if (method == "initialize") {
+        return handle_initialize(params, id_v);
+    }
+
     // Lifecycle
     if (method == "ping") {
         return handle_ping(id_v);
@@ -181,14 +185,50 @@ Dictionary McpHandler::handle_message(const Dictionary &jsonrpc_msg) {
         return handle_completion_complete(params, id_v);
     }
 
+    // Logging
+    if (method == "logging/setLevel") {
+        return handle_logging_set_level(params, id_v);
+    }
+
     // Notifications
     if (method == "notifications/cancelled") {
         handle_cancelled(params);
         return Dictionary();
     }
+    if (method == "notifications/initialized") {
+        return Dictionary();
+    }
 
     // Unknown method
     return make_jsonrpc_error(id_v, kMethodNotFound, String("Unknown method: ") + method);
+}
+
+// -------------------------------------------------------------------------
+// initialize (MCP standard lifecycle)
+// -------------------------------------------------------------------------
+Dictionary McpHandler::handle_initialize(const Dictionary &params, const Variant &id) {
+    const String client_version = params.get("protocolVersion", "");
+    const String negotiated = negotiate_protocol_version(client_version);
+
+    Dictionary caps;
+    Dictionary tools_caps;
+    tools_caps["listChanged"] = true;
+    caps["tools"] = tools_caps;
+    caps["resources"] = Dictionary();
+    caps["prompts"] = Dictionary();
+    caps["logging"] = Dictionary();
+    caps["completions"] = Dictionary();
+
+    Dictionary server_info;
+    server_info["name"] = "godot-mcp";
+    server_info["version"] = registry_ ? registry_->plugin_version() : "0.0.0";
+
+    Dictionary result;
+    result["protocolVersion"] = negotiated;
+    result["serverInfo"] = server_info;
+    result["capabilities"] = caps;
+
+    return make_jsonrpc_result(id, result);
 }
 
 // -------------------------------------------------------------------------
@@ -208,7 +248,13 @@ Dictionary McpHandler::handle_server_discover(const Variant &id) {
     server_info["name"] = "godot-mcp";
     server_info["version"] = registry_ ? registry_->plugin_version() : "0.0.0";
 
+    Array supported_versions;
+    supported_versions.push_back(String("2026-07-28"));
+    supported_versions.push_back(String("2025-11-25"));
+    supported_versions.push_back(String("2025-03-26"));
+
     Dictionary result;
+    result["supportedVersions"] = supported_versions;
     result["capabilities"] = caps;
     result["serverInfo"] = server_info;
 
@@ -220,6 +266,31 @@ Dictionary McpHandler::handle_server_discover(const Variant &id) {
 // -------------------------------------------------------------------------
 Dictionary McpHandler::handle_ping(const Variant &id) {
     return make_jsonrpc_response(id, Dictionary());
+}
+
+// -------------------------------------------------------------------------
+// logging/setLevel
+// -------------------------------------------------------------------------
+Dictionary McpHandler::handle_logging_set_level(const Dictionary &params, const Variant &id) {
+    const String level = params.get("level", "");
+
+    static const char *valid_levels[] = {
+        "debug", "info", "warning", "error", "critical", "off"
+    };
+    bool valid = false;
+    for (const char *l : valid_levels) {
+        if (level == String(l)) {
+            valid = true;
+            break;
+        }
+    }
+    if (!valid) {
+        return make_jsonrpc_error(id, kInvalidParams,
+            String("Invalid log level: ") + level);
+    }
+
+    log_level_ = level;
+    return make_jsonrpc_result(id, Dictionary());
 }
 
 // -------------------------------------------------------------------------

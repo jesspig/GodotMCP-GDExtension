@@ -106,7 +106,7 @@ void GameBridgeNode::_self_add() {
 
 void GameBridgeNode::start_server() {
     server_.instantiate();
-    Error err = server_->listen(port_, "localhost");
+    Error err = server_->listen(port_, "127.0.0.1");
     if (err != OK) {
         log_error("game_bridge", String("Failed to listen on :") + String::num_int64(port_));
         server_.unref();
@@ -137,7 +137,6 @@ void GameBridgeNode::accept_clients() {
     }
     Ref<StreamPeerTCP> new_client = server_->take_connection();
     if (new_client.is_valid()) {
-        new_client->set_no_delay(true);
         client_ = new_client;
         reset_read_state_internal();
         log_info("game_bridge", "Client connected");

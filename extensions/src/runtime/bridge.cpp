@@ -23,6 +23,7 @@ void RuntimeBridge::poll() {
         if (s == StreamPeerTCP::STATUS_CONNECTED) {
             status_ = CONNECTED;
             connecting_since_ = 0;
+            tcp_->set_no_delay(true);
             log_info("runtime", String("Runtime bridge connected on :") + String::num_int64(port_));
         } else if (s == StreamPeerTCP::STATUS_ERROR) {
             status_ = DISCONNECTED;
@@ -50,7 +51,6 @@ void RuntimeBridge::connect() {
     if (status_ == CONNECTING || status_ == CONNECTED) return;
 
     tcp_.instantiate();
-    tcp_->set_no_delay(true);
     Error err = tcp_->connect_to_host("127.0.0.1", port_);
     if (err != OK) {
         log_warn("runtime", String("Runtime bridge connect failed: err=") + String::num_int64(err));
@@ -64,10 +64,11 @@ void RuntimeBridge::connect() {
 }
 
 void RuntimeBridge::disconnect() {
-    if (tcp_.is_valid()) {
-        tcp_->disconnect_from_host();
-        tcp_.unref();
-    }
+    // Calling get_status() or disconnect_from_host() on a socket whose
+    // remote end already closed triggers Godot's internal precondition
+    // check (_sock.is_null() || !_sock->is_open()) which prints a noisy
+    // ERROR. Just unref — the OS will clean up the connection.
+    tcp_.unref();
     status_ = DISCONNECTED;
     connecting_since_ = 0;
     log_info("runtime", "Runtime bridge disconnected");
@@ -178,6 +179,16 @@ Dictionary RuntimeBridge::read_response(int timeout_ms) {
         if (elapsed >= timeout_ms) break;
 
         tcp_->poll();
+        // Bail immediately if the connection dropped so we don't loop
+        // and spam ERROR logs (Godot's StreamPeerTCP precondition check
+        // fires for every method call on a dead socket).
+        if (tcp_->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
+            disconnect();
+            Dictionary err;
+            err["ok"] = false;
+            err["error"] = "Bridge connection broken";
+            return err;
+        }
         if (tcp_->get_available_bytes() > 0) {
             Array chunk = tcp_->get_partial_data(tcp_->get_available_bytes());
             if (static_cast<int>(chunk[0]) == static_cast<int>(Error::OK)) {

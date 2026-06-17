@@ -66,6 +66,7 @@ private:
     void enqueue_event(const Dictionary &event);
 
     // Lifecycle
+    Dictionary handle_initialize(const Dictionary &params, const Variant &id);
     Dictionary handle_server_discover(const Variant &id);
     Dictionary handle_ping(const Variant &id);
 
@@ -82,6 +83,9 @@ private:
     // Utilities
     Dictionary handle_completion_complete(const Dictionary &params, const Variant &id);
 
+    // Logging
+    Dictionary handle_logging_set_level(const Dictionary &params, const Variant &id);
+
     // Notifications (no return value needed)
     void handle_cancelled(const Dictionary & /*params*/);
 
@@ -89,6 +93,7 @@ private:
     McpLogCallback log_callback_;
     ToolExecutor tool_executor_;
     std::deque<Dictionary> global_event_queue_;
+    String log_level_ = "info";
 };
 
 } // namespace godot_mcp
