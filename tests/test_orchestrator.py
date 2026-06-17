@@ -18,6 +18,7 @@ import time
 from dotenv import load_dotenv
 
 import httpx
+from tabulate import tabulate
 
 from godot_manager import GodotManager
 from report import TestReport
@@ -247,6 +248,24 @@ async def run_test_session(cfg: dict) -> TestReport:
             failed = report.failed
             print(f"\n{'='*50}")
             print(f"Total: {total} | Passed: {passed} | Failed: {failed}")
+            if failed > 0:
+                print(f"\n{'='*50}")
+                print("Failed Tools (cross-pipeline):")
+                failed_rows = []
+                for ts in report.tool_summary:
+                    if ts["fail"] > 0:
+                        phases_str = ",".join(ts["failing_phases"])
+                        failed_rows.append([ts["tool"], ts["phases"], ts["pass"], ts["fail"], phases_str])
+                print(tabulate(failed_rows, headers=["Tool", "Pipelines", "Pass", "Fail", "Failing Phases"],
+                              tablefmt="grid"))
+            else:
+                print(f"\nAll {report.total_unique_tools} tested tools passed across all {len(report.phases)} pipelines.")
+                if len(report.tool_summary) > 0:
+                    print(tabulate(
+                        [[ts["tool"], ts["phases"], ts["total"], ts["pass"], ts["fail"], ts["skip"]]
+                         for ts in report.tool_summary],
+                        headers=["Tool", "Pipelines", "Tests", "Pass", "Fail", "Skip"],
+                        tablefmt="grid"))
 
             report.set_env(
                 engine="cpp",

@@ -56,19 +56,61 @@ class TestReport:
 
     @property
     def total_unique_tools(self) -> int:
-        return sum(pr.unique_tools for pr in self.phases)
+        return len({r.tool for pr in self.phases for r in pr.results})
 
     @property
     def total_unique_success(self) -> int:
-        return sum(pr.unique_success for pr in self.phases)
+        return len({r.tool for pr in self.phases for r in pr.results if r.status == "PASS"})
 
     @property
     def total_unique_fail(self) -> int:
-        return sum(pr.unique_fail for pr in self.phases)
+        return len({r.tool for pr in self.phases for r in pr.results if r.status == "FAIL"})
 
     @property
     def total_unique_skip(self) -> int:
-        return sum(pr.unique_skip for pr in self.phases)
+        return len({r.tool for pr in self.phases for r in pr.results if r.status == "SKIP"})
+
+    @property
+    def tool_matrix(self) -> dict[str, list[dict]]:
+        """Per-tool cross-pipeline matrix.
+        Returns {tool_name: [{phase, status, error}, ...], ...}
+        Only includes actual test steps (not setup/teardown chains).
+        """
+        matrix: dict[str, list[dict]] = {}
+        for pr in self.phases:
+            for r in pr.results:
+                if r.tool not in matrix:
+                    matrix[r.tool] = []
+                matrix[r.tool].append({
+                    "phase": pr.name,
+                    "status": r.status,
+                    "error": r.error if r.status != "PASS" else "",
+                })
+        return matrix
+
+    @property
+    def tool_summary(self) -> list[dict]:
+        """Aggregated per-tool stats across all phases.
+        Each entry: {tool, phases, total, pass, fail, skip, failing_phases}
+        """
+        raw: dict[str, dict] = {}
+        for t, entries in self.tool_matrix.items():
+            phase_list = [e["phase"] for e in entries]
+            fail_phases = [e["phase"] for e in entries if e["status"] == "FAIL"]
+            total = len(entries)
+            passed = sum(1 for e in entries if e["status"] == "PASS")
+            failed = sum(1 for e in entries if e["status"] == "FAIL")
+            skipped = sum(1 for e in entries if e["status"] == "SKIP")
+            raw[t] = {
+                "tool": t,
+                "phases": total,
+                "total": total,
+                "pass": passed,
+                "fail": failed,
+                "skip": skipped,
+                "failing_phases": fail_phases,
+            }
+        return sorted(raw.values(), key=lambda x: (-x["fail"], -x["phases"], x["tool"]))
 
     @property
     def all_errors(self) -> list[dict]:
@@ -107,6 +149,8 @@ class TestReport:
                 "unique_errors": len(self.all_errors),
             },
             "phases": [p.to_dict() for p in self.phases],
+            "tool_matrix": self.tool_matrix,
+            "tool_summary": self.tool_summary,
             "failures": [
                 {
                     "tool": r.tool,
@@ -206,6 +250,21 @@ class TestReport:
                 ]
 
         all_errors = self.all_errors
+        # --- Tool Cross-Pipeline Matrix ---
+        tool_summary = d.get("tool_summary", [])
+        if tool_summary:
+            lines += [
+                "## Tool Cross-Pipeline Matrix",
+                "",
+                "| Tool | Phases | Pass | Fail | Skip | Details |",
+                "|------|--------|------|------|------|---------|",
+            ]
+            for ts in tool_summary:
+                fail_phases = ",".join(ts["failing_phases"]) if ts["fail"] > 0 else ""
+                line = f"| {ts['tool']} | {ts['phases']} | {ts['pass']} | {ts['fail']} | {ts['skip']} | {fail_phases} |"
+                lines.append(line)
+            lines.append("")
+
         if all_errors:
             lines += [
                 "## Error Summary",
