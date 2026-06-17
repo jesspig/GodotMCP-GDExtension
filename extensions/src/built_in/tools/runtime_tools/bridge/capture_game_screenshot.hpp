@@ -24,6 +24,7 @@ public:
     Dictionary build_input_schema() const override {
         return SchemaBuilder()
             .prop("format", "string", "Image format: png or jpg (default png)", "png")
+            .prop("timeout_ms", "integer", "Response timeout in ms", (int64_t)5000)
             .build();
     }
 
@@ -35,7 +36,8 @@ protected:
         }
         Dictionary params;
         params["format"] = args_string(ctx.args, "format", "png");
-        return RuntimeBridge::make_response(bridge->send_command("screenshot", params));
+        int timeout = args_int(ctx.args, "timeout_ms", 5000);
+        return RuntimeBridge::make_response(bridge->send_command("screenshot", params, timeout));
     }
 };
 

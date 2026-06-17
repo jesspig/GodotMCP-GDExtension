@@ -27,6 +27,7 @@ public:
     Dictionary build_input_schema() const override {
         return SchemaBuilder()
             .prop("max_depth", "integer", "Maximum recursion depth, -1 for unlimited", (int64_t)-1)
+            .prop("timeout_ms", "integer", "Response timeout in ms", (int64_t)100)
             .build();
     }
 
@@ -38,7 +39,8 @@ protected:
         }
         Dictionary params;
         params["max_depth"] = args_int(ctx.args, "max_depth", -1);
-        return RuntimeBridge::make_response(bridge->send_command("get_scene_tree", params));
+        int timeout = args_int(ctx.args, "timeout_ms", 100);
+        return RuntimeBridge::make_response(bridge->send_command("get_scene_tree", params, timeout));
     }
 };
 

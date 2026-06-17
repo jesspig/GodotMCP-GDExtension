@@ -187,6 +187,7 @@
 #include "built_in/tools/editor_tools/workspace/set_workspace.hpp"
 
 // ── Runtime bridge tools ──
+#include "built_in/tools/runtime_tools/bridge/wait_for_bridge.hpp"
 #include "built_in/tools/runtime_tools/bridge/get_game_scene_tree.hpp"
 #include "built_in/tools/runtime_tools/bridge/get_game_node_property.hpp"
 #include "built_in/tools/runtime_tools/bridge/set_game_node_property.hpp"

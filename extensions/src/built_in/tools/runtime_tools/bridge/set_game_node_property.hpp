@@ -40,6 +40,12 @@ public:
             d["description"] = String("New value to set");
             p["value"] = d;
         }
+        {
+            Dictionary d;
+            d["type"] = "integer";
+            d["description"] = String("Response timeout in ms");
+            p["timeout_ms"] = d;
+        }
         Dictionary s;
         s["type"] = "object";
         s["properties"] = p;
@@ -57,7 +63,8 @@ protected:
         params["node_path"] = args_string(ctx.args, "node_path");
         params["property"] = args_string(ctx.args, "property");
         params["value"] = ctx.args.get("value", Variant());
-        return RuntimeBridge::make_response(bridge->send_command("set_property", params));
+        int timeout = args_int(ctx.args, "timeout_ms", 100);
+        return RuntimeBridge::make_response(bridge->send_command("set_property", params, timeout));
     }
 };
 

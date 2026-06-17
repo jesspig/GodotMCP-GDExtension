@@ -26,6 +26,7 @@ public:
         return SchemaBuilder()
             .prop("node_path", "string", "Node path, e.g. /root/Main/Player")
             .prop("property", "string", "Property name, e.g. position")
+            .prop("timeout_ms", "integer", "Response timeout in ms", (int64_t)100)
             .required({"node_path", "property"})
             .build();
     }
@@ -39,7 +40,8 @@ protected:
         Dictionary params;
         params["node_path"] = args_string(ctx.args, "node_path");
         params["property"] = args_string(ctx.args, "property");
-        return RuntimeBridge::make_response(bridge->send_command("get_property", params));
+        int timeout = args_int(ctx.args, "timeout_ms", 100);
+        return RuntimeBridge::make_response(bridge->send_command("get_property", params, timeout));
     }
 };
 

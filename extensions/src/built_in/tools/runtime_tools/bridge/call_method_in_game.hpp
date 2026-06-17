@@ -27,6 +27,7 @@ public:
             .prop("node_path", "string", "Node path, e.g. /root/Main/Player")
             .prop("method", "string", "Method name")
             .prop("args", "array", "Method argument array (optional)")
+            .prop("timeout_ms", "integer", "Response timeout in ms", (int64_t)100)
             .required({"node_path", "method"})
             .build();
     }
@@ -41,7 +42,8 @@ protected:
         params["node_path"] = args_string(ctx.args, "node_path");
         params["method"] = args_string(ctx.args, "method");
         params["args"] = ctx.args.get("args", Array());
-        return RuntimeBridge::make_response(bridge->send_command("call_method", params));
+        int timeout = args_int(ctx.args, "timeout_ms", 100);
+        return RuntimeBridge::make_response(bridge->send_command("call_method", params, timeout));
     }
 };
 
