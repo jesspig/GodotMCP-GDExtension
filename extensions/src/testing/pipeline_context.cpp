@@ -7,12 +7,12 @@
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/variant.hpp>
 
-using namespace godot;
-
 #include <string_view>
 
 namespace godot_mcp {
 namespace pipeline {
+
+using namespace godot;
 
 void PipelineContext::record_step(const godot::String &id, const StepResult &r) {
     std::lock_guard<std::mutex> lock(mtx_);

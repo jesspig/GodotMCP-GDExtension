@@ -19,7 +19,6 @@ public:
 
 private:
     std::unique_ptr<pipeline::PipelineRunner> runner_;
-    HandlerRegistry *registry_;
 };
 
 } // namespace godot_mcp

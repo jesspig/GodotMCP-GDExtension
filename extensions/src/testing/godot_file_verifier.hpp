@@ -22,9 +22,9 @@ inline godot::String verify_field(const godot::String &context,
                                    const godot::Variant &expected_val,
                                    const godot::String &type_hint,
                                    double tolerance) {
-    const String err = compare_variant_fields(actual, expected_val, type_hint, tolerance);
-    if (err.is_empty()) return String();
-    return context + String(" ") + err;
+    const godot::String err = compare_variant_fields(actual, expected_val, type_hint, tolerance);
+    if (err.is_empty()) return godot::String();
+    return context + godot::String(" ") + err;
 }
 
 // Load a .tscn file and verify its node tree structure and properties.

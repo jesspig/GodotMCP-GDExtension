@@ -41,8 +41,17 @@ jobs:
           path: build/_deps
           key: godot-cpp-${{ runner.os }}-10.0.0-rc1-v1
 
-      - name: Build
-        run: python main.py build --release --no-zip
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: python main.py build --release --compiler clang-cl --generator ninja --cache sccache
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: python main.py build --release --compiler gcc --generator ninja --cache sccache
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: python main.py build --release --compiler appleclang --generator ninja --cache sccache
 
       - name: Upload GDExtension library
         uses: actions/upload-artifact@v4
