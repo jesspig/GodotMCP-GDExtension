@@ -80,7 +80,7 @@ def copy_built_libs(config: str) -> int:
 
     EXAMPLE_BIN_DIR.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, EXAMPLE_BIN_DIR / lib_name)
-    print(f"[COPY] {lib_name} → example/addons/godot_mcp/bin/", flush=True)
+    print(f"[COPY] {lib_name} -> example/addons/godot_mcp/bin/", flush=True)
     return 1
 
 
