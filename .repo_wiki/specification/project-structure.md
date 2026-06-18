@@ -13,7 +13,7 @@ flowchart TB
     Root --> Wiki[".repo_wiki/<br/>项目知识库"]
     Root --> Opencode[".opencode/<br/>MCP 客户端配置"]
     Root --> Pkg["pyproject.toml + uv.lock<br/>package.json + pnpm-lock.yaml"]
-    Root --> Cfg["CMakeLists.txt (顶级)<br/>build.py"]
+    Root --> Cfg["CMakeLists.txt (顶级)<br/>main.py"]
     Src --> Cpp["server/ + sdk/ + built_in/<br/>runtime/ + testing/ + ui/"]
     Cpp --> Entry["register_types.cpp + editor_plugin.cpp"]
     Example --> Bin["addons/godot_mcp/bin/<br/>(godot_mcp_gdext.{dll,so,dylib})"]
@@ -56,7 +56,7 @@ GodotMCP/
 │   ├── _deps/                     #   godot-cpp + ryml FetchContent 缓存
 │   └── addons.zip                 #   CPack 产物
 ├── CMakeLists.txt                 # 顶级构建（PROJECT_VERSION 唯一来源）
-├── build.py                       # argparse 包装的便捷构建脚本
+├── main.py                        # argparse 包装的便捷构建脚本
 ├── pyproject.toml                 # Python ≥3.14 + pyyaml
 ├── uv.lock                        # uv 锁定
 ├── package.json                   # pnpm + Rspress
@@ -71,7 +71,7 @@ GodotMCP/
 
 ```mermaid
 flowchart LR
-    A["uv run python build.py"] --> B["cmake -B build -S ."]
+    A["uv run python main.py build"] --> B["cmake -B build -S ."]
     B --> C["extensions/CMakeLists.txt<br/>FetchContent: godot-cpp 10.0.0-rc1 + ryml v0.7.0"]
     C --> D["add_library(godot_mcp_gdext)<br/>GLOB tools/*.cpp + X-macro register_itools.cpp"]
     D --> E["编译 .cpp + .hpp (Unity Build, batch_size = CPU 核数)"]

@@ -26,7 +26,7 @@ sequenceDiagram
     end
     G-->>M: Dictionary
     M-->>H: MCP content array
-    H-->>AI: 200 application/json + MCP-Session-Id
+    H-->>AI: 200 application/json
 ```
 
 ## HandlerRegistry 调度

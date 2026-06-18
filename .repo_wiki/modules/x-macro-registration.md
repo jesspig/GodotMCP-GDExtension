@@ -44,7 +44,7 @@ flowchart LR
 
 ## GODOT_MCP_TOOL 宏
 
-定义于 `register_itools.cpp:229`：
+定义于 `register_itools.cpp:214`：
 
 ```cpp
 #define GODOT_MCP_TOOL(cls, is_destructive_val) \

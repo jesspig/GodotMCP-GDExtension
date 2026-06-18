@@ -71,7 +71,7 @@ flowchart TD
 
 ```bash
 # Release 构建（与 CI 等价）
-uv run python build.py --release
+uv run python main.py build --release
 # 或手动
 cmake -B build -S . -G Ninja -DRELEASE=ON
 cmake --build build --config Release

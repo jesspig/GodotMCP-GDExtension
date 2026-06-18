@@ -76,7 +76,7 @@ classDiagram
 
 ### 注册流程
 
-`register_tool()` (`handler_registry.cpp:40`) 接收 `unique_ptr<ITool>`：
+`register_tool()` (`handler_registry.cpp:41`) 接收 `unique_ptr<ITool>`：
 
 1. 注入 registry 指针 — `tool->set_registry(this)`（元工具需要回调查询）
 2. 通过 `ITool` 虚方法读取 name、category、brief、description、input_schema、is_meta 等
@@ -100,7 +100,7 @@ X-macro 宏定义于 `register_itools.cpp:230`：
     }
 ```
 
-`register_itools()` (`register_itools.cpp:237`) 通过 `#include` 4 个 X-macro 文件展开所有工具注册。
+`register_itools()` (`register_itools.cpp:221`) 通过 `#include` 4 个 X-macro 文件展开所有工具注册。
 
 ### SDK 工具注册
 
@@ -108,7 +108,7 @@ SDK 自定义工具通过 `McpToolRegistry` → `IToolAdapter`（`tool_adapter.h
 
 ## 工具执行
 
-`execute(name, args)` (`handler_registry.cpp:74`)：
+`execute(name, args)` (`handler_registry.cpp:70`)：
 
 1. 调用 `record_tool_call(name)` 记录调用频率
 2. 查 `tool_info_` 获取 `supports_undo`
@@ -169,9 +169,9 @@ flowchart LR
 ```mermaid
 graph TD
     ROOT["root"] --> META["meta_tools<br/>8 tools"]
-    ROOT --> EDITOR["editor_tools<br/>~130 tools"]
+    ROOT --> EDITOR["editor_tools<br/>~94 tools"]
     ROOT --> NODE["node_tools<br/>~6 tools"]
-    ROOT --> RUNTIME["runtime_tools<br/>~12 tools"]
+    ROOT --> RUNTIME["runtime_tools<br/>~13 tools"]
     EDITOR --> SCENE["scene_tree<br/>24 tools"]
     EDITOR --> ANIM["animation<br/>10 tools"]
     EDITOR --> CONTROL["control<br/>4 tools"]
@@ -181,7 +181,7 @@ graph TD
     EDITOR --> SETTINGS["settings<br/>4 tools"]
     EDITOR --> WORKSPACE["workspace<br/>~28 tools"]
     EDITOR --> _3D["3d_scene<br/>3 tools"]
-    RUNTIME --> BRIDGE["bridge<br/>6 tools"]
+    RUNTIME --> BRIDGE["bridge<br/>7 tools"]
     RUNTIME --> LIFE["lifecycle<br/>6 tools"]
 ```
 
@@ -207,7 +207,7 @@ component
 
     subgraph BUILTIN["内置工具层"]
         XMACRO["X-macro #include"]
-        ITOOLS["ITool 子类<br/>(~170 个)"]
+        ITOOLS["ITool 子类<br/>(153 个)"]
     end
 
     subgraph SDK["SDK 工具层"]
@@ -230,7 +230,7 @@ component
 
 | 路径 | 注册方式 | 标识 | 行引用 |
 |------|---------|------|--------|
-| 内置工具 | X-macro `GODOT_MCP_TOOL` → `ITool` 子类 → `register_tool()` | `is_custom=false` | `register_itools.cpp:230` |
+| 内置工具 | X-macro `GODOT_MCP_TOOL` → `ITool` 子类 → `register_tool()` | `is_custom=false` | `register_itools.cpp:214` |
 | SDK 工具 | `McpToolRegistry` → `IToolAdapter`（包装 `CommandFn`/`Callable`）→ `register_tool()` | `is_custom=true`，name 前缀 `custom_` | `tool_adapter.hpp:10` |
 
 ## 关键行引用
@@ -238,18 +238,16 @@ component
 | 功能 | 文件 | 行 |
 |------|------|----|
 | `ToolInfo` 结构体 | `handler_registry.hpp` | 22–34 |
-| `HandlerRegistry` 类定义 | `handler_registry.hpp` | 36–89 |
-| `itool_table_` 声明（`std::map`） | `handler_registry.hpp` | 82 |
-| `unregister_custom_tool()` | `handler_registry.cpp` | 20–34 |
-| `register_tool()` | `handler_registry.cpp` | 40–64 |
-| `finalize_registration()` | `handler_registry.cpp` | 66–68 |
-| `execute()` | `handler_registry.cpp` | 74–111 |
-| `get_categories()` | `handler_registry.cpp` | 205–289 |
-| `prettify_segment()` | `handler_registry.cpp` | 158–175 |
-| `tokenize()` | `handler_registry.cpp` | 341–353 |
-| `rebuild_search_index()` | `handler_registry.cpp` | 355–366 |
-| `search_tools()` | `handler_registry.cpp` | 377–457 |
-| `get_search_suggestions()` | `handler_registry.cpp` | 459–504 |
-| `GODOT_MCP_TOOL` X-macro | `register_itools.cpp` | 230–235 |
-| `IToolAdapter` 类 | `tool_adapter.hpp` | 10–67 |
+| `HandlerRegistry` 类定义 | `handler_registry.hpp` | 29–89 |
+| `unregister_custom_tool()` | `handler_registry.cpp` | 20 |
+| `register_tool()` | `handler_registry.cpp` | 41 |
+| `execute()` | `handler_registry.cpp` | 70 |
+| `get_categories()` | `handler_registry.cpp` | 204 |
+| `prettify_segment()` | `handler_registry.cpp` | 157 |
+| `tokenize()` | `handler_registry.cpp` | 355 |
+| `record_tool_call()` | `handler_registry.cpp` | 369 |
+| `search_tools()` | `handler_registry.cpp` | 378 |
+| `get_search_suggestions()` | `handler_registry.cpp` | 465 |
+| `GODOT_MCP_TOOL` X-macro | `register_itools.cpp` | 214 |
+| `IToolAdapter` 类 | `tool_adapter.hpp` | 10 |
 | `ITool` 接口 | `tool_base.hpp` | 47–88 |

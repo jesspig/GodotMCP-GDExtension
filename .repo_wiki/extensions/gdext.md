@@ -72,7 +72,7 @@ extensions/src/
 │       │   ├── export/             #   4 个导出工具
 │       │   ├── filesystem/         #   12 个文件系统工具
 │       │   ├── inputmap/           #   4 个输入映射工具
-│       │   ├── plugin/             #   3 个插件管理工具
+│   │   ├── plugin/             #   2 个插件管理工具
 │       │   ├── scaffold/           #   1 个脚手架工具
 │       │   ├── scripts/            #   12 个脚本读写验证工具
 │       │   ├── settings/           #   4 个设置工具
@@ -176,7 +176,7 @@ extensions/src/
 
 | 行 | 内容 |
 |:--:|------|
-| L15 | `set(GODOTCPP_API_VERSION "4.6")` |
+| L8 | `set(GODOTCPP_API_VERSION "4.6")` |
 | L17-22 | `FetchContent` 拉取 `godot-cpp 10.0.0-rc1` |
 | L34-41 | `FetchContent` 拉取 `rapidyaml v0.7.0`（GIT_SUBMODULES 包含 c4core） |
 | L51-89 | `GODOT_MCP_SOURCES`（含 register_types / editor_plugin / server / sdk / runtime / testing / ui） |
@@ -185,4 +185,4 @@ extensions/src/
 | L110-117 | 编译定义 `GODOT_MCP_PLUGIN_VERSION` |
 | L122-148 | Unity Build ON（batch size 自动匹配 CPU 核数，上限 12） |
 | L161-167 | lld-link 自动检测（MSVC） |
-| L163 | MSVC: `/utf-8 /bigobj /W4 /wd4244 /wd4267` |
+| `cmake/compiler.cmake:7` | MSVC: `/utf-8 /bigobj /W4 /wd4244 /wd4267` |

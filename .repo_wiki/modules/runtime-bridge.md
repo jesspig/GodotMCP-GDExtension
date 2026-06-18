@@ -41,10 +41,11 @@
 | `simulate_input` | 模拟键盘/鼠标/动作输入 | `handle_simulate_input` |
 | `set_pause` | 设置游戏暂停状态 | `handle_set_pause` |
 
-**桥接工具**（`runtime_tools/bridge/*.hpp`，6 个）：
+**桥接工具**（`runtime_tools/bridge/*.hpp`，7 个）：
 
 | 工具 | 对应命令 | 调用方式 |
 |------|----------|----------|
+| `wait_for_bridge` | — | 轮询桥接状态，等待游戏进程连接 |
 | `get_game_scene_tree` | `get_scene_tree` | `make_response(send_command(...))` |
 | `get_game_node_property` | `get_property` | `make_response(send_command(...))` |
 | `set_game_node_property` | `set_property` | `make_response(send_command(...))` |

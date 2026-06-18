@@ -17,7 +17,7 @@
 ## 构建后步骤
 
 1. 如果在开发 dll，**关闭 Godot 编辑器**（编辑器持有 `godot_mcp_gdext.dll` 文件锁）
-2. 运行 `uv run python build.py`
+2. 运行 `uv run python main.py build`
 3. **启动 Godot 编辑器**（加载 MCP 插件后 HTTP 服务器自动启动）
 4. AI 客户端连接 `http://localhost:9600/mcp`
 

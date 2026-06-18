@@ -42,7 +42,7 @@ flowchart LR
 | 工具总数 | **153**（无 codegen，无 YAML 数据库生成） |
 | 线程模型 | **纯主线程**（`McpEditorPlugin::_process()` 驱动） |
 | 入口符号 | `gdext_mcp_init`（`register_types.cpp:60`） |
-| 编码规范 | `extensions/CMakeLists.txt:163` 已加 `/utf-8 /bigobj`（MSVC） |
+| 编码规范 | `cmake/compiler.cmake:7` 已加 `/utf-8 /bigobj`（MSVC） |
 | 构建优化 | sccache/ccache（自动检测）、Unity(jumbo)、lld-link |
 | 持久化 | C++ 侧无独立状态；Godot 编辑器持有数据 |
 

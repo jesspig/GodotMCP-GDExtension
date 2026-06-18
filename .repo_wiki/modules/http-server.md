@@ -66,8 +66,9 @@ stateDiagram-v2
 | 属性 | 值 |
 |------|-----|
 | 最大并发连接 | `kMaxConnections = 32`（`http_server.hpp:35`） |
+| 连接超时 | 30 秒（`http_server.hpp:107`） |
 | 最大请求体 | `kMaxBodyLength = 1 MB`（`http_server.hpp:38`） |
-| 空闲超时 | 30 秒（`http_server.hpp:105`） |
+| 空闲超时 | 30 秒（`http_server.hpp:107`） |
 | 速率限制 | 30 tokens/s，突发 30（`http_server.hpp:92-95`） |
 
 ### 速率限制
