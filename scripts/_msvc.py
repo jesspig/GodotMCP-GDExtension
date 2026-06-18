@@ -181,3 +181,69 @@ def ensure_vctargetspath() -> None:
         if vc_path:
             print(f"\n[ENV] VCTargetsPath={vc_path}", flush=True)
             os.environ["VCTargetsPath"] = vc_path
+
+
+# --- New functions for unified compiler scanning ---
+
+
+def get_vs_year_from_version(ver: str) -> int:
+    mapping = {
+        "14.4": 2025, "14.3": 2022, "14.2": 2019,
+        "14.1": 2017, "14.0": 2015,
+    }
+    for prefix, year in mapping.items():
+        if ver.startswith(prefix):
+            return year
+    return 0
+
+
+def find_all_msvc_versions() -> list[dict]:
+    """Find all installed MSVC versions. Returns list sorted by version descending."""
+    results = []
+    vs_path = _find_vs_path()
+    roots = [vs_path] if vs_path else []
+
+    for root in _scan_vs_roots():
+        if root not in roots:
+            roots.append(root)
+
+    for root in roots:
+        msvc_dir = Path(root) / "VC" / "Tools" / "MSVC"
+        if not msvc_dir.exists():
+            continue
+        for ver_dir in sorted(msvc_dir.iterdir(), reverse=True):
+            for host_arch in ["Hostx64", "Hostx86"]:
+                for target_arch in ["x64", "x86", "arm64", "arm"]:
+                    cl_path = ver_dir / "bin" / host_arch / target_arch / "cl.exe"
+                    if cl_path.exists():
+                        results.append({
+                            "id": f"msvc-{ver_dir.name}",
+                            "type": "msvc",
+                            "path": str(cl_path),
+                            "version": ver_dir.name,
+                            "priority": 2 if ver_dir.name.startswith(("14.4", "14.3")) else 3,
+                        })
+                        break
+                if cl_path.exists():
+                    break
+    return results
+
+
+def find_available_compilers() -> list[dict]:
+    """Return all available Windows compilers (clang-cl + MSVC)."""
+    compilers = []
+
+    clang_cl_path = find_clang_cl()
+    if clang_cl_path:
+        compilers.append({
+            "id": "clang-cl",
+            "type": "clang",
+            "path": clang_cl_path,
+            "version": "clang (clang-cl)",
+            "priority": 1,
+        })
+
+    for msvc in find_all_msvc_versions():
+        compilers.append(msvc)
+
+    return sorted(compilers, key=lambda c: c["priority"])
