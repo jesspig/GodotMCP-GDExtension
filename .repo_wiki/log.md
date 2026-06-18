@@ -2,6 +2,21 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-18 — 文档审计与 SDK API 文档新增
+
+- **审计** `docs/en/` 与 `docs/zh/` 全部 48 个文件：en/zh 完全同步，无断裂交叉引用
+- **修复** `docs/en/index.md`、`docs/zh/index.md`：工具计数 `149+` → `153`
+- **重写** `docs/en/reference/tools-catalog.md`、`docs/zh/reference/tools-catalog.md`：全面更新至 v0.2.1 实际工具状态（撤销 31→14 工作区合并、12→7 脚本统一、新增 audio/navigation/3d_scene 分类、动画 5→10 等）
+- **重写** `docs/en/guide/architecture.md`、`docs/zh/guide/architecture.md`：移除已删除的 LspClient/pch/logging 引用、更新目录树（新增 ui/cmd_utils/、移除 lsp/node_props/）、更新工具计数、添加 MCP 2026-07-28 协议说明
+- **新增** `docs/en/reference/sdk-api.md`、`docs/zh/reference/sdk-api.md`：SDK API 使用文档（McpToolDefinition 属性/方法、McpToolRegistry 注册/查询、GDScript 继承/Callable 模式、C# 用法、命名约定、最佳实践）
+- **更新** `docs/en/reference/_meta.json`、`docs/zh/reference/_meta.json`：添加 `sdk-api` 导航条目
+
+## 2026-06-18 — 发布 v0.2.1 更新日志 + 文档站点同步
+
+- **新增** `docs/en/changelog/v0-2-1.md`、`docs/zh/changelog/v0-2-1.md`：基于 v0.2.0→HEAD 差异分析，包含 MCP 协议升级（2025-03-26→2026-07-28）、架构优化、153 工具、构建系统模块化等完整更新内容
+- **更新** `docs/en/changelog/index.md`、`docs/zh/changelog/index.md`：添加 v0.2.1 条目到版本索引表
+- **更新** `docs/en/changelog/_meta.json`、`docs/zh/changelog/_meta.json`：添加 v0.2.1 导航条目
+
 ## 2026-06-18 — 工具计数校正 + 废弃计划清理 + client-quirks 修复
 
 - **修复** 工具总数：`152` → `153`（新增 `wait_for_bridge` 工具未计入）

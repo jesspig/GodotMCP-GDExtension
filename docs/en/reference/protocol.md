@@ -4,17 +4,17 @@
 
 ## Transport
 
-- **Protocol**: HTTP POST/GET/DELETE (`http://127.0.0.1:9600/mcp`)
+- **Protocol**: HTTP POST only (`http://127.0.0.1:9600/mcp`)
 - **Port**: 9600 (overridable via `GODOT_MCP_HTTP_PORT` environment variable)
 - **Encoding**: JSON-RPC 2.0 over HTTP, SSE for server-initiated events
-- **Protocol Versions**: MCP `"2025-11-25"` / `"2025-03-26"`
+- **Protocol Versions**: MCP `"2026-07-28"` (stateless, no sessions)
 
-## Session Establishment
+## Session Model
+
+The MCP 2026-07-28 protocol is **stateless**. There is no session establishment handshake, no `MCP-Session-Id` header, no `GET /mcp` or `DELETE /mcp` endpoints. Each request is self-contained.
 
 ```
-1. Client → POST /mcp {"method": "initialize", ...}    → 200 + MCP-Session-Id
-2. Client → GET /mcp (Accept: text/event-stream)       → 200 SSE stream
-3. Client → POST /mcp {"method": "notifications/initialized"}  → 202
+Client → POST /mcp (any JSON-RPC 2.0 message) → 200 + JSON-RPC Response
 ```
 
 ## Tool Invocation
@@ -45,8 +45,6 @@
 
 | Method | Description |
 |--------|-------------|
-| `initialize` | Create session, negotiate protocol version |
-| `notifications/initialized` | Confirm initialization complete |
 | `ping` | Keep-alive |
 | `tools/list` | List available tools |
 | `tools/call` | Execute a tool |
@@ -56,6 +54,8 @@
 | `notifications/cancelled` | Cancel an in-flight request |
 
 ## SSE Events
+
+SSE events are inlined in the POST response body for streaming results:
 
 ```
 id: 1
@@ -71,4 +71,3 @@ data: {"jsonrpc":"2.0","method":"notifications/message","params":{...}}
 | Invalid tool_call params | Returns `INVALID_REQUEST` |
 | Unknown tool | Returns `UNKNOWN_TOOL` |
 | Invalid HTTP Origin | Rejects non-`127.0.0.1`/`localhost`/`null` origins |
-| Invalid session | Returns 400/401 |

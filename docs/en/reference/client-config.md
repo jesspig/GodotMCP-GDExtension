@@ -13,11 +13,12 @@ GodotMCP is compatible with all AI clients that support the MCP Streamable HTTP 
 | VS Code + Copilot | `.vscode/mcp.json` | `servers` | ✅ |
 | Claude Code | `.mcp.json` / `claude mcp add` | `mcpServers` | ✅ |
 | Trae | `.trae/mcp.json` | `mcpServers` | ✅ |
-| Qoder | `.mcp.json` / `qodercli mcp add` | `mcpServers` | ✅ |
-| CodeBuddy | `.codebuddy/.mcp.json` | `mcpServers` | ✅ |
-| Kilo Code | `kilo.jsonc` / `.kilo/kilo.jsonc` | `mcp` | ✅ |
-| Continue | `.continuerc.json` | `mcpServers` (array) | ✅ |
-| Cline | `cline_mcp_settings.json` | `mcpServers` | ✅ |
+| Qoder | `.qoder/mcp.json` | `mcpServers` | ✅ |
+| CodeBuddy | `.codebuddy/mcp_settings.json` | `mcpServers` | ✅ |
+| Codex | `.codex/config.toml` | `mcp_servers` (TOML) | ✅ |
+| Pi | `.pi/settings.json` | `mcp` | ✅ |
+| OpenClaw | `.openclaw/openclaw.json` | `mcpServers` | ✅ |
+| Cline | `.cline/mcp.json` | `mcpServers` | ✅ |
 
 ## opencode
 
@@ -29,7 +30,7 @@ Add to `opencode.json` in your project root:
   "mcp": {
     "godot-mcp": {
       "type": "remote",
-      "url": "http://localhost:9600"
+      "url": "http://localhost:9600/mcp"
     }
   }
 }
@@ -43,7 +44,7 @@ Create `.cursor/mcp.json` in your project root:
 {
   "mcpServers": {
     "godot-mcp": {
-      "url": "http://localhost:9600"
+      "url": "http://localhost:9600/mcp"
     }
   }
 }
@@ -60,7 +61,7 @@ Create `.vscode/mcp.json` in your project root:
   "servers": {
     "godot-mcp": {
       "type": "http",
-      "url": "http://localhost:9600"
+      "url": "http://localhost:9600/mcp"
     }
   }
 }
@@ -73,7 +74,7 @@ Create `.vscode/mcp.json` in your project root:
 Run in your project root:
 
 ```bash
-claude mcp add godot-mcp --transport http http://localhost:9600 --scope project
+claude mcp add godot-mcp --transport http http://localhost:9600/mcp --scope project
 ```
 
 This creates a `.mcp.json` file (can be committed to version control). Without `--scope project`, it defaults to local scope (visible to the project but not committed to git).
@@ -86,7 +87,7 @@ Create `.trae/mcp.json` in your project root:
 {
   "mcpServers": {
     "godot-mcp": {
-      "url": "http://localhost:9600"
+      "url": "http://localhost:9600/mcp"
     }
   }
 }
@@ -99,7 +100,7 @@ Also configurable via Trae's MCP settings panel (Settings → MCP → Manually A
 Using CLI (project level, writes to `.mcp.json`):
 
 ```bash
-qodercli mcp add godot-mcp -t http http://localhost:9600 -s project
+qodercli mcp add godot-mcp -t http http://localhost:9600/mcp -s project
 ```
 
 Or manually in `.mcp.json`:
@@ -109,7 +110,7 @@ Or manually in `.mcp.json`:
   "mcpServers": {
     "godot-mcp": {
       "type": "http",
-      "url": "http://localhost:9600"
+      "url": "http://localhost:9600/mcp"
     }
   }
 }
@@ -122,7 +123,7 @@ Qoder also supports configuration via IDE settings panel (Settings → MCP → +
 Using CLI (project level):
 
 ```bash
-codebuddy mcp add --scope project --transport http godot-mcp http://localhost:9600
+codebuddy mcp add --scope project --transport http godot-mcp http://localhost:9600/mcp
 ```
 
 Or manually in `.codebuddy/.mcp.json`:
@@ -132,56 +133,63 @@ Or manually in `.codebuddy/.mcp.json`:
   "mcpServers": {
     "godot-mcp": {
       "type": "http",
-      "url": "http://localhost:9600"
+      "url": "http://localhost:9600/mcp"
     }
   }
 }
 ```
 
-## Kilo Code
+## Codex
 
-Add to `kilo.jsonc` (or `.kilo/kilo.jsonc`) in your project root:
+Create `.codex/config.toml` in your project root:
+
+```toml
+[mcp_servers.godot]
+enabled = true
+url = "http://localhost:9600/mcp"
+transport = "streamable_http"
+```
+
+## Pi
+
+Add to `.pi/settings.json` in your project root:
 
 ```json
 {
   "mcp": {
-    "godot-mcp": {
-      "type": "remote",
-      "url": "http://localhost:9600"
+    "mcpServers": {
+      "godot": {
+        "url": "http://localhost:9600/mcp"
+      }
     }
   }
 }
 ```
 
-Global config `~/.config/kilo/kilo.jsonc` is also supported.
+## OpenClaw
 
-## Continue
-
-Create `.continuerc.json` in your project root:
-
-```json
-{
-  "mcpServers": [
-    {
-      "name": "godot-mcp",
-      "type": "streamable-http",
-      "url": "http://localhost:9600"
-    }
-  ]
-}
-```
-
-> **Note**: Continue's `mcpServers` is an **array** (not an object), each server is a separate entry.
-
-## Cline
-
-Edit `cline_mcp_settings.json` (accessible via Cline settings panel):
+Create `.openclaw/openclaw.json` in your project root:
 
 ```json
 {
   "mcpServers": {
-    "godot-mcp": {
-      "url": "http://localhost:9600"
+    "godot": {
+      "url": "http://localhost:9600/mcp"
+    }
+  }
+}
+```
+
+## Cline
+
+Create `.cline/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "godot": {
+      "type": "http",
+      "url": "http://localhost:9600/mcp"
     }
   }
 }
@@ -191,8 +199,8 @@ Edit `cline_mcp_settings.json` (accessible via Cline settings panel):
 
 GodotMCP provides a standard Streamable HTTP endpoint:
 
-- **Endpoint**: `http://localhost:9600`
+- **Endpoint**: `http://localhost:9600/mcp`
 - **Protocol**: JSON-RPC 2.0 + Streamable HTTP
 - **Port**: 9600 (configurable via `GODOT_MCP_HTTP_PORT` environment variable)
 
-Any client that supports the MCP Streamable HTTP transport can connect via this endpoint.
+Any client that supports the MCP Streamable HTTP transport can connect via the `/mcp` endpoint.

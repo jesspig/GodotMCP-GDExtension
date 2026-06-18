@@ -3,7 +3,7 @@
 ## General
 
 - The Godot editor must be running with the MCP plugin loaded before clients can connect
-- MCP Streamable HTTP is the only transport protocol; configure `url` as `http://localhost:9600/mcp`
+- MCP Streamable HTTP is the only transport protocol; configure `url` as `http://localhost:9600/mcp` (or `http://127.0.0.1:9600/mcp`)
 
 ### Known Issues
 
@@ -18,7 +18,7 @@
 
 | Tool | Limitation |
 |------|------------|
-| `get_variable` / `set_variable` | Only `@export` variables are available in editor mode |
-| `validate_gdscript` | Requires Editor Settings → Network → Language Server → Enable to be ON |
+| `get_node_property` / `set_node_property` | Only `@export` variables are available in editor mode |
+| `validate_gd_script` / `validate_csharp_script` | Requires Editor Settings → Network → Language Server → Enable to be ON |
 | `csharp_build` | Cannot run concurrently with the editor (editor holds assembly file lock) |
 | `rename_scene` | Returns error if the target is open but not the active tab |

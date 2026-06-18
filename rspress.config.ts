@@ -49,9 +49,9 @@ export default defineConfig({
             { text: 'protocol', link: '/reference/protocol' },
             { text: 'faq', link: '/reference/faq' },
             { text: 'clientQuirks', link: '/reference/client-quirks' },
-            { text: 'lspClient', link: '/reference/lsp-client' },
             { text: 'projectSettingsExt', link: '/reference/project-settings-ext' },
             { text: 'csharpSolution', link: '/reference/csharp-solution' },
+            { text: 'sdkApi', link: '/reference/sdk-api' },
           ],
         },
         {
@@ -59,6 +59,7 @@ export default defineConfig({
           collapsible: true,
           items: [
             { text: 'overview', link: '/changelog/' },
+            { text: 'v0.2.1', link: '/changelog/v0-2-1' },
             { text: 'v0.2.0', link: '/changelog/v0-2-0' },
             { text: 'v0.1.5', link: '/changelog/v0-1-5' },
             { text: 'v0.1.4', link: '/changelog/v0-1-4' },

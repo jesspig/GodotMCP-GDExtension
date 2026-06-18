@@ -20,8 +20,8 @@
     "label": "clientQuirks"
 }, {
     "type": "file",
-    "name": "lsp-client",
-    "label": "lspClient"
+    "name": "sdk-api",
+    "label": "sdkApi"
 }, {
     "type": "file",
     "name": "project-settings-ext",

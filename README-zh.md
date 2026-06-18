@@ -223,6 +223,5 @@ uv run python main.py test --file 03_*.yaml           # 指定测试文件
 | [通信协议](docs/reference/protocol.md) | MCP Streamable HTTP 协议 |
 | [常见问题](docs/reference/faq.md) | 常见问题解答 |
 | [注意事项](docs/reference/client-quirks.md) | 已知问题与限制 |
-| [LSP 验证](docs/reference/lsp-client.md) | GDScript 语法验证流程 |
 | [C# 解决方案](docs/reference/csharp-solution.md) | 自动生成 .sln/.csproj |
 | [项目设置映射](docs/reference/project-settings-ext.md) | 显示/物理/渲染键映射 |

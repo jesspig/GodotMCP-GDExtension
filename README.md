@@ -226,6 +226,5 @@ cmake --build build --target deep-clean            # Also wipes _deps/ (FetchCon
 | [Protocol](docs/reference/protocol.md) | MCP Streamable HTTP wire format |
 | [FAQ](docs/reference/faq.md) | Frequently asked questions |
 | [Client Quirks](docs/reference/client-quirks.md) | Known issues and limitations |
-| [LSP Client](docs/reference/lsp-client.md) | GDScript validation via LSP |
 | [C# Solution](docs/reference/csharp-solution.md) | Auto-generating .sln/.csproj |
 | [Project Settings Ext](docs/reference/project-settings-ext.md) | Display/physics/rendering key mapping |
