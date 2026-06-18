@@ -5,7 +5,7 @@
 ### Cannot connect after GodotMCP starts
 
 1. Verify the plugin is enabled in Project Settings
-2. Check that the port is not occupied: `curl http://localhost:9600`
+2. Check that the port is not occupied: `curl http://localhost:9600/mcp`
 3. Check if `GODOT_MCP_HTTP_PORT` is set to a non-default port
 4. Close and reopen the editor
 
@@ -21,10 +21,10 @@ Use `py -3` instead of `python`. The Microsoft Store python shim may hang silent
 
 ### MSB4019 / VCTargetsPath build error
 
-build.py automatically detects the Visual Studio installation path and sets `VCTargetsPath`. If it fails, try:
+`main.py` automatically detects the Visual Studio installation path and sets `VCTargetsPath`. If it fails, try:
 
 ```bash
-py -3 build.py --clean
+uv run python main.py build --clean
 ```
 
 ### Plugin reload fails
@@ -39,8 +39,8 @@ When attaching scripts, call in this order:
 
 1. `EditorInterface::get_resource_filesystem()->update_file(path)`
 2. `ResourceLoader::load(path)`
-3. `gdscript->set_source_code(src)`
-4. `gdscript->reload()`
+3. `GDScript::set_source_code(src)`
+4. `GDScript::reload()`
 
 Missing any step may cause `@export` variables to not display.
 
@@ -52,7 +52,7 @@ The `create_node` undo operation must call `add_do_reference(node)` in `EditorUn
 
 ### Why C++ instead of GDScript?
 
-GDExtension directly operates Godot's low-level engine API, providing better performance and more complete API access. Additionally, C++ compiled binaries are better suited for lower-level features like HTTP servers and LSP clients.
+GDExtension directly operates Godot's low-level engine API, providing better performance and more complete API access.
 
 ### How to change the listening port?
 

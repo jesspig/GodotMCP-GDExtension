@@ -26,9 +26,10 @@ res://
 |------|------|
 | `csharp_create_solution` | 生成 `.sln` + `.csproj`（可启用 NativeAOT） |
 | `csharp_build` | 调用 `dotnet build` 编译 C# 项目 |
-| `create_csharp_script` | 基于模板创建 C# 脚本文件 |
 | `read_csharp_script` | 读取 C# 脚本源码 |
-| `edit_csharp_script` | 修改 C# 脚本源码 |
+| `write_csharp_script` | 写入/创建 C# 脚本文件 |
+| `patch_csharp_script` | 局部修改 C# 脚本源码 |
+| `validate_csharp_script` | 验证 C# 脚本语法 |
 | `list_csharp_scripts` | 列出项目中的 C# 脚本文件 |
 
 ## 注意事项

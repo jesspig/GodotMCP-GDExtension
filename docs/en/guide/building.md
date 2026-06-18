@@ -2,15 +2,17 @@
 
 ## Build System
 
-The build system is **CMake** (C++ GDExtension → godot-cpp 10.0.0-rc1 via FetchContent). A lightweight `build.py` wrapper is provided.
+The build system is **CMake** (C++ GDExtension → godot-cpp 10.0.0-rc1 via FetchContent). A lightweight `main.py` wrapper is provided.
 
 ```bash
-py -3 build.py                        # debug build + addons.zip
-py -3 build.py --release              # release build + addons.zip
-py -3 build.py --clean                # clear CMake cache (keep _deps/godot-cpp)
-py -3 build.py --no-zip               # skip addons.zip (fast iteration)
-py -3 build.py --clean-all            # delete entire build/ (including _deps/)
-py -3 build.py --purge-cache          # clear _deps/ only (force re-download)
+uv run python main.py build                 # debug build
+uv run python main.py build --release       # release build
+uv run python main.py build --zip           # build + addons.zip
+uv run python main.py build --clean-cache   # clear build cache
+uv run python main.py build --clean         # same as --clean-cache
+uv run python main.py build -j 16           # parallel 16 jobs
+uv run python main.py package               # package addons.zip
+uv run python main.py test                  # run test pipeline
 ```
 
 CMake handles automatically:
@@ -30,7 +32,7 @@ CMake builds godot-cpp + extension source files via `add_subdirectory(extensions
 3. Links godot-cpp static library → `godot_mcp_gdext.dll`
 4. Post-process: copies to `example/addons/godot_mcp/bin/`
 
-## Manual Build (without build.py)
+## Manual Build (without main.py)
 
 ```bash
 cmake -B build -S .                          # Configure
@@ -53,4 +55,4 @@ cmake --build build --config Debug --target package  # Package
 - `godot-cpp 10.0.0-rc1`: pinned tag via FetchContent
 - `ryml v0.7.0`: header-only YAML library
 - Python dependencies: locked via `uv.lock`
-- **Always use `uv run python`** to run build.py (uv auto-activates `.venv`)
+- **Always use `uv run python`** to run main.py (uv auto-activates `.venv`)

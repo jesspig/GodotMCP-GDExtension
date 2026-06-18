@@ -9,7 +9,7 @@ graph LR
     AI[AI 客户端] -- Streamable HTTP :9600 --> GDExt[godot_mcp_gdext.dll/.so/.dylib]
     GDExt -- EditorPlugin API --> Godot[Godot 编辑器]
     GDExt -- TCP :9601 --> Game[游戏进程]
-    GDExt -- LSP :6005 --> LSPClient[LSP 验证]
+
 ```
 
 ## 安装
@@ -33,10 +33,10 @@ git clone https://github.com/jesspig/GodotMCP-GDExtension.git
 cd GodotMCP-GDExtension
 
 # Debug 构建
-uv run python build.py
+uv run python main.py build
 
 # Release 构建
-uv run python build.py --release
+uv run python main.py build --release
 
 # 构建输出在 example/addons/godot_mcp/
 ```
@@ -66,8 +66,8 @@ uv run python build.py --release
 ## 验证连接
 
 ```bash
-curl http://localhost:9600
-# 预期返回: Godot MCP server running
+curl http://localhost:9600/mcp
+# 预期返回: 405 Method Not Allowed（或使用 POST 的正常响应）
 ```
 
 或通过任意 MCP 客户端调用 `ping` 工具确认连接状态。

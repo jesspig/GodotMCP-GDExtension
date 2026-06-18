@@ -2,15 +2,17 @@
 
 ## 构建系统
 
-构建系统是 **CMake**（C++ GDExtension → godot-cpp 10.0.0-rc1 通过 FetchContent）。提供了轻量 `build.py` 包装。
+构建系统是 **CMake**（C++ GDExtension → godot-cpp 10.0.0-rc1 通过 FetchContent）。提供了轻量 `main.py` 包装。
 
 ```bash
-py -3 build.py                        # debug 构建 + addons.zip
-py -3 build.py --release              # release 构建 + addons.zip
-py -3 build.py --clean                # 清空 CMake 缓存（保留 _deps/godot-cpp）
-py -3 build.py --no-zip               # 跳过 addons.zip（快速迭代）
-py -3 build.py --clean-all            # 删整个 build/（含 _deps/）
-py -3 build.py --purge-cache          # 仅清 _deps/（强制重下载）
+uv run python main.py build                 # debug 构建
+uv run python main.py build --release       # release 构建
+uv run python main.py build --zip           # 构建 + addons.zip
+uv run python main.py build --clean-cache   # 清空构建缓存
+uv run python main.py build --clean         # 同 --clean-cache
+uv run python main.py build -j 16           # 并行 16 作业
+uv run python main.py package               # 打包 addons.zip
+uv run python main.py test                  # 运行测试流水线
 ```
 
 CMake 自动处理：
@@ -30,7 +32,7 @@ CMake 通过 `add_subdirectory(extensions)` 构建 godot-cpp + 扩展源文件�
 3. 链接 godot-cpp 静态库 → `godot_mcp_gdext.dll`
 4. 后处理：复制到 `example/addons/godot_mcp/bin/`
 
-## 手动构建（跳过 build.py）
+## 手动构建（跳过 main.py）
 
 ```bash
 cmake -B build -S .                          # 配置
@@ -53,4 +55,4 @@ cmake --build build --config Debug --target package  # 打包
 - `godot-cpp 10.0.0-rc1`：通过 FetchContent 固定标签
 - `ryml v0.7.0`：header-only YAML 库
 - Python 依赖：`uv.lock` 锁定
-- **始终用 `uv run python`** 运行 build.py（uv 自动激活 `.venv`）
+- **始终用 `uv run python`** 运行 main.py（uv 自动激活 `.venv`）

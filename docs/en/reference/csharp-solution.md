@@ -26,9 +26,10 @@ Base version from `Engine::get_version_info` gets `{major}.{minor}.{patch}`. Sta
 |------|-------------|
 | `csharp_create_solution` | Generate `.sln` + `.csproj` (can enable NativeAOT) |
 | `csharp_build` | Run `dotnet build` to compile C# project |
-| `create_csharp_script` | Create a C# script file from template |
 | `read_csharp_script` | Read C# script source |
-| `edit_csharp_script` | Edit C# script source |
+| `write_csharp_script` | Write/Create a C# script file |
+| `patch_csharp_script` | Patch C# script source |
+| `validate_csharp_script` | Validate C# script syntax |
 | `list_csharp_scripts` | List C# script files in the project |
 
 ## Notes

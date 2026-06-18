@@ -16,7 +16,7 @@ hero:
       theme: alt
 
 features:
-  - title: 🎮 149+ 编辑器工具
+  - title: 🎮 153 编辑器工具
     details: 涵盖场景管理、节点操作、脚本编辑、资源控制、项目设置、运行时桥接、调试器等，全面覆盖 Godot 编辑器操作
   - title: ⚡ 原生 C++ 性能
     details: 基于 C++ GDExtension 实现，零 GC 暂停，纯主线程轮询，无锁无竞争，编辑器零感知延迟

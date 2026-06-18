@@ -9,7 +9,6 @@ graph LR
     AI[AI Client] -- Streamable HTTP :9600 --> GDExt[godot_mcp_gdext.dll/.so/.dylib]
     GDExt -- EditorPlugin API --> Godot[Godot Editor]
     GDExt -- TCP :9601 --> Game[Game Process]
-    GDExt -- LSP :6005 --> LSPClient[LSP Validation]
 ```
 
 ## Installation
@@ -33,10 +32,10 @@ git clone https://github.com/jesspig/GodotMCP-GDExtension.git
 cd GodotMCP-GDExtension
 
 # Debug build
-uv run python build.py
+uv run python main.py build
 
 # Release build
-uv run python build.py --release
+uv run python main.py build --release
 
 # Build output is in example/addons/godot_mcp/
 ```
@@ -66,8 +65,8 @@ See [Client Configuration](/en/reference/client-config) for other clients (Curso
 ## Verify Connection
 
 ```bash
-curl http://localhost:9600
-# Expected: Godot MCP server running
+curl http://localhost:9600/mcp
+# Expected: 405 Method Not Allowed (or a valid response if using POST)
 ```
 
 Or use any MCP client to call the `ping` tool.
