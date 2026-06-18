@@ -58,11 +58,16 @@ def _current_platform_key() -> str:
 
 def copy_built_libs(config: str) -> int:
     """从构建输出目录复制平台库到 example/addons/godot_mcp/bin/。"""
+    from scripts._cmake import get_last_binary_dir
+
     lib_name = PLATFORM_LIBS.get(_current_platform_key())
     if not lib_name:
         return 0
 
+    ext_dir = Path(get_last_binary_dir()) / "extensions"
     candidates = [
+        ext_dir / config / lib_name,
+        ext_dir / lib_name,
         BUILD_DIR / "extensions" / config / lib_name,
         BUILD_DIR / "extensions" / lib_name,
         BUILD_DIR / config / lib_name,

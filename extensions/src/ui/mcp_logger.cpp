@@ -18,7 +18,7 @@ namespace godot_mcp {
 
 void McpLogger::set_max_entries(int max) {
     max_entries_ = max > 0 ? max : 500;
-    while (entries_.size() > max_entries_) {
+    while (entries_.size() > static_cast<size_t>(max_entries_)) {
         entries_.pop_front();
     }
 }
@@ -51,7 +51,7 @@ void McpLogger::set_log_callback(LogCallback cb) {
 
 void McpLogger::append(const LogEntry &entry) {
     entries_.push_back(entry);
-    while (entries_.size() > max_entries_) {
+    while (entries_.size() > static_cast<size_t>(max_entries_)) {
         entries_.pop_front();
     }
     pending_entries_.push_back(entry);

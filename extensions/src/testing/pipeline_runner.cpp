@@ -24,10 +24,10 @@
 #include <set>
 #include <vector>
 
-using namespace godot;
-
 namespace godot_mcp {
 namespace pipeline {
+
+using namespace godot;
 
 namespace {
 
@@ -550,6 +550,7 @@ godot::Dictionary PipelineRunner::run(const std::shared_ptr<PipelineDef> &pipeli
 
     for (const auto &stage : pipeline->stages) {
         for (const auto &step : stage.steps) {
+            (void)step;
             total++;
         }
     }

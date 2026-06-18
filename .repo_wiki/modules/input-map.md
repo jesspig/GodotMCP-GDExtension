@@ -2,6 +2,28 @@
 
 > 4 个工具，管理 Godot InputMap（动作 + 事件绑定）。位于 `extensions/src/built_in/tools/editor_tools/inputmap/`，分类 `editor_tools/inputmap`。
 
+## 工具关系
+
+```mermaid
+flowchart TB
+    subgraph InputMap["Godot InputMap"]
+        ACTIONS["动作列表<br/>ui_accept, ui_left, ..."]
+        EVENTS["事件绑定<br/>InputEventKey, InputEventMouseButton, ..."]
+    end
+    subgraph Tools["MCP 工具"]
+        LIST["input_list_actions<br/>列出所有动作及事件"]
+        ADD["add_input_action<br/>创建新动作"]
+        BIND["add_input_event_binding<br/>追加事件绑定"]
+        REMOVE["remove_input_action<br/>移除动作及绑定"]
+    end
+    LIST -->|"读取"| ACTIONS
+    LIST -->|"读取"| EVENTS
+    ADD -->|"创建"| ACTIONS
+    BIND -->|"绑定到"| EVENTS
+    BIND -->|"目标"| ACTIONS
+    REMOVE -->|"删除"| ACTIONS
+```
+
 ## 工具列表
 
 | 工具 | 描述 | 必需参数 |

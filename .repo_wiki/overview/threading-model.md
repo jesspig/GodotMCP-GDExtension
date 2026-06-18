@@ -9,19 +9,17 @@ flowchart LR
     subgraph MAIN["Godot 主线程"]
         direction TB
         A["McpEditorPlugin::_process(delta)<br/>(EditorPlugin 虚函数，每帧调用)"]
-        R["pending_restart_ 轮询"]
         C["HttpServer::poll()"]
         B["_try_bridge_connect()"]
         D["RuntimeBridge::poll()"]
     end
 
-    A --> R
     A --> C
     A --> B
     A --> D
 ```
 
-C++ 版本**没有任何工作线程**。所有操作（HTTP 解析、JSON 处理、命令执行、Godot API 调用）都在 `McpEditorPlugin::_process(delta)` 中同步完成（`editor_plugin.cpp:205-221`）。该函数是 `EditorPlugin` 的虚函数，由 Godot 引擎每帧自动调用。
+C++ 版本**没有任何工作线程**。所有操作（HTTP 解析、JSON 处理、命令执行、Godot API 调用）都在 `McpEditorPlugin::_process(delta)` 中同步完成（`editor_plugin.cpp:225-233`）。该函数是 `EditorPlugin` 的虚函数，由 Godot 引擎每帧自动调用。
 
 这意味着：
 - **无需** `MainThreadDispatcher`
@@ -37,16 +35,9 @@ Godot GDExtension API 要求所有 API 调用发生在主线程。C++ godot-cpp 
 ## 实现细节（C++）
 
 ```cpp
-// editor_plugin.cpp:205-221
-void McpEditorPlugin::_process(double delta) {
+// editor_plugin.cpp:225-233
+void McpEditorPlugin::_process(double /*delta*/) {
     if (!started_) return;
-
-    // 延迟重启轮询（等待 pending 请求完成或超时）
-    if (pending_restart_) {
-        bool timed_out = Time::get_singleton()->get_ticks_msec() / 1000.0 > restart_deadline_;
-        if (force_restart_ || !mcp_handler_.has_pending_requests() || timed_out)
-            restart_server(true);
-    }
 
     http_server_.poll();
     _try_bridge_connect();

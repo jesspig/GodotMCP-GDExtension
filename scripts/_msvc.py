@@ -17,40 +17,77 @@ from scripts._project import PROJECT_ROOT, BUILD_DIR
 _VS_DEV_ENV: dict[str, str] | None = None
 
 
-def find_msvc_cl() -> str | None:
-    """用 vswhere 或目录扫描查找 cl.exe 全路径。"""
+def _find_vs_path() -> Path | None:
+    """用 vswhere 找到最新 VS 安装根目录。"""
     try:
         result = subprocess.run(
             ["vswhere", "-latest", "-property", "installationPath"],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
         )
         if result.returncode == 0 and result.stdout.strip():
-            vs_path = Path(result.stdout.strip())
-            msvc_root = vs_path / "VC" / "Tools" / "MSVC"
-            if msvc_root.exists():
-                for ver in sorted(msvc_root.iterdir(), reverse=True):
-                    cl_exe = ver / "bin" / "Hostx64" / "x64" / "cl.exe"
-                    if cl_exe.exists():
-                        return str(cl_exe)
+            return Path(result.stdout.strip())
     except FileNotFoundError:
         pass
-    candidate_roots = [
+    return None
+
+
+def _scan_vs_roots() -> list[Path]:
+    """扫描已知 VS 安装目录（vswhere 不可用时兜底）。"""
+    roots = []
+    for base in [
         Path("C:/Program Files/Microsoft Visual Studio"),
         Path("C:/Program Files (x86)/Microsoft Visual Studio"),
-    ]
-    for root in candidate_roots:
-        if not root.exists():
+    ]:
+        if not base.exists():
             continue
-        for d1 in root.iterdir():
+        for d1 in base.iterdir():
             items = [d1] + sorted(d1.iterdir()) if d1.is_dir() else [d1]
-            for d2 in items:
-                msvc_dir = Path(d2) / "VC" / "Tools" / "MSVC"
-                if not msvc_dir.exists():
-                    continue
-                for ver in sorted(msvc_dir.iterdir(), reverse=True):
-                    cl_exe = ver / "bin" / "Hostx64" / "x64" / "cl.exe"
-                    if cl_exe.exists():
-                        return str(cl_exe)
+            roots.extend(items)
+    return roots
+
+
+def find_clang_cl() -> str | None:
+    """优先检测 clang-cl（VS Llvm 工具集 > 独立 LLVM 安装 > PATH）。"""
+    vs_path = _find_vs_path()
+    if vs_path:
+        clang_cl_exe = vs_path / "VC" / "Tools" / "Llvm" / "bin" / "clang-cl.exe"
+        if clang_cl_exe.exists():
+            return str(clang_cl_exe)
+    for root in _scan_vs_roots():
+        clang_cl_exe = Path(root) / "VC" / "Tools" / "Llvm" / "bin" / "clang-cl.exe"
+        if clang_cl_exe.exists():
+            return str(clang_cl_exe)
+    for llvm_root in [
+        Path("C:/Program Files/LLVM"),
+        Path("C:/Program Files (x86)/LLVM"),
+    ]:
+        clang_cl_exe = llvm_root / "bin" / "clang-cl.exe"
+        if clang_cl_exe.exists():
+            return str(clang_cl_exe)
+    clang_cl = shutil.which("clang-cl")
+    if clang_cl:
+        return clang_cl
+    return None
+
+
+def find_msvc_cl() -> str | None:
+    """用 vswhere 或目录扫描查找 cl.exe 全路径。"""
+    vs_path = _find_vs_path()
+    if vs_path:
+        msvc_root = vs_path / "VC" / "Tools" / "MSVC"
+        if msvc_root.exists():
+            for ver in sorted(msvc_root.iterdir(), reverse=True):
+                cl_exe = ver / "bin" / "Hostx64" / "x64" / "cl.exe"
+                if cl_exe.exists():
+                    return str(cl_exe)
+    for root in _scan_vs_roots():
+        msvc_dir = Path(root) / "VC" / "Tools" / "MSVC"
+        if not msvc_dir.exists():
+            continue
+        for ver in sorted(msvc_dir.iterdir(), reverse=True):
+            cl_exe = ver / "bin" / "Hostx64" / "x64" / "cl.exe"
+            if cl_exe.exists():
+                return str(cl_exe)
     return None
 
 
@@ -95,21 +132,26 @@ def detect_vctargetspath() -> str | None:
     return None
 
 
+def _find_vcvarsall() -> Path | None:
+    """找 vcvarsall.bat（不依赖具体编译器路径）。"""
+    vs_path = _find_vs_path()
+    if vs_path:
+        candidate = vs_path / "VC" / "Auxiliary" / "Build" / "vcvarsall.bat"
+        if candidate.exists():
+            return candidate
+    for root in _scan_vs_roots():
+        candidate = Path(root) / "VC" / "Auxiliary" / "Build" / "vcvarsall.bat"
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def capture_vs_dev_env() -> dict[str, str] | None:
     """执行 vcvarsall.bat x64 并捕获环境变量。"""
     global _VS_DEV_ENV
     if _VS_DEV_ENV is not None:
         return _VS_DEV_ENV
-    cl_path = find_msvc_cl()
-    if not cl_path:
-        return None
-    cl = Path(cl_path)
-    vcvarsall = None
-    for parent in cl.parents:
-        candidate = parent / "Auxiliary" / "Build" / "vcvarsall.bat"
-        if candidate.exists():
-            vcvarsall = candidate
-            break
+    vcvarsall = _find_vcvarsall()
     if not vcvarsall:
         return None
     bat_content = f'@call "{vcvarsall}" x64 >nul 2>&1\n@python -c "import json,os; print(json.dumps(dict(os.environ)))"'
@@ -139,3 +181,69 @@ def ensure_vctargetspath() -> None:
         if vc_path:
             print(f"\n[ENV] VCTargetsPath={vc_path}", flush=True)
             os.environ["VCTargetsPath"] = vc_path
+
+
+# --- New functions for unified compiler scanning ---
+
+
+def get_vs_year_from_version(ver: str) -> int:
+    mapping = {
+        "14.4": 2025, "14.3": 2022, "14.2": 2019,
+        "14.1": 2017, "14.0": 2015,
+    }
+    for prefix, year in mapping.items():
+        if ver.startswith(prefix):
+            return year
+    return 0
+
+
+def find_all_msvc_versions() -> list[dict]:
+    """Find all installed MSVC versions. Returns list sorted by version descending."""
+    results = []
+    vs_path = _find_vs_path()
+    roots = [vs_path] if vs_path else []
+
+    for root in _scan_vs_roots():
+        if root not in roots:
+            roots.append(root)
+
+    for root in roots:
+        msvc_dir = Path(root) / "VC" / "Tools" / "MSVC"
+        if not msvc_dir.exists():
+            continue
+        for ver_dir in sorted(msvc_dir.iterdir(), reverse=True):
+            for host_arch in ["Hostx64", "Hostx86"]:
+                for target_arch in ["x64", "x86", "arm64", "arm"]:
+                    cl_path = ver_dir / "bin" / host_arch / target_arch / "cl.exe"
+                    if cl_path.exists():
+                        results.append({
+                            "id": f"msvc-{ver_dir.name}",
+                            "type": "msvc",
+                            "path": str(cl_path),
+                            "version": ver_dir.name,
+                            "priority": 2 if ver_dir.name.startswith(("14.4", "14.3")) else 3,
+                        })
+                        break
+                if cl_path.exists():
+                    break
+    return results
+
+
+def find_available_compilers() -> list[dict]:
+    """Return all available Windows compilers (clang-cl + MSVC)."""
+    compilers = []
+
+    clang_cl_path = find_clang_cl()
+    if clang_cl_path:
+        compilers.append({
+            "id": "clang-cl",
+            "type": "clang",
+            "path": clang_cl_path,
+            "version": "clang (clang-cl)",
+            "priority": 1,
+        })
+
+    for msvc in find_all_msvc_versions():
+        compilers.append(msvc)
+
+    return sorted(compilers, key=lambda c: c["priority"])

@@ -4,7 +4,7 @@
 
 ## 工具列表
 
-共 **8 个**元工具：7 个在 `meta_tools` 分类（`register/register_meta.hpp`），1 个在 `editor_tools/settings`（`register/register_existing.hpp:125`）。
+共 **8 个**元工具：7 个在 `meta_tools` 分类（`register/register_meta.hpp`），1 个在 `editor_tools/settings`（`register/register_existing.hpp:119`）。
 
 | 工具名 | 文件 | 分类 | 功能 |
 |--------|------|------|------|
@@ -15,7 +15,7 @@
 | `find_tool` | `meta/find_tool.hpp` | `meta_tools` | 搜索引擎：4 阶段权重 + 频率排序 |
 | `call_tool` | `meta/call_tool.hpp` | `meta_tools` | 兜底调用任意工具 |
 | `generate_client_config` | `meta/generate_client_config.hpp` | `meta_tools` | 生成 11 个 MCP 客户端的连接配置 |
-| `list_settings` | `editor_tools/settings/list_settings.hpp` | `editor_tools/settings` | 列出项目设置（`is_meta=true`，`register_existing.hpp:125`） |
+| `list_settings` | `editor_tools/settings/list_settings.hpp` | `editor_tools/settings` | 列出项目设置（`is_meta=true`，`register_existing.hpp:119`） |
 
 ## 渐进式披露
 
@@ -47,7 +47,7 @@ flowchart LR
     "hash": "abc123..."
   },
   "plugin": {
-    "builtin_tools": 170,
+    "builtin_tools": 153,
     "custom_tools": 0,
     "version": "0.2.1"
   },
@@ -100,14 +100,14 @@ flowchart LR
 
 ### 4 阶段权重匹配
 
-`HandlerRegistry::search_tools()`（`handler_registry.cpp:442-528`）对每个工具取**最高权重**（非累加）：
+`HandlerRegistry::search_tools()`（`handler_registry.cpp:378-462`）对每个工具取**最高权重**（非累加）：
 
 | 阶段 | 匹配方式 | 权重 | 代码行 |
 |------|---------|------|--------|
-| 1 | 工具名精确匹配（大小写不敏感） | 1000 | `:448-454` |
-| 2 | 工具名前缀匹配 | 500 | `:456-464` |
-| 3 | name + brief + description 分词后 Token 包含 | 200 | `:466-478` |
-| 4 | description 子串匹配 | 50 | `:480-488` |
+| 1 | 工具名精确匹配（大小写不敏感） | 1000 | `:393-396` |
+| 2 | 工具名前缀匹配 | 500 | `:399-402` |
+| 3 | name + brief + description 分词后 Token 包含 | 200 | `:404-416` |
+| 4 | description 子串匹配 | 50 | `:419-421` |
 
 ### 排序算法
 
@@ -121,15 +121,15 @@ flowchart TD
     E --> F
 ```
 
-**排序规则**：先按调用频率（`freq_index_`）降序，频率相同再按权重降序（`handler_registry.cpp:506-510`）。
+**排序规则**：先按调用频率（`freq_index_`）降序，频率相同再按权重降序（`handler_registry.cpp:442-445`）。
 
 ```cpp
-// handler_registry.cpp:507-510
+// handler_registry.cpp:442-445
 if (a.freq != b.freq) return a.freq > b.freq;  // 频率优先
 return a.weight > b.weight;                      // 权重次之
 ```
 
-返回每条结果包含 `name`、`brief`、`category`、`description`、`frequency` 字段（`:514-524`）。
+返回每条结果包含 `name`、`brief`、`category`、`description`、`frequency` 字段（`:449-460`）。
 
 ## `generate_client_config`
 

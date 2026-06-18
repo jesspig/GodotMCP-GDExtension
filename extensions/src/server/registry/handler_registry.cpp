@@ -507,7 +507,7 @@ Array HandlerRegistry::get_search_suggestions(const String &prefix, int limit) c
     });
 
     Array result;
-    for (int i = 0; i < sorted.size() && i < limit; ++i) {
+    for (size_t i = 0; i < sorted.size() && static_cast<int>(i) < limit; ++i) {
         result.push_back(sorted[i].name);
     }
     return result;

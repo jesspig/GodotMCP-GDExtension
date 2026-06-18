@@ -1,6 +1,6 @@
 # Godot MCP — 项目知识库
 
-> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600，MCP 2026-07-28 协议）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 `godot-cpp 10.0.0-rc1`，X-macro 分文件注册，四层工具体系（语义专用 + 属性组 + 通用兜底 + 文档查询），Godot ClassDB 运行时驱动文档数据，rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。**无 session，无 GET 端点，纯 POST 通信**。
+> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600，MCP 2026-07-28 协议）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 `godot-cpp 10.0.0-rc1`，X-macro 分文件注册，四层工具体系（元工具 + 语义专用 + 通用兜底 + 文档查询），Godot ClassDB 运行时驱动文档数据，rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。**无 session，无 GET 端点，纯 POST 通信**。
 
 ## 项目快照
 
@@ -19,7 +19,7 @@
 | HTTP 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） |
 | 桥接端口 | `:9601`（env `GODOT_MCP_BRIDGE_PORT` 覆盖） |
 | Pinned deps | `godot-cpp 10.0.0-rc1`、`ryml v0.7.0` |
-| 版本号 | 仅 `CMakeLists.txt:16` `PROJECT_VERSION` |
+| 版本号 | 仅 `CMakeLists.txt` 的 `PROJECT_VERSION` |
 | Python | `>=3.14`（`.python-version` 锁定） |
 | MCP 协议 | **Streamable HTTP 2026-07-28**（无 session，无 GET 端点） |
 
@@ -89,9 +89,9 @@
 ## 给 Agent 的提醒
 
 - **入口符号** `gdext_mcp_init`（`register_types.cpp:60`）
-- **不要修改** `extensions/CMakeLists.txt:15` 的 `GODOTCPP_API_VERSION "4.6"` 与根 `CMakeLists.txt` 的 `compatibility_minimum = "4.6"` 之间的绑定
+- **不要修改** `extensions/CMakeLists.txt` 中 `GODOTCPP_API_VERSION "4.6"` 与根 `CMakeLists.txt` 的 `compatibility_minimum = "4.6"` 之间的绑定
 - **升级 godot-cpp / ryml 前必测** — 二者均为 FetchContent 拉取
 - **不要用 `String::utf8("中文")`** — 全英文化后直接 `String("English")` 即可
 - **DLL 文件锁** — Godot 编辑器持有 DLL，重建失败时先关闭编辑器
 - **构建优化** — sccache/ccache、Unity jumbo build、lld-link 均已配置
-- **构建命令** — 始终用 `uv run python build.py`（Python >=3.14）
+- **构建命令** — 始终用 `uv run python main.py`（Python >=3.14）

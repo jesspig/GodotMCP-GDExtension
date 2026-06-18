@@ -1,0 +1,231 @@
+{
+  "version": 10,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "gen-ninja",
+      "hidden": true,
+      "generator": "Ninja"
+    },
+    {
+      "name": "gen-ninja-msvc",
+      "hidden": true,
+      "generator": "Ninja",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "toolset": {
+        "value": "v143,host=x64",
+        "strategy": "external"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "gen-make",
+      "hidden": true,
+      "generator": "Unix Makefiles",
+      "condition": {
+        "type": "notEquals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "gen-vs",
+      "hidden": true,
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "cc-clang-cl",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang-cl.exe",
+        "CMAKE_CXX_COMPILER": "clang-cl.exe"
+      },
+      "environment": {
+        "CFLAGS": "--target=x86_64-pc-windows-msvc",
+        "CXXFLAGS": "--target=x86_64-pc-windows-msvc"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "cc-msvc",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "cc-mingw",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "x86_64-w64-mingw32-gcc",
+        "CMAKE_CXX_COMPILER": "x86_64-w64-mingw32-g++"
+      }
+    },
+    {
+      "name": "cc-gcc",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "cc-clang",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      },
+      "condition": {
+        "type": "notEquals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "cc-appleclang",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "build-debug",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "build-release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_CXX_STANDARD": "17"
+      }
+    },
+    {
+      "name": "win-clang-cl-debug",
+      "displayName": "Windows clang-cl Debug",
+      "inherits": ["base", "build-debug", "gen-ninja-msvc", "cc-clang-cl"],
+      "binaryDir": "${sourceDir}/build/win-clang-cl-debug"
+    },
+    {
+      "name": "win-clang-cl-release",
+      "displayName": "Windows clang-cl Release",
+      "inherits": ["base", "build-release", "gen-ninja-msvc", "cc-clang-cl"],
+      "binaryDir": "${sourceDir}/build/win-clang-cl-release"
+    },
+    {
+      "name": "win-msvc-debug",
+      "displayName": "Windows MSVC Debug",
+      "inherits": ["base", "build-debug", "gen-ninja-msvc", "cc-msvc"],
+      "binaryDir": "${sourceDir}/build/win-msvc-debug"
+    },
+    {
+      "name": "win-msvc-release",
+      "displayName": "Windows MSVC Release",
+      "inherits": ["base", "build-release", "gen-ninja-msvc", "cc-msvc"],
+      "binaryDir": "${sourceDir}/build/win-msvc-release"
+    },
+    {
+      "name": "win-mingw-debug",
+      "displayName": "Windows MinGW Debug",
+      "inherits": ["base", "build-debug", "gen-ninja", "cc-mingw"],
+      "binaryDir": "${sourceDir}/build/win-mingw-debug"
+    },
+    {
+      "name": "win-vs-debug",
+      "displayName": "Windows VS 2022 Debug",
+      "inherits": ["base", "build-debug", "gen-vs", "cc-msvc"],
+      "binaryDir": "${sourceDir}/build/win-vs-debug"
+    },
+    {
+      "name": "linux-gcc-debug",
+      "displayName": "Linux GCC Debug",
+      "inherits": ["base", "build-debug", "gen-ninja", "cc-gcc"],
+      "binaryDir": "${sourceDir}/build/linux-gcc-debug"
+    },
+    {
+      "name": "linux-gcc-release",
+      "displayName": "Linux GCC Release",
+      "inherits": ["base", "build-release", "gen-ninja", "cc-gcc"],
+      "binaryDir": "${sourceDir}/build/linux-gcc-release"
+    },
+    {
+      "name": "linux-clang-debug",
+      "displayName": "Linux Clang Debug",
+      "inherits": ["base", "build-debug", "gen-ninja", "cc-clang"],
+      "binaryDir": "${sourceDir}/build/linux-clang-debug"
+    },
+    {
+      "name": "macos-clang-debug",
+      "displayName": "macOS Clang Debug",
+      "inherits": ["base", "build-debug", "gen-ninja", "cc-appleclang"],
+      "binaryDir": "${sourceDir}/build/macos-clang-debug"
+    },
+    {
+      "name": "macos-clang-release",
+      "displayName": "macOS Clang Release",
+      "inherits": ["base", "build-release", "gen-ninja", "cc-appleclang"],
+      "binaryDir": "${sourceDir}/build/macos-clang-release"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "win-clang-cl-debug"
+    },
+    {
+      "name": "debug",
+      "configurePreset": "win-clang-cl-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "release",
+      "configurePreset": "win-clang-cl-release",
+      "configuration": "Release"
+    }
+  ]
+}

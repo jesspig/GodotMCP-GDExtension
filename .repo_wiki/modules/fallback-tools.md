@@ -13,7 +13,7 @@
 
 ```mermaid
 flowchart TD
-    L1["Layer 1: 语义专用工具<br/>(add_node, delete_node, save_scene 等 ~160 个)"]
+    L1["Layer 1: 语义专用工具<br/>(add_node, delete_node, save_scene 等 ~135 个)"]
     L0["Layer 0: 通用兜底工具<br/>(get_node_property, set_node_property)"]
     ALL["100% 属性覆盖"]
 

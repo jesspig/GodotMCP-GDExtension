@@ -443,7 +443,7 @@ void McpConsole::refresh() {
     if (!logger_) return;
     logged_entries_.clear();
     const std::deque<McpLogger::LogEntry> &entries = logger_->entries();
-    for (int i = 0; i < entries.size(); i++) {
+    for (size_t i = 0; i < entries.size(); i++) {
         logged_entries_.push_back(entries[i]);
     }
     rebuild_log();

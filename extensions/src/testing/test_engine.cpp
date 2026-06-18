@@ -13,8 +13,7 @@ using namespace godot;
 
 namespace godot_mcp {
 
-TestEngine::TestEngine(HandlerRegistry *registry)
-    : registry_(registry) {
+TestEngine::TestEngine(HandlerRegistry *registry) {
     runner_ = std::make_unique<pipeline::PipelineRunner>(registry);
 }
 

@@ -9,7 +9,7 @@
 | 001 | 2026 | 单进程架构 | 移除 Python 服务器，仅 C++ GDExtension + MCP Streamable HTTP :9600 |
 | 002 | 2026 | MCP Streamable HTTP 传输 | C++ 内实现 HttpServer + SSE + JSON-RPC 2.0 会话管理 |
 | 003 | 2026-06 | `_process()` 重写驱动 | 替代 `process_frame` 信号，三合一：HTTP poll + 桥接连接 + 桥接 poll |
-| 004 | 2026 | CMake 构建 | `godot-cpp` 通过 FetchContent 拉取，`build.py` 为便捷包装 |
+| 004 | 2026 | CMake 构建 | `godot-cpp` 通过 FetchContent 拉取，`main.py` 为便捷包装 |
 | 005 | 2026 | C# Solution 直接生成 | 不启动第二 Godot 进程，直接生成 `.sln`/`.csproj` |
 | 006 | 2026 | 直接 GDExtension 日志 | `UtilityFunctions::print`（28 行），无跨线程日志需求 |
 | 007 | 2026 | `call_method` 用 `Object::call()` | 通用方法调用，主线程同步执行 |
@@ -20,7 +20,7 @@
 | 012 | 2026-06-04 | 场景树分类 + Undo 策略 | 全部用 `EditorUndoRedoManager`；剪贴板用 `PackedScene`；脚本工具归入 `scene_tree` 分类 |
 | 013 | 2026-06-08 | 移除 PCH | Unity Build 已覆盖优化价值，消除 ~100MB `.pch` + 管理复杂度 |
 | 014 | 2026-06-08 | P0/P1/P2 功能路线图 | 7 运行时命令 + 14 脚本工具 + 13 P1 工具 + 24 P2 工具，全部完成 |
-| 015 | 2026-06-11 | 四层工具体系 + 搜索引擎 + X-macro | 工具数 ~11791→~170；搜索引擎（4 阶段权重）；SDK 工具平权（IToolAdapter） |
+| 015 | 2026-06-11 | 四层工具体系 + 搜索引擎 + X-macro | 工具数 ~11791→~153；搜索引擎（4 阶段权重）；SDK 工具平权（IToolAdapter） |
 | 016 | 2026-06-14 | V2 产品化 | 预编译分发 + 底部面板 UI + CORS/Session 安全 + 限流 + 客户端配置模板 |
 
 ## 关键决策关联

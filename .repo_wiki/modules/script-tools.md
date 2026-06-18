@@ -1,40 +1,51 @@
 # 脚本工具
 
-> 13 个工具，位于 `extensions/src/built_in/tools/editor_tools/scripts/`，分为 GDScript 线（8 工具）和 C# 线（5 工具），共享通用工具函数。
+> 12 个工具，位于 `extensions/src/built_in/tools/editor_tools/scripts/`，分为 GDScript 线（7 工具）和 C# 线（5 工具），共享通用工具函数。每个工具源文件通过 `ScriptLang` 模板参数在 X-macro 展开时实例化为两种语言变体。
 
 ## 架构总览
 
 ```mermaid
 flowchart TB
-    subgraph GDScript["GDScript 工具线"]
-        RGD["read_gd_script.hpp<br/>只读"]
-        WGD["write_gd_script.hpp<br/>销毁性"]
-        PGD["patch_gd_script.hpp<br/>销毁性"]
-        VGD["validate_gd_script.hpp<br/>只读"]
-        LGD["list_gd_scripts.hpp<br/>只读"]
-        GREP["grep_scripts.hpp<br/>只读"]
-        GLOB["glob_scripts.hpp<br/>只读"]
+    subgraph SrcFiles["源文件（7 工具 .hpp + 1 utils .hpp）"]
+        READ["read_script.hpp<br/>模板: ScriptLang L"]
+        WRITE["write_script.hpp<br/>模板: ScriptLang L"]
+        PATCH["patch_script.hpp<br/>模板: ScriptLang L"]
+        VAL["validate_script.hpp<br/>模板: ScriptLang L"]
+        LIST["list_scripts.hpp<br/>模板: ScriptLang L"]
+        GREP["grep_scripts.hpp<br/>同时搜 .gd/.cs"]
+        GLOB["glob_scripts.hpp<br/>同时匹配 .gd/.cs"]
     end
 
-    subgraph CSharp["C# 工具线"]
-        RCS["read_csharp_script.hpp<br/>只读"]
-        WCS["write_csharp_script.hpp<br/>只读"]
-        PCS["patch_csharp_script.hpp<br/>只读"]
-        VCS["validate_csharp_script.hpp<br/>只读(占位)"]
-        LCS["list_csharp_scripts.hpp<br/>只读"]
+    subgraph XMACRO["X-macro GODOT_MCP_TOOL 展开"]
+        RG["ReadGdScriptTool(GDSCRIPT)"]
+        WG["WriteGdScriptTool(GDSCRIPT)"]
+        PG["PatchGdScriptTool(GDSCRIPT)"]
+        VG["ValidateGdScriptTool(GDSCRIPT)"]
+        LG["ListGdScriptsTool(GDSCRIPT)"]
+        GS["GrepScriptsTool"]
+        GB["GlobScriptsTool"]
+        RC["ReadCsharpScriptTool(CSHARP)"]
+        WC["WriteCsharpScriptTool(CSHARP)"]
+        PC["PatchCsharpScriptTool(CSHARP)"]
+        VC["ValidateCsharpScriptTool(CSHARP)"]
+        LC["ListCsharpScriptsTool(CSHARP)"]
     end
 
     UTILS["script_utils.hpp<br/>通用工具函数"]
-    FS_UTILS["filesystem_utils.hpp<br/>文件系统工具"]
 
-    RGD & WGD & PGD & VGD & LGD & GREP & GLOB --> UTILS
-    RCS & WCS & PCS & VCS & LCS --> UTILS
-    UTILS --> FS_UTILS
+    READ & WRITE & PATCH & VAL & LIST & GREP & GLOB --> UTILS
+    READ --> RG & RC
+    WRITE --> WG & WC
+    PATCH --> PG & PC
+    VAL --> VG & VC
+    LIST --> LG & LC
+    GREP --> GS
+    GLOB --> GB
 ```
 
 ## 注册
 
-所有 13 个工具通过 X-macro 注册（`register/register_existing.hpp:103-114`），category 均为 `editor_tools/scripts`。
+所有 12 个工具通过 X-macro 注册（`register/register_existing.hpp:102-113`），category 均为 `editor_tools/scripts`。
 
 | 工具 | is_destructive |
 |------|:--------------:|
@@ -51,17 +62,17 @@ flowchart TB
 | `ValidateCsharpScriptTool` | false |
 | `ListCsharpScriptsTool` | false |
 
-## GDScript 工具（8 个）
+## 工具详解
 
 ### `read_gd_script`
-`register_existing.hpp:103` — `scripts/read_gd_script.hpp`
+`register_existing.hpp:103` — 模板参数 `ScriptLang::GDSCRIPT`
 
 - 读取 `.gd` 文件内容。使用 `FileAccess::open(path, READ)` → `get_as_text()`
 - 验证：`ends_with(".gd")`、`FileAccess::file_exists()`、`fs_utils::validate_res_path()`
 - 返回：`path`、`content`、`line_count`、`language`
 
 ### `write_gd_script`
-`register_existing.hpp:104` — `scripts/write_gd_script.hpp`
+`register_existing.hpp:104` — 模板参数 `ScriptLang::GDSCRIPT`
 
 - **销毁性**：覆盖写入 `.gd` 文件
 - `content` 为空时自动生成最小脚本 `extends Node\n`
@@ -69,7 +80,7 @@ flowchart TB
 - 使用 `FileAccess::open(path, WRITE)` → `store_string(content)`
 
 ### `patch_gd_script`
-`register_existing.hpp:105` — `scripts/patch_gd_script.hpp`
+`register_existing.hpp:105` — 模板参数 `ScriptLang::GDSCRIPT`
 
 - **销毁性**：精准文本替换
 - **参数**: `path`、`old_text`（不能为空）、`new_text`、`occurrence`（0=全部，>0=第 N 个）、`whole_word`（标识符边界匹配）
@@ -80,14 +91,14 @@ flowchart TB
   - `occurrence > 0`：找到第 N 个匹配，`substr(0, idx) + new_text + substr(idx + old_len)`
 
 ### `validate_gd_script`
-`register_existing.hpp:106` — `scripts/validate_gd_script.hpp`
+`register_existing.hpp:106` — 模板参数 `ScriptLang::GDSCRIPT`
 
 - 只读：`OS::execute("godot", PackedStringArray("--check-only", "--script", path, "--path", res_path, "--headless", "--quit"))`
 - 返回 `valid: bool` + `exit_code`
 - 使用 `globalize_path()` 转换 `res://` 为绝对路径
 
 ### `list_gd_scripts`
-`register_existing.hpp:107` — `scripts/list_gd_scripts.hpp`
+`register_existing.hpp:107` — 模板参数 `ScriptLang::GDSCRIPT`
 
 - 递归遍历项目目录，过滤 `.gd` 文件
 - **参数**: `directory`（默认 `res://`）、`include_addons`（默认 false）、`max_results`（默认 200）
@@ -113,12 +124,12 @@ flowchart TB
 ## C# 工具（5 个）
 
 ### `read_csharp_script`
-`register_existing.hpp:110` — `scripts/read_csharp_script.hpp`
+`register_existing.hpp:110` — 模板参数 `ScriptLang::CSHARP`
 
 - 与 `read_gd_script` 结构相同，仅校验 `.cs` 扩展名，`language` 返回 `"csharp"`
 
 ### `write_csharp_script`
-`register_existing.hpp:111` — `scripts/write_csharp_script.hpp`
+`register_existing.hpp:111` — 模板参数 `ScriptLang::CSHARP`
 
 - **非销毁性注册**（`is_destructive = false`，但仍会覆盖写入）
 - `content` 为空时使用 `script_utils::sanitize_class_name()` 生成默认模板：
@@ -133,21 +144,21 @@ flowchart TB
   ```
 
 ### `patch_csharp_script`
-`register_existing.hpp:112` — `scripts/patch_csharp_script.hpp`
+`register_existing.hpp:112` — 模板参数 `ScriptLang::CSHARP`
 
 - **非销毁性注册**（`is_destructive = false`）
 - 与 `patch_gd_script` 逻辑相同，但**不包含** `whole_word` 参数
 - `occurrence <= 0` 时使用 `String::replace()` 批量替换（与 GDScript 的手动拼接不同）
 
 ### `validate_csharp_script`
-`register_existing.hpp:113` — `scripts/validate_csharp_script.hpp`
+`register_existing.hpp:113` — 模板参数 `ScriptLang::CSHARP`
 
 - **只读占位实现**（`description` 声称使用 `dotnet build --no-restore`，实际执行 `dotnet build --no-restore --no-build --project res://`）
 - 先检查 `script_utils::has_dotnet()`（检查 `ProjectSettings` 中 `dotnet/project/assembly_name` 是否存在）
 - 若无 .NET 配置，返回 `NO_DOTNET` 错误
 
 ### `list_csharp_scripts`
-`register_existing.hpp:114` — `scripts/list_csharp_scripts.hpp`
+`register_existing.hpp:114` — 模板参数 `ScriptLang::CSHARP`
 
 - 与 `list_gd_scripts` 结构相同，仅过滤 `.cs` 扩展名
 
@@ -164,12 +175,12 @@ flowchart TB
 
 ## 文件系统依赖
 
-所有脚本工具通过 `walk_project_dir()`（`filesystem_utils.hpp`）遍历项目目录，该函数接受 `extensions` 数组、`include_addons` 标记、`max_results` 限制。写入操作统一使用 `fs_utils::validate_res_path()` 校验路径 + `fs_utils::ensure_parent_dir()` 创建父目录 + `fs_utils::notify_file_changed()` 通知文件系统更新。
+所有脚本工具通过 `walk_project_dir()`（`cmd_utils.hpp`）遍历项目目录，该函数接受 `extensions` 数组、`include_addons` 标记、`max_results` 限制。写入操作统一使用 `cmd_utils` 的 `validate_res_path()`、`ensure_parent_dir()`、`notify_file_changed()`。
 
 ## 注意事项
 
 - `write_gd_script` 和 `patch_gd_script` 是仅有的两个标记为销毁性的脚本工具，二者都会覆盖写入文件且无 UndoRedoManager 保护
-- `validate_gd_script` 在编辑器内子进程调用 `godot --check-only`，性能开销较大
+- `validate_script` 在编辑器内子进程调用 `godot --check-only`，性能开销较大
 - `validate_csharp_script` 当前实际上只检查 dotnet 配置是否存在，未实现真正的语法验证
 - `grep_scripts` 使用大小写不敏感比对时，双方 `.to_lower()` 后再 `find()`，性能随文件量线性增长
 - 所有工具在主线程同步执行
