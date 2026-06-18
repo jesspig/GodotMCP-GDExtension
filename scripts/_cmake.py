@@ -11,9 +11,10 @@ import shutil
 import subprocess
 import sys
 from collections.abc import Mapping
+from pathlib import Path
 
 from scripts._project import PROJECT_ROOT, BUILD_DIR
-from scripts._msvc import find_msvc_cl, find_windows_sdk_tools, capture_vs_dev_env
+from scripts._msvc import find_clang_cl, find_msvc_cl, find_windows_sdk_tools, capture_vs_dev_env
 
 STALE_CACHE_PATTERNS = [
     "MSB4019",
@@ -58,19 +59,34 @@ def configure(extra_defs: list) -> tuple[bool, str]:
 
     if shutil.which("ninja"):
         if platform.system() == "Windows":
-            cl_path = find_msvc_cl()
-            if not cl_path:
-                print("[DETECT] Ninja found but MSVC not found, using default generator", flush=True)
-            else:
+            # Priority: clang-cl > MSVC cl.exe
+            clang_cl_path = find_clang_cl()
+            if clang_cl_path:
                 extra_env = capture_vs_dev_env()
+                if extra_env:
+                    clang_bin = str(Path(clang_cl_path).parent)
+                    path = extra_env.get("PATH", "")
+                    extra_env["PATH"] = f"{clang_bin};{path}"
+                    extra_env["CXXFLAGS"] = "--target=x86_64-pc-windows-msvc"
+                    extra_env["CFLAGS"] = "--target=x86_64-pc-windows-msvc"
                 cmd += ["-GNinja"]
-                if not extra_env:
-                    rc_path, mt_path = find_windows_sdk_tools()
-                    if rc_path:
-                        cmd += ["-DCMAKE_RC_COMPILER:FILEPATH=" + rc_path]
-                    if mt_path:
-                        cmd += ["-DCMAKE_MT:FILEPATH=" + mt_path]
-                print("[DETECT] Ninja + MSVC found, using -GNinja", flush=True)
+                cmd += ["-DCMAKE_C_COMPILER=clang-cl.exe"]
+                cmd += ["-DCMAKE_CXX_COMPILER=clang-cl.exe"]
+                print(f"[DETECT] Ninja + clang-cl found ({clang_cl_path}), using -GNinja (ThinLTO)", flush=True)
+            else:
+                cl_path = find_msvc_cl()
+                if not cl_path:
+                    print("[DETECT] Ninja found but MSVC not found, using default generator", flush=True)
+                else:
+                    extra_env = capture_vs_dev_env()
+                    cmd += ["-GNinja"]
+                    if not extra_env:
+                        rc_path, mt_path = find_windows_sdk_tools()
+                        if rc_path:
+                            cmd += ["-DCMAKE_RC_COMPILER:FILEPATH=" + rc_path]
+                        if mt_path:
+                            cmd += ["-DCMAKE_MT:FILEPATH=" + mt_path]
+                    print("[DETECT] Ninja + MSVC found, using -GNinja (full LTO)", flush=True)
         else:
             cmd += ["-GNinja"]
             print("[DETECT] Ninja found, using -GNinja", flush=True)

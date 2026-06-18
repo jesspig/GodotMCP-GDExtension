@@ -44,6 +44,22 @@ FetchContent_MakeAvailable(rapidyaml)
 
 set_target_properties(ryml PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+# Patch ryml's common.hpp so clang-cl (Windows) uses <malloc.h> for alloca
+# instead of <alloca.h> (which doesn't exist on Windows).
+# c4core/compiler.hpp explicitly excludes clang from C4_MSVC detection
+# (line 27: defined(_MSC_VER) && !defined(__clang__)), so the guard in
+# common.hpp falls through to the POSIX <alloca.h> path.
+set(_ryml_common_hpp "${rapidyaml_SOURCE_DIR}/src/c4/yml/common.hpp")
+if(EXISTS "${_ryml_common_hpp}")
+    file(READ "${_ryml_common_hpp}" _ryml_common)
+    string(REPLACE
+        "#ifdef C4_MSVC\n#include <malloc.h>\n#else\n#include <alloca.h>\n#endif"
+        "#if defined(C4_MSVC) || (defined(_WIN32) && defined(__clang__))\n#include <malloc.h>\n#else\n#include <alloca.h>\n#endif"
+        _ryml_common "${_ryml_common}")
+    file(WRITE "${_ryml_common_hpp}" "${_ryml_common}")
+    message(STATUS "ryml: patched common.hpp for clang-cl on Windows (alloca.h → malloc.h)")
+endif()
+
 # ---------------------------------------------------------------------------
 # Source list — all .cpp files for the GDExtension.
 # Add new translation units here as the implementation grows.
@@ -178,7 +194,7 @@ message(STATUS "Generator: ${CMAKE_GENERATOR}")
 # Linker optimization: prefer lld-link on MSVC for faster linking.
 # lld-link ships with LLVM (winget install LLVM).
 # ---------------------------------------------------------------------------
-if(MSVC)
+if(MSVC AND NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     find_program(GODOTMCP_LLD_LINK NAMES lld-link)
     if(GODOTMCP_LLD_LINK)
         target_link_options(godot_mcp_gdext PRIVATE "/lldlink")
@@ -186,6 +202,8 @@ if(MSVC)
     else()
         message(STATUS "Linker: default (lld-link not found, install LLVM)")
     endif()
+else()
+    message(STATUS "Linker: lld-link (native, clang)")
 endif()
 
 if(MSVC)
