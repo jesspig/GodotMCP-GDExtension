@@ -8,12 +8,12 @@
 |------|---------|
 | C++ 源码根 | `extensions/src/` |
 | 注册方式 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
-| 工具总数 | **152**（全部 X-macro 注册，无重复，无 codegen） |
-| 工具体系 | **四层体系**：语义专用(135，含 12 运行时) + 通用兜底(2) + 文档(8) + 元工具(7) |
+| 工具总数 | **153**（全部 X-macro 注册，无重复，无 codegen） |
+| 工具体系 | **四层体系**：语义专用(135，含 13 运行时) + 通用兜底(2) + 文档(8) + 元工具(8) |
 | 指令数据源 | **Godot ClassDB 运行时查询**（零维护） |
 | 顶级分类 | 自动发现：`meta_tools`、`editor_tools`、`node_tools`、`runtime_tools` |
 | 场景树工具 | `editor_tools/scene_tree/`（24 工具） |
-| 运行时桥接工具 | `runtime_tools/bridge/`（6 工具）+ `lifecycle/`（6 工具） |
+| 运行时桥接工具 | `runtime_tools/bridge/`（7 工具）+ `lifecycle/`（6 工具） |
 | SDK 层 | `extensions/src/sdk/`（`McpToolDefinition` + `McpToolRegistry`） |
 | 测试框架 | C++ `TestEngine`（`/run-tests`）+ Python 编排器 |
 | HTTP 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） |

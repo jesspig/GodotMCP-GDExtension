@@ -15,7 +15,7 @@ flowchart LR
             HTTP["HttpServer<br/>(:9600, SSE)"]
             MCPHandler["McpHandler<br/>(JSON-RPC 2.0)"]
             Registry["HandlerRegistry<br/>(ITool 统一调度)"]
-            Tools["built_in/tools/<br/>152 工具 (X-macro 注册)"]
+            Tools["built_in/tools/<br/>153 工具 (X-macro 注册)"]
             RB["RuntimeBridge<br/>(TCP :9601 客户端)"]
         end
         Main["_process() 每帧驱动<br/>poll HTTP + poll Bridge"]
@@ -39,7 +39,7 @@ flowchart LR
 | 进程数 | **1**（C++ GDExtension 加载到 Godot 编辑器内） |
 | 传输 | MCP Streamable HTTP，端口 `:9600` |
 | 工具注册 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
-| 工具总数 | **152**（无 codegen，无 YAML 数据库生成） |
+| 工具总数 | **153**（无 codegen，无 YAML 数据库生成） |
 | 线程模型 | **纯主线程**（`McpEditorPlugin::_process()` 驱动） |
 | 入口符号 | `gdext_mcp_init`（`register_types.cpp:60`） |
 | 编码规范 | `extensions/CMakeLists.txt:163` 已加 `/utf-8 /bigobj`（MSVC） |
@@ -126,9 +126,9 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │       │   ├── 3d_scene/        # 3 个 3D 场景工具
 │       │   ├── tilemap/         # 3 个 TileMap 工具
 │       │   ├── visualizer/      # 1 个可视化工具
-│       │   └── workspace/       # 31 个工作区/调试器工具
+│       │   └── workspace/       # 13 个工作区/调试器工具
 │       └── runtime_tools/
-│           ├── bridge/          # 6 个运行时桥接工具
+│           ├── bridge/          # 7 个运行时桥接工具
 │           └── lifecycle/       # 6 个游戏生命周期工具
 ├── server/
 │   ├── ipc/http_server.cpp/.hpp # MCP Streamable HTTP 服务器

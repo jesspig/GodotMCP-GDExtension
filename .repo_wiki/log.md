@@ -2,6 +2,18 @@
 
 > 仅追加的项目变更记录（最新在前）。
 
+## 2026-06-18 — 工具计数校正 + 废弃计划清理 + client-quirks 修复
+
+- **修复** 工具总数：`152` → `153`（新增 `wait_for_bridge` 工具未计入）
+- **修复** 元工具计数：`7` → `8`（`list_settings` 有 `is_meta=true`）
+- **修复** 运行时工具计数：`12` → `13`（`bridge` 组 6→7，漏计 `wait_for_bridge`）
+- **重写** `modules/workspace-tools.md`：`31 个工具` → `13 个实际工具`（18 个"子操作"非独立 ITool，改为复合工具参数值标注）
+- **修复** `overview/architecture.md`、`extensions/gdext.md`：工作区 31→13、桥接 6→7、工具总数 152→153
+- **修复** `modules/x-macro-registration.md`：register_existing.hpp 154→136
+- **修复** `modules/runtime-tools.md`：补全 `wait_for_bridge` 文档及注册行号
+- **删除** `plans/pipeline-refactor-plan.md`、`plans/pipeline-refactor-dag.md`（P→S→S 重构已在 commit b5a52e7 完成，原执行计划不再具备指导意义。新架构已完整记录在 `testing/test-engine.md`）
+- **修复** `reference/client-quirks.md`：`validate_gd_script`/`validate_csharp_script` 合并为 `validate_script`
+
 ## 2026-06-16 — Wiki 事实校正 + 废弃计划清理
 
 - **修复** 工具总数：`171` → `152`（运行时 12 个工具已含在 register_existing 的 135 中，不应单独计数）

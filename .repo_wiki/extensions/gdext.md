@@ -13,7 +13,7 @@ flowchart TB
             MCP["server/mcp/mcp_handler.cpp<br/>McpHandler"]
             REG["server/registry/handler_registry.cpp<br/>HandlerRegistry"]
             BASE["built_in/tool_base.hpp<br/>ITool + ToolResult + ToolContext"]
-            TOOLS["built_in/tools/<br/>152 个 .hpp (X-macro 注册)"]
+            TOOLS["built_in/tools/<br/>153 个 .hpp (X-macro 注册)"]
             UTILS["built_in/cmd_utils.hpp<br/>resolve_node / undoable_set / notify_file_changed"]
             SDK["sdk/<br/>McpToolDefinition / McpToolRegistry"]
             TEST["testing/test_engine.cpp<br/>YAML 进程内引擎"]
@@ -82,9 +82,9 @@ extensions/src/
 │       │   ├── 3d_scene/           #   3 个 3D 场景工具
 │       │   ├── tilemap/            #   3 个 TileMap 工具
 │       │   ├── visualizer/         #   1 个可视化工具
-│       │   └── workspace/          #   31 个工作区/调试器工具
+│       │   └── workspace/          #   13 个工作区/调试器工具
 │       └── runtime_tools/
-│           ├── bridge/             #   6 个运行时桥接工具
+│           ├── bridge/             #   7 个运行时桥接工具
 │           └── lifecycle/          #   6 个游戏生命周期工具
 ├── server/
 │   ├── ipc/
@@ -123,7 +123,7 @@ extensions/src/
 2. 定义 `GODOT_MCP_TOOL` 宏，展开为 `reg.register_tool(std::make_unique<cls>())`
 3. 通过 `#include` 展开四个注册文件：
    - `register/register_meta.hpp` — 7 个元工具（另有 `list_settings` 在 `register_existing.hpp` 中以 `is_meta=true` 注册，共 8 个 always-on 工具）
-   - `register/register_existing.hpp` — 157 个功能工具
+    - `register/register_existing.hpp` — 136 个功能工具
    - `register/register_fallback.hpp` — 2 个后备属性工具
    - `register/register_docs.hpp` — 8 个文档查询工具
 

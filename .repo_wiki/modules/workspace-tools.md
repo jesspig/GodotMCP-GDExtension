@@ -1,98 +1,66 @@
 # 工作区工具（Editor Workspace Tools）
 
-> `editor_tools/workspace/` 分类下的 31 个工具，覆盖控制台日志读取、调试器状态与控制、性能监视器读取、视口截图、工作区切换五个子领域。
+> `editor_tools/workspace/` 分类下的 **13 个实际工具**。部分复合工具通过参数支持多种子操作（括号内为复合工具可处理的子命令），子操作并非独立 ITool 实现。
 
 ## 架构
 
 ```mermaid
 flowchart LR
-    subgraph Console["控制台"]
-        CONSOLE["get_console_output"]
-        ERRORS["get_console_errors"]
-        WARNINGS["get_console_warnings"]
+    subgraph Console["控制台（2 实际工具）"]
+        CONSOLE["get_console_output<br/>支持 keyword/type/exclude_mcp 筛选"]
         CLEAR["clear_console"]
     end
-    subgraph Capture["截图"]
+    subgraph Capture["截图（2 实际工具）"]
         CAPVP["capture_viewport"]
         CAPGV["capture_game_viewport"]
     end
-    subgraph Debugger["调试器"]
-        STATUS["get_debugger_status"]
-        ERR["get_debugger_errors"]
-        STATE["get_debugger_state"]
+    subgraph Debugger["调试器（8 实际工具）"]
+        STATE["get_debugger_state<br/>含 status/errors"]
         STACK["get_stack_trace"]
         LOCALS["get_locals"]
-        BREAK["debugger_break"]
-        CONTINUE["debugger_continue"]
-        SO["debugger_step_over"]
-        SI["debugger_step_into"]
-        SOUT["debugger_step_out"]
-        CTRL["debugger_control"]
+        CTRL["debugger_control<br/>break/continue/step_over/step_into"]
         LISTBP["list_breakpoints"]
         SETBP["set_breakpoint"]
         RMBP["remove_breakpoint"]
     end
-    subgraph Perf["性能监视器"]
-        FPS["get_fps"]
-        MEM["get_memory_usage"]
-        OBJ["get_object_count"]
-        RENDER["get_render_stats"]
-        PHYSICS["get_physics_stats"]
-        MONITOR["get_performance_monitors"]
+    subgraph Perf["性能监视器（1 实际工具）"]
+        MONITOR["get_performance_monitors<br/>返回全部 59 个监视器数据"]
     end
-    subgraph WS["工作区切换"]
-        WS_SET["set_workspace"]
-        WS2D["set_workspace_2d"]
-        WS3D["set_workspace_3d"]
-        SCRIPT["set_workspace_script"]
-        ASSET["set_workspace_assetlib"]
+    subgraph WS["工作区切换（1 实际工具）"]
+        WS_SET["set_workspace<br/>2D/3D/Script/AssetLib"]
     end
 ```
 
 ## 工具列表
 
-### 控制台（4 个工具）
+### 控制台（2 个工具）
 
 | 名称 | 类型 | 说明 |
 |------|------|------|
-| `get_console_output` | 复合 | 读取编辑器 Output 面板的全部日志内容。支持 `keyword` 搜索、`type` 过滤（error/warning/info）、`exclude_mcp` 排除 MCP 日志 |
-| `get_console_errors` | 专用 | 仅返回错误级别的日志条目 |
-| `get_console_warnings` | 专用 | 仅返回警告级别的日志条目 |
+| `get_console_output` | 复合 | 读取编辑器 Output 面板的全部日志内容。支持 `keyword` 搜索、`type` 过滤（error/warning/info）、`exclude_mcp` 排除 MCP 日志。子操作：`keyword` 过滤 → 等效 `get_console_errors`/`get_console_warnings` |
 | `clear_console` | 复合 | 清空 Output 面板 |
 
 **实现细节**：通过场景树 `find_children("*", "EditorLog", true, false)` 定位 `EditorLog` 控件，再调用 `RichTextLabel.get_text()` 获取原始文本。由于 `EditorLog` 是编辑器内部类（不在 godot-cpp 绑定中），全程使用 `call()` 动态调用。
 
-### 调试器（14 个工具）
+### 调试器（8 个工具）
 
 | 名称 | 类型 | 说明 |
 |------|------|------|
-| `get_debugger_status` | 专用 | 调试器是否活跃、是否中断、是否可调试、会话是否活跃 |
-| `get_debugger_errors` | 专用 | 错误与警告计数 |
-| `get_debugger_state` | 复合 | 综合状态（错误/警告计数 + 中断/可调试/会话状态 + 栈帧位置） |
+| `get_debugger_state` | 复合 | 综合状态（错误/警告计数 + 中断/可调试/会话状态 + 栈帧位置）。子操作：`get_debugger_status` + `get_debugger_errors` 合并 |
 | `get_stack_trace` | 复合 | 栈追踪信息。仅在调试器中断时可用，无活跃会话时返回合理错误 |
 | `get_locals` | 专用 | 获取当前栈帧的局部变量 |
-| `debugger_break` | 专用 | 中断调试器执行 |
-| `debugger_continue` | 专用 | 继续执行 |
-| `debugger_step_over` | 专用 | 单步跳过 |
-| `debugger_step_into` | 专用 | 单步进入 |
-| `debugger_step_out` | 专用 | 单步跳出 |
-| `debugger_control` | 复合 | 统一入口：控制调试器（break/continue/step_over/step_into） |
+| `debugger_control` | 复合 | 统一入口：控制调试器。参数 `action`（break/continue/step_over/step_into）。子操作对应 `debugger_break`、`debugger_continue`、`debugger_step_over`、`debugger_step_into`、`debugger_step_out` |
 | `list_breakpoints` | 专用 | 列出所有断点 |
 | `set_breakpoint` | 专用 | 设置断点（指定源文件和行号） |
 | `remove_breakpoint` | 专用 | 移除断点 |
 
 **实现细节**：通过场景树 `find_children("*", "EditorDebuggerNode", true, false)` 定位 `EditorDebuggerNode`，再 `call("get_current_debugger")` 获取 `ScriptEditorDebugger` 实例。`is_breaked()`、`is_debuggable()`、`is_session_active()`、`debug_break()`、`debug_next()` 等均为 `call()` 动态调用。
 
-### 性能监视器（6 个工具）
+### 性能监视器（1 个工具）
 
 | 名称 | 类型 | 说明 |
 |------|------|------|
-| `get_fps` | 专用 | 当前帧率 |
-| `get_memory_usage` | 专用 | 静态内存 / 静态最大内存 / 消息缓冲区最大大小（MB） |
-| `get_object_count` | 专用 | 对象 / 节点 / 孤儿节点 / 资源计数 |
-| `get_render_stats` | 专用 | Draw calls / 对象 / 图元 / 纹理内存 / 视频内存 / 缓冲区内存 |
-| `get_physics_stats` | 专用 | 2D/3D 活跃物体 / 碰撞对 / 孤岛数 |
-| `get_performance_monitors` | 复合 | 全量 59 个监视器数据，支持 `name` 参数按名称筛选 |
+| `get_performance_monitors` | 复合 | 全量 59 个监视器数据，支持 `name` 参数按名称筛选。子操作对应 `get_fps`、`get_memory_usage`、`get_object_count`、`get_render_stats`、`get_physics_stats` |
 
 **实现细节**：使用 Godot 公开 API `Performance::get_singleton()->get_monitor(Monitor)`，通过枚举值 `Performance::MONITOR_MAX`（59）遍历所有监视器。枚举映射在 `get_performance_monitors.hpp:27-92` 中硬编码。
 
@@ -103,15 +71,11 @@ flowchart LR
 | `capture_viewport` | 专用 | 截取编辑器视口图像，返回 PNG Base64 |
 | `capture_game_viewport` | 专用 | 截取游戏视口图像（需游戏运行中） |
 
-### 工作区切换（5 个工具）
+### 工作区切换（1 个工具）
 
 | 名称 | 类型 | 说明 |
 |------|------|------|
-| `set_workspace` | 复合 | 统一入口：通过 `name` 参数指定 "2D" / "3D" / "Script" / "AssetLib" |
-| `set_workspace_2d` | 专用 | 切换到 2D 编辑 |
-| `set_workspace_3d` | 专用 | 切换到 3D 编辑 |
-| `set_workspace_script` | 专用 | 切换到脚本编辑 |
-| `set_workspace_assetlib` | 专用 | 打开资源库 |
+| `set_workspace` | 复合 | 统一入口：通过 `name` 参数指定 "2D" / "3D" / "Script" / "AssetLib"。子操作对应 `set_workspace_2d`、`set_workspace_3d`、`set_workspace_script`、`set_workspace_assetlib` |
 
 **实现细节**：使用 `EditorInterface::get_singleton()->set_main_screen_editor(name)` 公开 API。Godot 内部名称分别为 `"2D"`、`"3D"`、`"Script"`、`"AssetLib"`。
 
@@ -122,14 +86,15 @@ flowchart LR
 遵循本项目的一贯模式（与节点属性工具的 get/set 双工具一致）：
 
 - **复合工具**（`debugger_control`、`get_performance_monitors` 等）作为通用兜底入口，参数驱动行为
-- **专用工具**（`debugger_break`、`get_fps` 等）提供零参数快捷调用，适合 AI 客户端自动推理调用
+- 子操作（`debugger_break`、`get_fps` 等）**不是独立 ITool**，而是复合工具的参数值选项
+- 早期设计曾计划全部拆分为独立工具，后决定保持精简：13 个实际工具覆盖原本需要 31 个工具的能力
 
 ### MCP 日志过滤
 
 三级过滤策略：
 
 1. 控制台通用 `get_console_output` 中的 `exclude_mcp` 参数（默认 `true`），按正则 `(?i)mcp|godot_mcp` 过滤
-2. 专用 `get_console_errors` / `get_console_warnings` 继承 `exclude_mcp` 参数
+2. `get_console_output` 的 `type` 参数可筛选 error/warning/info
 3. 用户可显式传入 `exclude_mcp=false` 获取全量日志
 
 ### 编辑器内部类访问
