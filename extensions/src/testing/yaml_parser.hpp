@@ -10,6 +10,7 @@
 #include <godot_cpp/variant/variant.hpp>
 
 #include <charconv>
+#include <cstdlib>
 #include <stdexcept>
 #include <string>
 
@@ -45,9 +46,9 @@ inline godot::Variant parse_scalar(const c4::csubstr &val) {
     auto [int_ptr, int_ec] = std::from_chars(s.data(), s.data() + s.size(), int_val);
     if (int_ec == std::errc() && int_ptr == s.data() + s.size()) return int_val;
 
-    double float_val = 0.0;
-    auto [float_ptr, float_ec] = std::from_chars(s.data(), s.data() + s.size(), float_val);
-    if (float_ec == std::errc() && float_ptr == s.data() + s.size()) return float_val;
+    char *float_end = nullptr;
+    double float_val = std::strtod(s.data(), &float_end);
+    if (float_end == s.data() + s.size()) return float_val;
 
     return String(s.c_str());
 }
