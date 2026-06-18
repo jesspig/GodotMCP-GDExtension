@@ -44,7 +44,7 @@ cmake --build build --config Debug --target package  # 打包
 
 ## 版本管理
 
-- 单版本源在 `CMakeLists.txt`：`set(PROJECT_VERSION "0.2.1-dev3")`
+- 单版本源在 `CMakeLists.txt`：`set(PROJECT_VERSION "0.2.1-dev4")`
 - CMake 生成 `plugin.cfg` 时自动填充此版本号
 - 升级 CMake 版本即可；不需要手动编辑 `plugin.cfg`
 

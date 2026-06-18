@@ -44,7 +44,7 @@ cmake --build build --config Debug --target package  # Package
 
 ## Version Management
 
-- Single version source in `CMakeLists.txt`: `set(PROJECT_VERSION "0.2.1-dev3")`
+- Single version source in `CMakeLists.txt`: `set(PROJECT_VERSION "0.2.1-dev4")`
 - CMake auto-fills this version when generating `plugin.cfg`
 - Update the CMake version; no need to manually edit `plugin.cfg`
 
