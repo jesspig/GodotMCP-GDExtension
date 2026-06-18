@@ -91,7 +91,7 @@ bool parse_template_ref(const godot::String &s, godot::String &out_ref_id, godot
         godot::String path_buf;
         for (int i = 3; i < static_cast<int>(parts.size()); ++i) {
             if (i > 3) path_buf += ".";
-            path_buf += parts[i];
+            path_buf += godot::String(parts[i]);
         }
         out_path = path_buf;
     }
@@ -139,7 +139,7 @@ godot::Variant expand_variant(const godot::Variant &val, const PipelineContext &
                             godot::String path_buf;
                             for (int i = 3; i < static_cast<int>(parts.size()); ++i) {
                                 if (i > 3) path_buf += ".";
-                                path_buf += parts[i];
+                                path_buf += godot::String(parts[i]);
                             }
                             godot::Variant resolved = resolve_path(sr->raw_result, path_buf);
                             godot::String resolved_str = godot::JSON::stringify(resolved);

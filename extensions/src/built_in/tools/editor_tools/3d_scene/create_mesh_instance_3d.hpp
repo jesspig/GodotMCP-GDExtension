@@ -92,7 +92,7 @@ protected:
             if (!instance) {
                 return ToolResult::err("INSTANTIATE_FAILED", "Failed to instantiate scene");
             }
-            String inst_name = node_name.is_empty() ? instance->get_name() : node_name;
+            String inst_name = node_name.is_empty() ? String(instance->get_name()) : node_name;
             instance->set_name(inst_name);
 
             auto *ur = begin_undo_action("MCP: Instance scene");
