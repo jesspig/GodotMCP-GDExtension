@@ -1,5 +1,7 @@
 #pragma once
+#pragma warning(disable: 4828)  // non-UTF-8 bytes in file (known, harmless)
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -10,9 +12,9 @@ namespace godot_mcp {
 
 class DeleteFileTool : public ITool {
 public:
-    String name() const override { return "delete_file"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "delete_file"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Delete a file or directory";
     }
     String description() const override {
@@ -20,25 +22,12 @@ public:
                "Uses DirAccess::remove_absolute(), then notifies EditorFileSystem to refresh. "
                "Deleting res:// itself is forbidden.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "res:// path to delete (file or directory)";
-            props["path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = "Optional: recursively delete directory contents (default false)";
-            props["recursive"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("path", "string", "res:// path to delete (file or directory)")
+            .prop("recursive", "boolean", "Optional: recursively delete directory contents (default false)")
+            .required({"path"})
+            .build();
     }
 
 protected:
@@ -59,7 +48,7 @@ protected:
                 "Path does not exist: " + path);
         }
 
-        // Capture before deletion �?is_file() returns false after file is deleted
+        // Capture before deletion ??is_file() returns false after file is deleted
         bool was_dir = !fs_utils::is_file(path);
 
         Error err;
@@ -73,7 +62,7 @@ protected:
 
         if (err != Error::OK) {
             return ToolResult::err("DELETE_FAILED",
-                "Delete failed, error code: " + String::num_int64((int64_t)err));
+                "Delete failed, error code: " + String::num_int64(static_cast<int64_t>(err)));
         }
 
         // Re-scan after file/dir deletion

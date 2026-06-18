@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,18 +11,17 @@ namespace godot_mcp {
 class SetGameNodePropertyTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
-    String name() const override { return "set_game_node_property"; }
-    String category() const override { return "runtime_tools/bridge"; }
-    String brief() const override { return String("Modify a running game node property"); }
+    String name() const noexcept override { return "set_game_node_property"; }
+    String category() const noexcept override { return "runtime_tools/bridge"; }
+    String brief() const noexcept override { return String("Modify a running game node property"); }
     String description() const override {
         return String("Modifies a property value on a node in the running game. "
                              "node_path is the node path, property is the property name, "
                              "value is the new value to set.");
     }
-    bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary p;
         {
             Dictionary d;
@@ -38,9 +37,14 @@ public:
         }
         {
             Dictionary d;
-            d["type"] = "object";
             d["description"] = String("New value to set");
             p["value"] = d;
+        }
+        {
+            Dictionary d;
+            d["type"] = "integer";
+            d["description"] = String("Response timeout in ms");
+            p["timeout_ms"] = d;
         }
         Dictionary s;
         s["type"] = "object";
@@ -59,7 +63,8 @@ protected:
         params["node_path"] = args_string(ctx.args, "node_path");
         params["property"] = args_string(ctx.args, "property");
         params["value"] = ctx.args.get("value", Variant());
-        return RuntimeBridge::make_response(bridge->send_command("set_property", params));
+        int timeout = args_int(ctx.args, "timeout_ms", 100);
+        return RuntimeBridge::make_response(bridge->send_command("set_property", params, timeout));
     }
 };
 

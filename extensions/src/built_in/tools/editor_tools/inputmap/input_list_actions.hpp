@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,16 +11,16 @@ namespace godot_mcp {
 
 class InputListActionsTool : public ITool {
 public:
-    String name() const override { return "input_list_actions"; }
-    String category() const override { return "editor_tools/inputmap"; }
-    String brief() const override {
+    String name() const noexcept override { return "input_list_actions"; }
+    String category() const noexcept override { return "editor_tools/inputmap"; }
+    String brief() const noexcept override {
         return "List all input actions and their events";
     }
     String description() const override {
         return "List all registered input actions from the InputMap, "
                "including their bound events and deadzone values.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         s["properties"] = Dictionary();
@@ -29,26 +29,27 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        InputMap *im = InputMap::get_singleton();
+        (void)ctx;
+        auto *im = godot::InputMap::get_singleton();
         if (!im) {
             return ToolResult::err("NO_INPUT_MAP", "InputMap not available");
         }
 
-        TypedArray<StringName> actions = im->get_actions();
+        godot::TypedArray<godot::StringName> actions = im->get_actions();
         Array results;
 
-        for (int i = 0; i < actions.size(); i++) {
-            StringName action = actions[i];
+        for (int64_t i = 0; i < actions.size(); i++) {
+            godot::StringName action = actions[i];
             Array events = im->action_get_events(action);
 
             Dictionary entry;
             entry["name"] = action;
             entry["deadzone"] = im->action_get_deadzone(action);
-            entry["event_count"] = (int64_t)events.size();
+            entry["event_count"] = static_cast<int64_t>(events.size());
 
             Array event_list;
-            for (int e = 0; e < events.size(); e++) {
-                Ref<InputEvent> event = events[e];
+            for (int64_t e = 0; e < events.size(); e++) {
+                godot::Ref<godot::InputEvent> event = events[e];
                 Dictionary ev_entry;
                 ev_entry["type"] = event->get_class();
                 ev_entry["as_text"] = event->call("as_text");
@@ -59,7 +60,7 @@ protected:
 
                 Array props = event->get_property_list();
                 Dictionary prop_values;
-                for (int p = 0; p < props.size(); p++) {
+                for (int64_t p = 0; p < props.size(); p++) {
                     Dictionary prop = props[p];
                     String prop_name = prop["name"];
                     Variant val = event->get(prop_name);
@@ -75,7 +76,7 @@ protected:
 
         Dictionary data;
         data["actions"] = results;
-        data["count"] = (int64_t)results.size();
+        data["count"] = static_cast<int64_t>(results.size());
         return ToolResult::ok(data);
     }
 };

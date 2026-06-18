@@ -1,5 +1,5 @@
 // =====================================================================
-// commands/cmd_utils_json.cpp �?JSON <-> Variant conversion helpers.
+// commands/cmd_utils_json.cpp -- JSON <-> Variant conversion helpers.
 //
 // Split out from cmd_utils.cpp purely for file-size readability. These
 // functions translate between Godot's structured Variant types and the
@@ -27,11 +27,16 @@ using namespace godot;
 
 namespace godot_mcp {
 
+constexpr int kMaxJsonDepth = 64;
+
 // ---------------------------------------------------------------------
 // variant_to_json
 // ---------------------------------------------------------------------
 
-Variant variant_to_json(const Variant &v) {
+Variant variant_to_json(const Variant &v, int depth) {
+    if (depth > kMaxJsonDepth) {
+        return v.stringify();
+    }
     switch (v.get_type()) {
         case Variant::NIL:
         case Variant::BOOL:
@@ -84,6 +89,15 @@ Variant variant_to_json(const Variant &v) {
             d["w"] = vec.w;
             return d;
         }
+        case Variant::VECTOR4I: {
+            const Vector4i vec = v;
+            Dictionary d;
+            d["x"] = vec.x;
+            d["y"] = vec.y;
+            d["z"] = vec.z;
+            d["w"] = vec.w;
+            return d;
+        }
         case Variant::QUATERNION: {
             const Quaternion q = v;
             Dictionary d;
@@ -105,8 +119,8 @@ Variant variant_to_json(const Variant &v) {
         case Variant::RECT2: {
             const Rect2 r = v;
             Dictionary d;
-            d["position"] = variant_to_json(r.position);
-            d["size"] = variant_to_json(r.size);
+            d["position"] = variant_to_json(r.position, depth + 1);
+            d["size"] = variant_to_json(r.size, depth + 1);
             return d;
         }
         case Variant::DICTIONARY: {
@@ -117,7 +131,7 @@ Variant variant_to_json(const Variant &v) {
                 const Variant key = keys[i];
                 // JSON object keys must be strings.
                 const String key_str = key.stringify();
-                dst[key_str] = variant_to_json(src[key]);
+                dst[key_str] = variant_to_json(src[key], depth + 1);
             }
             return dst;
         }
@@ -126,7 +140,7 @@ Variant variant_to_json(const Variant &v) {
             Array dst;
             dst.resize(src.size());
             for (int i = 0; i < src.size(); ++i) {
-                dst[i] = variant_to_json(src[i]);
+                dst[i] = variant_to_json(src[i], depth + 1);
             }
             return dst;
         }
@@ -170,50 +184,62 @@ namespace {
 
 // Heuristic: look at a Dictionary's keys and return the most specific
 // Godot type it represents, or NIL when it should stay a Dictionary.
-Variant dict_to_specific_type(const Dictionary &d) {
+// `depth` bounds recursion (mirrors variant_to_json's kMaxJsonDepth guard)
+// so a pathologically nested payload cannot exhaust the stack.
+Variant dict_to_specific_type(const Dictionary &d, int depth) {
+    if (depth > kMaxJsonDepth) {
+        return Variant();  // too deep -> caller keeps the original Dictionary
+    }
     const bool has_x = d.has("x");
     const bool has_y = d.has("y");
     const bool has_z = d.has("z");
     const bool has_w = d.has("w");
 
     if (has_x && has_y && !has_z && !has_w) {
-        return Vector2((double)d["x"], (double)d["y"]);
+        return Vector2(static_cast<float>(d["x"]), static_cast<float>(d["y"]));
     }
     if (has_x && has_y && has_z && !has_w) {
-        return Vector3((double)d["x"], (double)d["y"], (double)d["z"]);
+        return Vector3(static_cast<float>(d["x"]), static_cast<float>(d["y"]), static_cast<float>(d["z"]));
     }
     if (has_x && has_y && has_z && has_w) {
-        // Prefer Vector4 �?call sites that need Quaternion can convert.
-        return Vector4((double)d["x"], (double)d["y"], (double)d["z"], (double)d["w"]);
+        return Vector4(static_cast<float>(d["x"]), static_cast<float>(d["y"]), static_cast<float>(d["z"]), static_cast<float>(d["w"]));
     }
     if (d.has("r") && d.has("g") && d.has("b")) {
-        const double a = d.has("a") ? (double)d["a"] : 1.0;
-        return Color((double)d["r"], (double)d["g"], (double)d["b"], a);
+        const float a = d.has("a") ? static_cast<float>(d["a"]) : 1.0f;
+        return Color(static_cast<float>(d["r"]), static_cast<float>(d["g"]), static_cast<float>(d["b"]), a);
     }
     if (d.has("position") && d.has("size")) {
         const Variant pos_v = d["position"];
         const Variant size_v = d["size"];
         // Recurse so the position/size become Vector2 first.
         const Variant pos = pos_v.get_type() == Variant::DICTIONARY
-                                ? dict_to_specific_type(pos_v)
+                                ? dict_to_specific_type(pos_v, depth + 1)
                                 : pos_v;
         const Variant size = size_v.get_type() == Variant::DICTIONARY
-                                 ? dict_to_specific_type(size_v)
+                                 ? dict_to_specific_type(size_v, depth + 1)
                                  : size_v;
         if (pos.get_type() == Variant::VECTOR2 && size.get_type() == Variant::VECTOR2) {
-            return Rect2((Vector2)pos, (Vector2)size);
+            return Rect2(static_cast<Vector2>(pos), static_cast<Vector2>(size));
         }
     }
     if (d.has("resource_path")) {
         const String path = d["resource_path"];
         if (!path.is_empty()) {
-            return ResourceLoader::get_singleton()->load(path);
+            Ref<Resource> res = ResourceLoader::get_singleton()->load(path);
+            if (res.is_valid()) {
+                return res;
+            }
+            return d;
         }
     }
     if (d.has("path") && !d.has("x") && !d.has("r") && !d.has("position")) {
         const String path = d["path"];
         if (!path.is_empty()) {
-            return ResourceLoader::get_singleton()->load(path);
+            Ref<Resource> res = ResourceLoader::get_singleton()->load(path);
+            if (res.is_valid()) {
+                return res;
+            }
+            return d;
         }
     }
     return Variant();  // NIL -> caller keeps the original Dictionary.
@@ -221,7 +247,10 @@ Variant dict_to_specific_type(const Dictionary &d) {
 
 }  // namespace
 
-Variant json_to_variant(const Variant &jv) {
+Variant json_to_variant(const Variant &jv, int depth) {
+    if (depth > kMaxJsonDepth) {
+        return jv;  // too deep -> pass through unchanged (avoid stack overflow)
+    }
     switch (jv.get_type()) {
         case Variant::STRING: {
             const String s = jv;
@@ -235,7 +264,7 @@ Variant json_to_variant(const Variant &jv) {
         }
         case Variant::DICTIONARY: {
             const Dictionary d = jv;
-            const Variant specific = dict_to_specific_type(d);
+            const Variant specific = dict_to_specific_type(d, depth);
             if (specific.get_type() != Variant::NIL) {
                 return specific;
             }
@@ -244,7 +273,7 @@ Variant json_to_variant(const Variant &jv) {
             const Array keys = d.keys();
             for (int i = 0; i < keys.size(); ++i) {
                 const Variant k = keys[i];
-                out[k] = json_to_variant(d[k]);
+                out[k] = json_to_variant(d[k], depth + 1);
             }
             return out;
         }
@@ -260,19 +289,19 @@ Variant json_to_variant(const Variant &jv) {
             }
             if (all_numeric) {
                 if (src.size() == 2) {
-                    return Vector2((double)src[0], (double)src[1]);
+                    return Vector2(static_cast<float>(src[0]), static_cast<float>(src[1]));
                 }
                 if (src.size() == 3) {
-                    return Vector3((double)src[0], (double)src[1], (double)src[2]);
+                    return Vector3(static_cast<float>(src[0]), static_cast<float>(src[1]), static_cast<float>(src[2]));
                 }
                 if (src.size() == 4) {
-                    return Color((double)src[0], (double)src[1], (double)src[2], (double)src[3]);
+                    return Color(static_cast<float>(src[0]), static_cast<float>(src[1]), static_cast<float>(src[2]), static_cast<float>(src[3]));
                 }
             }
             Array out;
             out.resize(src.size());
             for (int i = 0; i < src.size(); ++i) {
-                out[i] = json_to_variant(src[i]);
+                out[i] = json_to_variant(src[i], depth + 1);
             }
             return out;
         }
@@ -282,7 +311,7 @@ Variant json_to_variant(const Variant &jv) {
 }
 
 // ---------------------------------------------------------------------
-// json_stringify_safe — JSON 序列化
+// json_stringify_safe -- JSON serialization
 // ---------------------------------------------------------------------
 
 String json_stringify_safe(const Variant &v) {

@@ -1,8 +1,0 @@
-class: PlaceholderMesh
-inherits: Mesh
-properties:
-- name: aabb
-  type: 16
-  type_name: AABB
-description: ''
-aliases: []

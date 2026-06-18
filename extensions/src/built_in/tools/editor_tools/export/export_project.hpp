@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -10,43 +11,26 @@ namespace godot_mcp {
 
 class ExportProjectTool : public ITool {
 public:
-    String name() const override { return "export_project"; }
-    String category() const override { return "editor_tools/export"; }
-    String brief() const override {
+    String name() const noexcept override { return "export_project"; }
+    String category() const noexcept override { return "editor_tools/export"; }
+    String brief() const noexcept override {
         return "Export the project using a named preset";
     }
     String description() const override {
         return "Export the current project using a configured export preset. "
                "Optionally specify an output path for the exported file.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Export preset name to use";
-            props["preset_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Output path for the exported file (optional)";
-            props["output_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        {
-            Array req;
-            req.append("preset_name");
-            s["required"] = req;
-        }
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("preset_name", "string", "Export preset name to use")
+            .prop("output_path", "string", "Output path for the exported file (optional)")
+            .required({"preset_name"})
+            .build();
     }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }

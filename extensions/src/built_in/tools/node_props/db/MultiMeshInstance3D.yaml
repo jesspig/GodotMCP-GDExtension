@@ -1,9 +1,0 @@
-class: MultiMeshInstance3D
-inherits: GeometryInstance3D
-properties:
-- name: multimesh
-  type: 24
-  type_name: Object
-  class_name: MultiMesh
-description: Node that instances a MultiMesh.
-aliases: []

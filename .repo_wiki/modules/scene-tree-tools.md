@@ -1,6 +1,6 @@
 # 场景树工具
 
-> 与 Godot 编辑器场景树交互的工具集，支持场景创建/保存、节点 CRUD、剪贴板操作、场景实例化、脚本操作等。20 个工具，位于 `extensions/src/built_in/tools/editor_tools/scene_tree/`。
+> 与 Godot 编辑器场景树交互的工具集，支持场景创建/保存、节点 CRUD、剪贴板操作、场景实例化、脚本操作等。24 个工具，位于 `extensions/src/built_in/tools/editor_tools/scene_tree/`。
 
 ## 工具列表
 
@@ -38,14 +38,14 @@
 | `toggle_editable_children` | `toggle_editable_children.hpp` | 切换子场景的可编辑状态 | ✅ |
 | `make_local` | `make_local.hpp` | 将实例场景转为本地（断开外部引用） | ✅ |
 
-### Batch 4: 脚本 + 分组（4）
+### Batch 4: 脚本 + 分组（5）
 
 | 工具名 | 文件 | 功能 | Undo |
 |--------|------|------|:----:|
 | `group_selected_nodes` | `group_selected_nodes.hpp` | 将多个节点编组到新父节点下 | ✅ |
 | `toggle_edit_group` | `toggle_edit_group.hpp` | 切换节点的编组编辑状态（`_edit_group_` meta） | ✅ |
 | `toggle_placeholder` | `toggle_placeholder.hpp` | 切换实例场景的占位符加载模式 | ✅ |
-| `attach_script` | `attach_script.hpp` | 附加 GDScript 到节点 | ✅ |
+| `attach_script` | `attach_script.hpp` | 附加 GDScript 或 C# 脚本到节点 | ✅ |
 | `detach_script` | `detach_script.hpp` | 移除节点的脚本 | ✅ |
 
 ## 跳过/未实现的场景操作

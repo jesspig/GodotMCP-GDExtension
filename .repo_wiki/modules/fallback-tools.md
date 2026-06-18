@@ -1,6 +1,6 @@
 # 通用兜底工具（Layer 0）
 
-> 四层工具体系的最底层。当没有语义专用工具或属性组工具覆盖某个属性时，这两个通用工具提供兜底读写能力。
+> 四层工具体系的最底层。当没有语义专用工具覆盖某个属性时，这两个通用工具提供兜底读写能力。
 
 ## 工具列表
 
@@ -14,17 +14,14 @@
 ```mermaid
 flowchart TD
     L1["Layer 1: 语义专用工具<br/>(add_node, delete_node, save_scene 等 ~135 个)"]
-    L2["Layer 2: 属性组工具<br/>(NodePropertyGetTool, NodePropertySetTool ~2 个)"]
     L0["Layer 0: 通用兜底工具<br/>(get_node_property, set_node_property)"]
     ALL["100% 属性覆盖"]
 
-    L1 -->|"未覆盖"| L2
-    L2 -->|"未覆盖"| L0
+    L1 -->|"未覆盖"| L0
     L0 --> ALL
 ```
 
 - **Layer 1**（语义专用）：场景树 CRUD、文件系统、脚本、工作区等命名操作
-- **Layer 2**（属性组）：按节点类型批量生成 get/set 工具（当前使用通用模板 `NodePropertyGetTool`/`NodePropertySetTool`）
 - **Layer 0**（通用兜底）：任意属性名 + 任意值类型，确保引擎升级新增属性时零维护
 
 ## 实现细节

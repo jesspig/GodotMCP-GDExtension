@@ -1,8 +1,0 @@
-class: OpenXRCompositionLayerQuad
-inherits: OpenXRCompositionLayer
-properties:
-- name: quad_size
-  type: 5
-  type_name: Vector2
-description: ''
-aliases: []

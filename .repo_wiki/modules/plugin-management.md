@@ -1,14 +1,13 @@
 # 插件管理工具
 
-> 3 个工具，管理 `res://addons/` 中的编辑器插件。位于 `extensions/src/built_in/tools/editor_tools/plugin/`，通过 X-macro 注册。
+> 2 个工具，管理 `res://addons/` 中的编辑器插件。位于 `extensions/src/built_in/tools/editor_tools/plugin/`，通过 X-macro 注册。
 
 ## 工具列表
 
 | 工具 | 描述 |
 |------|------|
 | `list_plugins` | 列出 `res://addons/` 中所有插件及其启用状态 |
-| `enable_plugin` | 启用编辑器插件 |
-| `disable_plugin` | 禁用编辑器插件 |
+| `set_plugin_enabled` | 启用或禁用编辑器插件 |
 
 ## `list_plugins`
 
@@ -21,7 +20,7 @@
   "plugins": [
     {
       "name": "Godot MCP",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "author": "",
       "description": "Model Context Protocol bridge for Godot Engine.",
       "enabled": true
@@ -30,15 +29,18 @@
 }
 ```
 
-## `enable_plugin` / `disable_plugin`
+## `set_plugin_enabled`
 
 **参数**：
+
 - `plugin`：插件名称（匹配 `plugin.cfg` 中的 `name` 字段）
+- `enabled`：`true` 启用，`false` 禁用
 
 **实现**：
+
 1. 扫描 `res://addons/` 查找匹配插件
 2. 读取其 `plugin.cfg` 确认名称
-3. 调用 `EditorInterface::set_plugin_enabled(name, true/false)`
+3. 调用 `EditorInterface::set_plugin_enabled(name, enabled)`
 4. 刷新文件系统
 
 ## 实现细节

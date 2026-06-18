@@ -1,5 +1,0 @@
-class: Container
-inherits: Control
-properties: []
-description: Base class for layout containers.
-aliases: []

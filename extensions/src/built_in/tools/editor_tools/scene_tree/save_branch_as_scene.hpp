@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
@@ -14,9 +15,9 @@ namespace godot_mcp {
 
 class SaveBranchAsSceneTool : public ITool {
 public:
-    String name() const override { return "save_branch_as_scene"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "save_branch_as_scene"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Save a node branch as a standalone .tscn scene";
     }
     String description() const override {
@@ -24,25 +25,12 @@ public:
                "After saving, the branch can be re-instantiated using the instance_child_scene tool. "
                "This tool performs a structural transformation �?undo does not restore the file (only affects the node structure).";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node path (empty = root node)";
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target res:// path (must end with .tscn)";
-            props["path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path (empty = root node)")
+            .prop("path", "string", "Target res:// path (must end with .tscn)")
+            .required(Array::make("path"))
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }
@@ -59,10 +47,9 @@ protected:
                 "Path must end with .tscn");
         }
 
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
         if (node == ctx.root) {
             return ToolResult::err("ROOT_NOT_ALLOWED",
@@ -89,14 +76,14 @@ protected:
         node->set_scene_file_path(old_sfp);
         if (err != godot::OK) {
             return ToolResult::err("SAVE_FAILED",
-                "Save failed, error code: " + String::num_int64((int64_t)err));
+                "Save failed, error code: " + String::num_int64(static_cast<int64_t>(err)));
         }
         notify_file_changed(path);
 
         Dictionary data;
         data["path"] = path;
         data["node"] = relative_path(ctx.root, node);
-        data["child_count"] = (int64_t)node->get_child_count();
+        data["child_count"] = static_cast<int64_t>(node->get_child_count());
         return ToolResult::ok(data);
     }
 };

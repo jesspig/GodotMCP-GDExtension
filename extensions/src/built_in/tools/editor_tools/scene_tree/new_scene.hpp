@@ -1,8 +1,9 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
@@ -13,9 +14,9 @@ namespace godot_mcp {
 
 class NewSceneTool : public ITool {
 public:
-    String name() const override { return "new_scene"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "new_scene"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Create a new scene with a specified root node type and name";
     }
     String description() const override {
@@ -23,25 +24,12 @@ public:
                "(e.g. \"Node2D\", \"Node3D\", \"Control\", \"Node\"). "
                "Optionally specify the root name; the scene is held in memory and can be saved via save_scene.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Root node type (Godot class name, e.g. Node2D, Node3D, Control, Node)";
-            props["root_type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Root node name (default = type name)";
-            props["root_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("root_type");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("root_type", "string", "Root node type (Godot class name, e.g. Node2D, Node3D, Control, Node)")
+            .prop("root_name", "string", "Root node name (default = type name)")
+            .required(Array::make("root_type"))
+            .build();
     }
     bool needs_scene() const override { return false; }
     bool needs_node() const override { return false; }
@@ -67,14 +55,23 @@ protected:
                 "Failed to create node of type: " + root_type);
         }
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             memdelete(new_root);
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
+
+        // add_root_node() requires the current scene tab to have no root.
+        // close_scene() discards the current tab and creates a new empty one
+        // (root = nullptr), matching the editor's new_scene() flow.
+        Node *current_root = ei->get_edited_scene_root();
+        if (current_root) {
+            ei->close_scene();
+        }
+
         ei->add_root_node(new_root);
 
-        godot::EditorSelection *sel = ei->get_selection();
+        auto *sel = ei->get_selection();
         if (sel) {
             sel->clear();
             sel->add_node(new_root);

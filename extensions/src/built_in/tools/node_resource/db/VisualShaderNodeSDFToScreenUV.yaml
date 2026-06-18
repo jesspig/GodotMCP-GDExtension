@@ -1,5 +1,0 @@
-class: VisualShaderNodeSDFToScreenUV
-inherits: VisualShaderNode
-properties: []
-description: ''
-aliases: []

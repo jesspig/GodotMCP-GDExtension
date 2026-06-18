@@ -1,74 +1,74 @@
 # 测试框架总览
 
-> C++ 进程内测试引擎（`TestEngine` + `/run-tests`）覆盖内置工具和 SDK 自定义工具，Python 编排器管理 Godot 生命周期。
+> C++ 进程内测试引擎（`TestEngine` + `POST /run-tests`）执行 YAML 测试，Python 编排器管理 Godot 生命周期并生成报告。
 
 ## 架构
 
-### C++ 测试引擎
-
-```
-                         ┌──────────────────────┐
-                         │  .test.yaml 配置文件   │
-                         └──┬───────────────────┘
-                            │
-           ┌───────────────┼───────────────┐
-           ▼               ▼               ▼
-   ┌──────────────┐ ┌──────────┐ ┌────────────────┐
-    │ C++ Test     │ │ 外部     │
-    │ Engine       │ │ Python   │
-    │ (进程内)     │ │ 编排器   │
-    └──────┬───────┘ └────┬─────┘
-           └───────┬──────┘
-                  ▼
-         ┌──────────────────┐
-         │  TestEngine::run │
-         │  (YAML→执行→返回)│
-         └──────────────────┘
+```mermaid
+flowchart LR
+    Y[".test.yaml"] -->|"POST /run-tests"| H[HttpServer]
+    H --> E[TestEngine]
+    E -->|"registry_->execute()"| R[HandlerRegistry]
+    R --> T["内置工具 / SDK 工具"]
+    E -->|"快照 + 清理"| FS[EditorFileSystem]
+    P["Python 编排器"] -->|"HTTP"| H
+    P --> G["GodotManager\n启动/停止 Godot"]
 ```
 
-- **进程内**：`TestEngine` 直接调用 `HandlerRegistry::execute()`，不经过 MCP 协议
-- **双源入口**：HTTP `POST /run-tests` + Python 编排器
+- **进程内**：`TestEngine` 直接调用 `HandlerRegistry::execute()`，绕过 MCP 协议
 - **配置驱动**：YAML 文件定义测试，零脚本代码
-- **统一框架**：内置工具和自定义工具走同一路径
-- **磁盘校验**：支持 `.tscn`/`.tres`/`project.godot` 属性路径解析 + 类型转换 + 容差比较
+- **磁盘校验**：`.tscn`/`project.godot`/原始文本，类型转换 + 浮点容差
 - **自动清理**：EditorFileSystem 快照差分 + 工具返回值双源追踪，只删交集
-
-## 设计原则
-
-- **配置驱动**：YAML 测试文件完整描述测试，无需编写脚本
-- **双源清理**：EditorFileSystem 内存遍历快照 + 工具返回值追踪，确保不误删用户文件
-- **类型安全校验**：Godot Variant 类型转换 + 浮点容差，精确匹配引擎行为
 
 ## 入口
 
 | 入口 | 方式 | 适用 |
 |------|------|------|
-| `POST /run-tests` (HTTP) | YAML 内容 → JSON 结果 | Python 编排器 / CI / curl |
-| `uv run python tests/test_orchestrator.py` | Python 编排器 | CI / 开发调试 |
+| `POST /run-tests` | HTTP，YAML body → JSON 结果 | Python 编排器 / CI / curl |
+| `uv run python tests/test_orchestrator.py` | Python 编排器（自动管理 Godot 生命周期） | CI / 开发调试 |
 
-## 测试引擎详情
+## 文件结构
 
-| 文档 | 说明 |
-|------|------|
-| [测试引擎](test-engine.md) | TestEngine 架构、执行流程、YAML 格式、磁盘校验、清理策略 |
+```
+tests/
+├── test_orchestrator.py        # 主编排器：启动 Godot → POST YAML → 报告
+├── godot_manager.py            # Godot 编辑器进程生命周期管理
+├── report.py                   # TestReport: JSON + Markdown 报告生成
+├── test_phases/
+│   └── base.py                 # PhaseReport / TestResult 数据类
+├── test_data/                  # 测试用静态文件
+├── yaml_tests/                 # YAML 测试文件（由编排器发现）
+├── backup/                     # 预测试备份目录
+├── output/                     # 报告输出目录
+├── .env / .env.example         # 环境配置
+└── requirements.txt            # Python 依赖
+```
 
 ## 运行
 
 ```bash
-# C++ 测试引擎 (需要 Godot 运行中):
+# C++ 测试引擎（需要 Godot 运行中 + 插件已启用）
 curl -X POST http://localhost:9600/run-tests \
   -H "Content-Type: application/x-yaml" \
-  --data-binary @tests/scene.test.yaml
+  --data-binary @tests/yaml_tests/<name>.yaml
 
-# Python 编排器 (自动管理 Godot 生命周期):
+# Python 编排器（自动管理 Godot 生命周期）
 uv run python tests/test_orchestrator.py
 
-# 冒烟测试 (无需 Godot):
-uv run python tests/smoke_test.py
+# 通过 pytest 运行编排器
+pytest tests/test_orchestrator.py -v --asyncio-mode=auto
 ```
 
 ## 依赖
 
-- **C++ 引擎**：ryml (rapidyaml, 通过 CMake FetchContent)
-- **Python 编排器**：mcp≥1.27, httpx≥0.27, pytest≥8.0, python-dotenv≥1.0, PyYAML≥6.0
-- **Windows**：必须使用 `uv run python` 而非裸 `python`（Microsoft Store 路由桩会卡死）
+- **C++ 引擎**：ryml（rapidyaml，通过 CMake FetchContent）
+- **Python**：`pytest`、`pytest-asyncio`、`httpx`、`python-dotenv`、`PyYAML`、`mcp`（见 `tests/requirements.txt`）
+- **前置**：复制 `tests/.env.example` → `tests/.env`，设置 `GODOT_PATH`
+- **Windows**：必须使用 `uv run python`（`.python-version` 锁定 3.14）
+
+## 详细文档
+
+| 文档 | 说明 |
+|------|------|
+| [C++ 测试引擎](test-engine.md) | TestEngine 架构、YAML 格式、断言引擎、磁盘校验、清理策略 |
+| [测试编排器](orchestrator.md) | Python 编排器生命周期、配置、报告格式 |

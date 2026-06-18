@@ -1,0 +1,31 @@
+# cmake/pgo.cmake
+# PGO (Profile-Guided Optimization) — Release + GODOTMCP_PGO=GEN/USE only.
+
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    return()
+endif()
+
+if(NOT GODOTMCP_PGO)
+    return()
+endif()
+
+if(MSVC)
+    target_compile_options(godot_mcp_gdext PRIVATE /GL)
+    if(GODOTMCP_PGO STREQUAL "GEN")
+        target_link_options(godot_mcp_gdext PRIVATE /LTCG /GENPROFILE)
+        message(STATUS "PGO: instrumentation (GEN)")
+    elseif(GODOTMCP_PGO STREQUAL "USE")
+        target_link_options(godot_mcp_gdext PRIVATE /LTCG /USEPROFILE)
+        message(STATUS "PGO: optimization (USE)")
+    endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    if(GODOTMCP_PGO STREQUAL "GEN")
+        target_compile_options(godot_mcp_gdext PRIVATE -fprofile-generate)
+        target_link_options(godot_mcp_gdext PRIVATE -fprofile-generate)
+        message(STATUS "PGO: instrumentation (GEN)")
+    elseif(GODOTMCP_PGO STREQUAL "USE")
+        target_compile_options(godot_mcp_gdext PRIVATE -fprofile-use)
+        target_link_options(godot_mcp_gdext PRIVATE -fprofile-use)
+        message(STATUS "PGO: optimization (USE)")
+    endif()
+endif()

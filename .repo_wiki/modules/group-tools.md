@@ -4,7 +4,7 @@
 
 ## 工具列表
 
-4 个工具，位于 `extensions/src/built_in/tools/group/`，category 均为 `group`。
+4 个工具，位于 `extensions/src/built_in/tools/group/`，category 均为 `node_tools/group`。
 
 | 工具名 | 文件 | 功能 |
 |--------|------|------|

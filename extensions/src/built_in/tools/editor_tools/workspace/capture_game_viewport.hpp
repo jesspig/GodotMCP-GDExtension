@@ -1,6 +1,7 @@
-﻿
+
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/screenshot_utils.hpp"
 
@@ -11,22 +12,19 @@ namespace godot_mcp {
 
 class CaptureGameViewportTool : public ITool {
 public:
-    String name() const override { return "capture_game_viewport"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Capture running game viewport screenshot"); }
+    String name() const noexcept override { return "capture_game_viewport"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Capture running game viewport screenshot"); }
     String description() const override {
         return String("Captures the currently running game's viewport screenshot and saves it to "
                       "res://screenshots/. Returns file path, dimensions, and format of the screenshot. "
                       "Returns an error if the game is not running.");
     }
-    Dictionary input_schema() const override {
-        Dictionary s;
-        s["type"] = "object";
-        Dictionary props;
-        Dictionary fmt; fmt["type"] = "string"; fmt["description"] = "Image format: \"png\" or \"jpg\""; fmt["default"] = "png"; props["format"] = fmt;
-        Dictionary sp; sp["type"] = "string"; sp["description"] = "Save path (res://), auto-generated if empty"; sp["default"] = ""; props["save_path"] = sp;
-        s["properties"] = props;
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("format", "string", "Image format: \"png\" or \"jpg\"", "png")
+            .prop("save_path", "string", "Save path (res://), auto-generated if empty", "")
+            .build();
     }
 
 protected:

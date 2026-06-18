@@ -13,8 +13,10 @@ IToolAdapter::IToolAdapter(
     : name_(name), category_(category), brief_(brief),
       description_(description), input_schema_(input_schema),
       is_meta_(is_meta), needs_scene_(needs_scene), needs_node_(needs_node),
-      supports_undo_(supports_undo), is_destructive_(is_destructive),
-      fn_(std::move(fn)), use_callable_(false) {}
+      supports_undo_(supports_undo),
+      fn_(std::move(fn)), use_callable_(false) {
+    set_is_destructive(is_destructive);
+}
 
 IToolAdapter::IToolAdapter(
     const String &name, const String &category,
@@ -25,8 +27,10 @@ IToolAdapter::IToolAdapter(
     : name_(name), category_(category), brief_(brief),
       description_(description), input_schema_(input_schema),
       is_meta_(is_meta), needs_scene_(needs_scene), needs_node_(needs_node),
-      supports_undo_(supports_undo), is_destructive_(is_destructive),
-      callable_(callable), use_callable_(true) {}
+      supports_undo_(supports_undo),
+      callable_(callable), use_callable_(true) {
+    set_is_destructive(is_destructive);
+}
 
 Dictionary IToolAdapter::execute_impl(const ToolContext &ctx) {
     if (use_callable_) {
@@ -34,9 +38,13 @@ Dictionary IToolAdapter::execute_impl(const ToolContext &ctx) {
         if (ret.get_type() == Variant::DICTIONARY) {
             return Dictionary(ret);
         }
-        Dictionary d;
-        d["result"] = ret;
-        return d;
+        Dictionary err_result;
+        err_result["success"] = false;
+        Dictionary err_obj;
+        err_obj["code"] = "INVALID_RESPONSE";
+        err_obj["message"] = "Tool returned non-dictionary result";
+        err_result["error"] = err_obj;
+        return err_result;
     }
 
     if (fn_) {

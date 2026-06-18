@@ -1,5 +1,0 @@
-class: CheckBox
-inherits: Button
-properties: []
-description: Checkable button control.
-aliases: []

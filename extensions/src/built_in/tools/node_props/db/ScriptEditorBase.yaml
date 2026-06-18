@@ -1,5 +1,0 @@
-class: ScriptEditorBase
-inherits: VBoxContainer
-properties: []
-description: ''
-aliases: []

@@ -13,10 +13,9 @@ flowchart TB
             MCP["server/mcp/mcp_handler.cpp<br/>McpHandler"]
             REG["server/registry/handler_registry.cpp<br/>HandlerRegistry"]
             BASE["built_in/tool_base.hpp<br/>ITool + ToolResult + ToolContext"]
-            TOOLS["built_in/tools/<br/>~149 个 .hpp (X-macro 注册)"]
+            TOOLS["built_in/tools/<br/>153 个 .hpp (X-macro 注册)"]
             UTILS["built_in/cmd_utils.hpp<br/>resolve_node / undoable_set / notify_file_changed"]
             SDK["sdk/<br/>McpToolDefinition / McpToolRegistry"]
-            LSP["lsp/client.cpp<br/>GDScript 验证"]
             TEST["testing/test_engine.cpp<br/>YAML 进程内引擎"]
             BRIDGE["runtime/bridge.cpp<br/>RuntimeBridge (TCP :9601)"]
         end
@@ -46,7 +45,6 @@ flowchart TB
 extensions/src/
 ├── register_types.cpp              # GDExtension 入口：gdext_mcp_init
 ├── editor_plugin.cpp/.hpp          # McpEditorPlugin 生命周期 + _process() 泵
-├── pch.hpp                         # 预编译头（STL + Godot 核心类型）
 ├── logging.hpp                     # log_info/warn/error（28 行）
 ├── built_in/
 │   ├── register_itools.cpp         # X-macro 注册主文件（#include + GODOT_MCP_TOOL 宏）
@@ -54,39 +52,39 @@ extensions/src/
 │   ├── tool_adapter.hpp/.cpp       # IToolAdapter（SDK Callable → ITool 适配器）
 │   ├── cmd_utils.hpp/.cpp          # 共享工具（resolve_node、undoable_set、notify_file_changed）
 │   ├── cmd_utils_json.cpp          # JSON↔Variant 递归转换
-│   ├── screenshot_utils.hpp        # 截图捕获
-│   └── tools/                      # 所有 ITool 子类（CMake GLOB 自动编译 .cpp）
+│   └── tools/                      # 所有 ITool 子类（.hpp only，X-macro 注册）
 │       ├── register/               # X-macro 注册文件（4 个）
 │       │   ├── register_meta.hpp
 │       │   ├── register_existing.hpp
 │       │   ├── register_fallback.hpp
 │       │   └── register_docs.hpp
-│       ├── meta/                   #   6 个元工具
+│       ├── meta/                   #   7 个元工具（register_meta.hpp）
 │       ├── signal/                 #   4 个信号工具
 │       ├── group/                  #   4 个分组工具
 │       ├── node_tools/general/     #   6 个资源管理工具
-│       ├── node_tools/             #   node_resource_tool（模板）
-│       ├── node_props/             #   node_property_tool（模板）+ YAML 数据库
 │       ├── node_properties/        #   2 个通用兜底工具（Layer 0）
 │       ├── editor_tools/
-│       │   ├── scene_tree/         #   25+ 场景树 CRUD 工具 + utils
-│       │   ├── animation/          #   5 个动画工具
+│       │   ├── scene_tree/         #   24 个场景树 CRUD 工具
+│       │   ├── animation/          #   10 个动画工具（Player + Tree）
 │       │   ├── control/            #   4 个 UI/Control 工具
 │       │   ├── collision/          #   1 个碰撞形状工具
 │       │   ├── docs/               #   8 个文档查询工具（Layer 3）
-│       │   ├── export/             #   2 个导出工具
+│       │   ├── export/             #   4 个导出工具
 │       │   ├── filesystem/         #   12 个文件系统工具
-│       │   ├── inputmap/           #   1 个输入映射工具
-│       │   ├── plugin/             #   3 个插件管理工具
+│       │   ├── inputmap/           #   4 个输入映射工具
+│   │   ├── plugin/             #   2 个插件管理工具
 │       │   ├── scaffold/           #   1 个脚手架工具
-│       │   ├── scripts/            #   13 个脚本读写验证工具
+│       │   ├── scripts/            #   12 个脚本读写验证工具
 │       │   ├── settings/           #   4 个设置工具
-│       │   ├── shader/             #   3 个 shader 工具
+│       │   ├── shader/             #   5 个 shader 工具
+│       │   ├── audio/              #   3 个音频工具
+│       │   ├── navigation/         #   3 个导航工具
+│       │   ├── 3d_scene/           #   3 个 3D 场景工具
 │       │   ├── tilemap/            #   3 个 TileMap 工具
 │       │   ├── visualizer/         #   1 个可视化工具
-│       │   └── workspace/          #   29 个工作区/调试器工具
+│       │   └── workspace/          #   13 个工作区/调试器工具
 │       └── runtime_tools/
-│           ├── bridge/             #   6 个运行时桥接工具
+│           ├── bridge/             #   7 个运行时桥接工具
 │           └── lifecycle/          #   6 个游戏生命周期工具
 ├── server/
 │   ├── ipc/
@@ -105,8 +103,10 @@ extensions/src/
 ├── sdk/
 │   ├── mcp_tool_definition.hpp/.cpp  # GDScript 可继承的 RefCounted 基类
 │   └── mcp_tool_registry.hpp/.cpp    # 单例注册表
-├── lsp/
-│   └── client.cpp/.hpp             # GDScript LSP 验证（StreamPeerTCP）
+├── ui/
+│   ├── mcp_dock.cpp/.hpp           # 右侧面板（工具浏览）
+│   ├── mcp_console.cpp/.hpp        # 底部面板（MCP 日志输出）
+│   └── mcp_logger.cpp/.hpp         # 日志后端（数据存储）
 └── testing/
     ├── test_engine.cpp/.hpp        # 进程内 YAML 测试引擎
     ├── yaml_parser.hpp             # ryml → Godot Variant 解析
@@ -122,8 +122,8 @@ extensions/src/
 1. `register_itools.cpp` 包含所有工具 `.hpp` 的 `#include` 指令
 2. 定义 `GODOT_MCP_TOOL` 宏，展开为 `reg.register_tool(std::make_unique<cls>())`
 3. 通过 `#include` 展开四个注册文件：
-   - `register/register_meta.hpp` — 6 个元工具
-   - `register/register_existing.hpp` — ~120 个功能工具
+   - `register/register_meta.hpp` — 7 个元工具（另有 `list_settings` 在 `register_existing.hpp` 中以 `is_meta=true` 注册，共 8 个 always-on 工具）
+    - `register/register_existing.hpp` — 136 个功能工具
    - `register/register_fallback.hpp` — 2 个后备属性工具
    - `register/register_docs.hpp` — 8 个文档查询工具
 
@@ -132,10 +132,10 @@ extensions/src/
 1. 在 `extensions/src/built_in/tools/<category>/` 创建 `<name>.hpp`，实现 ITool 接口
 2. 在 `extensions/src/built_in/tools/register/` 对应 X-macro 文件加一行：
    ```cpp
-   GODOT_MCP_TOOL(MyTool, "my_tool", "editor_tools/my_category", false, false, false)
+    GODOT_MCP_TOOL(MyTool, "my_tool", "editor_tools/my_category", false, false, false, false)
    ```
 3. 在 `extensions/src/built_in/register_itools.cpp` 对应分类区域加 `#include`
-4. 编译 —— CMake 自动 GLOB `tools/**/*.cpp`（如有）+ X-macro 编译时注册
+4. 编译 —— CMake GLOB 收集 `tools/**/*.cpp`（当前所有工具为 header-only，X-macro 编译期注册）
 
 **无需** codegen，**无需** `// @tool register` 注释。
 
@@ -176,13 +176,13 @@ extensions/src/
 
 | 行 | 内容 |
 |:--:|------|
-| L15 | `set(GODOTCPP_API_VERSION "4.6")` |
-| L17-21 | `FetchContent` 拉取 `godot-cpp 10.0.0-rc1` |
-| L30-42 | `FetchContent` 拉取 `rapidyaml v0.7.0`（GIT_SUBMODULES 包含 c4core） |
-| L49-86 | `GODOT_MCP_SOURCES`（含 register_types / editor_plugin / server / sdk / lsp / testing） |
-| L91 | `file(GLOB_RECURSE TOOL_SOURCES "src/built_in/tools/*.cpp")` — 自动收集 .cpp |
-| L96 | `add_library(godot_mcp_gdext SHARED ...)` |
-| L107-112 | 编译定义 `GODOT_MCP_PLUGIN_VERSION` |
-| L117-146 | Unity Build ON（batch size 自动匹配 CPU 核数，上限 32） |
-| L156-162 | lld-link 自动检测（MSVC） |
-| L166 | MSVC: `/utf-8 /bigobj /W3 /wd4244 /wd4267` |
+| L8 | `set(GODOTCPP_API_VERSION "4.6")` |
+| L17-22 | `FetchContent` 拉取 `godot-cpp 10.0.0-rc1` |
+| L34-41 | `FetchContent` 拉取 `rapidyaml v0.7.0`（GIT_SUBMODULES 包含 c4core） |
+| L51-89 | `GODOT_MCP_SOURCES`（含 register_types / editor_plugin / server / sdk / runtime / testing / ui） |
+| L96 | `file(GLOB_RECURSE TOOL_SOURCES "src/built_in/tools/*.cpp")` — 自动收集 .cpp（当前无 .cpp，工具为 header-only） |
+| L101 | `add_library(godot_mcp_gdext SHARED ...)` |
+| L110-117 | 编译定义 `GODOT_MCP_PLUGIN_VERSION` |
+| L122-148 | Unity Build ON（batch size 自动匹配 CPU 核数，上限 12） |
+| L161-167 | lld-link 自动检测（MSVC） |
+| `cmake/compiler.cmake:7` | MSVC: `/utf-8 /bigobj /W4 /wd4244 /wd4267` |

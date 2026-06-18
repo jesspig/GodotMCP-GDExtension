@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/classes/object.hpp>
@@ -33,6 +35,9 @@
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/typed_array.hpp>
 #include <godot_cpp/variant/variant.hpp>
+
+#include "built_in/cmd_utils.hpp"
+#include "built_in/tool_base.hpp"
 
 namespace godot_mcp::scene_tree_utils {
 
@@ -52,15 +57,13 @@ using godot::Variant;
 
 Ref<PackedScene> get_clipboard();
 void set_clipboard(const Ref<PackedScene> &scene);
-void clear_clipboard();
-bool clipboard_has_content();
+
 
 // -- Ownership helpers -----------------------------------------------
 // Godot saves a node to the .tscn iff its `owner` is set to the edited
 // scene root. New nodes must be assigned an owner to become persistent.
 
 void assign_owner_recursive(Node *root, Node *owner);
-void clear_owner_recursive(Node *root, Node *stop_at);
 
 // -- Undo/Redo helpers ------------------------------------------------
 // Wrap a typical "add child + assign owner + update selection" sequence.
@@ -102,7 +105,16 @@ void collect_node_info(Node *node, Node *root, int64_t max_depth, bool include_s
 
 // -- Misc utilities --------------------------------------------------
 
-// Move `child` to `new_index` within its parent. No undo wrapping.
-void reorder_in_parent(Node *child, int64_t new_index);
+// Resolve a node path and return a ToolResult-compatible error dictionary
+// on failure. Returns std::nullopt on success (out_node is set).
+inline std::optional<godot::Dictionary> resolve_node_or_error(
+    godot::Node *root, const godot::String &path, godot::Node *&out_node) {
+    out_node = godot_mcp::resolve_node(root, path);
+    if (!out_node) {
+        return ToolResult::err("NODE_NOT_FOUND",
+            godot::String("Node not found: ") + path);
+    }
+    return {};
+}
 
 }  // namespace godot_mcp::scene_tree_utils

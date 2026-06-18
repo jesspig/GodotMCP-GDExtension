@@ -1,6 +1,7 @@
-﻿
+
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "server/registry/handler_registry.hpp"
 
@@ -10,28 +11,20 @@ class GetToolsTool : public ITool {
 public:
     void set_registry(HandlerRegistry *reg) override { reg_ = reg; }
 
-    String name() const override { return "get_tools"; }
-    String category() const override { return "meta_tools"; }
-    String brief() const override { return String("List all tools under a category path"); }
+    String name() const noexcept override { return "get_tools"; }
+    String category() const noexcept override { return "meta_tools"; }
+    String brief() const noexcept override { return String("List all tools under a category path"); }
     String description() const override {
         return String("Returns a brief list (id, name, description) of all tools registered "
                       "under the given category path. Does not include tools from subcategories.");
     }
-    Dictionary input_schema() const override {
-        Dictionary schema;
-        schema["type"] = "object";
-        Dictionary props;
-        Dictionary cat;
-        cat["type"] = "string";
-        cat["description"] = String("Category path, e.g. meta_tools, node_tools/property/CanvasItem");
-        props["category"] = cat;
-        schema["properties"] = props;
-        Array req;
-        req.push_back("category");
-        schema["required"] = req;
-        return schema;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("category", "string", "Category path, e.g. meta_tools, node_tools/property/CanvasItem")
+            .required({"category"})
+            .build();
     }
-    bool is_meta() const override { return true; }
+    bool is_meta() const noexcept override { return true; }
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {

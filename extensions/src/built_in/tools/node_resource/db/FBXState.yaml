@@ -1,8 +1,0 @@
-class: FBXState
-inherits: GLTFState
-properties:
-- name: allow_geometry_helper_nodes
-  type: 1
-  type_name: bool
-description: ''
-aliases: []

@@ -26,7 +26,7 @@ sequenceDiagram
     end
     G-->>M: Dictionary
     M-->>H: MCP content array
-    H-->>AI: 200 application/json + MCP-Session-Id
+    H-->>AI: 200 application/json
 ```
 
 ## HandlerRegistry 调度
@@ -35,7 +35,7 @@ sequenceDiagram
 flowchart LR
     REG["HandlerRegistry::execute(name, args)"]
     ITBL["itool_table_<br/>std::map<String, unique_ptr<ITool>>"]
-    BUILTIN["X-macro 注册的内置工具<br/>(~149 个 ITool 子类)"]
+    BUILTIN["X-macro 注册的内置工具<br/>(152 个 ITool 子类)"]
     SDK["SDK 自定义工具<br/>(McpToolRegistry → IToolAdapter)"]
     RES["返回 ToolResult 字典"]
     REG -->|"查 itool_table_"| ITBL
@@ -47,37 +47,55 @@ flowchart LR
 
 | 步骤 | 文件:行 | 行为 |
 |------|---------|------|
-| 1 | `handler_registry.cpp:72` | `register_tool(unique_ptr<ITool>)` 存入 `itool_table_` |
-| 2 | `handler_registry.cpp:20` | `register_custom_tool(name, ...)` 创建 IToolAdapter 存入 `itool_table_` |
-| 3 | `editor_plugin.cpp:43` | `_enter_tree()` 调 `register_itools(registry_)` — X-macro 注册所有内置工具 |
+| 1 | `handler_registry.cpp:40` | `register_tool(unique_ptr<ITool>, bool is_custom)` 存入 `itool_table_` |
+| 2 | `handler_registry.cpp:40` | SDK 自定义工具通过 `register_tool(IToolAdapter, true)` 存入同一张表 |
+| 3 | `editor_plugin.cpp:108` | `_enter_tree()` → `register_itools(registry_)` — X-macro 注册所有内置工具 |
 | 4 | execute | 查 `itool_table_`（内置和 SDK 工具同表） |
 
 ## 顶级分类自动发现
 
-`get_categories()` (`handler_registry.cpp:286`) 按 `category()` 返回值的 `/` 分割自动建树。顶级分类从第一个 `/` 前的段自动提取，label 通过 `prettify_segment()` 美化（`editor_tools` → `Editor tools`），description 从该分类内工具的 `category_description()` 自动收集。
+`get_categories()`（`handler_registry.cpp:205`）按 `category()` 返回值的 `/` 分割自动建树。顶级分类从第一个 `/` 前的段自动提取，label 通过 `prettify_segment()` 美化（`editor_tools` → `Editor Tools`），description 从该分类内工具的 `category_description()` 自动收集。
 
 详见 [category-discovery.md](category-discovery.md)。
 
-## ITool 接口契约（`extensions/src/built_in/tool_base.hpp:33-74`）
+## ITool 接口契约（`extensions/src/built_in/tool_base.hpp`）
 
 ```cpp
 class ITool {
 public:
-    virtual String name() const = 0;             // 注册名
-    virtual String category() const = 0;         // 分类路径（如 "editor_tools/scene_tree"）
+    virtual ~ITool() = default;
+
+    // ── 元数据 ──
+    virtual String name() const = 0;
     virtual String brief() const = 0;
     virtual String description() const = 0;
-    virtual String category_label() const { return category(); }
-    virtual String category_description() const { return {}; }
     virtual Dictionary input_schema() const = 0;
-    virtual bool is_meta() const { return false; }    // 渐进式披露
-    virtual bool needs_scene() const { return false; } // 触发 ctx.root 注入
-    virtual bool needs_node() const { return false; }  // 触发 ctx.node 注入
 
-    Dictionary execute(const Dictionary &args);   // 模板方法：前置检查 + 注入 ctx + 调 execute_impl
+    // ── 两轴分类 ──
+    virtual String category() const = 0;
+    virtual String category_description() const { return {}; }
+
+    // is_meta() 控制 tools/list 可见性
+    //   true  → 始终可见（发现工具：list_tools/list_tool_categories 等）
+    //   false → 渐进式披露（通过 list_tool_categories 发现后再调用 list_tools 展开）
+    virtual bool is_meta() const { return false; }
+
+    // ── 能力声明（组合优于继承）──
+    virtual bool needs_scene() const { return false; }
+    virtual bool needs_node() const { return false; }
+    virtual bool supports_undo() const { return false; }
+    virtual bool is_destructive() const { return is_destructive_; }
+    void set_is_destructive(bool v) { is_destructive_ = v; }
+
+    // ── 依赖注入 ──
+    virtual void set_registry(HandlerRegistry *reg) {}
+
+    // ── 统一入口（模板方法）──
+    Dictionary execute(const Dictionary &args);
 
 protected:
     virtual Dictionary execute_impl(const ToolContext &ctx) = 0;
+    bool is_destructive_ = false;
 };
 ```
 

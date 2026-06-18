@@ -1,8 +1,0 @@
-class: VisualShaderNodeParticleAccelerator
-inherits: VisualShaderNode
-properties:
-- name: mode
-  type: 2
-  type_name: int
-description: ''
-aliases: []

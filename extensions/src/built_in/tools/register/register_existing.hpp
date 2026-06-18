@@ -1,177 +1,181 @@
-// ── Signal tools ──
-GODOT_MCP_TOOL(ConnectSignalTool,           "connect_signal",           "node_tools/signal", false, true, true)
-GODOT_MCP_TOOL(DisconnectSignalTool,        "disconnect_signal",        "node_tools/signal", false, true, true)
-GODOT_MCP_TOOL(ListSignalsTool,             "list_signals",             "node_tools/signal", false, true, true)
-GODOT_MCP_TOOL(GetSignalConnectionsTool,    "get_signal_connections",   "node_tools/signal", false, true, true)
+﻿// Signal tools
+GODOT_MCP_TOOL(ConnectSignalTool, false)
+GODOT_MCP_TOOL(DisconnectSignalTool, false)
+GODOT_MCP_TOOL(ListSignalsTool, false)
+GODOT_MCP_TOOL(GetSignalConnectionsTool, false)
 
-// ── Group tools ──
-GODOT_MCP_TOOL(AddToGroupTool,              "add_to_group",             "node_tools/group", false, true, true)
-GODOT_MCP_TOOL(RemoveFromGroupTool,         "remove_from_group",        "node_tools/group", false, true, true)
-GODOT_MCP_TOOL(GetNodeGroupsTool,           "get_node_groups",          "node_tools/group", false, true, true)
-GODOT_MCP_TOOL(GetNodesInGroupTool,         "get_nodes_in_group",       "node_tools/group", false, true, true)
+// Group tools
+GODOT_MCP_TOOL(AddToGroupTool, false)
+GODOT_MCP_TOOL(RemoveFromGroupTool, false)
+GODOT_MCP_TOOL(GetNodeGroupsTool, false)
+GODOT_MCP_TOOL(GetNodesInGroupTool, false)
 
-// ── General resource tools ──
-GODOT_MCP_TOOL(SaveResourceTool,            "save_resource",            "node_tools/general", false, true, true)
-GODOT_MCP_TOOL(LoadResourceTool,            "load_resource",            "node_tools/general", false, true, true)
-GODOT_MCP_TOOL(NewResourceTool,             "new_resource",             "node_tools/general", false, true, true)
-GODOT_MCP_TOOL(DuplicateResourceTool,       "duplicate_resource",       "node_tools/general", false, true, true)
-GODOT_MCP_TOOL(ClearResourceTool,           "clear_resource",           "node_tools/general", false, true, true)
-GODOT_MCP_TOOL(GetResourceInfoTool,         "get_resource_info",        "node_tools/general", false, true, true)
+// General resource tools
+GODOT_MCP_TOOL(SaveResourceTool, false)
+GODOT_MCP_TOOL(LoadResourceTool, false)
+GODOT_MCP_TOOL(NewResourceTool, false)
+GODOT_MCP_TOOL(DuplicateResourceTool, false)
+GODOT_MCP_TOOL(ClearResourceTool, false)
+GODOT_MCP_TOOL(GetResourceInfoTool, false)
 
-// ── Scene tree tools ──
-GODOT_MCP_TOOL(AddNodeTool,                 "add_node",                 "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(DeleteNodeTool,              "delete_node",              "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(RenameNodeTool,              "rename_node",              "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(MoveNodeTool,                "move_node",                "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(DuplicateNodeTool,           "duplicate_node",           "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(CopyNodeTool,                "copy_node",                "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(PasteNodeTool,               "paste_node",               "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(CutNodeTool,                 "cut_node",                 "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(GetSceneTreeTool,            "get_scene_tree",           "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(SaveSceneTool,               "save_scene",               "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(NewSceneTool,                "new_scene",                "editor_tools/scene_tree", false, false, false)
-GODOT_MCP_TOOL(ChangeNodeTypeTool,          "change_node_type",         "editor_tools/scene_tree", false, true, true)
-GODOT_MCP_TOOL(AttachScriptTool,            "attach_script",            "editor_tools/scene_tree", false, true, true)
-GODOT_MCP_TOOL(DetachScriptTool,            "detach_script",            "editor_tools/scene_tree", false, true, true)
-GODOT_MCP_TOOL(ReparentNodeTool,            "reparent_node",            "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(ReparentToNewNodeTool,       "reparent_to_new_node",     "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(GroupSelectedNodesTool,      "group_selected_nodes",     "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(MakeLocalTool,               "make_local",               "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(SaveBranchAsSceneTool,       "save_branch_as_scene",     "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(InstanceChildSceneTool,      "instance_child_scene",     "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(SetUniqueNameTool,           "set_unique_name",          "editor_tools/scene_tree", false, true, true)
-GODOT_MCP_TOOL(ToggleEditableChildrenTool,  "toggle_editable_children", "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(ToggleEditGroupTool,         "toggle_edit_group",        "editor_tools/scene_tree", false, true, false)
-GODOT_MCP_TOOL(TogglePlaceholderTool,       "toggle_placeholder",       "editor_tools/scene_tree", false, true, false)
+// Scene tree tools
+GODOT_MCP_TOOL(AddNodeTool, false)
+GODOT_MCP_TOOL(DeleteNodeTool, true)
+GODOT_MCP_TOOL(RenameNodeTool, false)
+GODOT_MCP_TOOL(MoveNodeTool, false)
+GODOT_MCP_TOOL(DuplicateNodeTool, false)
+GODOT_MCP_TOOL(CopyNodeTool, false)
+GODOT_MCP_TOOL(PasteNodeTool, false)
+GODOT_MCP_TOOL(CutNodeTool, false)
+GODOT_MCP_TOOL(GetSceneTreeTool, false)
+GODOT_MCP_TOOL(SaveSceneTool, true)
+GODOT_MCP_TOOL(NewSceneTool, false)
+GODOT_MCP_TOOL(ChangeNodeTypeTool, true)
+GODOT_MCP_TOOL(AttachScriptTool, false)
+GODOT_MCP_TOOL(DetachScriptTool, false)
+GODOT_MCP_TOOL(ReparentNodeTool, false)
+GODOT_MCP_TOOL(ReparentToNewNodeTool, false)
+GODOT_MCP_TOOL(GroupSelectedNodesTool, false)
+GODOT_MCP_TOOL(MakeLocalTool, false)
+GODOT_MCP_TOOL(SaveBranchAsSceneTool, false)
+GODOT_MCP_TOOL(InstanceChildSceneTool, false)
+GODOT_MCP_TOOL(SetUniqueNameTool, false)
+GODOT_MCP_TOOL(ToggleEditableChildrenTool, false)
+GODOT_MCP_TOOL(ToggleEditGroupTool, false)
+GODOT_MCP_TOOL(TogglePlaceholderTool, false)
 
-// ── Animation tools ──
-GODOT_MCP_TOOL(CreateAnimationPlayerTool,   "create_animation_player",  "editor_tools/animation", false, true, false)
-GODOT_MCP_TOOL(CreateAnimationClipTool,     "create_animation_clip",    "editor_tools/animation", false, true, false)
-GODOT_MCP_TOOL(AddAnimationTrackTool,       "add_animation_track",      "editor_tools/animation", false, true, false)
-GODOT_MCP_TOOL(SetKeyframeTool,             "set_keyframe",             "editor_tools/animation", false, true, false)
-GODOT_MCP_TOOL(GetAnimationInfoTool,        "get_animation_info",       "editor_tools/animation", false, true, false)
+// Animation tools
+GODOT_MCP_TOOL(CreateAnimationPlayerTool, false)
+GODOT_MCP_TOOL(CreateAnimationClipTool, false)
+GODOT_MCP_TOOL(AddAnimationTrackTool, false)
+GODOT_MCP_TOOL(SetKeyframeTool, false)
+GODOT_MCP_TOOL(GetAnimationInfoTool, false)
+GODOT_MCP_TOOL(CreateAnimationTreeTool, false)
+GODOT_MCP_TOOL(GetAnimationTreeInfoTool, false)
+GODOT_MCP_TOOL(AddAnimationNodeTool, false)
+GODOT_MCP_TOOL(AddTransitionTool, false)
+GODOT_MCP_TOOL(SetTransitionConditionTool, false)
 
-// ── Control tools ──
-GODOT_MCP_TOOL(CreateControlTool,           "create_control",           "editor_tools/control", false, true, false)
-GODOT_MCP_TOOL(CreateStyleBoxTool,          "create_stylebox",          "editor_tools/control", false, true, false)
-GODOT_MCP_TOOL(SetLayoutPresetTool,         "set_layout_preset",        "editor_tools/control", false, true, true)
-GODOT_MCP_TOOL(SetThemeOverrideTool,        "set_theme_override",       "editor_tools/control", false, true, true)
+// Control tools
+GODOT_MCP_TOOL(CreateControlTool, false)
+GODOT_MCP_TOOL(CreateStyleBoxTool, false)
+GODOT_MCP_TOOL(SetLayoutPresetTool, false)
+GODOT_MCP_TOOL(SetThemeOverrideTool, false)
 
-// ── Collision tools ──
-GODOT_MCP_TOOL(CreateCollisionShapeTool,    "create_collision_shape",   "editor_tools/collision", false, true, false)
+// Collision tools
+GODOT_MCP_TOOL(CreateCollisionShapeTool, false)
 
-// ── Docs tools ──
-GODOT_MCP_TOOL(SearchDocsTool,              "search_docs",              "editor_tools/docs", false, false, false)
-GODOT_MCP_TOOL(GetClassInfoTool,            "get_class_info",           "editor_tools/docs", false, false, false)
-GODOT_MCP_TOOL(GetBestPracticesTool,        "get_best_practices",       "editor_tools/docs", false, false, false)
+// Export tools
+GODOT_MCP_TOOL(ListExportPresetsTool, false)
+GODOT_MCP_TOOL(ExportProjectTool, true)
+GODOT_MCP_TOOL(ValidateExportPresetsTool, false)
+GODOT_MCP_TOOL(GetExportPlatformsTool, false)
 
-// ── Export tools ──
-GODOT_MCP_TOOL(ListExportPresetsTool,       "list_export_presets",      "editor_tools/export", false, false, false)
-GODOT_MCP_TOOL(ExportProjectTool,           "export_project",           "editor_tools/export", false, false, false)
+// Filesystem tools
+GODOT_MCP_TOOL(CreateTool, false)
+GODOT_MCP_TOOL(CreateDirectoryTool, false)
+GODOT_MCP_TOOL(CreateSceneTool, false)
+GODOT_MCP_TOOL(CreateResourceTool, false)
+GODOT_MCP_TOOL(CreateGdshaderTool, false)
+GODOT_MCP_TOOL(DeleteFileTool, true)
+GODOT_MCP_TOOL(MoveFileTool, true)
+GODOT_MCP_TOOL(CopyFileTool, false)
+GODOT_MCP_TOOL(OpenFileTool, false)
+GODOT_MCP_TOOL(ListDirectoryTool, false)
+GODOT_MCP_TOOL(SearchFilesTool, false)
+GODOT_MCP_TOOL(SaveResourceAsTool, false)
 
-// ── Filesystem tools ──
-GODOT_MCP_TOOL(CreateTool,                  "create",                   "editor_tools/filesystem", false, false, false)
-GODOT_MCP_TOOL(CreateDirectoryTool,         "create_directory",         "editor_tools/filesystem", false, false, false)
-GODOT_MCP_TOOL(CreateSceneTool,             "create_scene",             "editor_tools/filesystem", false, false, false)
-GODOT_MCP_TOOL(CreateResourceTool,          "create_resource",          "editor_tools/filesystem", false, false, false)
-GODOT_MCP_TOOL(CreateGdshaderTool,          "create_gdshader",          "editor_tools/filesystem", false, false, false)
-GODOT_MCP_TOOL(DeleteFileTool,              "delete_file",              "editor_tools/filesystem", false, false, false)
-GODOT_MCP_TOOL(MoveFileTool,                "move_file",                "editor_tools/filesystem", false, false, false)
-GODOT_MCP_TOOL(CopyFileTool,                "copy_file",                "editor_tools/filesystem", false, false, false)
-GODOT_MCP_TOOL(OpenFileTool,                "open_file",                "editor_tools/filesystem", false, false, false)
-GODOT_MCP_TOOL(ListDirectoryTool,           "list_directory",           "editor_tools/filesystem", false, false, false)
-GODOT_MCP_TOOL(SearchFilesTool,             "search_files",             "editor_tools/filesystem", false, false, false)
-GODOT_MCP_TOOL(SaveResourceAsTool,          "save_resource_as",         "editor_tools/filesystem", false, false, false)
+// Input map tools
+GODOT_MCP_TOOL(InputListActionsTool, false)
+GODOT_MCP_TOOL(AddInputActionTool, false)
+GODOT_MCP_TOOL(RemoveInputActionTool, false)
+GODOT_MCP_TOOL(AddInputEventBindingTool, false)
 
-// ── Input map tools ──
-GODOT_MCP_TOOL(InputListActionsTool,        "input_list_actions",       "editor_tools/inputmap", false, false, false)
+// Plugin tools
+GODOT_MCP_TOOL(ListPluginsTool, false)
+GODOT_MCP_TOOL(SetPluginEnabledTool, false)
 
-// ── Plugin tools ──
-GODOT_MCP_TOOL(ListPluginsTool,             "list_plugins",             "editor_tools/plugin", false, false, false)
-GODOT_MCP_TOOL(EnablePluginTool,            "enable_plugin",            "editor_tools/plugin", false, false, false)
-GODOT_MCP_TOOL(DisablePluginTool,           "disable_plugin",           "editor_tools/plugin", false, false, false)
+// Scaffold tools
+GODOT_MCP_TOOL(CreateProjectTool, false)
 
-// ── Scaffold tools ──
-GODOT_MCP_TOOL(CreateProjectTool,           "create_project",           "editor_tools/scaffold", false, false, false)
+// Script tools
+GODOT_MCP_TOOL(ReadGdScriptTool, false)
+GODOT_MCP_TOOL(WriteGdScriptTool, true)
+GODOT_MCP_TOOL(PatchGdScriptTool, true)
+GODOT_MCP_TOOL(ValidateGdScriptTool, false)
+GODOT_MCP_TOOL(ListGdScriptsTool, false)
+GODOT_MCP_TOOL(GrepScriptsTool, false)
+GODOT_MCP_TOOL(GlobScriptsTool, false)
+GODOT_MCP_TOOL(ReadCsharpScriptTool, false)
+GODOT_MCP_TOOL(WriteCsharpScriptTool, true)
+GODOT_MCP_TOOL(PatchCsharpScriptTool, true)
+GODOT_MCP_TOOL(ValidateCsharpScriptTool, false)
+GODOT_MCP_TOOL(ListCsharpScriptsTool, false)
 
-// ── Script tools ──
-GODOT_MCP_TOOL(ReadGdScriptTool,            "read_gd_script",           "editor_tools/scripts", false, false, false)
-GODOT_MCP_TOOL(WriteGdScriptTool,           "write_gd_script",          "editor_tools/scripts", false, false, false)
-GODOT_MCP_TOOL(PatchGdScriptTool,           "patch_gd_script",          "editor_tools/scripts", false, false, false)
-GODOT_MCP_TOOL(ValidateGdScriptTool,        "validate_gd_script",       "editor_tools/scripts", false, false, false)
-GODOT_MCP_TOOL(ListGdScriptsTool,           "list_gd_scripts",          "editor_tools/scripts", false, false, false)
-GODOT_MCP_TOOL(GrepScriptsTool,             "grep_scripts",             "editor_tools/scripts", false, false, false)
-GODOT_MCP_TOOL(GlobScriptsTool,             "glob_scripts",             "editor_tools/scripts", false, false, false)
-GODOT_MCP_TOOL(ReadCsharpScriptTool,        "read_csharp_script",       "editor_tools/scripts", false, false, false)
-GODOT_MCP_TOOL(WriteCsharpScriptTool,       "write_csharp_script",      "editor_tools/scripts", false, false, false)
-GODOT_MCP_TOOL(PatchCsharpScriptTool,       "patch_csharp_script",      "editor_tools/scripts", false, false, false)
-GODOT_MCP_TOOL(ValidateCsharpScriptTool,    "validate_csharp_script",   "editor_tools/scripts", false, false, false)
-GODOT_MCP_TOOL(ListCsharpScriptsTool,       "list_csharp_scripts",      "editor_tools/scripts", false, false, false)
+// Settings tools
+GODOT_MCP_TOOL(GetSettingTool, false)
+GODOT_MCP_TOOL(SetSettingTool, true)
+GODOT_MCP_TOOL(ResetSettingTool, false)
+GODOT_MCP_TOOL(ListSettingsTool, false)
 
-// ── Settings tools ──
-GODOT_MCP_TOOL(GetSettingTool,              "get_setting",              "editor_tools/settings", false, false, false)
-GODOT_MCP_TOOL(SetSettingTool,              "set_setting",              "editor_tools/settings", false, false, false)
-GODOT_MCP_TOOL(ResetSettingTool,            "reset_setting",            "editor_tools/settings", false, false, false)
-GODOT_MCP_TOOL(ListSettingsTool,            "list_settings",            "editor_tools/settings", true, false, false)
+// Shader tools
+GODOT_MCP_TOOL(CreateShaderTool, false)
+GODOT_MCP_TOOL(ReadShaderTool, false)
+GODOT_MCP_TOOL(ApplyShaderPresetTool, false)
+GODOT_MCP_TOOL(GetShaderUniformsTool, false)
+GODOT_MCP_TOOL(SetShaderUniformTool, false)
 
-// ── Shader tools ──
-GODOT_MCP_TOOL(CreateShaderTool,            "create_shader",            "editor_tools/shader", false, false, false)
-GODOT_MCP_TOOL(ReadShaderTool,              "read_shader",              "editor_tools/shader", false, false, false)
-GODOT_MCP_TOOL(ApplyShaderPresetTool,       "apply_shader_preset",      "editor_tools/shader", false, true, false)
+// Audio tools
+GODOT_MCP_TOOL(CreateAudioPlayerTool, false)
+GODOT_MCP_TOOL(SetAudioStreamTool, false)
+GODOT_MCP_TOOL(ListAudioBusesTool, false)
 
-// ── TileMap tools ──
-GODOT_MCP_TOOL(GetTileMapInfoTool,          "get_tilemap_info",         "editor_tools/tilemap", false, true, true)
-GODOT_MCP_TOOL(SetTileMapCellsTool,         "set_tilemap_cells",        "editor_tools/tilemap", false, true, true)
-GODOT_MCP_TOOL(EraseTileMapCellsTool,       "erase_tilemap_cells",      "editor_tools/tilemap", false, true, true)
+// Navigation tools
+GODOT_MCP_TOOL(CreateNavigationRegionTool, false)
+GODOT_MCP_TOOL(CreateNavigationAgentTool, false)
+GODOT_MCP_TOOL(BakeNavigationMeshTool, false)
 
-// ── Visualizer tools ──
-GODOT_MCP_TOOL(GetProjectGraphTool,         "get_project_graph",        "editor_tools/visualizer", false, false, false)
+// 3D Scene tools
+GODOT_MCP_TOOL(CreateMeshInstance3DTool, false)
+GODOT_MCP_TOOL(CreateLight3DTool, false)
+GODOT_MCP_TOOL(SetWorldEnvironmentTool, false)
 
-// ── Workspace / Debugger tools ──
-GODOT_MCP_TOOL(CaptureViewportTool,         "capture_viewport",         "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(CaptureGameViewportTool,     "capture_game_viewport",    "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(ClearConsoleTool,            "clear_console",            "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetConsoleOutputTool,        "get_console_output",       "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetConsoleErrorsTool,        "get_console_errors",       "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetConsoleWarningsTool,      "get_console_warnings",     "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetDebuggerStateTool,        "get_debugger_state",       "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetDebuggerStatusTool,       "get_debugger_status",      "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetDebuggerErrorsTool,       "get_debugger_errors",      "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetFpsTool,                  "get_fps",                  "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetMemoryUsageTool,          "get_memory_usage",         "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetObjectCountTool,          "get_object_count",         "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetPerformanceMonitorsTool,  "get_performance_monitors", "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetPhysicsStatsTool,         "get_physics_stats",        "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetRenderStatsTool,          "get_render_stats",         "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetStackTraceTool,           "get_stack_trace",          "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(GetLocalsTool,               "get_locals",               "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(DebuggerBreakTool,           "debugger_break",           "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(DebuggerContinueTool,        "debugger_continue",        "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(DebuggerControlTool,         "debugger_control",         "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(DebuggerStepIntoTool,        "debugger_step_into",       "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(DebuggerStepOutTool,         "debugger_step_out",        "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(DebuggerStepOverTool,        "debugger_step_over",       "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(ListBreakpointsTool,         "list_breakpoints",         "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(SetBreakpointTool,           "set_breakpoint",           "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(RemoveBreakpointTool,        "remove_breakpoint",        "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(SetWorkspaceTool,            "set_workspace",            "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(SetWorkspace2DTool,          "set_workspace_2d",         "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(SetWorkspace3DTool,          "set_workspace_3d",         "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(SetWorkspaceScriptTool,      "set_workspace_script",     "editor_tools/workspace", false, false, false)
-GODOT_MCP_TOOL(SetWorkspaceAssetLibTool,    "set_workspace_assetlib",   "editor_tools/workspace", false, false, false)
+// TileMap tools
+GODOT_MCP_TOOL(GetTileMapInfoTool, false)
+GODOT_MCP_TOOL(SetTileMapCellsTool, false)
+GODOT_MCP_TOOL(EraseTileMapCellsTool, false)
 
-// ── Runtime bridge tools ──
-GODOT_MCP_TOOL(GetGameSceneTreeTool,        "get_game_scene_tree",      "runtime_tools/bridge", false, false, false)
-GODOT_MCP_TOOL(GetGameNodePropertyTool,     "get_game_node_property",   "runtime_tools/bridge", false, false, false)
-GODOT_MCP_TOOL(SetGameNodePropertyTool,     "set_game_node_property",   "runtime_tools/bridge", false, false, false)
-GODOT_MCP_TOOL(CallMethodInGameTool,        "call_method_in_game",      "runtime_tools/bridge", false, false, false)
-GODOT_MCP_TOOL(CaptureGameScreenshotTool,   "capture_game_screenshot",  "runtime_tools/bridge", false, false, false)
-GODOT_MCP_TOOL(SimulateGameInputTool,       "simulate_game_input",      "runtime_tools/bridge", false, false, false)
+// Visualizer tools
+GODOT_MCP_TOOL(GetProjectGraphTool, false)
 
-// ── Runtime lifecycle tools ──
-GODOT_MCP_TOOL(RunProjectTool,              "run_project",              "runtime_tools/lifecycle", false, false, false)
-GODOT_MCP_TOOL(RunCurrentSceneTool,         "run_current_scene",        "runtime_tools/lifecycle", false, false, false)
-GODOT_MCP_TOOL(RunSpecificSceneTool,        "run_specific_scene",       "runtime_tools/lifecycle", false, false, false)
-GODOT_MCP_TOOL(StopProjectTool,             "stop_project",             "runtime_tools/lifecycle", false, false, false)
-GODOT_MCP_TOOL(PauseProjectTool,            "pause_project",            "runtime_tools/lifecycle", false, false, false)
-GODOT_MCP_TOOL(SetMovieMakerTool,           "set_movie_maker",          "runtime_tools/lifecycle", false, false, false)
+// Workspace / Debugger tools
+GODOT_MCP_TOOL(CaptureViewportTool, false)
+GODOT_MCP_TOOL(CaptureGameViewportTool, false)
+GODOT_MCP_TOOL(ClearConsoleTool, false)
+GODOT_MCP_TOOL(GetConsoleOutputTool, false)
+GODOT_MCP_TOOL(GetDebuggerStateTool, false)
+GODOT_MCP_TOOL(GetPerformanceMonitorsTool, false)
+GODOT_MCP_TOOL(GetStackTraceTool, false)
+GODOT_MCP_TOOL(GetLocalsTool, false)
+GODOT_MCP_TOOL(DebuggerControlTool, false)
+GODOT_MCP_TOOL(ListBreakpointsTool, false)
+GODOT_MCP_TOOL(SetBreakpointTool, false)
+GODOT_MCP_TOOL(RemoveBreakpointTool, false)
+GODOT_MCP_TOOL(SetWorkspaceTool, false)
+
+// Runtime bridge tools
+GODOT_MCP_TOOL(WaitForBridgeTool, false)
+GODOT_MCP_TOOL(GetGameSceneTreeTool, false)
+GODOT_MCP_TOOL(GetGameNodePropertyTool, false)
+GODOT_MCP_TOOL(SetGameNodePropertyTool, true)
+GODOT_MCP_TOOL(CallMethodInGameTool, false)
+GODOT_MCP_TOOL(CaptureGameScreenshotTool, false)
+GODOT_MCP_TOOL(SimulateGameInputTool, false)
+
+// Runtime lifecycle tools
+GODOT_MCP_TOOL(RunProjectTool, false)
+GODOT_MCP_TOOL(RunCurrentSceneTool, false)
+GODOT_MCP_TOOL(RunSpecificSceneTool, false)
+GODOT_MCP_TOOL(StopProjectTool, false)
+GODOT_MCP_TOOL(PauseProjectTool, false)
+GODOT_MCP_TOOL(SetMovieMakerTool, false)

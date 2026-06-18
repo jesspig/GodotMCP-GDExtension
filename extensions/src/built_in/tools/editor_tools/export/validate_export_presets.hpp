@@ -1,0 +1,105 @@
+
+#pragma once
+
+#include "built_in/cmd_utils/schema_builder.hpp"
+#include "built_in/tool_base.hpp"
+#include "built_in/cmd_utils.hpp"
+
+#include <godot_cpp/classes/editor_interface.hpp>
+
+namespace godot_mcp {
+
+class ValidateExportPresetsTool : public ITool {
+public:
+    String name() const noexcept override { return "validate_export_presets"; }
+    String category() const noexcept override { return "editor_tools/export"; }
+    String brief() const noexcept override {
+        return "Validate export preset configuration completeness";
+    }
+    String description() const override {
+        return "Validates export presets for completeness, checking platform, "
+               "export path, features, and template installation status.";
+    }
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("preset_name", "string", "Preset name to validate (empty = validate all)")
+            .build();
+    }
+
+protected:
+    Dictionary execute_impl(const ToolContext &ctx) override {
+        auto *ei = godot::EditorInterface::get_singleton();
+        if (!ei) {
+            return ToolResult::err("NO_EDITOR", "EditorInterface not available");
+        }
+
+        String preset_name = args_string(ctx.args, "preset_name");
+
+        Array presets = ei->call("get_export_presets");
+        Array results;
+
+        for (int64_t i = 0; i < presets.size(); i++) {
+            Dictionary preset = presets[i];
+            String name = preset.get("name", "");
+
+            if (!preset_name.is_empty() && name != preset_name) {
+                continue;
+            }
+
+            Array warnings;
+            Array errors;
+
+            String platform = preset.get("platform", "");
+            if (platform.is_empty()) {
+                errors.append("Missing platform");
+            }
+
+            if (!preset.get("runnable", false)) {
+                warnings.append("Preset is not runnable");
+            }
+
+            String export_path = preset.get("export_path", "");
+            if (export_path.is_empty()) {
+                warnings.append("No export path configured");
+            }
+
+            Array features = preset.get("features", Array());
+            if (features.size() == 0) {
+                warnings.append("No custom features defined");
+            }
+
+            Dictionary entry;
+            entry["name"] = name;
+            entry["platform"] = platform;
+            entry["valid"] = errors.size() == 0;
+            entry["warnings"] = warnings;
+            entry["errors"] = errors;
+            entry["warning_count"] = static_cast<int64_t>(warnings.size());
+            entry["error_count"] = static_cast<int64_t>(errors.size());
+            results.append(entry);
+        }
+
+        if (!preset_name.is_empty() && results.size() == 0) {
+            return ToolResult::err("PRESET_NOT_FOUND",
+                "Export preset not found: " + preset_name);
+        }
+
+        int total_errors = 0;
+        int total_warnings = 0;
+        for (int64_t i = 0; i < results.size(); i++) {
+            Dictionary r = results[i];
+            total_errors += static_cast<int>(r["error_count"]);
+            total_warnings += static_cast<int>(r["warning_count"]);
+        }
+
+        Dictionary data;
+        data["presets"] = results;
+        data["preset_count"] = static_cast<int64_t>(results.size());
+        data["total_errors"] = static_cast<int64_t>(total_errors);
+        data["total_warnings"] = static_cast<int64_t>(total_warnings);
+        data["all_valid"] = total_errors == 0;
+        return ToolResult::ok(data);
+    }
+};
+
+} // namespace godot_mcp

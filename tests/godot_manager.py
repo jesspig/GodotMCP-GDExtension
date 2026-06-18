@@ -13,13 +13,12 @@ class GodotManager:
         project_path: str = "example",
         headless: bool = True,
         mcp_port: int = 9600,
-        mcp_url: str = "http://127.0.0.1:9600/mcp",
     ):
         self.godot_path = godot_path
         self.project_path = os.path.abspath(project_path)
         self.headless = headless
         self.mcp_port = mcp_port
-        self.mcp_url = mcp_url
+        self.mcp_url = f"http://127.0.0.1:{mcp_port}/mcp"
         self.process: subprocess.Popen | None = None
         self._started_by_us = False
 
@@ -78,28 +77,34 @@ class GodotManager:
 
     async def _wait_for_mcp(self, timeout: int) -> bool:
         deadline = time.time() + timeout
-        while time.time() < deadline:
-            if self.process and self.process.poll() is not None:
-                return False
-            if await self._check_mcp_ready():
-                return True
-            await asyncio.sleep(0.5)
+        async with httpx.AsyncClient() as client:
+            while time.time() < deadline:
+                if self.process and self.process.poll() is not None:
+                    return False
+                if await self._check_mcp_ready(client):
+                    return True
+                await asyncio.sleep(0.5)
         return False
 
-    async def _check_mcp_ready(self) -> bool:
+    async def _check_mcp_ready(self, client: httpx.AsyncClient | None = None) -> bool:
+        async def _ping(c: httpx.AsyncClient) -> bool:
+            resp = await c.post(
+                self.mcp_url,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": "ping-1",
+                    "method": "ping",
+                },
+                headers={"Accept": "application/json, text/event-stream"},
+                timeout=3,
+            )
+            return resp.status_code == 200
+
         try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.post(
-                    self.mcp_url,
-                    json={
-                        "jsonrpc": "2.0",
-                        "id": "ping-1",
-                        "method": "ping",
-                    },
-                    headers={"Accept": "application/json, text/event-stream"},
-                    timeout=3,
-                )
-                return resp.status_code == 200
+            if client is not None:
+                return await _ping(client)
+            async with httpx.AsyncClient() as c:
+                return await _ping(c)
         except Exception:
             return False
 

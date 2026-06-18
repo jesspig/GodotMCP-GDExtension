@@ -1,0 +1,181 @@
+name: scene_tree_smoke
+description: Smoke tests for all scene tree tools (create scene in before_all)
+headless: false
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: new_scene
+      args:
+        root_type: "Node2D"
+        root_name: "TestRoot"
+    - tool: add_node
+      args:
+        class_name: "Sprite2D"
+        node_name: "TestSprite"
+        parent_path: ""
+    - tool: add_node
+      args:
+        class_name: "Button"
+        node_name: "TestButton"
+        parent_path: ""
+    - tool: add_node
+      args:
+        class_name: "Node2D"
+        node_name: "TestChild"
+        parent_path: ""
+    - tool: create_directory
+      args:
+        path: "res://test_mcp_scene"
+    - tool: write_gd_script
+      args:
+        path: "res://test_mcp_scene/attach_test.gd"
+        content: "extends Node2D\n\nfunc _ready() -> void:\n\tpass\n"
+  after_all:
+    - tool: new_scene
+      args:
+        root_type: "Node"
+        root_name: "Cleanup"
+    - tool: delete_file
+      args:
+        path: "res://test_mcp_scene"
+        recursive: true
+  stages:
+    - id: main
+      steps:
+        - id: get_scene_tree
+          tool: get_scene_tree
+          description: Reads current scene tree structure
+          args:
+            max_depth: 2
+          expect:
+            has_keys: [root_type, root_name, nodes, count]
+            field_checks:
+              - key: root_type
+                value: "Node2D"
+              - key: root_name
+                not_empty: true
+              - key: count
+                not_empty: true
+
+        - id: add_node
+          tool: add_node
+          description: Adds a new Sprite2D child
+          args:
+            class_name: "Sprite2D"
+            node_name: "AddedSprite"
+            parent_path: ""
+          expect:
+            has_keys: [node, type, name]
+            field_checks:
+              - key: type
+                value: "Sprite2D"
+              - key: name
+                not_empty: true
+
+        - id: rename_node
+          tool: rename_node
+          description: Renames root node
+          args:
+            node_path: ""
+            new_name: "RenamedRoot"
+          expect:
+            has_keys: [node, old_name, new_name, changed]
+            field_checks:
+              - key: new_name
+                value: "RenamedRoot"
+              - key: changed
+                value: true
+
+        - id: move_node
+          tool: move_node
+          description: Moves TestButton to end of children
+          args:
+            node_path: "RenamedRoot/TestButton"
+            position: "last"
+          expect:
+            has_keys: [node, new_parent, changed]
+
+        - id: duplicate_node
+          tool: duplicate_node
+          description: Duplicates TestSprite node
+          args:
+            node_path: "RenamedRoot/TestSprite"
+          expect:
+            has_keys: [source, new_node, new_name, index]
+
+        - id: copy_node
+          tool: copy_node
+          description: Copies TestSprite to clipboard
+          args:
+            node_path: "RenamedRoot/TestSprite"
+          expect:
+            has_keys: [copied, type, node_count]
+
+        - id: paste_node
+          tool: paste_node
+          description: Pastes from clipboard as child of root
+          args:
+            target_path: ""
+            mode: "child"
+          expect:
+            has_keys: [new_node, type, mode]
+
+        - id: set_unique_name
+          tool: set_unique_name
+          description: Enables unique name on TestSprite
+          args:
+            node_path: "RenamedRoot/TestSprite"
+            enable: true
+          expect:
+            has_keys: [node, unique_name, changed]
+            field_checks:
+              - key: unique_name
+                value: true
+
+        - id: attach_script
+          tool: attach_script
+          description: Attaches test script to TestSprite
+          args:
+            node_path: "RenamedRoot/TestSprite"
+            script_path: "res://test_mcp_scene/attach_test.gd"
+          expect:
+            has_keys: [node, script]
+
+        - id: detach_script
+          tool: detach_script
+          description: Detaches script from TestSprite
+          args:
+            node_path: "RenamedRoot/TestSprite"
+          expect:
+            has_keys: [node, removed_script]
+
+        - id: save_scene
+          tool: save_scene
+          description: Saves scene to temp path
+          args:
+            path: "res://test_mcp_scene/smoke_test.tscn"
+          expect:
+            has_keys: [path]
+            field_checks:
+              - key: path
+                value: "res://test_mcp_scene/smoke_test.tscn"
+
+        - id: delete_node
+          tool: delete_node
+          description: Deletes TestChild node
+          args:
+            node_path: "RenamedRoot/TestChild"
+          expect:
+            has_keys: [deleted, type]
+            field_checks:
+              - key: deleted
+                not_empty: true
+
+        - id: cut_node
+          tool: cut_node
+          description: Cuts TestButton to clipboard
+          args:
+            node_path: "RenamedRoot/TestButton"
+          expect:
+            has_keys: [cut, type]

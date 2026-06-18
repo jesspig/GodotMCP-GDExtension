@@ -1,5 +1,0 @@
-class: VFlowContainer
-inherits: FlowContainer
-properties: []
-description: A vertical flow container that arranges child controls in columns.
-aliases: []

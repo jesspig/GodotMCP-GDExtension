@@ -1,8 +1,0 @@
-class: PackedDataContainer
-inherits: Resource
-properties:
-- name: __data__
-  type: 29
-  type_name: PackedByteArray
-description: ''
-aliases: []

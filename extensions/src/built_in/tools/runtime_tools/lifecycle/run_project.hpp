@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,24 +11,19 @@ namespace godot_mcp {
 
 class RunProjectTool : public ITool {
 public:
-    String name() const override { return "run_project"; }
-    String category() const override { return "runtime_tools/lifecycle"; }
-    String brief() const override { return String("Run the project default main scene"); }
+    String name() const noexcept override { return "run_project"; }
+    String category() const noexcept override { return "runtime_tools/lifecycle"; }
+    String brief() const noexcept override { return String("Run the project default main scene"); }
     String description() const override {
         return String("Runs the project's default main scene (configured in ProjectSettings under application/run/main_scene). "
                              "Equivalent to pressing F5 (or clicking the Run Project button) in the editor. "
                              "Can be stopped via stop_project.");
     }
-    Dictionary input_schema() const override {
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = Dictionary();
-        return s;
-    }
+
 
 protected:
     Dictionary execute_impl(const ToolContext &) override {
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }

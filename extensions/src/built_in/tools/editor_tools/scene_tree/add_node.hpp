@@ -1,8 +1,9 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/memdelete_guard.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_selection.hpp>
@@ -14,9 +15,9 @@ namespace godot_mcp {
 
 class AddNodeTool : public ITool {
 public:
-    String name() const override { return "add_node"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "add_node"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Add a new node to the scene";
     }
     String description() const override {
@@ -26,15 +27,16 @@ public:
                "index=-1 appends at the end. "
                "All changes go through EditorUndoRedoManager and can be undone with Ctrl+Z.";
     }
-    String category_description() const override {
+    String category_description() const noexcept override {
         return "Editor operation tools: scene tree CRUD, clipboard, script, workspace switching, console, debugger, performance monitors, etc.";
     }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary props;
         {
             Dictionary p;
             p["type"] = "string";
             p["description"] = "Parent node path (empty = scene root)";
+            p["x-mcp-header"] = true;
             props["parent_path"] = p;
         }
         {
@@ -53,7 +55,7 @@ public:
             Dictionary p;
             p["type"] = "integer";
             p["description"] = "Insert position (-1 = append at end)";
-            p["default"] = (int64_t)-1;
+            p["default"] = static_cast<int64_t>(-1);
             props["index"] = p;
         }
         Dictionary s;
@@ -82,10 +84,9 @@ protected:
             return ToolResult::err("UNKNOWN_CLASS",
                 "Unknown Godot class: " + class_name);
         }
-        Node *parent = resolve_node(ctx.root, parent_path);
-        if (!parent) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Parent node not found: " + parent_path);
+        Node *parent = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
         if (node_name.is_empty()) {
             node_name = class_name;
@@ -96,15 +97,14 @@ protected:
             return ToolResult::err("CREATE_FAILED",
                 "Failed to create node of type: " + class_name);
         }
+        MemdeleteGuard<Node> guard(child);
 
-        // Handle name conflicts
         if (parent->has_node(String("./") + node_name)) {
-            memdelete(child);
             return ToolResult::err("NAME_CONFLICT",
                 "A node with the same name already exists: " + node_name);
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = get_undo_redo();
         if (!ur) {
             parent->add_child(child, true, godot::Node::INTERNAL_MODE_DISABLED);
             child->set_owner(ctx.root);
@@ -113,11 +113,12 @@ protected:
             scene_tree_utils::do_add_child(ur, parent, child, ctx.root, index,
                 "MCP: Add " + class_name);
         }
+        guard.dismiss();
 
         // Select the new node
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (ei) {
-            godot::EditorSelection *sel = ei->get_selection();
+            auto *sel = ei->get_selection();
             if (sel) {
                 sel->clear();
                 sel->add_node(child);

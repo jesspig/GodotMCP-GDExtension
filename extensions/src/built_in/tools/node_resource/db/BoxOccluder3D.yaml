@@ -1,8 +1,0 @@
-class: BoxOccluder3D
-inherits: Occluder3D
-properties:
-- name: size
-  type: 9
-  type_name: Vector3
-description: ''
-aliases: []

@@ -1,6 +1,8 @@
-﻿#include "game_bridge.hpp"
+#include "game_bridge.hpp"
+#include "built_in/cmd_utils.hpp"
 #include "logging.hpp"
 
+#include <algorithm>
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/global_constants.hpp>
 #include <godot_cpp/classes/image.hpp>
@@ -20,8 +22,29 @@
 using namespace godot;
 
 namespace godot_mcp {
-// Forward declaration 鈥?defined in cmd_utils_json.cpp, no editor dependency
-Variant json_to_variant(const Variant &jv);
+// Forward declaration - defined in cmd_utils_json.cpp, no editor dependency.
+// Keep this signature in sync with cmd_utils.hpp (the depth default lives in
+// the header; redeclaring the default here would be an ODR violation, so omit it).
+Variant json_to_variant(const Variant &jv, int depth);
+
+static Dictionary make_error(const String &msg) {
+    Dictionary r;
+    r["ok"] = false;
+    r["error"] = msg;
+    return r;
+}
+
+static constexpr int64_t MAX_MESSAGE_SIZE = 65536;
+
+static void reset_read_state(PackedByteArray &buf, String &text, int64_t &offset,
+                              int &retries, int64_t &fail_offset, int64_t &consumed) {
+    buf.clear();
+    text = String();
+    offset = 0;
+    retries = 0;
+    fail_offset = -1;
+    consumed = 0;
+}
 
 // -----------------------------------------------------------------------
 // Lifecycle
@@ -38,18 +61,12 @@ void GameBridgeNode::_bind_methods() {
 }
 
 int GameBridgeNode::read_port() {
-    OS *os = OS::get_singleton();
-    if (!os) return 9601;
-    const String raw = os->get_environment("GODOT_MCP_BRIDGE_PORT");
-    if (raw.is_empty()) return 9601;
-    int64_t parsed = raw.to_int();
-    if (parsed < 1 || parsed > 65535) return 9601;
-    return (int)parsed;
+    return read_port_from_env("GODOT_MCP_BRIDGE_PORT", 9601);
 }
 
 void GameBridgeNode::_ready() {
     if (Engine::get_singleton()->is_editor_hint()) {
-        // Should never happen 鈥?only created in game process
+        // Should never happen - only created in game process
         return;
     }
     set_process(true);
@@ -69,16 +86,16 @@ void GameBridgeNode::_process(double) {
 
 void GameBridgeNode::_self_add() {
     if (Engine::get_singleton()->is_editor_hint()) return;
+    if (is_inside_tree()) return;
 
-    SceneTree *st = Object::cast_to<SceneTree>(
-            Engine::get_singleton()->get_main_loop());
-    if (!st || !st->get_root()) {
-        // Root not ready yet 鈥?try again next frame
+    Node *root = get_scene_root();
+    if (!root) {
+        // Root not ready yet - try again next frame
         call_deferred("_self_add");
         return;
     }
 
-    st->get_root()->add_child(this);
+    root->add_child(this);
     log_info("game_bridge", String("GameBridgeNode added to scene tree, port=") +
                                     String::num_int64(port_));
 }
@@ -89,7 +106,7 @@ void GameBridgeNode::_self_add() {
 
 void GameBridgeNode::start_server() {
     server_.instantiate();
-    Error err = server_->listen(port_, "localhost");
+    Error err = server_->listen(port_, "127.0.0.1");
     if (err != OK) {
         log_error("game_bridge", String("Failed to listen on :") + String::num_int64(port_));
         server_.unref();
@@ -107,7 +124,7 @@ void GameBridgeNode::stop_server() {
         server_->stop();
         server_.unref();
     }
-    read_buf_.clear();
+    reset_read_state_internal();
 }
 
 void GameBridgeNode::accept_clients() {
@@ -120,9 +137,8 @@ void GameBridgeNode::accept_clients() {
     }
     Ref<StreamPeerTCP> new_client = server_->take_connection();
     if (new_client.is_valid()) {
-        new_client->set_no_delay(true);
         client_ = new_client;
-        read_buf_.clear();
+        reset_read_state_internal();
         log_info("game_bridge", "Client connected");
     }
 }
@@ -131,71 +147,114 @@ void GameBridgeNode::read_clients() {
     if (!client_.is_valid()) return;
 
     client_->poll();
-    StreamPeerSocket::Status s = client_->get_status();
-    if (s == StreamPeerSocket::STATUS_ERROR || s == StreamPeerSocket::STATUS_NONE) {
+    StreamPeerTCP::Status s = client_->get_status();
+    if (s == StreamPeerTCP::STATUS_ERROR || s == StreamPeerTCP::STATUS_NONE) {
         client_.unref();
-        read_buf_.clear();
+        reset_read_state_internal();
         log_info("game_bridge", "Client disconnected");
         return;
     }
 
-    int avail = client_->get_available_bytes();
+    int64_t avail = client_->get_available_bytes();
     if (avail <= 0) return;
 
     Array chunk = client_->get_partial_data(avail);
-    if ((int)chunk[0] != OK) {
+    if (static_cast<int64_t>(chunk[0]) != OK) {
         client_->disconnect_from_host();
         client_.unref();
-        read_buf_.clear();
+        reset_read_state_internal();
         return;
     }
     PackedByteArray data = chunk[1];
     read_buf_.append_array(data);
 
     if (read_buf_.size() > BUFFER_LIMIT) {
-        // Sanity: drop connection if buffer overflows
-        Dictionary err;
-        err["ok"] = false;
-        err["error"] = String("Message body too large");
+        Dictionary err = make_error("Message body too large");
         send_response(client_, err);
         client_->disconnect_from_host();
         client_.unref();
+        reset_read_state_internal();
+        return;
+    }
+
+    // Decode only newly received bytes and accumulate the decoded text
+    int64_t new_bytes = read_buf_.size() - read_offset_;
+    if (new_bytes > 0) {
+        const uint8_t* raw = read_buf_.ptr() + read_offset_;
+        String chunk_text;
+        int64_t parse_len = (new_bytes > 65536) ? 65536 : new_bytes;
+        Error utf8_err = chunk_text.parse_utf8((const char*)raw, static_cast<int>(parse_len));
+        if (utf8_err != OK) {
+            if (read_offset_ == utf8_fail_offset_) {
+                utf8_retries_++;
+            } else {
+                utf8_retries_ = 0;
+                utf8_fail_offset_ = read_offset_;
+            }
+            if (utf8_retries_ >= 3) {
+                read_offset_ = read_buf_.size();
+                utf8_retries_ = 0;
+                utf8_fail_offset_ = -1;
+                log_warn("game_bridge", "Discarding un-decodable UTF-8 data");
+            }
+            return;
+        }
+        utf8_retries_ = 0;
+        utf8_fail_offset_ = -1;
+        read_text_ += chunk_text;
+        read_offset_ = read_buf_.size();
+    }
+
+    if (read_text_.is_empty()) return;
+
+    // Process newline-delimited messages (fixes pipelined messages and JSON parse hang)
+    while (true) {
+        int64_t newline_idx = read_text_.find("\n");
+        if (newline_idx == -1) {
+            // Incomplete message – guard against runaway accumulation
+            if (read_text_.length() > MAX_MESSAGE_SIZE) {
+                log_warn("game_bridge", "Message too large, discarding buffer");
+                reset_read_state_internal();
+            }
+            return;
+        }
+
+        String line = read_text_.substr(0, static_cast<int>(newline_idx));
+        read_text_ = read_text_.substr(static_cast<int>(newline_idx) + 1);
+
+        // All of read_buf_ has been decoded, safe to clear
         read_buf_.clear();
-        return;
+        read_offset_ = 0;
+
+        if (line.is_empty()) continue;
+
+        Ref<JSON> json;
+        json.instantiate();
+        if (json->parse(line) != OK) {
+            log_warn("game_bridge", "Skipping unparseable JSON message");
+            continue;
+        }
+
+        Variant msg = json->get_data();
+        if (msg.get_type() != Variant::DICTIONARY) {
+            log_warn("game_bridge", "Message must be a JSON object, skipping");
+            continue;
+        }
+
+        Dictionary msg_dict = msg;
+        String cmd = msg_dict.get("cmd", "");
+        Dictionary params = msg_dict.get("params", Dictionary());
+        Variant id = msg_dict.get("id", Variant());
+
+        Dictionary result = dispatch(cmd, params);
+        result["id"] = id;
+        send_response(client_, result);
     }
+}
 
-    // Try to find a complete JSON object terminated by newline
-    // First try: parse the buffer directly as JSON
-    String text = read_buf_.get_string_from_utf8();
-    if (text.is_empty()) return; // partial UTF-8, wait for more data
-
-    Ref<JSON> json;
-    json.instantiate();
-    Error parse_err = json->parse(text);
-    if (parse_err != OK) {
-        // Incomplete 鈥?wait for more data
-        return;
-    }
-    Variant msg = json->get_data();
-    read_buf_.clear();
-
-    if (msg.get_type() != Variant::DICTIONARY) {
-        Dictionary err;
-        err["ok"] = false;
-        err["error"] = String("娑堟伅浣撳繀椤讳负 JSON 瀵硅薄");
-        send_response(client_, err);
-        return;
-    }
-
-    Dictionary msg_dict = msg;
-    String cmd = msg_dict.get("cmd", "");
-    Dictionary params = msg_dict.get("params", Dictionary());
-    Variant id_v = msg_dict.get("id", Variant());
-    int id = (int)(id_v.get_type() == Variant::FLOAT ? (double)id_v : (int64_t)id_v);
-
-    Dictionary result = dispatch(cmd, params);
-    result["id"] = id;
-    send_response(client_, result);
+void GameBridgeNode::reset_read_state_internal() {
+    reset_read_state(read_buf_, read_text_, read_offset_,
+                      utf8_retries_, utf8_fail_offset_, consumed_bytes_);
 }
 
 void GameBridgeNode::send_response(const Ref<StreamPeerTCP> &client, const Dictionary &msg) {
@@ -203,7 +262,20 @@ void GameBridgeNode::send_response(const Ref<StreamPeerTCP> &client, const Dicti
     String json_str = JSON::stringify(msg);
     PackedByteArray data = json_str.to_utf8_buffer();
     data.push_back('\n');
-    client->put_data(data);
+    Error err = client->put_data(data);
+    if (err != OK) {
+        log_error("game_bridge", String("send_response put_data failed: err=") + String::num_int64(err));
+    }
+}
+
+// -----------------------------------------------------------------------
+// Scene tree helpers
+// -----------------------------------------------------------------------
+
+Node *GameBridgeNode::get_scene_root() {
+    SceneTree *st = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
+    if (!st || !st->get_root()) return nullptr;
+    return st->get_root();
 }
 
 // -----------------------------------------------------------------------
@@ -230,15 +302,15 @@ Dictionary GameBridgeNode::dispatch(const String &cmd, const Dictionary &params)
 // -----------------------------------------------------------------------
 
 Dictionary GameBridgeNode::handle_get_scene_tree(const Dictionary &params) {
-    SceneTree *st = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
-    if (!st || !st->get_root()) {
+    Node *root = get_scene_root();
+    if (!root) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
+        r["error"] = String("Scene tree not available");
         return r;
     }
-    int max_depth = params.get("max_depth", -1);
-    Dictionary result = node_to_dict(st->get_root(), max_depth, 0);
+    int64_t max_depth = static_cast<int64_t>(params.get("max_depth", -1));
+    Dictionary result = node_to_dict(root, max_depth, 0);
     Dictionary r;
     r["ok"] = true;
     r["data"] = result;
@@ -251,23 +323,40 @@ Dictionary GameBridgeNode::handle_get_property(const Dictionary &params) {
     if (node_path.is_empty() || property.is_empty()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍙傛暟 node_path 鍜?property 涓嶈兘涓虹┖");
+        r["error"] = String("Parameters node_path and property must not be empty");
         return r;
     }
-    SceneTree *st = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
-    if (!st || !st->get_root()) {
+    Node *root = get_scene_root();
+    if (!root) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
+        r["error"] = String("Scene tree not available");
         return r;
     }
-    Node *node = st->get_root()->get_node<godot::Node>(NodePath(node_path));
+    Node *node = root->get_node<godot::Node>(NodePath(node_path));
     if (!node) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鑺傜偣鏈壘鍒? ") + node_path;
+        r["error"] = String("Node not found: ") + node_path;
         return r;
     }
+
+    bool has_prop = false;
+    Array prop_list = node->get_property_list();
+    for (int64_t i = 0; i < prop_list.size(); i++) {
+        Dictionary pd = prop_list[i];
+        if (pd.get("name", "") == property) {
+            has_prop = true;
+            break;
+        }
+    }
+    if (!has_prop) {
+        Dictionary r;
+        r["ok"] = false;
+        r["error"] = String("Property not found: ") + property;
+        return r;
+    }
+
     Variant value = node->get(property);
     Dictionary r;
     r["ok"] = true;
@@ -281,24 +370,24 @@ Dictionary GameBridgeNode::handle_set_property(const Dictionary &params) {
     if (node_path.is_empty() || property.is_empty()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍙傛暟 node_path 鍜?property 涓嶈兘涓虹┖");
+        r["error"] = String("Parameters node_path and property must not be empty");
         return r;
     }
-    SceneTree *st = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
-    if (!st || !st->get_root()) {
+    Node *root = get_scene_root();
+    if (!root) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
+        r["error"] = String("Scene tree not available");
         return r;
     }
-    Node *node = st->get_root()->get_node<godot::Node>(NodePath(node_path));
+    Node *node = root->get_node<godot::Node>(NodePath(node_path));
     if (!node) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鑺傜偣鏈壘鍒? ") + node_path;
+        r["error"] = String("Node not found: ") + node_path;
         return r;
     }
-    node->set(property, json_to_variant(params.get("value", Variant())));
+    node->set(property, json_to_variant(params.get("value", Variant()), 0));
     Dictionary r;
     r["ok"] = true;
     r["data"] = node->get(property);
@@ -311,30 +400,30 @@ Dictionary GameBridgeNode::handle_call_method(const Dictionary &params) {
     if (node_path.is_empty() || method.is_empty()) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍙傛暟 node_path 鍜?method 涓嶈兘涓虹┖");
+        r["error"] = String("Parameters node_path and method must not be empty");
         return r;
     }
-    SceneTree *st = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
-    if (!st || !st->get_root()) {
+    Node *root = get_scene_root();
+    if (!root) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
+        r["error"] = String("Scene tree not available");
         return r;
     }
-    Node *node = st->get_root()->get_node<godot::Node>(NodePath(node_path));
+    Node *node = root->get_node<godot::Node>(NodePath(node_path));
     if (!node) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鑺傜偣鏈壘鍒? ") + node_path;
+        r["error"] = String("Node not found: ") + node_path;
         return r;
     }
     Array args = params.get("args", Array());
     Array converted_args;
     converted_args.resize(args.size());
-    for (int i = 0; i < args.size(); i++) {
-        converted_args[i] = json_to_variant(args[i]);
+    for (int64_t i = 0; i < args.size(); i++) {
+        converted_args[i] = json_to_variant(args[i], 0);
     }
-    Variant result = node->call(method, converted_args);
+    Variant result = node->callv(method, converted_args);
     Dictionary r;
     r["ok"] = true;
     r["data"] = result;
@@ -359,7 +448,7 @@ Dictionary GameBridgeNode::handle_screenshot(const Dictionary &params) {
     }
     PackedByteArray buf;
     if (format == "jpg" || format == "jpeg") {
-        buf = img->save_jpg_to_buffer(0.85);
+        buf = img->save_jpg_to_buffer(0.85f);
     } else {
         buf = img->save_png_to_buffer();
     }
@@ -383,43 +472,35 @@ static Key key_from_string(const String &name) {
     // Single letter A-Z
     if (upper.length() == 1) {
         char32_t c = upper[0];
-        if (c >= 'A' && c <= 'Z') return (Key)(KEY_A + (c - 'A'));
-        if (c >= '0' && c <= '9') return (Key)(KEY_0 + (c - '0'));
+        if (c >= 'A' && c <= 'Z') return static_cast<Key>((KEY_A + (c - 'A')));
+        if (c >= '0' && c <= '9') return static_cast<Key>((KEY_0 + (c - '0')));
     }
 
-    // Named keys
-    if (upper == "ENTER" || upper == "RETURN")    return KEY_ENTER;
-    if (upper == "SPACE")                          return KEY_SPACE;
-    if (upper == "ESCAPE" || upper == "ESC")       return KEY_ESCAPE;
-    if (upper == "TAB")                            return KEY_TAB;
-    if (upper == "BACKSPACE")                      return KEY_BACKSPACE;
-    if (upper == "SHIFT")                          return KEY_SHIFT;
-    if (upper == "CONTROL" || upper == "CTRL")     return KEY_CTRL;
-    if (upper == "ALT")                            return KEY_ALT;
-    if (upper == "META" || upper == "COMMAND")     return KEY_META;
-    if (upper == "UP")                             return KEY_UP;
-    if (upper == "DOWN")                           return KEY_DOWN;
-    if (upper == "LEFT")                           return KEY_LEFT;
-    if (upper == "RIGHT")                          return KEY_RIGHT;
-    if (upper == "DELETE")                         return KEY_DELETE;
-    if (upper == "HOME")                           return KEY_HOME;
-    if (upper == "END")                            return KEY_END;
-    if (upper == "PAGEUP" || upper == "PAGE_UP")   return KEY_PAGEUP;
-    if (upper == "PAGEDOWN" || upper == "PAGE_DOWN") return KEY_PAGEDOWN;
-    if (upper == "INSERT" || upper == "INS")       return KEY_INSERT;
-    if (upper == "F1")                             return KEY_F1;
-    if (upper == "F2")                             return KEY_F2;
-    if (upper == "F3")                             return KEY_F3;
-    if (upper == "F4")                             return KEY_F4;
-    if (upper == "F5")                             return KEY_F5;
-    if (upper == "F6")                             return KEY_F6;
-    if (upper == "F7")                             return KEY_F7;
-    if (upper == "F8")                             return KEY_F8;
-    if (upper == "F9")                             return KEY_F9;
-    if (upper == "F10")                            return KEY_F10;
-    if (upper == "F11")                            return KEY_F11;
-    if (upper == "F12")                            return KEY_F12;
+    // Named keys via constexpr lookup table
+    struct KeyEntry { const char *name; Key key; };
+    static constexpr KeyEntry kEntries[] = {
+        {"ENTER", KEY_ENTER}, {"RETURN", KEY_ENTER},
+        {"SPACE", KEY_SPACE},
+        {"ESCAPE", KEY_ESCAPE}, {"ESC", KEY_ESCAPE},
+        {"TAB", KEY_TAB},
+        {"BACKSPACE", KEY_BACKSPACE},
+        {"SHIFT", KEY_SHIFT},
+        {"CONTROL", KEY_CTRL}, {"CTRL", KEY_CTRL},
+        {"ALT", KEY_ALT},
+        {"META", KEY_META}, {"COMMAND", KEY_META},
+        {"UP", KEY_UP}, {"DOWN", KEY_DOWN}, {"LEFT", KEY_LEFT}, {"RIGHT", KEY_RIGHT},
+        {"DELETE", KEY_DELETE}, {"HOME", KEY_HOME}, {"END", KEY_END},
+        {"PAGEUP", KEY_PAGEUP}, {"PAGE_UP", KEY_PAGEUP},
+        {"PAGEDOWN", KEY_PAGEDOWN}, {"PAGE_DOWN", KEY_PAGEDOWN},
+        {"INSERT", KEY_INSERT}, {"INS", KEY_INSERT},
+        {"F1", KEY_F1}, {"F2", KEY_F2}, {"F3", KEY_F3}, {"F4", KEY_F4},
+        {"F5", KEY_F5}, {"F6", KEY_F6}, {"F7", KEY_F7}, {"F8", KEY_F8},
+        {"F9", KEY_F9}, {"F10", KEY_F10}, {"F11", KEY_F11}, {"F12", KEY_F12},
+    };
 
+    for (const auto &entry : kEntries) {
+        if (upper == String(entry.name)) return entry.key;
+    }
     return KEY_NONE;
 }
 
@@ -430,7 +511,7 @@ static MouseButton mouse_button_from_string(const String &name) {
     if (upper == "MIDDLE")     return MOUSE_BUTTON_MIDDLE;
     if (upper == "WHEEL_UP")   return MOUSE_BUTTON_WHEEL_UP;
     if (upper == "WHEEL_DOWN") return MOUSE_BUTTON_WHEEL_DOWN;
-    return MOUSE_BUTTON_LEFT;
+    return MOUSE_BUTTON_NONE;
 }
 
 Dictionary GameBridgeNode::handle_simulate_input(const Dictionary &params) {
@@ -469,8 +550,8 @@ Dictionary GameBridgeNode::handle_simulate_input(const Dictionary &params) {
             ev->set_pressed(act.get("pressed", true));
             ev->set_button_index(mouse_button_from_string(act.get("button", "left")));
             ev->set_position(Vector2(
-                (float)act.get("x", 0),
-                (float)act.get("y", 0)));
+                static_cast<float>(act.get("x", 0)),
+                static_cast<float>(act.get("y", 0))));
             ev->set_global_position(ev->get_position());
             input->parse_input_event(ev);
             success_count++;
@@ -479,12 +560,12 @@ Dictionary GameBridgeNode::handle_simulate_input(const Dictionary &params) {
             Ref<InputEventMouseMotion> ev;
             ev.instantiate();
             ev->set_position(Vector2(
-                (float)act.get("x", 0),
-                (float)act.get("y", 0)));
+                static_cast<float>(act.get("x", 0)),
+                static_cast<float>(act.get("y", 0))));
             ev->set_global_position(ev->get_position());
             ev->set_relative(Vector2(
-                (float)act.get("dx", 0),
-                (float)act.get("dy", 0)));
+                static_cast<float>(act.get("dx", 0)),
+                static_cast<float>(act.get("dy", 0))));
             input->parse_input_event(ev);
             success_count++;
 
@@ -493,7 +574,7 @@ Dictionary GameBridgeNode::handle_simulate_input(const Dictionary &params) {
             ev.instantiate();
             ev->set_action(act.get("action", ""));
             ev->set_pressed(act.get("pressed", true));
-            ev->set_strength((float)act.get("strength", 1.0));
+            ev->set_strength(static_cast<float>(act.get("strength", 1.0)));
             if (ev->get_action() == StringName()) {
                 fail_count++;
                 continue;
@@ -524,7 +605,7 @@ Dictionary GameBridgeNode::handle_set_pause(const Dictionary &params) {
     if (!st) {
         Dictionary r;
         r["ok"] = false;
-        r["error"] = String("鍦烘櫙鏍戜笉鍙敤");
+        r["error"] = String("Scene tree not available");
         return r;
     }
     bool paused = params.get("paused", false);
@@ -543,7 +624,7 @@ Dictionary GameBridgeNode::handle_set_pause(const Dictionary &params) {
 // Scene tree serialisation
 // -----------------------------------------------------------------------
 
-Dictionary GameBridgeNode::node_to_dict(Node *node, int max_depth, int depth) {
+Dictionary GameBridgeNode::node_to_dict(Node *node, int64_t max_depth, int64_t depth) {
     Dictionary d;
     if (!node) return d;
 
@@ -553,8 +634,8 @@ Dictionary GameBridgeNode::node_to_dict(Node *node, int max_depth, int depth) {
 
     if (max_depth < 0 || depth < max_depth) {
         Array children;
-        int count = node->get_child_count();
-        for (int i = 0; i < count; i++) {
+        int64_t count = node->get_child_count();
+        for (int64_t i = 0; i < count; i++) {
             Node *child = node->get_child(i);
             if (child) {
                 children.push_back(node_to_dict(child, max_depth, depth + 1));
@@ -569,4 +650,3 @@ Dictionary GameBridgeNode::node_to_dict(Node *node, int max_depth, int depth) {
 }
 
 } // namespace godot_mcp
-

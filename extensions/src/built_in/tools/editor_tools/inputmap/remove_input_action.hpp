@@ -1,0 +1,67 @@
+
+#pragma once
+
+#include "built_in/cmd_utils/schema_builder.hpp"
+#include "built_in/tool_base.hpp"
+#include "built_in/cmd_utils.hpp"
+
+#include <godot_cpp/classes/input_map.hpp>
+
+namespace godot_mcp {
+
+class RemoveInputActionTool : public ITool {
+public:
+    String name() const noexcept override { return "remove_input_action"; }
+    String category() const noexcept override { return "editor_tools/inputmap"; }
+    String brief() const noexcept override {
+        return "Remove an InputMap action";
+    }
+    String description() const override {
+        return "Removes an action and all its event bindings from the InputMap. "
+               "Fails if the action does not exist.";
+    }
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("action", "string", "Action name to remove")
+            .required({"action"})
+            .build();
+    }
+
+protected:
+    Dictionary execute_impl(const ToolContext &ctx) override {
+        auto *im = godot::InputMap::get_singleton();
+        if (!im) {
+            return ToolResult::err("NO_INPUT_MAP", "InputMap not available");
+        }
+
+        String action = args_string(ctx.args, "action");
+
+        if (action.is_empty()) {
+            return ToolResult::err("BAD_PARAM", "action is required");
+        }
+
+        godot::StringName action_sn = godot::StringName(action);
+
+        godot::TypedArray<godot::StringName> actions = im->get_actions();
+        bool found = false;
+        for (int64_t i = 0; i < actions.size(); i++) {
+            if (actions[i] == action_sn) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            return ToolResult::err("NOT_FOUND",
+                "Action does not exist: " + action);
+        }
+
+        im->erase_action(action_sn);
+
+        Dictionary data;
+        data["action"] = action;
+        data["removed"] = true;
+        return ToolResult::ok(data);
+    }
+};
+
+} // namespace godot_mcp

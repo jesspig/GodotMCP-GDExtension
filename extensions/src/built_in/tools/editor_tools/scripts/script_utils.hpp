@@ -6,7 +6,11 @@
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
 
-namespace godot_mcp::script_utils {
+namespace godot_mcp {
+
+enum class ScriptLang { GDScript, CSharp };
+
+namespace script_utils {
 
 using godot::EditorInterface;
 using godot::FileAccess;
@@ -14,7 +18,7 @@ using godot::ProjectSettings;
 using godot::String;
 
 inline bool has_dotnet() {
-    godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
+    auto *ps = godot::ProjectSettings::get_singleton();
     if (!ps) return false;
     return ps->has_setting("dotnet/project/assembly_name");
 }
@@ -48,4 +52,5 @@ inline String sanitize_class_name(const String &name) {
     return result;
 }
 
-} // namespace godot_mcp::script_utils
+} // namespace script_utils
+} // namespace godot_mcp

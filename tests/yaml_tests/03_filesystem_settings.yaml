@@ -1,0 +1,221 @@
+name: filesystem_settings_smoke
+description: Smoke tests for filesystem CRUD, settings, scripts, and visualizer tools
+headless: true
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: create_directory
+      args:
+        path: "res://test_mcp_smoke"
+    - tool: create
+      args:
+        path: "res://test_mcp_smoke/temp_file.txt"
+        content: "smoke test content"
+    - tool: write_gd_script
+      args:
+        path: "res://test_mcp_smoke/test_script.gd"
+        content: "extends Node2D\n\n@export var test_value: int = 42\n\nfunc hello() -> String:\n\treturn \"world\"\n"
+    - tool: create
+      args:
+        path: "res://test_mcp_smoke/test_shader.gdshader"
+        content: "shader_type canvas_item;\n\nvoid fragment() {\n\tCOLOR = vec4(0.0, 0.0, 0.0, 1.0);\n}\n"
+  after_all:
+    - tool: delete_file
+      args:
+        path: "res://test_mcp_smoke"
+        recursive: true
+  stages:
+    - id: main
+      steps:
+        - id: list_directory
+          tool: list_directory
+          description: Lists temp smoke directory
+          args:
+            path: "res://test_mcp_smoke"
+          expect:
+            has_keys: [path, files, directories, total_files, total_dirs]
+            field_checks:
+              - key: path
+                value: "res://test_mcp_smoke"
+              - key: total_files
+                not_empty: true
+
+        - id: search_files
+          tool: search_files
+          description: Searches for .gd files in project
+          args:
+            pattern: "*.gd"
+            mode: "glob"
+          expect:
+            has_keys: [files, total, mode]
+            field_checks:
+              - key: mode
+                value: "glob"
+              - key: total
+                not_empty: true
+
+        - id: open_file
+          tool: open_file
+          description: Opens project.godot in editor
+          args:
+            path: "res://project.godot"
+          expect:
+            has_keys: [path, extension, action]
+            field_checks:
+              - key: path
+                value: "res://project.godot"
+
+        - id: copy_file
+          tool: copy_file
+          description: Copies temp file
+          args:
+            source: "res://test_mcp_smoke/temp_file.txt"
+            destination: "res://test_mcp_smoke/copied_file.txt"
+          expect:
+            has_keys: [source, destination]
+
+        - id: move_file
+          tool: move_file
+          description: Moves copied file
+          args:
+            source: "res://test_mcp_smoke/copied_file.txt"
+            destination: "res://test_mcp_smoke/moved_file.txt"
+          expect:
+            has_keys: [source, destination]
+
+        - id: delete_file
+          tool: delete_file
+          description: Deletes original temp file
+          args:
+            path: "res://test_mcp_smoke/temp_file.txt"
+          expect:
+            has_keys: [path, was_directory]
+
+        - id: get_setting
+          tool: get_setting
+          description: Gets project name setting
+          args:
+            setting_path: "application/config/name"
+          expect:
+            has_keys: [setting, value]
+            field_checks:
+              - key: setting
+                value: "application/config/name"
+
+        - id: list_settings
+          tool: list_settings
+          description: Lists settings with application/config filter
+          args:
+            filter: "application/config"
+          expect:
+            has_keys: [count, settings]
+            field_checks:
+              - key: count
+                not_empty: true
+
+        - id: set_setting
+          tool: set_setting
+          description: Sets and reverts a test setting
+          args:
+            setting_path: "application/config/description"
+            value: "MCP_Smoke_Test"
+          expect:
+            has_keys: [setting, previous_value, new_value, saved]
+            field_checks:
+              - key: setting
+                value: "application/config/description"
+
+        - id: reset_setting
+          tool: reset_setting
+          description: Resets setting to default
+          args:
+            setting_path: "application/config/description"
+          expect:
+            has_keys: [setting, previous_value, reset]
+            field_checks:
+              - key: setting
+                value: "application/config/description"
+
+        - id: list_export_presets
+          tool: list_export_presets
+          description: Lists export presets (may be empty)
+          expect:
+            has_keys: [presets, count]
+
+        - id: get_export_platforms
+          tool: get_export_platforms
+          description: Gets available export platforms
+          expect:
+            has_keys: [platforms, count]
+
+        - id: validate_export_presets
+          tool: validate_export_presets
+          description: Validates export presets
+          expect:
+            has_keys: [presets, preset_count, all_valid]
+
+        - id: list_plugins
+          tool: list_plugins
+          description: Lists editor plugins
+          expect:
+            has_keys: [plugins, count]
+
+        - id: input_list_actions
+          tool: input_list_actions
+          description: Lists input actions
+          expect:
+            has_keys: [actions, count]
+
+        - id: get_project_graph
+          tool: get_project_graph
+          description: Gets project dependency graph
+          expect:
+            has_keys: [nodes, edges, scene_count]
+
+        - id: read_gd_script
+          tool: read_gd_script
+          description: Reads the test GDScript
+          args:
+            path: "res://test_mcp_smoke/test_script.gd"
+          expect:
+            has_keys: [path, content]
+            field_checks:
+              - key: path
+                value: "res://test_mcp_smoke/test_script.gd"
+
+        - id: list_gd_scripts
+          tool: list_gd_scripts
+          description: Lists all .gd scripts in project
+          expect:
+            has_keys: [files, total]
+
+        - id: grep_scripts
+          tool: grep_scripts
+          description: Searches for text in script files
+          args:
+            pattern: "extends"
+          expect:
+            has_keys: [matches, total, pattern]
+            field_checks:
+              - key: pattern
+                value: "extends"
+
+        - id: glob_scripts
+          tool: glob_scripts
+          description: Globs for .gd files
+          args:
+            pattern: "*.gd"
+          expect:
+            has_keys: [files, total, pattern]
+
+        - id: validate_gd_script
+          tool: validate_gd_script
+          description: Validates the test GDScript
+          args:
+            path: "res://test_mcp_smoke/test_script.gd"
+          expect:
+            has_keys: [path, valid, exit_code]
+            field_checks:
+              - key: path
+                value: "res://test_mcp_smoke/test_script.gd"

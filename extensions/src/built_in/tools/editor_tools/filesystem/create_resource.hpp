@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -12,9 +13,9 @@ namespace godot_mcp {
 
 class CreateResourceTool : public ITool {
 public:
-    String name() const override { return "create_resource"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_resource"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Create a Godot resource file (.tres / .res)";
     }
     String description() const override {
@@ -23,25 +24,12 @@ public:
                "Supports .tres (text format) and .res (binary format). "
                "The resource_type parameter can specify a Resource subclass (e.g. StyleBoxFlat, Curve, Gradient).";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target path (ending with .tres or .res)";
-            props["path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: Resource subclass name (e.g. StyleBoxFlat, Curve, Gradient, default Resource)";
-            props["resource_type"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("path", "string", "Target path (ending with .tres or .res)")
+            .prop("resource_type", "string", "Optional: Resource subclass name (e.g. StyleBoxFlat, Curve, Gradient, default Resource)")
+            .required({"path"})
+            .build();
     }
 
 protected:
@@ -97,6 +85,9 @@ protected:
         }
 
         Error err = godot::ResourceSaver::get_singleton()->save(res, path, godot::ResourceSaver::FLAG_CHANGE_PATH);
+        if (err != godot::OK) {
+            return ToolResult::err("SAVE_FAILED", String("Failed to save resource: error ") + godot::itos(err));
+        }
 
         fs_utils::notify_file_changed(path);
 

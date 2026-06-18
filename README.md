@@ -1,6 +1,6 @@
 # Godot MCP
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue?logo=github)](https://github.com/jessp/godot-mcp)
+[![Version](https://img.shields.io/badge/version-0.2.1-blue?logo=github)](https://github.com/jessp/godot-mcp)
 [![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=c%2B%2B)](https://isocpp.org)
 [![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?logo=godot%20engine)](https://godotengine.org)
 [![MCP](https://badge.mcpx.dev/?type=plugin&plugin_id=github.com/jessp/godot-mcp&logo=true)](https://modelcontextprotocol.io)
@@ -60,12 +60,12 @@ AI clients connect directly to the GDExtension's HTTP server on `localhost:9600`
 ```bash
 git clone https://github.com/jessp/godot-mcp.git
 cd godot-mcp
-py -3 build.py
+uv run python main.py build
 ```
 
 This produces `build/addons.zip` — extract into any Godot project to install the editor plugin.
 
-> **On Windows**, always use `py -3` instead of `python` — the Microsoft Store stubs hang silently.
+> **On Windows**, use `uv run python` to ensure the `.venv` environment — avoids Microsoft Store stubs that hang silently.
 
 ### Install the Plugin in Godot
 
@@ -189,14 +189,18 @@ cmake -B build -S .
 cmake --build build --config Debug
 ```
 
-### Build Flags
+### Commands
 
 ```bash
-py -3 build.py                        # Debug + addons.zip
-py -3 build.py --release              # Release + addons.zip
-py -3 build.py --clean                # Clear CMake cache (keeps _deps/)
-py -3 build.py --no-zip               # Skip zip (fast iteration)
-cmake --build build --target deep-clean  # Also wipes _deps/ (FetchContent cache)
+uv run python main.py build                        # Debug + copy to example/
+uv run python main.py build --release              # Release
+uv run python main.py build --clean                # Clear CMake cache (keeps _deps/)
+uv run python main.py build --no-zip               # Skip zip (fast iteration)
+uv run python main.py build -j 8                   # Parallel build with 8 jobs
+uv run python main.py package                      # Package addons.zip
+uv run python main.py test                         # Headless test pipeline
+uv run python main.py test --file 03_*.yaml        # Run specific test files
+cmake --build build --target deep-clean            # Also wipes _deps/ (FetchContent cache)
 ```
 
 ### File Lock Tips
@@ -222,6 +226,5 @@ cmake --build build --target deep-clean  # Also wipes _deps/ (FetchContent cache
 | [Protocol](docs/reference/protocol.md) | MCP Streamable HTTP wire format |
 | [FAQ](docs/reference/faq.md) | Frequently asked questions |
 | [Client Quirks](docs/reference/client-quirks.md) | Known issues and limitations |
-| [LSP Client](docs/reference/lsp-client.md) | GDScript validation via LSP |
 | [C# Solution](docs/reference/csharp-solution.md) | Auto-generating .sln/.csproj |
 | [Project Settings Ext](docs/reference/project-settings-ext.md) | Display/physics/rendering key mapping |

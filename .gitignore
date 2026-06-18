@@ -7,10 +7,10 @@ CMakeCache.txt
 CMakeFiles/
 CMakeUserPresets.json
 Makefile
-*.cmake
-*.slnx
-*.vcxproj
-*.vcxproj.filters
+build/*.cmake
+build/*.slnx
+build/*.vcxproj
+build/*.vcxproj.filters
 
 # ==============================
 # Godot
@@ -129,3 +129,6 @@ doc_build/
 *.local/
 
 /godot
+
+# Godot resource UID files (auto-generated)
+*.uid

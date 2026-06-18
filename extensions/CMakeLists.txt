@@ -1,17 +1,10 @@
 # ---------------------------------------------------------------------------
 # GodotMCP GDExtension — C++ implementation using godot-cpp 10.0.0-rc1
 # ---------------------------------------------------------------------------
-# Targets Godot 4.6+ via the godot-cpp v10 bindings (FetchContent).
-# Produces a single shared library (godot_mcp_gdext.dll / .so / .dylib) that
-# is copied to addons/godot_mcp/bin/ by the parent CMakeLists.txt.
-# ---------------------------------------------------------------------------
 
 include(FetchContent)
 
 # Pin to the godot-cpp 10.0.0-rc1 release.
-# v10 follows independent versioning; this release is synced with Godot 4.6-stable
-# and supports api_version 4.3 / 4.4 / 4.5 / 4.6.
-# Target Godot 4.6 API. Must be set before FetchContent_MakeAvailable.
 set(GODOTCPP_API_VERSION "4.6" CACHE STRING "Godot API version to target")
 
 FetchContent_Declare(
@@ -20,150 +13,141 @@ FetchContent_Declare(
     URL_HASH SHA256=ddb8beb99b709e7c0c6831d62149bb225a9abec80e13621dc789cbcd9186e2a1
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
-
 FetchContent_MakeAvailable(godot-cpp)
 
 # ---------------------------------------------------------------------------
-# rapidyaml (ryml) — YAML parser for the test engine
+# rapidyaml (ryml) — YAML parser
 # ---------------------------------------------------------------------------
-
-# Header-only to avoid compiling c4core sources.
 set(RYML_HEADER_ONLY ON CACHE INTERNAL "Use ryml as header-only" FORCE)
 
-# Must use GIT (not URL zip) so the ext/c4core submodule is fetched.
 FetchContent_Declare(
     rapidyaml
     GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
     GIT_TAG v0.7.0
     GIT_SHALLOW TRUE
-    GIT_PROGRESS TRUE
     GIT_SUBMODULES "ext/c4core"
 )
-
 FetchContent_MakeAvailable(rapidyaml)
+set_target_properties(ryml PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Patch ryml common.hpp for clang-cl on Windows
+set(_ryml_common_hpp "${rapidyaml_SOURCE_DIR}/src/c4/yml/common.hpp")
+if(EXISTS "${_ryml_common_hpp}")
+    file(READ "${_ryml_common_hpp}" _ryml_common)
+    string(REPLACE
+        "#ifdef C4_MSVC\n#include <malloc.h>\n#else\n#include <alloca.h>\n#endif"
+        "#if defined(C4_MSVC) || (defined(_WIN32) && defined(__clang__))\n#include <malloc.h>\n#else\n#include <alloca.h>\n#endif"
+        _ryml_common "${_ryml_common}")
+    file(WRITE "${_ryml_common_hpp}" "${_ryml_common}")
+    message(STATUS "ryml: patched common.hpp for clang-cl on Windows")
+endif()
 
 # ---------------------------------------------------------------------------
-# Source list — all .cpp files for the GDExtension.
-# Add new translation units here as the implementation grows.
+# Source list
 # ---------------------------------------------------------------------------
 set(GODOT_MCP_SOURCES
-    # Entry point
     src/register_types.cpp
     src/editor_plugin.cpp
-
-    # SDK
     src/sdk/mcp_tool_definition.cpp
     src/sdk/mcp_tool_registry.cpp
-
-    # Server
     src/server/ipc/http_server.cpp
     src/server/ipc/http_parser.cpp
     src/server/ipc/http_connection.cpp
     src/server/ipc/http_sse.cpp
     src/server/mcp/mcp_handler.cpp
+    src/server/mcp/tool_executor.cpp
+    src/server/mcp/prompt_provider.cpp
     src/server/registry/handler_registry.cpp
-
-    # Tool infrastructure (ITool)
     src/built_in/tool_base.cpp
     src/built_in/tool_adapter.cpp
     src/built_in/register_itools.cpp
-
-    # Utility functions
     src/built_in/cmd_utils.cpp
     src/built_in/cmd_utils_json.cpp
-
-    # Runtime bridge
     src/runtime/bridge.cpp
     src/runtime/game_bridge.cpp
-
-    # LSP
-    src/lsp/client.cpp
-
-    # Testing engine
     src/testing/test_engine.cpp
-
-
+    src/testing/pipeline_parser.cpp
+    src/testing/pipeline_context.cpp
+    src/testing/pipeline_runner.cpp
+    src/ui/mcp_dock.cpp
+    src/ui/mcp_logger.cpp
+    src/ui/mcp_console.cpp
 )
 
-# ---------------------------------------------------------------------------
-# GLOB for ITool-based tool source files (P2+ migration)
-# ---------------------------------------------------------------------------
-file(GLOB_RECURSE TOOL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.cpp")
+file(GLOB_RECURSE TOOL_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.cpp")
 list(APPEND GODOT_MCP_SOURCES ${TOOL_SOURCES})
 
-
-
 add_library(godot_mcp_gdext SHARED ${GODOT_MCP_SOURCES})
+set_source_files_properties(src/built_in/register_itools.cpp PROPERTIES SKIP_UNITY_BUILD ON)
 
 target_link_libraries(godot_mcp_gdext PRIVATE godot-cpp ryml::ryml)
+
+target_compile_definitions(godot_mcp_gdext PRIVATE
+    GODOT_MCP_PLUGIN_VERSION="${PROJECT_VERSION}"
+)
 
 target_include_directories(godot_mcp_gdext PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${godot-cpp_SOURCE_DIR}/include
 )
 
-# Plugin version baked in for runtime reporting via get_plugin_version tool.
-# Falls back to PROJECT_VERSION set in the top-level CMakeLists.txt.
-if(NOT DEFINED GODOT_MCP_PLUGIN_VERSION)
-    set(GODOT_MCP_PLUGIN_VERSION "${PROJECT_VERSION}")
-endif()
-target_compile_definitions(godot_mcp_gdext PRIVATE
-    GODOT_MCP_PLUGIN_VERSION="${GODOT_MCP_PLUGIN_VERSION}"
-)
+# Platform detection (arch, CI)
+include(${CMAKE_SOURCE_DIR}/cmake/platform.cmake)
 
-# ---------------------------------------------------------------------------
-# Build optimization options (user-configurable via -D or env)
-# ---------------------------------------------------------------------------
-option(GODOTMCP_UNITY_BUILD "Enable unity (jumbo) build — faster full rebuilds" ON)
-set(GODOTMCP_UNITY_BATCH_SIZE "0" CACHE STRING
-    "Unity batch size (source files per batch; 0 = all in one, max parallelism)")
+# Compiler-specific flags
+include(${CMAKE_SOURCE_DIR}/cmake/compiler.cmake)
 
-# Auto-tune unity batch size: batch_size=0 means "match CPU count".
-# With N CPU cores and N batches, every core gets exactly one job.
-# This maximizes parallelism with minimal memory pressure.
-set(_unity_batch ${GODOTMCP_UNITY_BATCH_SIZE})
-if(_unity_batch STREQUAL "0")
-    include(ProcessorCount)
-    ProcessorCount(_cpu_count)
-    # Cap at 32 — beyond that, batches get too large (memory / ODR risk).
-    if(_cpu_count GREATER 32)
-        set(_cpu_count 32)
-    endif()
-    set(_unity_batch ${_cpu_count})
-    message(STATUS "Unity batch size: ${_unity_batch} (auto = ${_cpu_count} cores)")
-else()
-    message(STATUS "Unity batch size: ${_unity_batch} (user-specified)")
-endif()
+# Suppress warnings from godot-cpp generated headers (clang-cl)
+target_compile_options(godot_mcp_gdext PRIVATE -Wno-unused-parameter -Wno-microsoft-template)
 
+# Unity (jumbo) build
+include(${CMAKE_SOURCE_DIR}/cmake/unity.cmake)
+
+# Profile-Guided Optimization
+include(${CMAKE_SOURCE_DIR}/cmake/pgo.cmake)
+
+# C++ standard
 set_target_properties(godot_mcp_gdext PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
-    POSITION_INDEPENDENT_CODE ON
-    UNITY_BUILD ${GODOTMCP_UNITY_BUILD}
-    UNITY_BUILD_BATCH_SIZE ${_unity_batch}
-    PREFIX ""
 )
-# Restore the conventional "lib" prefix on Unix.
-if(UNIX)
-    set_target_properties(godot_mcp_gdext PROPERTIES PREFIX "lib")
-endif()
+message(STATUS "C++ standard: 17")
+message(STATUS "Generator: ${CMAKE_GENERATOR}")
 
-# ---------------------------------------------------------------------------
-# Linker optimization: prefer lld-link on MSVC for faster linking.
-# lld-link ships with LLVM (winget install LLVM).
-# ---------------------------------------------------------------------------
-if(MSVC)
+# Linker optimization: lld-link on MSVC
+if(MSVC AND NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     find_program(GODOTMCP_LLD_LINK NAMES lld-link)
     if(GODOTMCP_LLD_LINK)
         target_link_options(godot_mcp_gdext PRIVATE "/lldlink")
-        message(STATUS "Using lld-link for faster linking")
+        message(STATUS "Linker: lld-link (fast)")
+    else()
+        message(STATUS "Linker: default (lld-link not found)")
     endif()
+else()
+    message(STATUS "Linker: lld-link (native, clang)")
 endif()
 
-# Suppress noisy warnings from godot-cpp generated code on MSVC.
-if(MSVC)
-    target_compile_options(godot_mcp_gdext PRIVATE /utf-8 /bigobj /W3 /wd4244 /wd4267)
+# ---------------------------------------------------------------------------
+# Build config for Python summary
+# ---------------------------------------------------------------------------
+if(CMAKE_GENERATOR MATCHES "Ninja")
+    set(_ninja_found "ON")
 else()
-    target_compile_options(godot_mcp_gdext PRIVATE -Wall -Wno-unused-parameter)
+    set(_ninja_found "OFF")
 endif()
+file(WRITE "${CMAKE_BINARY_DIR}/build_config.txt"
+    "version=${PROJECT_VERSION}\n"
+    "build_type=${CMAKE_BUILD_TYPE}\n"
+    "generator=${CMAKE_GENERATOR}\n"
+    "compiler_id=${CMAKE_CXX_COMPILER_ID}\n"
+    "cxx_standard=17\n"
+    "compiler_launcher=${CMAKE_CXX_COMPILER_LAUNCHER}\n"
+    "lto_mode=${GODOTMCP_LTO_MODE}\n"
+    "lto=${GODOTMCP_LTO}\n"
+    "unity_enabled=${_unity_enabled}\n"
+    "unity_batch_count=${_unity_batch}\n"
+    "unity_files=${_unity_files}\n"
+    "lld_link=${GODOTMCP_LLD_LINK}\n"
+    "ninja=${_ninja_found}\n"
+)

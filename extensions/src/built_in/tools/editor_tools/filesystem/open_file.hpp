@@ -1,5 +1,6 @@
-#pragma once
+﻿#pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -13,36 +14,23 @@ namespace godot_mcp {
 
 class OpenFileTool : public ITool {
 public:
-    String name() const override { return "open_file"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "open_file"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Open a file in the editor";
     }
     String description() const override {
         return "Opens the specified file in the Godot editor. Routes to the appropriate editor component based on file extension: "
-               ".tscn �?scene editor; .gd �?script editor; "
-               ".gdshader �?shader editor; .tres/.res �?resource editor; "
-               "other files �?selected in the file system panel.";
+               ".tscn - scene editor; .gd - script editor; "
+               ".gdshader - shader editor; .tres/.res - resource editor; "
+               "other files - selected in the file system panel.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "res:// file path to open";
-            props["path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = "Optional: line number to open the script at (default -1 = not specified)";
-            props["line"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("path", "string", "res:// file path to open")
+            .prop("line", "integer", "Optional: line number to open the script at (default -1 = not specified)")
+            .required({"path"})
+            .build();
     }
 
 protected:
@@ -59,7 +47,7 @@ protected:
                 "File does not exist: " + path);
         }
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR",
                 "EditorInterface not available");
@@ -74,7 +62,7 @@ protected:
         } else if (ext == "gd" || ext == "gdshader" || ext == "cs" || ext == "csharp") {
             godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(path);
             if (res.is_null()) {
-                godot::EditorFileSystem *efs = godot::EditorInterface::get_singleton()->get_resource_filesystem();
+                auto *efs = godot::EditorInterface::get_singleton()->get_resource_filesystem();
                 if (efs) {
                     efs->update_file(path);
                 }
@@ -86,7 +74,7 @@ protected:
             }
             godot::Ref<godot::Script> script = res;
             if (script.is_valid()) {
-                ei->edit_script(script, (int)line);
+                ei->edit_script(script, static_cast<int>(line));
             } else {
                 ei->edit_resource(res);
             }
@@ -94,7 +82,7 @@ protected:
         } else if (ext == "tres" || ext == "res") {
             godot::Ref<godot::Resource> res = godot::ResourceLoader::get_singleton()->load(path);
             if (res.is_null()) {
-                godot::EditorFileSystem *efs = godot::EditorInterface::get_singleton()->get_resource_filesystem();
+                auto *efs = godot::EditorInterface::get_singleton()->get_resource_filesystem();
                 if (efs) {
                     efs->update_file(path);
                 }

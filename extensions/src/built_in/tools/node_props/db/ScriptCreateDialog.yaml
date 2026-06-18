@@ -1,5 +1,0 @@
-class: ScriptCreateDialog
-inherits: ConfirmationDialog
-properties: []
-description: ''
-aliases: []

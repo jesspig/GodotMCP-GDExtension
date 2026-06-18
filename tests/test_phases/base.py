@@ -38,9 +38,21 @@ class PhaseReport:
     results: list[TestResult] = field(default_factory=list)
     start_time: float = 0.0
     end_time: float = 0.0
+    call_count: int = 0
+    call_success: int = 0
+    call_fail: int = 0
+    call_skip: int = 0
+    unique_tools: int = 0
+    unique_success: int = 0
+    unique_fail: int = 0
+    unique_skip: int = 0
+    duration_ms: int = 0
+    errors: list = field(default_factory=list)
 
     @property
     def duration(self) -> float:
+        if self.duration_ms > 0:
+            return self.duration_ms / 1000.0
         return self.end_time - self.start_time if self.end_time > self.start_time else 0.0
 
     @property
@@ -58,3 +70,24 @@ class PhaseReport:
     @property
     def tested(self) -> int:
         return self.passed + self.failed
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "duration": round(self.duration, 1),
+            "tested": self.tested,
+            "passed": self.passed,
+            "failed": self.failed,
+            "skipped": self.skipped,
+            "call_count": self.call_count,
+            "call_success": self.call_success,
+            "call_fail": self.call_fail,
+            "call_skip": self.call_skip,
+            "unique_tools": self.unique_tools,
+            "unique_success": self.unique_success,
+            "unique_fail": self.unique_fail,
+            "unique_skip": self.unique_skip,
+            "duration_ms": self.duration_ms,
+            "errors": self.errors,
+            "results": [r.to_dict() for r in self.results],
+        }

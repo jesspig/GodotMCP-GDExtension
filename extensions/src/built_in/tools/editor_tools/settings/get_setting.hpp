@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 
@@ -13,9 +14,9 @@ namespace godot_mcp {
 
 class GetSettingTool : public ITool {
 public:
-    String name() const override { return "get_setting"; }
-    String category() const override { return "editor_tools/settings"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_setting"; }
+    String category() const noexcept override { return "editor_tools/settings"; }
+    String brief() const noexcept override {
         return "Read any project setting by path";
     }
     String description() const override {
@@ -24,19 +25,11 @@ public:
     }
     bool needs_scene() const override { return false; }
     bool needs_node() const override { return false; }
-    Dictionary input_schema() const override {
-        Dictionary s;
-        s["type"] = "object";
-        Dictionary p;
-        Dictionary sp;
-        sp["type"] = "string";
-        sp["description"] = "Full setting path (e.g. \"application/config/name\")";
-        p["setting_path"] = sp;
-        s["properties"] = p;
-        Array r;
-        r.push_back("setting_path");
-        s["required"] = r;
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("setting_path", "string", "Full setting path (e.g. \"application/config/name\")")
+            .required({"setting_path"})
+            .build();
     }
 
 protected:
@@ -45,7 +38,7 @@ protected:
         if (path.is_empty()) {
             return ToolResult::err("MISSING_PARAM", "setting_path is required");
         }
-        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
+        auto *ps = godot::ProjectSettings::get_singleton();
         if (!ps->has_setting(path)) {
             return ToolResult::err("SETTING_NOT_FOUND",
                 String("Setting not found: ") + path);

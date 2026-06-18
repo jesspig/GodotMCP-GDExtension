@@ -1,5 +1,0 @@
-class: VisualShaderNodeParticleRingEmitter
-inherits: VisualShaderNodeParticleEmitter
-properties: []
-description: ''
-aliases: []

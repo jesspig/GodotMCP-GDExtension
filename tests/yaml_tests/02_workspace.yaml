@@ -1,0 +1,35 @@
+name: workspace_smoke
+description: Smoke tests for workspace console, performance monitors, and debugger
+headless: false
+
+pipeline:
+  on_failure: fail_fast
+  stages:
+    - id: main
+      steps:
+        - id: clear_console
+          tool: clear_console
+          description: Clears editor console
+          expect:
+            has_keys: [cleared]
+            field_checks:
+              - key: cleared
+                value: true
+
+        - id: get_console_output
+          tool: get_console_output
+          description: Gets console output (should be empty after clear)
+          expect:
+            has_keys: [total_lines, returned_lines, lines, has_more]
+
+        - id: get_performance_monitors
+          tool: get_performance_monitors
+          description: Gets performance monitor data
+          expect:
+            has_keys: [monitors, is_running]
+
+        - id: get_debugger_state
+          tool: get_debugger_state
+          description: Gets debugger current state
+          expect:
+            has_keys: [error_count, warning_count, is_breaked, is_debuggable, is_session_active]

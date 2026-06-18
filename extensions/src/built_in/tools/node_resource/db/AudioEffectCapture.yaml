@@ -1,8 +1,0 @@
-class: AudioEffectCapture
-inherits: AudioEffect
-properties:
-- name: buffer_length
-  type: 3
-  type_name: float
-description: ''
-aliases: []

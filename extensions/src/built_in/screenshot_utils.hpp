@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "built_in/cmd_utils.hpp"
 
@@ -17,19 +17,19 @@
 namespace godot_mcp {
 
 inline String generate_screenshot_path(const String &viewport_type, const String &format = "png") {
-    Time *t = Time::get_singleton();
+    auto *t = godot::Time::get_singleton();
     Dictionary dt = t->get_datetime_dict_from_system();
-    String ts = String::num_int64((int64_t)dt["year"]) +
-                String::num_int64((int64_t)dt["month"]).pad_zeros(2) +
-                String::num_int64((int64_t)dt["day"]).pad_zeros(2) + String("_") +
-                String::num_int64((int64_t)dt["hour"]).pad_zeros(2) +
-                String::num_int64((int64_t)dt["minute"]).pad_zeros(2) +
-                String::num_int64((int64_t)dt["second"]).pad_zeros(2);
+    String ts = String::num_int64(static_cast<int64_t>(dt["year"])) +
+                String::num_int64(static_cast<int64_t>(dt["month"])).pad_zeros(2) +
+                String::num_int64(static_cast<int64_t>(dt["day"])).pad_zeros(2) + String("_") +
+                String::num_int64(static_cast<int64_t>(dt["hour"])).pad_zeros(2) +
+                String::num_int64(static_cast<int64_t>(dt["minute"])).pad_zeros(2) +
+                String::num_int64(static_cast<int64_t>(dt["second"])).pad_zeros(2);
     String ext = (format == "jpg" || format == "jpeg") ? "jpg" : "png";
     return String("res://screenshots/") + ts + String("_") + viewport_type + String(".") + ext;
 }
 
-inline String save_screenshot(const Ref<Image> &img, const String &path, const String &format = "png") {
+inline String save_screenshot(const godot::Ref<godot::Image> &img, const String &path, const String &format = "png") {
     ensure_parent_dir(path);
     Error err;
     if (format == "jpg" || format == "jpeg") {
@@ -37,7 +37,7 @@ inline String save_screenshot(const Ref<Image> &img, const String &path, const S
     } else {
         err = img->save_png(path);
     }
-    if (err != OK) {
+    if (err != godot::OK) {
         return String();
     }
     return path;
@@ -45,12 +45,12 @@ inline String save_screenshot(const Ref<Image> &img, const String &path, const S
 
 inline Dictionary capture_editor_viewport(const String &viewport_type, int viewport_index,
                                            const String &format, const String &save_path) {
-    EditorInterface *ei = EditorInterface::get_singleton();
+    auto *ei = godot::EditorInterface::get_singleton();
     if (!ei) {
         return ToolResult::err("NO_EDITOR", "EditorInterface not available");
     }
 
-    SubViewport *viewport = nullptr;
+    godot::SubViewport *viewport = nullptr;
     if (viewport_type == "3d") {
         viewport = ei->get_editor_viewport_3d(viewport_index);
     } else {
@@ -60,7 +60,7 @@ inline Dictionary capture_editor_viewport(const String &viewport_type, int viewp
         return ToolResult::err("NO_VIEWPORT", "Viewport not available");
     }
 
-    Ref<Image> img = viewport->get_texture()->get_image();
+    godot::Ref<godot::Image> img = viewport->get_texture()->get_image();
     if (img.is_null()) {
         return ToolResult::err("CAPTURE_FAILED", "Screenshot capture failed");
     }
@@ -82,7 +82,7 @@ inline Dictionary capture_editor_viewport(const String &viewport_type, int viewp
 }
 
 inline Dictionary capture_game_viewport_impl(const String &format, const String &save_path) {
-    EditorInterface *ei = EditorInterface::get_singleton();
+    auto *ei = godot::EditorInterface::get_singleton();
     if (!ei) {
         return ToolResult::err("NO_EDITOR", "EditorInterface not available");
     }
@@ -90,8 +90,8 @@ inline Dictionary capture_game_viewport_impl(const String &format, const String 
         return ToolResult::err("GAME_NOT_RUNNING", "Game not running");
     }
 
-    DisplayServer *ds = DisplayServer::get_singleton();
-    Ref<Image> img = ds->screen_get_image(0);
+    auto *ds = godot::DisplayServer::get_singleton();
+    godot::Ref<godot::Image> img = ds->screen_get_image(0);
     if (img.is_null()) {
         return ToolResult::err("CAPTURE_FAILED", "Game screenshot failed");
     }

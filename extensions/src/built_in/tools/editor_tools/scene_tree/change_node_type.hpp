@@ -2,6 +2,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
@@ -11,9 +12,9 @@ namespace godot_mcp {
 
 class ChangeNodeTypeTool : public ITool {
 public:
-    String name() const override { return "change_node_type"; }
-    String category() const override { return "editor_tools/scene_tree"; }
-    String brief() const override {
+    String name() const noexcept override { return "change_node_type"; }
+    String category() const noexcept override { return "editor_tools/scene_tree"; }
+    String brief() const noexcept override {
         return "Change a node's type (preserving name, children, and property mapping)";
     }
     String description() const override {
@@ -21,37 +22,14 @@ public:
                "name left empty = keeps the original name. property_mapping can adjust property values (e.g. if the new type uses different property names). "
                "Note: properties exclusive to the original type will be lost. All changes are undoable.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Node path whose type to change";
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "New type (Godot class name)";
-            props["new_type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "New node name (empty = keep original)";
-            props["new_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "object";
-            p["description"] = "Property mapping {old_property: new_property} (optional)";
-            props["property_mapping"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("node_path", "new_type");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path whose type to change")
+            .prop("new_type", "string", "New type (Godot class name)")
+            .prop("new_name", "string", "New node name (empty = keep original)")
+            .prop("property_mapping", "object", "Property mapping {old_property: new_property} (optional)")
+            .required(Array::make("node_path", "new_type"))
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }
@@ -70,10 +48,9 @@ protected:
             return ToolResult::err("UNKNOWN_CLASS",
                 "Unknown Godot class: " + new_type);
         }
-        Node *node = resolve_node(ctx.root, node_path);
-        if (!node) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                "Node not found: " + node_path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
         String old_type = node->get_class();
         if (old_type == new_type) {
@@ -115,7 +92,7 @@ protected:
         if (prop_mapping_var.get_type() == godot::Variant::DICTIONARY) {
             godot::Dictionary mapping = prop_mapping_var;
             godot::Array keys = mapping.keys();
-            for (int i = 0; i < keys.size(); i++) {
+            for (int64_t i = 0; i < keys.size(); i++) {
                 String old_key = keys[i];
                 String new_key = mapping[old_key];
                 if (node->has_meta(old_key)) {
@@ -130,31 +107,19 @@ protected:
             }
         }
 
-        godot::EditorUndoRedoManager *ur = get_undo_redo();
+        auto *ur = begin_undo_action("MCP: Change Type " + old_type + " -> " + new_type);
         if (ur) {
-            ur->create_action("MCP: Change Type " + old_type +
-                                  " -> " + new_type,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(node, "replace_by", new_node, true);
             ur->add_undo_method(new_node, "replace_by", node, true);
             ur->add_do_reference(new_node);
             ur->add_undo_reference(new_node);
             ur->add_do_reference(node);
             ur->add_undo_reference(node);
-            ur->commit_action();
-
-            // After replace_by, new_node takes the place of node.
-            // re-set the index (replace_by may or may not preserve order).
-            if (parent->get_child_count() > 0) {
-                // Find new_node in parent
-                int64_t idx = -1;
-                for (int64_t i = 0; i < parent->get_child_count(); i++) {
-                    if (parent->get_child(i) == new_node) { idx = i; break; }
-                }
-                if (idx >= 0 && idx != old_index) {
-                    parent->move_child(new_node, old_index);
-                }
+            if (old_index >= 0) {
+                ur->add_do_method(parent, "move_child", new_node, static_cast<int64_t>(old_index));
+                ur->add_undo_method(parent, "move_child", node, static_cast<int64_t>(old_index));
             }
+            commit_undo_action(ur);
         } else {
             node->replace_by(new_node, true);
             if (parent->get_child_count() > 0) {

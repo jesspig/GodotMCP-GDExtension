@@ -1,57 +1,118 @@
 # Input Map 工具
 
-> 4 个工具，管理 Godot 的输入动作映射（InputMap）。位于 `extensions/src/built_in/tools/editor_tools/inputmap/`，通过 X-macro 注册，分类在 `editor_tools`。
+> 4 个工具，管理 Godot InputMap（动作 + 事件绑定）。位于 `extensions/src/built_in/tools/editor_tools/inputmap/`，分类 `editor_tools/inputmap`。
+
+## 工具关系
+
+```mermaid
+flowchart TB
+    subgraph InputMap["Godot InputMap"]
+        ACTIONS["动作列表<br/>ui_accept, ui_left, ..."]
+        EVENTS["事件绑定<br/>InputEventKey, InputEventMouseButton, ..."]
+    end
+    subgraph Tools["MCP 工具"]
+        LIST["input_list_actions<br/>列出所有动作及事件"]
+        ADD["add_input_action<br/>创建新动作"]
+        BIND["add_input_event_binding<br/>追加事件绑定"]
+        REMOVE["remove_input_action<br/>移除动作及绑定"]
+    end
+    LIST -->|"读取"| ACTIONS
+    LIST -->|"读取"| EVENTS
+    ADD -->|"创建"| ACTIONS
+    BIND -->|"绑定到"| EVENTS
+    BIND -->|"目标"| ACTIONS
+    REMOVE -->|"删除"| ACTIONS
+```
 
 ## 工具列表
 
-| 工具 | 描述 |
-|------|------|
-| `list_input_actions` | 列出所有输入动作及其绑定的事件 |
-| `add_input_action` | 添加新的输入动作（可指定 deadzone） |
-| `set_input_action_events` | 设置/追加/清空输入动作绑定的事件 |
-| `remove_input_action` | 移除输入动作 |
+| 工具 | 描述 | 必需参数 |
+|------|------|---------|
+| `input_list_actions` | 列出所有输入动作及其绑定事件 | 无 |
+| `add_input_action` | 创建新动作（指定 deadzone） | `action` |
+| `add_input_event_binding` | 为已有动作追加单个事件绑定 | `action`, `event_type` |
+| `remove_input_action` | 移除动作（含其全部绑定） | `action` |
 
-## `list_input_actions`
+## `input_list_actions`
 
-**参数**：
-- `include_builtin`（可选 bool，默认 false）：是否包含 `ui_*` 内置动作
+**无参数**。schema 为空 object（`input_list_actions.hpp:23-28`）。
 
-**返回**：每个动作的详细信息，包括 deadzone 和绑定的事件列表（事件包含 `type` 及对应属性）。
-
-## `set_input_action_events`
-
-**参数**：
-- `name`：动作名称
-- `mode`：`"replace"`（默认）| `"add"` | `"clear"`
-- `events`：事件数组
-
-**mode 值说明**：
-
-```mermaid
-flowchart LR
-    mode{选择 mode}
-    mode -->|replace| A[清空现有事件<br>添加新事件]
-    mode -->|add| B[保留现有事件<br>追加新事件]
-    mode -->|clear| C[清空所有事件]
-```
-
-每个事件项格式示例（来自 Godot InputEvent）：
+返回 `data`：
 
 ```json
 {
-  "type": "InputEventKey",
-  "keycode": 65,
-  "ctrl_pressed": false,
-  "alt_pressed": false,
-  "shift_pressed": false
+  "count": 35,
+  "actions": [
+    {
+      "name": "ui_accept",
+      "deadzone": 0.2,
+      "event_count": 2,
+      "events": [
+        {
+          "type": "InputEventKey",
+          "as_text": "Enter",
+          "matched_action": true,
+          "properties": {
+            " keycode ": 4194309,
+            "ctrl_pressed": false,
+            "physical_keycode": 0
+          }
+        }
+      ]
+    }
+  ]
 }
 ```
 
-支持的事件类型：`InputEventKey`、`InputEventMouseButton`、`InputEventJoypadButton`、`InputEventJoypadMotion` 等。
+- `type`：Godot 类名（`InputEventKey` / `InputEventMouseButton` / `InputEventJoypadButton` / `InputEventJoypadMotion`），来自 `event->get_class()`（`input_list_actions.hpp:53`）
+- `properties`：遍历 `get_property_list()` 导出全部属性值（`input_list_actions.hpp:60-67`）
 
-## 实现细节
+## `add_input_action`
 
-- 使用 `InputMap::singleton()` 访问 Godot 的全局输入映射
-- `add_input_action` 支持指定 deadzone（默认 0.5）
-- 内部通过 Godot 的 `InputEvent` 反序列化来解析事件配置
-- 操作后自动标记场景为未保存（如果相关）
+**参数**（`add_input_action.hpp:22-46`）：
+
+| 参数 | 类型 | 必需 | 默认 | 说明 |
+|------|------|------|------|------|
+| `action` | string | 是 | — | 动作名 |
+| `deadzone` | number | 否 | **0.2** | 死区值 0.0–1.0 |
+
+已存在则返回错误码 `ALREADY_EXISTS`。返回 `{ action, deadzone, created: true }`。
+
+## `add_input_event_binding`
+
+**参数**（`add_input_event_binding.hpp:26-78`）：
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `action` | string | 是 | 目标动作名（必须已存在） |
+| `event_type` | string | 是 | 事件类型（见下表） |
+| `keycode` | int 或 string | 否 | `key` 类型：整数值或 `"KEY_W"` 字符串（自动解析） |
+| `button_index` | int | 否 | `mb`/`jb` 类型：按钮索引 |
+| `axis` | int | 否 | `ja` 类型：轴索引 |
+| `axis_sign` | number | 否 | `ja` 类型：轴方向（1.0 或 -1.0） |
+| `modifiers` | object | 否 | `key` 类型：`{ ctrl, shift, alt, meta }` 布尔值 |
+
+**`event_type` 取值**（`add_input_event_binding.hpp:114-170`）：
+
+| 值 | 别名 | 创建的 InputEvent | 附加字段 |
+|----|------|-------------------|---------|
+| `key` | — | `InputEventKey` | `keycode`、`modifiers` |
+| `mb` | `mouse_button` | `InputEventMouseButton` | `button_index`（默认 1） |
+| `jb` | `joy_button` | `InputEventJoypadButton` | `button_index`（默认 0） |
+| `ja` | `joy_axis` | `InputEventJoypadMotion` | `axis`（默认 0）、`axis_sign`（默认 1.0） |
+
+`keycode` 支持两种形式（`add_input_event_binding.hpp:117-129`）：
+- 整数：直接传 `87`（W 键）
+- 字符串：传 `"KEY_W"`，代码会截取 `KEY_` 后部分、capitalize、去下划线后转 `Key.W` 枚举值
+
+动作不存在返回 `NOT_FOUND`；类型未知返回 `UNKNOWN_TYPE`。返回 `{ action, event_type, added: true }`。
+
+## `remove_input_action`
+
+**参数**（`remove_input_action.hpp:22-38`）：
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `action` | string | 是 | 要删除的动作名 |
+
+不存在返回 `NOT_FOUND`。返回 `{ action, removed: true }`。

@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -13,16 +13,16 @@ namespace godot_mcp {
 
 class ClearConsoleTool : public ITool {
 public:
-    String name() const override { return "clear_console"; }
-    String category() const override { return "editor_tools/workspace"; }
-    String brief() const override { return String("Clear editor console output"); }
+    String name() const noexcept override { return "clear_console"; }
+    String category() const noexcept override { return "editor_tools/workspace"; }
+    String brief() const noexcept override { return String("Clear editor console output"); }
     String description() const override {
         return String("Clears all log content from the editor Output panel. "
                       "Aligned with the _clear_request() flow in Godot source editor/editor_log.cpp, "
                       "calls EditorLog::clear() via call(\"clear\").");
     }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         s["properties"] = Dictionary();
@@ -33,12 +33,12 @@ protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
         (void)ctx;
 
-        godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+        auto *ei = godot::EditorInterface::get_singleton();
         if (!ei) {
             return ToolResult::err("NO_EDITOR", "EditorInterface not available");
         }
 
-        godot::Control *base = ei->get_base_control();
+        auto *base = ei->get_base_control();
         if (!base) {
             return ToolResult::err("NO_BASE", "Editor base control not available");
         }

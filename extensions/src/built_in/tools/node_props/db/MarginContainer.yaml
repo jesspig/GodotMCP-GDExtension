@@ -1,5 +1,0 @@
-class: MarginContainer
-inherits: Container
-properties: []
-description: A container that keeps a margin around its child controls.
-aliases: []

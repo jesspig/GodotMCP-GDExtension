@@ -5,6 +5,7 @@
 #include "scene_tree_utils.hpp"
 
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/undo_helpers.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/node.hpp>
@@ -31,14 +32,6 @@ void set_clipboard(const Ref<PackedScene> &scene) {
     s_clipboard = scene;
 }
 
-void clear_clipboard() {
-    s_clipboard.unref();
-}
-
-bool clipboard_has_content() {
-    return s_clipboard.is_valid();
-}
-
 // ── Ownership helpers ──────────────────────────────────────────────
 
 void assign_owner_recursive(Node *root, Node *owner) {
@@ -58,22 +51,6 @@ void assign_owner_recursive(Node *root, Node *owner) {
     }
 }
 
-void clear_owner_recursive(Node *root, Node *stop_at) {
-    if (!root) return;
-    TypedArray<Node> stack;
-    stack.append(root);
-    while (stack.size() > 0) {
-        Node *node = Object::cast_to<Node>(stack[stack.size() - 1]);
-        stack.resize(stack.size() - 1);
-        node->set_owner(nullptr);
-        if (node == stop_at) continue;
-        for (int64_t i = 0; i < node->get_child_count(); i++) {
-            Node *c = Object::cast_to<Node>(node->get_child(i));
-            if (c) stack.append(c);
-        }
-    }
-}
-
 // ── do_add_child ───────────────────────────────────────────────────
 
 void do_add_child(EditorUndoRedoManager *ur,
@@ -82,29 +59,8 @@ void do_add_child(EditorUndoRedoManager *ur,
                   Node *scene_root,
                   int64_t index,
                   const String &action_name) {
-    if (!ur || !parent || !child || !scene_root) return;
-
-    ur->create_action(action_name, UndoRedo::MERGE_DISABLE, scene_root);
-
-    if (index < 0 || index >= parent->get_child_count()) {
-        ur->add_do_method(parent, "add_child", child, true,
-                          (int64_t)Node::INTERNAL_MODE_DISABLED);
-    } else {
-        ur->add_do_method(parent, "add_child", child, true,
-                          (int64_t)Node::INTERNAL_MODE_DISABLED);
-        ur->add_do_method(parent, "move_child", child, index);
-    }
-    ur->add_do_method(child, "set_owner", scene_root);
-
-    // Undo: detach + clear owner
-    ur->add_undo_method(parent, "remove_child", child);
-    ur->add_undo_method(child, "set_owner", Variant());
-
-    // References
-    ur->add_do_reference(child);
-    ur->add_undo_reference(child);
-
-    ur->commit_action();
+    if (!parent || !child || !scene_root) return;
+    commit_add_child_undo(ur, action_name, parent, child, scene_root, index);
 }
 
 // ── Scene serialization ────────────────────────────────────────────
@@ -153,7 +109,7 @@ void collect_node_info(Node *node, Node *root, int64_t max_depth, bool include_s
     d["name"] = node->get_name();
     d["type"] = node->get_class();
     d["path"] = relative_path(root, node);
-    d["child_count"] = (int64_t)node->get_child_count();
+    d["child_count"] = static_cast<int64_t>(node->get_child_count());
     d["has_owner"] = node->get_owner() != nullptr;
     if (include_scripts) {
         Ref<Script> s = node->get_script();
@@ -175,7 +131,7 @@ void collect_node_info(Node *node, Node *root, int64_t max_depth, bool include_s
                 leaf["name"] = c->get_name();
                 leaf["type"] = c->get_class();
                 leaf["path"] = relative_path(root, c);
-                leaf["child_count"] = (int64_t)c->get_child_count();
+                leaf["child_count"] = static_cast<int64_t>(c->get_child_count());
                 leaf["has_owner"] = c->get_owner() != nullptr;
                 leaf["truncated"] = true;
                 out[leaf["path"]] = leaf;
@@ -186,15 +142,5 @@ void collect_node_info(Node *node, Node *root, int64_t max_depth, bool include_s
     }
 }
 
-// ── Reorder ───────────────────────────────────────────────────────
-
-void reorder_in_parent(Node *child, int64_t new_index) {
-    if (!child) return;
-    Node *parent = child->get_parent();
-    if (!parent) return;
-    int64_t cur = child->get_index();
-    if (cur == new_index) return;
-    parent->move_child(child, new_index);
-}
 
 }  // namespace godot_mcp::scene_tree_utils

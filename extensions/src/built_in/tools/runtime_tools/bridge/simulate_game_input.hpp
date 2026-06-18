@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include "built_in/tool_base.hpp"
@@ -11,9 +11,9 @@ namespace godot_mcp {
 class SimulateGameInputTool : public ITool {
     HandlerRegistry *registry_ = nullptr;
 public:
-    String name() const override { return "simulate_game_input"; }
-    String category() const override { return "runtime_tools/bridge"; }
-    String brief() const override { return String("Simulate input in a running game"); }
+    String name() const noexcept override { return "simulate_game_input"; }
+    String category() const noexcept override { return "runtime_tools/bridge"; }
+    String brief() const noexcept override { return String("Simulate input in a running game"); }
     String description() const override {
         return String("Sends keyboard, mouse or Action input events to the running game. "
                              "actions is an array of input actions, each containing type (key/mouse_button/mouse_motion/action) and corresponding parameters.\n"
@@ -22,10 +22,9 @@ public:
                              "- Mouse click: {\"type\": \"mouse_button\", \"button\": \"left\", \"x\": 100, \"y\": 200}\n"
                              "- Action: {\"type\": \"action\", \"action\": \"ui_accept\", \"pressed\": true}");
     }
-    bool is_meta() const override { return false; }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary p;
         {
             Dictionary item_schema;
@@ -64,6 +63,12 @@ public:
             d["items"] = item_schema;
             p["actions"] = d;
         }
+        {
+            Dictionary d;
+            d["type"] = "integer";
+            d["description"] = String("Response timeout in ms");
+            p["timeout_ms"] = d;
+        }
         Dictionary s;
         s["type"] = "object";
         s["properties"] = p;
@@ -79,7 +84,8 @@ protected:
         }
         Dictionary params;
         params["actions"] = ctx.args.get("actions", Array());
-        return RuntimeBridge::make_response(bridge->send_command("simulate_input", params));
+        int timeout = args_int(ctx.args, "timeout_ms", 100);
+        return RuntimeBridge::make_response(bridge->send_command("simulate_input", params, timeout));
     }
 };
 

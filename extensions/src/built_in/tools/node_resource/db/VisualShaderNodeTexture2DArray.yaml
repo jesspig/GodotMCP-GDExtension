@@ -1,9 +1,0 @@
-class: VisualShaderNodeTexture2DArray
-inherits: VisualShaderNodeSample3D
-properties:
-- name: texture_array
-  type: 24
-  type_name: Object
-  class_name: Texture2DArray,CompressedTexture2DArray,PlaceholderTexture2DArray,Texture2DArrayRD
-description: ''
-aliases: []

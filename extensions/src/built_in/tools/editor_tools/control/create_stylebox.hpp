@@ -1,8 +1,10 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/control.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
@@ -13,9 +15,9 @@ namespace godot_mcp {
 
 class CreateStyleBoxTool : public ITool {
 public:
-    String name() const override { return "create_stylebox"; }
-    String category() const override { return "editor_tools/control"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_stylebox"; }
+    String category() const noexcept override { return "editor_tools/control"; }
+    String brief() const noexcept override {
         return String("Create a StyleBoxFlat resource and optionally apply as theme override");
     }
     String description() const override {
@@ -23,60 +25,17 @@ public:
                             "border color, border width, and corner radius. Can optionally apply "
                             "it as a theme stylebox override on a Control node.");
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("StyleBox name (used as theme override name)");
-            props["stylebox_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Optional: node path to apply the stylebox to");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Background color hex (e.g. #ffffff)");
-            p["default"] = "#ffffff";
-            props["bg_color"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Border color hex (e.g. #000000)");
-            p["default"] = "#000000";
-            props["border_color"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = String("Border width in pixels");
-            p["default"] = 0;
-            props["border_width"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = String("Corner radius in pixels");
-            p["default"] = 0;
-            props["corner_radius"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "boolean";
-            p["description"] = String("Apply as theme override on the target node");
-            p["default"] = false;
-            props["apply_to_node"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("stylebox_name");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("stylebox_name", "string", "StyleBox name (used as theme override name)")
+            .prop("node_path", "string", "Optional: node path to apply the stylebox to")
+            .prop("bg_color", "string", "Background color hex (e.g. #ffffff)", "#ffffff")
+            .prop("border_color", "string", "Border color hex (e.g. #000000)", "#000000")
+            .prop("border_width", "integer", "Border width in pixels", (int64_t)0)
+            .prop("corner_radius", "integer", "Corner radius in pixels", (int64_t)0)
+            .prop("apply_to_node", "boolean", "Apply as theme override on the target node", false)
+            .required({"stylebox_name"})
+            .build();
     }
     bool needs_scene() const override { return true; }
 
@@ -97,37 +56,39 @@ protected:
         sb.instantiate();
         sb->set_bg_color(bg);
         sb->set_border_color(border);
-        sb->set_border_width_all((int)border_width);
-        sb->set_corner_radius_all((int)corner_radius);
+        sb->set_border_width_all(static_cast<int>(border_width));
+        sb->set_corner_radius_all(static_cast<int>(corner_radius));
 
         godot::Control *control = nullptr;
         if (apply_to_node && !node_path.is_empty()) {
-            Node *node = resolve_node(ctx.root, node_path);
-            if (!node) {
-                return ToolResult::err("NODE_NOT_FOUND", String("Node not found: ") + node_path);
+            Node *node = nullptr;
+            if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
+                return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
             }
             control = godot::Object::cast_to<godot::Control>(node);
             if (!control) {
                 return ToolResult::err("NOT_A_CONTROL", String("Node is not a Control: ") + node_path);
             }
 
-            godot::EditorUndoRedoManager *ur = get_undo_redo();
-            ur->create_action(String("MCP: Create StyleBox ") + stylebox_name,
-                              godot::UndoRedo::MERGE_DISABLE, ctx.root);
-
-            bool had_override = control->has_theme_stylebox_override(stylebox_name);
-            godot::Variant old_sb;
-            if (had_override) {
-                old_sb = control->get_theme_stylebox(stylebox_name);
-            }
-
-            ur->add_do_method(control, "add_theme_stylebox_override", stylebox_name, sb);
-            if (had_override) {
-                ur->add_undo_method(control, "add_theme_stylebox_override", stylebox_name, old_sb);
+            auto *ur = begin_undo_action("MCP: Create StyleBox " + stylebox_name);
+            if (!ur) {
+                control->add_theme_stylebox_override(stylebox_name, sb);
+                mark_scene_dirty();
             } else {
-                ur->add_undo_method(control, "remove_theme_stylebox_override", stylebox_name);
+                bool had_override = control->has_theme_stylebox_override(stylebox_name);
+                godot::Variant old_sb;
+                if (had_override) {
+                    old_sb = control->get_theme_stylebox(stylebox_name);
+                }
+
+                ur->add_do_method(control, "add_theme_stylebox_override", stylebox_name, sb);
+                if (had_override) {
+                    ur->add_undo_method(control, "add_theme_stylebox_override", stylebox_name, old_sb);
+                } else {
+                    ur->add_undo_method(control, "remove_theme_stylebox_override", stylebox_name);
+                }
+                commit_undo_action(ur);
             }
-            ur->commit_action();
         }
 
         Dictionary data;

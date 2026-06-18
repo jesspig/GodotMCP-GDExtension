@@ -15,7 +15,7 @@ flowchart LR
             HTTP["HttpServer<br/>(:9600, SSE)"]
             MCPHandler["McpHandler<br/>(JSON-RPC 2.0)"]
             Registry["HandlerRegistry<br/>(ITool 统一调度)"]
-            Tools["built_in/tools/<br/>~149 工具 (X-macro 注册)"]
+            Tools["built_in/tools/<br/>153 工具 (X-macro 注册)"]
             RB["RuntimeBridge<br/>(TCP :9601 客户端)"]
         end
         Main["_process() 每帧驱动<br/>poll HTTP + poll Bridge"]
@@ -23,7 +23,7 @@ flowchart LR
     subgraph Game["Godot Game 进程"]
         GB["GameBridgeNode<br/>(TCP :9601 服务端)"]
     end
-    MCP <-->|POST/GET/DELETE /mcp<br/>MCP Streamable HTTP| HTTP
+    MCP <-->|POST+OPTIONS /mcp<br/>MCP Streamable HTTP| HTTP
     HTTP --> MCPHandler
     MCPHandler --> Registry
     Registry --> Tools
@@ -39,10 +39,10 @@ flowchart LR
 | 进程数 | **1**（C++ GDExtension 加载到 Godot 编辑器内） |
 | 传输 | MCP Streamable HTTP，端口 `:9600` |
 | 工具注册 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
-| 工具总数 | **~149**（无 codegen，无 YAML 数据库生成） |
+| 工具总数 | **153**（无 codegen，无 YAML 数据库生成） |
 | 线程模型 | **纯主线程**（`McpEditorPlugin::_process()` 驱动） |
-| 入口符号 | `gdext_mcp_init`（`register_types.cpp:56`） |
-| 编码规范 | 根 `CMakeLists.txt:43` 已加 `/utf-8 /bigobj`（MSVC） |
+| 入口符号 | `gdext_mcp_init`（`register_types.cpp:60`） |
+| 编码规范 | `cmake/compiler.cmake:7` 已加 `/utf-8 /bigobj`（MSVC） |
 | 构建优化 | sccache/ccache（自动检测）、Unity(jumbo)、lld-link |
 | 持久化 | C++ 侧无独立状态；Godot 编辑器持有数据 |
 
@@ -55,12 +55,12 @@ sequenceDiagram
     participant M as McpHandler
     participant G as HandlerRegistry
     participant T as ITool
-    AI->>H: POST /mcp (initialize)
-    H->>M: handle_initialize()
-    M-->>H: Session UUID + capabilities
-    H-->>AI: 200 + MCP-Session-Id header
-    AI->>H: GET /mcp (SSE stream)
-    H-->>AI: 200 text/event-stream
+    AI->>H: POST /mcp (tools/list)
+    H->>M: handle_message()
+    M->>G: list_tools()
+    G-->>M: always-on 工具列表
+    M-->>H: MCP content array
+    H-->>AI: 200 application/json
     Note over AI,G: 工具调用
     AI->>H: POST /mcp (tools/call)
     H->>M: handle_message()
@@ -80,6 +80,7 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 ├── register_types.cpp           # GDExtension 入口 (gdext_mcp_init)
 ├── editor_plugin.cpp/.hpp       # McpEditorPlugin 生命周期 + _process 泵
 ├── logging.hpp                  # 日志 inline 函数
+├── client_config_registry.hpp   # 11 种客户端配置生成器
 ├── built_in/
 │   ├── register_itools.cpp      # X-macro 注册主文件（#include + GODOT_MCP_TOOL 宏）
 │   ├── tool_base.hpp/.cpp       # ITool + ToolResult + ToolContext
@@ -87,49 +88,56 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │   ├── cmd_utils.hpp/.cpp       # 共享工具（resolve_node / undoable_set / notify_file_changed）
 │   ├── cmd_utils_json.cpp       # JSON↔Variant 递归转换
 │   ├── screenshot_utils.hpp     # 截图捕获
+│   ├── cmd_utils/               # 模板化共享工具（7 个独立头文件）
+│   │   ├── dispatch_map.hpp     # 编译期 String→String 查表
+│   │   ├── undo_helpers.hpp     # 统一 undo 模式
+│   │   ├── args_get_typed.hpp   # 类型安全参数提取
+│   │   ├── error_codes.hpp      # 错误码常量
+│   │   ├── memdelete_guard.hpp  # RAII memdelete 守卫
+│   │   ├── schema_builder.hpp   # JSON Schema 构建器
+│   │   └── tracked_settings.hpp # 设置覆盖追踪
 │   └── tools/
 │       ├── register/            # X-macro 注册文件（4 个）
 │       │   ├── register_meta.hpp
 │       │   ├── register_existing.hpp
 │       │   ├── register_fallback.hpp
 │       │   └── register_docs.hpp
-│       ├── meta/                # 6 个元工具
+│       ├── meta/                # 7 个元工具
 │       ├── signal/              # 4 个信号工具
 │       ├── group/               # 4 个分组工具
 │       ├── node_tools/general/  # 6 个资源管理工具
-│       ├── node_tools/          # NodeResourceGetTool, NodeResourceSetTool
-│       ├── node_props/          # NodePropertyGetTool, NodePropertySetTool
 │       ├── node_properties/     # 2 个通用兜底工具（Layer 0）
 │       ├── editor_tools/
 │       │   ├── scene_tree/      # 24 个场景树 CRUD 工具
-│       │   ├── animation/       # 5 个动画工具
+│       │   ├── animation/       # 10 个动画工具（Player + Tree）
 │       │   ├── control/         # 4 个 UI/Control 工具
 │       │   ├── collision/       # 1 个碰撞形状工具
 │       │   ├── docs/            # 8 个文档查询工具（Layer 3）
-│       │   ├── export/          # 2 个导出工具
+│       │   ├── export/          # 4 个导出工具
 │       │   ├── filesystem/      # 12 个文件系统工具
-│       │   ├── inputmap/        # 1 个输入映射工具
-│       │   ├── plugin/          # 3 个插件管理工具
+│       │   ├── inputmap/        # 4 个输入映射工具
+│       │   ├── plugin/          # 2 个插件管理工具
 │       │   ├── scaffold/        # 1 个脚手架工具
 │       │   ├── scripts/         # 12 个脚本工具
-│       │   ├── settings/        # 4 个设置工具 + 2 个通用模板
-│       │   ├── shader/          # 3 个 shader 工具
+│       │   ├── settings/        # 4 个设置工具
+│       │   ├── shader/          # 5 个 shader 工具
+│       │   ├── audio/           # 3 个音频工具
+│       │   ├── navigation/      # 3 个导航工具
+│       │   ├── 3d_scene/        # 3 个 3D 场景工具
 │       │   ├── tilemap/         # 3 个 TileMap 工具
 │       │   ├── visualizer/      # 1 个可视化工具
-│       │   └── workspace/       # 29 个工作区/调试器工具
+│       │   └── workspace/       # 13 个工作区/调试器工具
 │       └── runtime_tools/
-│           ├── bridge/          # 6 个运行时桥接工具
+│           ├── bridge/          # 7 个运行时桥接工具
 │           └── lifecycle/       # 6 个游戏生命周期工具
 ├── server/
 │   ├── ipc/http_server.cpp/.hpp # MCP Streamable HTTP 服务器
-│   ├── mcp/mcp_handler.cpp/.hpp # JSON-RPC 2.0 会话管理
+│   ├── mcp/mcp_handler.cpp/.hpp # JSON-RPC 2.0 处理器（无 session）
 │   └── registry/
 │       └── handler_registry.cpp/.hpp  # ITool 调度 + 分类自动发现
 ├── sdk/
 │   ├── mcp_tool_definition.hpp/.cpp   # GDScript/C# 可继承基类
 │   └── mcp_tool_registry.hpp/.cpp     # 单例 SDK 注册表
-├── lsp/
-│   └── client.cpp/.hpp          # GDScript LSP 验证（StreamPeerTCP）
 └── testing/
     ├── test_engine.cpp/.hpp     # C++ 进程内测试引擎
     ├── yaml_parser.hpp          # ryml → Godot Variant

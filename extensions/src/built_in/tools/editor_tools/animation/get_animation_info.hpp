@@ -1,8 +1,10 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/animation.hpp>
 #include <godot_cpp/classes/animation_library.hpp>
@@ -12,9 +14,9 @@ namespace godot_mcp {
 
 class GetAnimationInfoTool : public ITool {
 public:
-    String name() const override { return "get_animation_info"; }
-    String category() const override { return "editor_tools/animation"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_animation_info"; }
+    String category() const noexcept override { return "editor_tools/animation"; }
+    String brief() const noexcept override {
         return "Query animation data on an AnimationPlayer";
     }
     String description() const override {
@@ -24,19 +26,10 @@ public:
                "If anim_player_path is empty, resolves the first "
                "AnimationPlayer found in the scene.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Path to the AnimationPlayer node (empty = auto-find first)";
-            props["anim_player_path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make();
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("anim_player_path", "string", "Path to the AnimationPlayer node (empty = auto-find first)")
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }
@@ -51,10 +44,9 @@ protected:
             // Auto-find first AnimationPlayer in the scene
             player = _find_first_animation_player(ctx.root);
         } else {
-            Node *node = resolve_node(ctx.root, anim_player_path);
-            if (!node) {
-                return ToolResult::err("NODE_NOT_FOUND",
-                    String("AnimationPlayer not found: ") + anim_player_path);
+            Node *node = nullptr;
+            if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, anim_player_path, node)) {
+                return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
             }
             player = Object::cast_to<godot::AnimationPlayer>(node);
         }
@@ -84,7 +76,7 @@ protected:
             lib_dict["name"] = String(lib_name);
 
             godot::TypedArray<godot::StringName> anim_names = lib->get_animation_list();
-            lib_dict["animation_count"] = (int64_t)anim_names.size();
+            lib_dict["animation_count"] = static_cast<int64_t>(anim_names.size());
 
             Array anims_arr;
             for (int64_t j = 0; j < anim_names.size(); j++) {
@@ -94,9 +86,9 @@ protected:
 
                 Dictionary anim_dict;
                 anim_dict["name"] = String(anim_name);
-                anim_dict["length"] = (double)anim->get_length();
+                anim_dict["length"] = static_cast<double>(anim->get_length());
 
-                int32_t loop = (int32_t)anim->get_loop_mode();
+                int32_t loop = static_cast<int32_t>(anim->get_loop_mode());
                 String loop_str;
                 if (loop == godot::Animation::LOOP_NONE) loop_str = "none";
                 else if (loop == godot::Animation::LOOP_LINEAR) loop_str = "linear";
@@ -109,10 +101,10 @@ protected:
                 Array tracks_arr;
                 for (int32_t k = 0; k < track_count; k++) {
                     Dictionary track_dict;
-                    track_dict["index"] = (int64_t)k;
-                    track_dict["type"] = String::num_int64((int64_t)anim->track_get_type(k));
+                    track_dict["index"] = static_cast<int64_t>(k);
+                    track_dict["type"] = String::num_int64(static_cast<int64_t>(anim->track_get_type(k)));
                     track_dict["path"] = String(anim->track_get_path(k));
-                    track_dict["key_count"] = (int64_t)anim->track_get_key_count(k);
+                    track_dict["key_count"] = static_cast<int64_t>(anim->track_get_key_count(k));
                     tracks_arr.append(track_dict);
                 }
                 anim_dict["tracks"] = tracks_arr;
@@ -137,7 +129,7 @@ private:
         for (int64_t i = 0; i < root->get_child_count(); i++) {
             Node *child = root->get_child(i);
             if (!child) continue;
-            godot::AnimationPlayer *found = _find_first_animation_player(child);
+            auto *found = _find_first_animation_player(child);
             if (found) return found;
         }
         return nullptr;

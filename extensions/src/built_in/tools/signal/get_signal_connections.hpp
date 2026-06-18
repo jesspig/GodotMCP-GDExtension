@@ -1,8 +1,10 @@
-﻿
+
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/variant/array.hpp>
@@ -14,34 +16,21 @@ namespace godot_mcp {
 
 class GetSignalConnectionsTool : public ITool {
 public:
-    String name() const override { return "get_signal_connections"; }
-    String category() const override { return "node_tools/signal"; }
-    String brief() const override {
+    String name() const noexcept override { return "get_signal_connections"; }
+    String category() const noexcept override { return "node_tools/signal"; }
+    String brief() const noexcept override {
         return String("List all connections for a node signal");
     }
     String description() const override {
         return String("Returns the list of established connections for a given signal (or all signals) on the specified node, "
                             "including target object, method name and flags for each connection.");
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Node path");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Signal name (leave empty to list connections for all signals)");
-            props["signal_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("node_path");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("node_path", "string", "Node path")
+            .prop("signal_name", "string", "Signal name (leave empty to list connections for all signals)")
+            .required({"node_path"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }
@@ -51,9 +40,9 @@ protected:
         String path = args_string(ctx.args, "node_path", ".");
         String signal_name = args_string(ctx.args, "signal_name", "");
 
-        Node *node = resolve_node(ctx.root, path);
-        if (!node)
-            return ToolResult::err("NODE_NOT_FOUND", String("鑺傜偣鏈壘鍒? ") + path);
+        Node *node = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, path, node))
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
 
         Array connections;
         if (signal_name.is_empty()) {
@@ -84,7 +73,7 @@ protected:
         Dictionary data;
         data["node"] = relative_path(ctx.root, node);
         data["connections"] = connections;
-        data["count"] = (int64_t)connections.size();
+        data["count"] = static_cast<int64_t>(connections.size());
         return ToolResult::ok(data);
     }
 

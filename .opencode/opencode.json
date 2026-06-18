@@ -1,5 +1,6 @@
 {
     "$schema": "https://opencode.ai/config.json",
+    "instructions": [".repo_wiki/index.md"],
     "mcp": {
         "godot-mcp": {
             "type": "remote",

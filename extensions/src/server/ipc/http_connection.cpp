@@ -9,45 +9,46 @@ using namespace godot;
 
 namespace godot_mcp {
 
-void HttpServer::send_response(int conn_id, Connection &conn, int status_code,
+void HttpServer::send_response(int /*conn_id*/, Connection &conn, int status_code,
                                 const String &status_text, const String &content_type,
                                 const String &body, const String &extra_headers) {
-    String response = String("HTTP/1.1 ") + String::num_int64(status_code) +
-                      String(" ") + status_text + String("\r\n");
-
+    // Encode body once and reuse — avoid double UTF-8 encoding (bug P1-9)
     const PackedByteArray body_bytes = body.to_utf8_buffer();
 
-    response += String("Content-Type: ") + content_type + String("\r\n");
-    response += String("Content-Length: ") + String::num_int64(body_bytes.size()) + String("\r\n");
+    // Build header as PackedByteArray to avoid re-encoding body
+    String header = vformat("HTTP/1.1 %d %s\r\n", status_code, status_text);
+    header += vformat("Content-Type: %s\r\n", content_type);
+    header += vformat("Content-Length: %d\r\n", body_bytes.size());
 
-    if (conn.keep_alive && !conn.is_sse_stream) {
-        response += "Connection: keep-alive\r\n";
+    if (conn.keep_alive) {
+        header += "Connection: keep-alive\r\n";
     } else {
-        response += "Connection: close\r\n";
+        header += "Connection: close\r\n";
     }
 
-    response += "Cache-Control: no-store\r\n";
-    response += "Access-Control-Allow-Origin: *\r\n";
-    response += "Access-Control-Expose-Headers: MCP-Session-Id, Last-Event-ID, MCP-Protocol-Version\r\n";
-
-    if (!conn.session_id.is_empty()) {
-        response += String("MCP-Session-Id: ") + conn.session_id + String("\r\n");
-    }
+    header += "Cache-Control: no-store\r\n";
+    header += vformat("Access-Control-Allow-Origin: %s\r\n", get_cors_origin(conn));
+    header += "Vary: Origin\r\n";
+    header += "Access-Control-Expose-Headers: Last-Event-ID, MCP-Protocol-Version\r\n";
 
     if (!extra_headers.is_empty()) {
-        response += extra_headers;
-        if (!extra_headers.ends_with("\r\n")) response += "\r\n";
+        header += extra_headers;
+        if (!header.ends_with("\r\n")) header += "\r\n";
     }
 
-    response += "\r\n";
-    response += body;
+    header += "\r\n";
 
-    const PackedByteArray out = response.to_utf8_buffer();
+    // Concatenate header + body bytes directly (no re-encoding body)
+    PackedByteArray header_bytes = header.to_utf8_buffer();
+    PackedByteArray out;
+    out.resize(header_bytes.size() + body_bytes.size());
+    std::copy_n(header_bytes.ptr(), header_bytes.size(), out.ptrw());
+    std::copy_n(body_bytes.ptr(), body_bytes.size(), out.ptrw() + header_bytes.size());
     if (conn.tcp.is_valid()) {
         conn.tcp->poll();
         const Error send_err = tcp_send(conn.tcp, out);
         if (send_err != OK) {
-            log_warn("http", String("Send failed (err=") + String::num_int64((int64_t)send_err) + String(")"));
+            log_warn("http", vformat("Send failed (err=%d)", static_cast<int64_t>(send_err)));
         }
     }
 }
@@ -63,8 +64,8 @@ void HttpServer::close_connection(int conn_id) {
 void HttpServer::check_timeouts() {
     const uint64_t now = Time::get_singleton()->get_ticks_msec();
     Vector<int> timed_out;
-    for (KeyValue<int, Connection> &kv : connections_) {
-        if (now - kv.value.last_activity_msec > timeout_msec_) {
+    for (auto &kv : connections_) {
+        if (now - kv.value.last_activity_msec > kTimeoutMsec) {
             timed_out.push_back(kv.key);
         }
     }
@@ -73,11 +74,7 @@ void HttpServer::check_timeouts() {
     }
 }
 
-bool HttpServer::validate_origin(const Connection &conn) const {
-    auto it = conn.headers.find("origin");
-    if (it == conn.headers.end()) return true;
-    const String origin = it->value.strip_edges();
-    if (origin.is_empty()) return true;
+bool HttpServer::is_local_origin(const String &origin) {
     const PackedStringArray parts = origin.split("://");
     String host;
     if (parts.size() == 2) {
@@ -85,11 +82,25 @@ bool HttpServer::validate_origin(const Connection &conn) const {
     } else {
         host = parts[0].split(":")[0];
     }
-    if (host == "localhost" || host == "127.0.0.1" || host == "::1" || origin == "null") {
-        return true;
-    }
+    return host == "localhost" || host == "127.0.0.1" || host == "::1" || origin == "null";
+}
+
+bool HttpServer::validate_origin(const Connection &conn) const {
+    auto it = conn.headers.find("origin");
+    if (it == conn.headers.end()) return true;
+    const String origin = it->value.strip_edges();
+    if (origin.is_empty()) return true;
+    if (is_local_origin(origin)) return true;
     log_warn("http", String("Blocked origin: ") + origin);
     return false;
+}
+
+String HttpServer::get_cors_origin(const Connection &conn) const {
+    auto it = conn.headers.find("origin");
+    if (it == conn.headers.end()) return "*";
+    const String origin = it->value.strip_edges();
+    if (origin.is_empty()) return "*";
+    return is_local_origin(origin) ? origin : String("");
 }
 
 } // namespace godot_mcp

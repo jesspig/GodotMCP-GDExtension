@@ -1,0 +1,45 @@
+name: animation_playback
+description: Create clip, add position track, set keyframes on AnimationPlayer
+headless: false
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: new_scene
+      args: { root_type: "Node2D", root_name: "Root" }
+    - tool: add_node
+      args: { class_name: "Sprite2D", node_name: "TS", parent_path: "" }
+    - tool: create_animation_player
+      args: { parent_path: "Root", node_name: "AP", library_name: "default" }
+  after_all:
+    - tool: new_scene
+      args: { root_type: "Node", root_name: "Cleanup" }
+  stages:
+    - id: main
+      name: Main tests
+      before_each: []
+      after_each: []
+      steps:
+        - id: create_animation_clip
+          tool: create_animation_clip
+          description: Creates a clip in default library
+          args: { anim_player_path: "Root/AP", library_name: "default", clip_name: "walk", length: 1.0 }
+          expect: { status: success }
+
+        - id: add_animation_track
+          tool: add_animation_track
+          description: Adds a position track
+          args: { anim_player_path: "Root/AP", library_name: "default", clip_name: "walk", track_type: "position", target_path: "TS:position" }
+          expect: { status: success }
+
+        - id: set_keyframe_start
+          tool: set_keyframe
+          description: Sets keyframe at time 0
+          args: { anim_player_path: "Root/AP", library_name: "default", clip_name: "walk", track_index: 0, time: 0.0, value: { x: 0, y: 0 } }
+          expect: { status: success }
+
+        - id: set_keyframe_end
+          tool: set_keyframe
+          description: Sets keyframe at time 1
+          args: { anim_player_path: "Root/AP", library_name: "default", clip_name: "walk", track_index: 0, time: 1.0, value: { x: 100, y: 200 } }
+          expect: { status: success }

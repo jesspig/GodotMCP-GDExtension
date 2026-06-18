@@ -1,7 +1,9 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/scene_tree/scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/variant/callable.hpp>
@@ -11,56 +13,27 @@ namespace godot_mcp {
 
 class ConnectSignalTool : public ITool {
 public:
-    String name() const override { return "connect_signal"; }
-    String category() const override { return "node_tools/signal"; }
-    String brief() const override {
+    String name() const noexcept override { return "connect_signal"; }
+    String category() const noexcept override { return "node_tools/signal"; }
+    String brief() const noexcept override {
         return String("Connect a node signal to a target method");
     }
     String description() const override {
         return String("Connects a signal from source_node to target_method on target_node. "
                              "Supports flags like CONNECT_DEFERRED(1), CONNECT_ONESHOT(2), etc.");
     }
-    String category_description() const override {
-        return "Node property read and modify tools, organized by Godot node type";
+    String category_description() const noexcept override {
+        return "Signal connection tools for connecting, disconnecting, and inspecting node signals";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Source node path (the node emitting the signal)");
-            props["node_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Signal name to connect");
-            props["signal_name"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Target node path (the node receiving the signal)");
-            props["target_path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = String("Method name on the target node");
-            props["target_method"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "integer";
-            p["description"] = String("Connection flags (1=DEFERRED, 2=ONESHOT, 4=PERSIST, 8=REFERENCE_COUNTED)");
-            props["flags"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        Array required = Array::make("node_path", "signal_name", "target_path", "target_method");
-        s["required"] = required;
-        return s;
+        Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("node_path", "string", "Source node path (the node emitting the signal)")
+            .prop("signal_name", "string", "Signal name to connect")
+            .prop("target_path", "string", "Target node path (the node receiving the signal)")
+            .prop("target_method", "string", "Method name on the target node")
+            .prop("flags", "integer", "Connection flags (1=DEFERRED, 2=ONESHOT, 4=PERSIST, 8=REFERENCE_COUNTED)")
+            .required({"node_path", "signal_name", "target_path", "target_method"})
+            .build();
     }
     bool needs_scene() const override { return true; }
     bool needs_node() const override { return false; }
@@ -71,32 +44,38 @@ protected:
         String signal_name = args_string(ctx.args, "signal_name");
         String target_path = args_string(ctx.args, "target_path");
         String target_method = args_string(ctx.args, "target_method");
-        int flags = (int)args_int(ctx.args, "flags", 0);
+        int flags = static_cast<int>(args_int(ctx.args, "flags", 0));
 
         if (signal_name.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("signal_name 不能为空"));
+            return ToolResult::err("MISSING_ARG", String("signal_name cannot be empty"));
         }
         if (target_method.is_empty()) {
-            return ToolResult::err("MISSING_ARG", String::utf8("target_method 不能为空"));
+            return ToolResult::err("MISSING_ARG", String("target_method cannot be empty"));
         }
 
-        Node *source = resolve_node(ctx.root, path);
-        if (!source) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("源节点未找到: ") + path);
+        Node *source = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, path, source)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
-        Node *target = resolve_node(ctx.root, target_path);
-        if (!target) {
-            return ToolResult::err("NODE_NOT_FOUND",
-                String::utf8("目标节点未找�? ") + target_path);
+        Node *target = nullptr;
+        if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, target_path, target)) {
+            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
         }
 
         Callable callable(target, target_method);
-        Error err = source->connect(signal_name, callable, (uint32_t)flags);
-        if (err != OK) {
-            String msg = String::utf8("连接信号失败，错误码: ") + itos((int)err);
-            return ToolResult::err("CONNECT_FAILED", msg);
+        auto *ur = get_undo_redo();
+        if (ur) {
+            ur->create_action("MCP: Connect signal", godot::UndoRedo::MERGE_DISABLE, ctx.root);
+            ur->add_do_method(source, "connect", signal_name, callable, static_cast<uint32_t>(flags));
+            ur->add_undo_method(source, "disconnect", signal_name, callable);
+            ur->commit_action();
+        } else {
+            Error err = source->connect(signal_name, callable, static_cast<uint32_t>(flags));
+            if (err != godot::OK) {
+                String msg = String("Signal connect failed, error: ") + godot::itos(static_cast<int>(err));
+                return ToolResult::err("CONNECT_FAILED", msg);
+            }
         }
 
         Dictionary data;

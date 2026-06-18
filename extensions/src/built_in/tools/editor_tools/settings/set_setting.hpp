@@ -3,8 +3,10 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/tracked_settings.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/args_get_typed.hpp"
 
 #include <godot_cpp/classes/project_settings.hpp>
 
@@ -12,9 +14,9 @@ namespace godot_mcp {
 
 class SetSettingTool : public ITool {
 public:
-    String name() const override { return "set_setting"; }
-    String category() const override { return "editor_tools/settings"; }
-    String brief() const override {
+    String name() const noexcept override { return "set_setting"; }
+    String category() const noexcept override { return "editor_tools/settings"; }
+    String brief() const noexcept override {
         return "Set any project setting by path";
     }
     String description() const override {
@@ -23,7 +25,7 @@ public:
     }
     bool needs_scene() const override { return false; }
     bool needs_node() const override { return false; }
-    Dictionary input_schema() const override {
+    Dictionary build_input_schema() const override {
         Dictionary s;
         s["type"] = "object";
         Dictionary p;
@@ -32,7 +34,6 @@ public:
         sp["description"] = "Full setting path (e.g. \"application/config/name\")";
         p["setting_path"] = sp;
         Dictionary vp;
-        vp["type"] = "object";
         vp["description"] = "Value for the setting (use native JSON types)";
         p["value"] = vp;
         s["properties"] = p;
@@ -52,18 +53,23 @@ protected:
         if (!ctx.args.has("value")) {
             return ToolResult::err("MISSING_PARAM", "value is required");
         }
-        godot::ProjectSettings *ps = godot::ProjectSettings::get_singleton();
-        if (!ps->has_setting(path)) {
-            return ToolResult::err("SETTING_NOT_FOUND",
-                String("Setting not found: ") + path);
+        auto *ps = godot::ProjectSettings::get_singleton();
+        const bool existed = ps->has_setting(path);
+        Variant old_val;
+        if (existed) {
+            old_val = ps->get_setting(path);
         }
-        Variant old_val = ps->get_setting(path);
+        // Snapshot the original value once (first time this setting is modified).
+        auto &overrides = get_setting_overrides();
+        if (!overrides.has(path) && existed) {
+            overrides[path] = old_val;
+        }
         Variant new_val = json_to_variant(ctx.args["value"]);
         ps->set_setting(path, new_val);
         Error err = ps->save();
-        if (err != OK) {
+        if (err != godot::OK) {
             return ToolResult::err("SAVE_FAILED",
-                String("Failed to save project settings (error ") + itos(err) + String(")"));
+                String("Failed to save project settings (error ") + godot::itos(err) + String(")"));
         }
         Dictionary data;
         data["setting"] = path;

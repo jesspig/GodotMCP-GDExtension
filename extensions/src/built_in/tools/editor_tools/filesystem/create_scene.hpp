@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -13,9 +14,9 @@ namespace godot_mcp {
 
 class CreateSceneTool : public ITool {
 public:
-    String name() const override { return "create_scene"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_scene"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Create a Godot scene (.tscn) file";
     }
     String description() const override {
@@ -24,31 +25,13 @@ public:
                "consistent with Godot's SceneTreeDock official scene creation path. "
                "The scene includes a root Node by default.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Target path (must end with .tscn)";
-            props["path"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: root node type (e.g. Node2D, Node3D, default Node)";
-            props["root_type"] = p;
-        }
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Optional: root node name (default Node)";
-            props["root_name"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("path", "string", "Target path (must end with .tscn)")
+            .prop("root_type", "string", "Optional: root node type (e.g. Node2D, Node3D, default Node)")
+            .prop("root_name", "string", "Optional: root node name (default Node)")
+            .required({"path"})
+            .build();
     }
 
 protected:
@@ -92,13 +75,13 @@ protected:
 
         if (err != Error::OK) {
             return ToolResult::err("PACK_FAILED",
-                "Failed to pack scene, error code: " + String::num_int64((int64_t)err));
+                "Failed to pack scene, error code: " + String::num_int64(static_cast<int64_t>(err)));
         }
 
         err = godot::ResourceSaver::get_singleton()->save(scene, path, godot::ResourceSaver::FLAG_CHANGE_PATH);
         if (err != Error::OK) {
             return ToolResult::err("SAVE_FAILED",
-                "Failed to save scene, error code: " + String::num_int64((int64_t)err));
+                "Failed to save scene, error code: " + String::num_int64(static_cast<int64_t>(err)));
         }
 
         fs_utils::notify_file_changed(path);

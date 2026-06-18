@@ -1,5 +1,6 @@
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "filesystem_utils.hpp"
@@ -10,9 +11,9 @@ namespace godot_mcp {
 
 class CreateDirectoryTool : public ITool {
 public:
-    String name() const override { return "create_directory"; }
-    String category() const override { return "editor_tools/filesystem"; }
-    String brief() const override {
+    String name() const noexcept override { return "create_directory"; }
+    String category() const noexcept override { return "editor_tools/filesystem"; }
+    String brief() const noexcept override {
         return "Create a directory";
     }
     String description() const override {
@@ -20,19 +21,11 @@ public:
                "Uses DirAccess::make_dir_recursive_absolute(). "
                "Can create nested directories in one call.";
     }
-    Dictionary input_schema() const override {
-        Dictionary props;
-        {
-            Dictionary p;
-            p["type"] = "string";
-            p["description"] = "Directory path to create (res:// prefix)";
-            props["path"] = p;
-        }
-        Dictionary s;
-        s["type"] = "object";
-        s["properties"] = props;
-        s["required"] = Array::make("path");
-        return s;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("path", "string", "Directory path to create (res:// prefix)")
+            .required({"path"})
+            .build();
     }
 
 protected:
@@ -51,7 +44,7 @@ protected:
         Error err = godot::DirAccess::make_dir_recursive_absolute(path);
         if (err != Error::OK) {
             return ToolResult::err("MKDIR_FAILED",
-                "Failed to create directory, error code: " + String::num_int64((int64_t)err));
+                "Failed to create directory, error code: " + String::num_int64(static_cast<int64_t>(err)));
         }
 
         fs_utils::notify_fs_changes();

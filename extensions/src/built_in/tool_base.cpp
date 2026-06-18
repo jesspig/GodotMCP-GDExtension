@@ -1,5 +1,6 @@
 #include "tool_base.hpp"
 #include "cmd_utils.hpp"
+#include "logging.hpp"
 
 using namespace godot;
 
@@ -9,34 +10,12 @@ namespace godot_mcp {
 // ToolResult
 // =========================================================================
 
-Dictionary ToolResult::ok(Dictionary data) {
+Dictionary ToolResult::ok(const Dictionary &data) {
     Dictionary r;
     r["success"] = true;
     if (data.size() > 0) {
         r["data"] = data;
     }
-    return r;
-}
-
-Dictionary ToolResult::ok_with_meta(const Dictionary &data, const Dictionary &meta) {
-    Dictionary r;
-    r["success"] = true;
-    if (data.size() > 0) {
-        r["data"] = data;
-    }
-    if (meta.size() > 0) {
-        r["meta"] = meta;
-    }
-    return r;
-}
-
-Dictionary ToolResult::ok_with_confirm(const Dictionary &data, const String &confirm_message) {
-    Dictionary r;
-    r["success"] = true;
-    if (data.size() > 0) {
-        r["data"] = data;
-    }
-    r["confirm"] = confirm_message;
     return r;
 }
 
@@ -50,16 +29,15 @@ Dictionary ToolResult::err(const String &code, const String &message) {
     return r;
 }
 
-Dictionary ToolResult::err_with_recoverable(const String &code, const String &message, const String &suggestion) {
-    Dictionary error;
-    error["code"] = code;
-    error["message"] = message;
-    Dictionary r;
-    r["success"] = false;
-    r["error"] = error;
-    r["recoverable"] = true;
-    r["suggestion"] = suggestion;
-    return r;
+// =========================================================================
+// ITool::input_schema — 缓存包装
+// =========================================================================
+
+Dictionary ITool::input_schema() const {
+    if (!schema_cache_) {
+        schema_cache_ = build_input_schema();
+    }
+    return *schema_cache_;
 }
 
 // =========================================================================
@@ -94,9 +72,9 @@ Dictionary ITool::execute(const Dictionary &args) {
                 if (prop_def.has("type")) {
                     String expected_type = prop_def["type"];
                     bool type_ok = true;
-                    if (expected_type == "string" && val.get_type() != Variant::STRING && val.get_type() != Variant::NIL)
+                    if (expected_type == "string" && val.get_type() != Variant::STRING)
                         type_ok = false;
-                    else if (expected_type == "integer" && val.get_type() != Variant::INT && val.get_type() != Variant::FLOAT)
+                    else if (expected_type == "integer" && val.get_type() != Variant::INT)
                         type_ok = false;
                     else if (expected_type == "number" && val.get_type() != Variant::FLOAT && val.get_type() != Variant::INT)
                         type_ok = false;
@@ -121,9 +99,8 @@ Dictionary ITool::execute(const Dictionary &args) {
     if (needs_scene()) {
         Dictionary old_err;
         ctx.root = get_root_or_error(old_err);
-        if (!ctx.root) {
-            return ToolResult::err("NO_SCENE",
-                old_err.get("error", "No scene is currently open in the editor"));
+        if (ctx.root == nullptr || !Object::cast_to<Node>(ctx.root)) {
+            return ToolResult::err("INVALID_SCENE_ROOT", "Scene root is null or invalid");
         }
     }
 
@@ -140,6 +117,9 @@ Dictionary ITool::execute(const Dictionary &args) {
         if (!ctx.root) {
             ctx.root = get_root();
         }
+        if (!ctx.root) {
+            return ToolResult::err("NO_SCENE", "No scene is currently open");
+        }
         ctx.node = resolve_node(ctx.root, node_path);
         if (!ctx.node) {
             return ToolResult::err("NODE_NOT_FOUND",
@@ -152,6 +132,7 @@ Dictionary ITool::execute(const Dictionary &args) {
 
     // ── 安全包裹：确保统一返回信封 ──
     if (!result.has("success")) {
+        log_warn("tool", name() + String(": execute_impl returned dict without 'success' key, auto-wrapping"));
         Dictionary wrapped;
         wrapped["success"] = true;
         wrapped["data"] = result;

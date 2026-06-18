@@ -1,6 +1,8 @@
-﻿
+
 #pragma once
 
+#include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "server/registry/handler_registry.hpp"
 
@@ -10,36 +12,23 @@ class GetCategoriesTool : public ITool {
 public:
     void set_registry(HandlerRegistry *reg) override { reg_ = reg; }
 
-    String name() const override { return "get_categories"; }
-    String category() const override { return "meta_tools"; }
-    String brief() const override { return String("List tool categories as a tree, supporting path drilling and depth control"); }
+    String name() const noexcept override { return "get_categories"; }
+    String category() const noexcept override { return "meta_tools"; }
+    String brief() const noexcept override { return String("List tool categories as a tree, supporting path drilling and depth control"); }
     String description() const override {
         return String("Returns the tool category tree. Specify path to drill into a specific "
                       "category, and max_depth to control expansion depth (default 3, -1 for unlimited).");
     }
-    Dictionary input_schema() const override {
-        Dictionary schema;
-        schema["type"] = "object";
-        Dictionary props;
-
-        Dictionary p;
-        p["type"] = "string";
-        p["description"] = String("Category path, empty starts from root. E.g. node_tools/property/Node/CanvasItem");
-        props["path"] = p;
-
-        Dictionary d;
-        d["type"] = "integer";
-        d["description"] = String("Maximum depth (default 3, -1 for unlimited)");
-        props["max_depth"] = d;
-
-        schema["properties"] = props;
-        return schema;
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("path", "string", "Category path, empty starts from root. E.g. node_tools/property/Node/CanvasItem")
+            .prop("max_depth", "integer", "Maximum depth (default 3, -1 for unlimited)")
+            .build();
     }
-    bool is_meta() const override { return true; }
+    bool is_meta() const noexcept override { return true; }
 
 protected:
-    // 鍦?categories 鏁扮粍涓寜 id 鏌ユ壘鎸囧畾 segment
-    // 杩斿洖璇ヨ妭鐐圭殑鍓湰锛屾湭鎵惧埌鍒欒繑鍥炵┖ Dictionary
+
     static Dictionary find_by_id(const Array &categories, const String &id) {
         for (int i = 0; i < categories.size(); ++i) {
             Dictionary cat = categories[i];
@@ -50,7 +39,7 @@ protected:
         return Dictionary();
     }
 
-    // 閫掑綊瑁佸壀锛歞epth 浠?1 寮€濮嬭鏁帮紝瓒呰繃 max_depth 鏃剁Щ闄?subcategories
+
     static Dictionary trim_depth(const Dictionary &node, int max_depth, int depth) {
         Dictionary out = node;
         if (max_depth >= 0 && depth >= max_depth) {
@@ -68,7 +57,7 @@ protected:
         return out;
     }
 
-    // 閫掑綊鏌ユ壘璺緞鑺傜偣锛氳繑鍥炴壘鍒扮殑鑺傜偣鍓湰锛堝凡瑁佸壀锛夛紝绌?Dictionary 琛ㄧず鏈壘鍒?
+
     static Dictionary find_path_node(const Array &categories,
                                      const PackedStringArray &segments,
                                      int seg_idx,
@@ -96,7 +85,9 @@ protected:
 
         const Array all = reg_->get_categories();
         const String path = ctx.args.get("path", "");
-        const int max_depth = ctx.args.get("max_depth", 3);
+        // args_int handles INT/FLOAT/BOOL and falls back to the default; a raw
+        // Dictionary::get -> Variant -> int would abort on a non-numeric payload.
+        const int max_depth = static_cast<int>(args_int(ctx.args, "max_depth", 3));
         Array result;
 
         if (path.is_empty()) {

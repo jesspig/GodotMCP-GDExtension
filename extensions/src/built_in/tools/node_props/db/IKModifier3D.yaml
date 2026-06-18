@@ -1,8 +1,0 @@
-class: IKModifier3D
-inherits: SkeletonModifier3D
-properties:
-- name: mutable_bone_axes
-  type: 1
-  type_name: bool
-description: ''
-aliases: []

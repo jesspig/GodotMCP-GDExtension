@@ -1,73 +1,75 @@
-# Getting Started
+﻿# Getting Started
 
-## Introduction
+## Requirements
 
-GodotMCP is an **MCP (Model Context Protocol) server** that runs as a C++ GDExtension inside the Godot 4.6+ editor, exposing editor capabilities to AI coding tools via Streamable HTTP.
-
-```mermaid
-graph LR
-    AI[AI Client] -- Streamable HTTP :9600 --> GDExt[godot_mcp_gdext.dll/.so/.dylib]
-    GDExt -- EditorPlugin API --> Godot[Godot Editor]
-    GDExt -- TCP :9601 --> Game[Game Process]
-    GDExt -- LSP :6005 --> LSPClient[LSP Validation]
-```
+- **Godot 4.6+** (editor, not export templates)
+- **AI client** that supports MCP Streamable HTTP (Claude Code, Cline, Continue, Cursor, opencode, Roo Code, etc.)
 
 ## Installation
 
-### Download the Plugin
+### 1. Download the Plugin
 
-Download the latest `addons.zip` from the [Releases](https://github.com/jesspig/GodotMCP-GDExtension/releases) page and extract it to your Godot project's `addons/` directory.
+Download the latest `addons.zip` from the [Releases](https://github.com/JessPig/GodotMCP-GDExtension/releases) page.
 
-### Enable the Plugin
+### 2. Extract to Your Project
 
-1. Open the Godot Editor → **Project Settings** → **Plugins**
-2. Find **GodotMCP** and click **Enable**
+Extract the zip into your Godot project root so that the plugin files are at:
 
-The plugin will automatically listen on port `9600` (configurable via the `GODOT_MCP_HTTP_PORT` environment variable).
-
-### Build from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/jesspig/GodotMCP-GDExtension.git
-cd GodotMCP-GDExtension
-
-# Debug build
-uv run python build.py
-
-# Release build
-uv run python build.py --release
-
-# Build output is in example/addons/godot_mcp/
+```
+your_project/
+addons/
+  godot_mcp/
+    plugin.cfg
+    godot_mcp.gdextension
+    bin/
+      godot_mcp_gdext.dll    # Windows
+      libgodot_mcp_gdext.so  # Linux
+      libgodot_mcp_gdext.dylib  # macOS
 ```
 
-> **Windows Note**: Use `uv run python` (auto-activates `.venv`). You can also use `py -3` — the Microsoft Store python shim may hang silently.
+### 3. Enable the Plugin
 
-## Configure AI Client
+1. Open your project in Godot 4.6+
+2. Go to **Project > Project Settings > Plugins**
+3. Find **Godot MCP** and set the status to **Enable**
 
-> **Always use project-level configuration**, not global. Only Godot projects with the GodotMCP plugin installed will start the MCP server; a global config will cause connection failures in other projects.
+### 4. Verify It Works
 
-For opencode, add this to `opencode.json` in your project root:
+Check the Godot editor output console for:
+
+```
+GodotMCP: HTTP server started on port 9600
+```
+
+Or test with curl:
+
+```bash
+curl -X POST http://localhost:9600/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_info","arguments":{}}}'
+```
+
+Expected response:
 
 ```json
 {
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "godot-mcp": {
-      "type": "remote",
-      "url": "http://localhost:9600"
-    }
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [{
+      "type": "text",
+      "text": "{\"success\":true,\"data\":{\"connection\":{\"status\":\"ok\"},\"engine\":{...}}}"
+    }]
   }
 }
 ```
 
-See [Client Configuration](/en/reference/client-config) for other clients (Cursor, VS Code, Windsurf, Claude Code, Claude Desktop, Continue, Cline, etc.).
+## Configure Your AI Client
 
-## Verify Connection
+See [Client Setup](/guide/client-setup) for configuring opencode, Cursor, Claude Code, Cline, and other AI tools.
 
-```bash
-curl http://localhost:9600
-# Expected: Godot MCP server running
-```
+## What's Next?
 
-Or use any MCP client to call the `ping` tool.
+- Read the [Tools Overview](/guide/tools-overview) to see what you can do
+- Browse the [Tools Reference](/reference/meta-tools) for detailed tool parameters
+- Check the [FAQ](/guide/faq) for common issues

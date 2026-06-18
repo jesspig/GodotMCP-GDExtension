@@ -1,0 +1,66 @@
+name: csharp_tilemap
+description: Tilemap tools, C# tools (needs .NET SDK)
+headless: true
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: create_directory
+      args: { path: "res://test_mcp_19" }
+    - tool: new_scene
+      args: { root_type: "Node2D", root_name: "Root" }
+    - tool: add_node
+      args: { class_name: "TileMapLayer", node_name: "TML", parent_path: "" }
+    - tool: write_csharp_script
+      args:
+        path: "res://test_mcp_19/test.cs"
+        content: "using Godot;\npublic partial class Test : Node {\n  public override void _Ready() { }\n}"
+  after_all:
+    - tool: new_scene
+      args: { root_type: "Node", root_name: "Cleanup" }
+    - tool: delete_file
+      args: { path: "res://test_mcp_19", recursive: true }
+  stages:
+    - id: main
+      steps:
+        - id: set_tilemap_cells
+          tool: set_tilemap_cells
+          description: Places a cell at (0,0)
+          args:
+            node_path: "Root/TML"
+            cells:
+              - coords: [0, 0]
+                source_id: 0
+                atlas_coords: [0, 0]
+                alternative_tile: 0
+          expect: { status: success }
+        - id: get_tilemap_info
+          tool: get_tilemap_info
+          description: Gets tilemap info
+          args: { node_path: "Root/TML" }
+          expect: { status: success }
+        - id: erase_tilemap_cells
+          tool: erase_tilemap_cells
+          description: Erases cells at (0,0)
+          args: { node_path: "Root/TML", cells: [[0, 0]] }
+          expect: { status: success }
+        - id: list_csharp_scripts
+          tool: list_csharp_scripts
+          description: Lists C# scripts
+          args: {}
+          expect: { status: success }
+        - id: read_csharp_script
+          tool: read_csharp_script
+          description: Reads the C# script
+          args: { path: "res://test_mcp_19/test.cs" }
+          expect: { status: success }
+        - id: validate_csharp_script
+          tool: validate_csharp_script
+          description: Validates the C# script
+          args: { path: "res://test_mcp_19/test.cs" }
+          expect: { status: success }
+        - id: patch_csharp_script
+          tool: patch_csharp_script
+          description: Patches the C# script
+          args: { path: "res://test_mcp_19/test.cs", old_text: "class Test", new_text: "class Test2" }
+          expect: { status: success }

@@ -13,13 +13,13 @@ flowchart LR
         B["_try_bridge_connect()"]
         D["RuntimeBridge::poll()"]
     end
-    
+
     A --> C
     A --> B
     A --> D
 ```
 
-C++ 版本**没有任何工作线程**。所有操作（HTTP 解析、JSON 处理、命令执行、Godot API 调用）都在 `McpEditorPlugin::_process(delta)` 中同步完成。该函数是 `EditorPlugin` 的虚函数，由 Godot 引擎每帧自动调用。
+C++ 版本**没有任何工作线程**。所有操作（HTTP 解析、JSON 处理、命令执行、Godot API 调用）都在 `McpEditorPlugin::_process(delta)` 中同步完成（`editor_plugin.cpp:225-233`）。该函数是 `EditorPlugin` 的虚函数，由 Godot 引擎每帧自动调用。
 
 这意味着：
 - **无需** `MainThreadDispatcher`
@@ -35,27 +35,10 @@ Godot GDExtension API 要求所有 API 调用发生在主线程。C++ godot-cpp 
 ## 实现细节（C++）
 
 ```cpp
-// editor_plugin.cpp
-void McpEditorPlugin::_enter_tree() {
-    if (!Engine::get_singleton()->is_editor_hint()) return;
-
-    registry_.set_engine_version(Engine::get_singleton()->get_version_info().get("string", ""));
-    registry_.set_plugin_version(String(GODOT_MCP_PLUGIN_VERSION));
-    register_itools(registry_);
-
-    // 初始化 SDK
-    McpToolRegistry *sdk_reg = McpToolRegistry::get_singleton();
-    sdk_reg->set_handler_registry(&registry_);
-    sdk_reg->set_mcp_handler(&mcp_handler_);
-
-    int http_port = read_port_from_env("GODOT_MCP_HTTP_PORT", 9600);
-    http_server_.start(http_port, &mcp_handler_);
-
-    started_ = true;
-}
-
-void McpEditorPlugin::_process(double delta) {
+// editor_plugin.cpp:225-233
+void McpEditorPlugin::_process(double /*delta*/) {
     if (!started_) return;
+
     http_server_.poll();
     _try_bridge_connect();
     runtime_bridge_.poll();
@@ -63,3 +46,11 @@ void McpEditorPlugin::_process(double delta) {
 ```
 
 `HttpServer::poll()` 非阻塞地处理 TCP 连接（accept、read、parse、dispatch），`RuntimeBridge::poll()` 推进 TCP 客户端状态机。所有操作在单帧内同步完成。`http_server_` 内部有 `polling_` 标志防止 `EditorProgress` → `Main::iteration()` 导致的递归重入。
+
+`HttpServer::start()` 签名（`http_server.hpp:40`）：
+
+```cpp
+Error start(uint16_t port, McpHandler *mcp_handler, const String &bind_address = "127.0.0.1");
+```
+
+返回 `Error`，调用方检查返回值（`editor_plugin.cpp:125`）。

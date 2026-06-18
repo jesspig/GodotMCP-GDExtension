@@ -1,5 +1,0 @@
-class: X509Certificate
-inherits: Resource
-properties: []
-description: ''
-aliases: []
