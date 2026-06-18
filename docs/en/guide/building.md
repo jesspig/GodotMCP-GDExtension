@@ -1,56 +1,89 @@
-# Building & Packaging
+﻿# Building from Source
 
-## Build System
+## Prerequisites
 
-The build system is **CMake** (C++ GDExtension → godot-cpp 10.0.0-rc1 via FetchContent). A lightweight `build.py` wrapper is provided.
+- **Python 3.14+** (check `.python-version`)
+- **uv** (Python package manager)
+- **CMake 3.25+**
+- **C++17 compiler** (MSVC, GCC, Clang, or AppleClang)
+- **Git** (for FetchContent dependencies)
 
-```bash
-py -3 build.py                        # debug build + addons.zip
-py -3 build.py --release              # release build + addons.zip
-py -3 build.py --clean                # clear CMake cache (keep _deps/godot-cpp)
-py -3 build.py --no-zip               # skip addons.zip (fast iteration)
-py -3 build.py --clean-all            # delete entire build/ (including _deps/)
-py -3 build.py --purge-cache          # clear _deps/ only (force re-download)
-```
-
-CMake handles automatically:
-
-- `FetchContent` pulls `godot-cpp 10.0.0-rc1` + `ryml v0.7.0` (header-only)
-- Generates `plugin.cfg` and `godot_mcp.gdextension`
-- Copies dll/dylib/so to `example/addons/godot_mcp/bin/`
-- CPack packaging → `addons.zip`
-- Auto-detects sccache/ccache, Unity build, lld-link for faster compilation
-
-## C++ GDExtension Build Flow
-
-CMake builds godot-cpp + extension source files via `add_subdirectory(extensions)`:
-
-1. FetchContent pulls `godot-cpp 10.0.0-rc1`
-2. Adds all source files from `/extensions/src/`
-3. Links godot-cpp static library → `godot_mcp_gdext.dll`
-4. Post-process: copies to `example/addons/godot_mcp/bin/`
-
-## Manual Build (without build.py)
+## Quick Build
 
 ```bash
-cmake -B build -S .                          # Configure
-cmake --build build --config Debug           # Build
-cmake --build build --config Debug --target package  # Package
+uv run python main.py build
 ```
 
-## Git Ignore
+This performs a Debug build and copies the result to `example/addons/godot_mcp/bin/`.
 
-`example/addons/godot_mcp/bin/*` is in `.gitignore`. **Never commit build artifacts.**
+## Build Options
 
-## Version Management
+### Release Build
 
-- Single version source in `CMakeLists.txt`: `set(PROJECT_VERSION "0.2.1")`
-- CMake auto-fills this version when generating `plugin.cfg`
-- Update the CMake version; no need to manually edit `plugin.cfg`
+```bash
+uv run python main.py build --release
+```
 
-## Dependency Locking
+### Build with Packaging
 
-- `godot-cpp 10.0.0-rc1`: pinned tag via FetchContent
-- `ryml v0.7.0`: header-only YAML library
-- Python dependencies: locked via `uv.lock`
-- **Always use `uv run python`** to run build.py (uv auto-activates `.venv`)
+```bash
+uv run python main.py build --zip
+```
+
+Builds and then packages `addons.zip` for distribution.
+
+### Parallel Jobs
+
+```bash
+uv run python main.py build -j 16
+```
+
+### Custom Compiler/Generator
+
+```bash
+uv run python main.py build --compiler clang-cl --generator ninja
+```
+
+### Compiler Cache
+
+```bash
+uv run python main.py build --compiler clang-cl --generator ninja --cache sccache
+```
+
+## Build Commands Reference
+
+| Command | Description |
+|---------|-------------|
+| `uv run python main.py build` | Debug build |
+| `uv run python main.py build --release` | Release build |
+| `uv run python main.py build --zip` | Build + package addons.zip |
+| `uv run python main.py build --clean` | Clean build cache (keep dependencies) |
+| `uv run python main.py package` | Package prebuilt libs into addons.zip |
+| `uv run python main.py test` | Full test pipeline |
+
+## CI Recipes
+
+### Windows (clang-cl + ninja + sccache)
+
+```bash
+uv run python main.py build --compiler clang-cl --generator ninja --cache sccache
+```
+
+### Linux (gcc + ninja + sccache)
+
+```bash
+uv run python main.py build --compiler gcc --generator ninja --cache sccache
+```
+
+### macOS (appleclang + ninja + sccache)
+
+```bash
+uv run python main.py build --compiler appleclang --generator ninja --cache sccache
+```
+
+## Important Notes
+
+- **DLL lock**: Godot editor locks the DLL. Close the editor before rebuilding.
+- **Dependencies**: `godot-cpp 10.0.0-rc1` and `ryml v0.7.0` are fetched via CMake FetchContent.
+- **Version number**: Single source of truth in root `CMakeLists.txt` (`PROJECT_VERSION`).
+- **Auto-generated configs**: `plugin.cfg` and `.gdextension` are regenerated every build.
