@@ -1,73 +1,75 @@
-# 快速开始
+﻿# 快速入门
 
-## 项目简介
+## 系统要求
 
-GodotMCP 是一个 **MCP (Model Context Protocol) 服务器**，以 C++ GDExtension 形式运行在 Godot 4.6+ 编辑器中，通过 Streamable HTTP 将编辑器能力暴露给 AI 编码工具。
-
-```mermaid
-graph LR
-    AI[AI 客户端] -- Streamable HTTP :9600 --> GDExt[godot_mcp_gdext.dll/.so/.dylib]
-    GDExt -- EditorPlugin API --> Godot[Godot 编辑器]
-    GDExt -- TCP :9601 --> Game[游戏进程]
-
-```
+- **Godot 4.6+**（编辑器，非导出模板）
+- **支持 MCP Streamable HTTP 的 AI 客户端**（Claude Code、Cline、Continue、Cursor、opencode、Roo Code 等）
 
 ## 安装
 
-### 下载插件
+### 1. 下载插件
 
-从 [Releases](https://github.com/jesspig/GodotMCP-GDExtension/releases) 页面下载最新 `addons.zip`，解压到你的 Godot 项目 `addons/` 目录。
+从 [Releases](https://github.com/JessPig/GodotMCP-GDExtension/releases) 页面下载最新的 `addons.zip`。
 
-### 启用插件
+### 2. 解压到项目目录
 
-1. 打开 Godot 编辑器 → **项目设置** → **插件**
-2. 找到 **GodotMCP**，点击 **启用**
+将 zip 解压到 Godot 项目根目录，插件文件结构如下：
 
-插件启动后会自动监听 `9600` 端口（可通过环境变量 `GODOT_MCP_HTTP_PORT` 修改）。
-
-### 自构建
-
-```bash
-# 克隆仓库
-git clone https://github.com/jesspig/GodotMCP-GDExtension.git
-cd GodotMCP-GDExtension
-
-# Debug 构建
-uv run python main.py build
-
-# Release 构建
-uv run python main.py build --release
-
-# 构建输出在 example/addons/godot_mcp/
+```
+your_project/
+addons/
+  godot_mcp/
+    plugin.cfg
+    godot_mcp.gdextension
+    bin/
+      godot_mcp_gdext.dll    # Windows
+      libgodot_mcp_gdext.so  # Linux
+      libgodot_mcp_gdext.dylib  # macOS
 ```
 
-> **Windows 注意**：推荐使用 `uv run python`（自动激活 `.venv`）。也可使用 `py -3`——Microsoft Store 的 python 路由可能会导致卡死。
+### 3. 启用插件
 
-## 配置 AI 客户端
+1. 在 Godot 4.6+ 中打开你的项目
+2. 进入 **项目 > 项目设置 > 插件**
+3. 找到 **Godot MCP** 并将状态设为 **启用**
 
-> **务必在项目级别配置**，不要全局配置。只有安装了 GodotMCP 插件的 Godot 项目才会启动 MCP 服务器，全局配置会导致其他项目一直连接失败。
+### 4. 验证是否生效
 
-以 opencode 为例，在项目根目录的 `opencode.json` 中添加：
+查看 Godot 编辑器输出控制台是否有：
+
+```
+GodotMCP: HTTP server started on port 9600
+```
+
+或使用 curl 测试：
+
+```bash
+curl -X POST http://localhost:9600/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_info","arguments":{}}}'
+```
+
+预期响应：
 
 ```json
 {
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "godot-mcp": {
-      "type": "remote",
-      "url": "http://localhost:9600"
-    }
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [{
+      "type": "text",
+      "text": "{\"success\":true,\"data\":{\"connection\":{\"status\":\"ok\"},\"engine\":{...}}}"
+    }]
   }
 }
 ```
 
-其他客户端（Cursor、VS Code、Windsurf、Claude Code、Claude Desktop、Continue、Cline 等）配置请参考 [客户端配置](/reference/client-config)。
+## 配置 AI 客户端
 
-## 验证连接
+参见[客户端设置](/zh/guide/client-setup)了解如何配置 opencode、Cursor、Claude Code、Cline 等 AI 工具。
 
-```bash
-curl http://localhost:9600/mcp
-# 预期返回: 405 Method Not Allowed（或使用 POST 的正常响应）
-```
+## 下一步
 
-或通过任意 MCP 客户端调用 `ping` 工具确认连接状态。
+- 阅读[工具概述](/zh/guide/tools-overview)了解可用的功能
+- 浏览[工具参考](/zh/reference/meta-tools)获取详细的工具参数
+- 查看[常见问题](/zh/guide/faq)解决常见问题
