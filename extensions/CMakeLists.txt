@@ -81,6 +81,9 @@ set(GODOT_MCP_SOURCES
 
     # Testing engine
     src/testing/test_engine.cpp
+    src/testing/pipeline_parser.cpp
+    src/testing/pipeline_context.cpp
+    src/testing/pipeline_runner.cpp
 
     # UI
     src/ui/mcp_dock.cpp

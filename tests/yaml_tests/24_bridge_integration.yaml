@@ -1,0 +1,76 @@
+headless: false
+
+pipeline:
+  on_failure: continue
+  before_all:
+    - tool: create_scene
+      args: { path: "res://bridge_test_scene.tscn", root_type: "Node", root_name: "TestRoot" }
+    - tool: open_file
+      args: { path: "res://bridge_test_scene.tscn" }
+    - tool: add_node
+      args: { parent_path: ".", class_name: "Sprite2D", node_name: "TestSprite" }
+    - tool: set_node_property
+      args: { node_path: "./TestSprite", property: "visible", value: true }
+    - tool: set_node_property
+      args: { node_path: "./TestSprite", property: "position", value: { x: 100, y: 200 } }
+    - tool: save_scene
+      args: { path: "res://bridge_test_scene.tscn" }
+  after_all:
+    - tool: delete_file
+      args: { path: "res://bridge_test_scene.tscn" }
+  stages:
+    - id: main
+      steps:
+        - id: run_specific_scene
+          tool: run_specific_scene
+          args: { scene_path: "res://bridge_test_scene.tscn" }
+          expect: { status: ok }
+
+        - id: wait_for_bridge
+          tool: wait_for_bridge
+          args: { timeout_ms: 12000, interval_ms: 200 }
+          expect: { status: ok }
+
+        - id: get_game_scene_tree
+          tool: get_game_scene_tree
+          args: { max_depth: 3, timeout_ms: 2000 }
+          expect: { status: ok }
+
+        - id: get_game_node_property
+          tool: get_game_node_property
+          args: { node_path: "/root/TestRoot/TestSprite", property: "name", timeout_ms: 2000 }
+          expect: { status: ok }
+
+        - id: get_game_node_property_2
+          tool: get_game_node_property
+          args: { node_path: "/root/TestRoot/TestSprite", property: "visible", timeout_ms: 2000 }
+          expect: { status: ok }
+
+        - id: set_game_node_property
+          tool: set_game_node_property
+          args: { node_path: "/root/TestRoot/TestSprite", property: "visible", value: false, timeout_ms: 2000 }
+          expect: { status: ok }
+
+        - id: get_game_node_property_3
+          tool: get_game_node_property
+          args: { node_path: "/root/TestRoot/TestSprite", property: "visible", timeout_ms: 2000 }
+          expect: { status: ok }
+
+        - id: capture_game_screenshot
+          tool: capture_game_screenshot
+          args: { format: "png", timeout_ms: 5000 }
+          expect: { status: ok }
+
+        - id: call_method_in_game
+          tool: call_method_in_game
+          args: { node_path: "/root/TestRoot", method: "has_node", args: ["TestSprite"], timeout_ms: 2000 }
+          expect: { status: ok }
+
+        - id: simulate_game_input
+          tool: simulate_game_input
+          args: { actions: [{ type: "key", key: "Space", pressed: true }], timeout_ms: 2000 }
+          expect: { status: ok }
+
+        - id: stop_project
+          tool: stop_project
+          expect: { status: ok }

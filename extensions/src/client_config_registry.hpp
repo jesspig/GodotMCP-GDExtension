@@ -7,6 +7,8 @@
 
 namespace godot_mcp {
 
+using namespace godot;
+
 using ConfigGenerator = String (*)(const String &url);
 
 struct ClientEntry {

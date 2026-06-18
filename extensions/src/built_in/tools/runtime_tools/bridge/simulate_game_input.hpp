@@ -63,6 +63,12 @@ public:
             d["items"] = item_schema;
             p["actions"] = d;
         }
+        {
+            Dictionary d;
+            d["type"] = "integer";
+            d["description"] = String("Response timeout in ms");
+            p["timeout_ms"] = d;
+        }
         Dictionary s;
         s["type"] = "object";
         s["properties"] = p;
@@ -78,7 +84,8 @@ protected:
         }
         Dictionary params;
         params["actions"] = ctx.args.get("actions", Array());
-        return RuntimeBridge::make_response(bridge->send_command("simulate_input", params));
+        int timeout = args_int(ctx.args, "timeout_ms", 100);
+        return RuntimeBridge::make_response(bridge->send_command("simulate_input", params, timeout));
     }
 };
 

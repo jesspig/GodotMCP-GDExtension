@@ -164,6 +164,7 @@ GODOT_MCP_TOOL(RemoveBreakpointTool, false)
 GODOT_MCP_TOOL(SetWorkspaceTool, false)
 
 // Runtime bridge tools
+GODOT_MCP_TOOL(WaitForBridgeTool, false)
 GODOT_MCP_TOOL(GetGameSceneTreeTool, false)
 GODOT_MCP_TOOL(GetGameNodePropertyTool, false)
 GODOT_MCP_TOOL(SetGameNodePropertyTool, true)

@@ -1,21 +1,35 @@
 name: export_basic
 description: Query export platforms, list presets, clear console
-before_all:
-  - tool: new_scene
-    args: { root_type: "Node", root_name: "Root" }
-tests:
-  - tool: get_export_platforms
-    description: Lists export platforms
-    args: {}
-    expect: { has_keys: [platforms, count] }
-  - tool: list_export_presets
-    description: Lists export presets
-    args: {}
-    expect: { has_keys: [presets, count] }
-  - tool: clear_console
-    description: Clears console
-    args: {}
-    expect: { status: success }
-after_all:
-  - tool: new_scene
-    args: { root_type: "Node", root_name: "Cleanup" }
+headless: true
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: new_scene
+      args: { root_type: "Node", root_name: "Root" }
+  after_all:
+    - tool: new_scene
+      args: { root_type: "Node", root_name: "Cleanup" }
+  stages:
+    - id: main
+      name: Main tests
+      before_each: []
+      after_each: []
+      steps:
+        - id: get_export_platforms
+          tool: get_export_platforms
+          description: Lists export platforms
+          args: {}
+          expect: { has_keys: [platforms, count] }
+
+        - id: list_export_presets
+          tool: list_export_presets
+          description: Lists export presets
+          args: {}
+          expect: { has_keys: [presets, count] }
+
+        - id: clear_console
+          tool: clear_console
+          description: Clears console
+          args: {}
+          expect: { status: success }

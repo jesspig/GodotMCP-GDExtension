@@ -3,6 +3,7 @@
 
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/tools/editor_tools/filesystem/filesystem_utils.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 
@@ -69,6 +70,7 @@ protected:
             ei->save_scene_as(path, false);
         }
 
+        fs_utils::notify_file_changed(path);
         Dictionary data;
         data["path"] = path;
         return ToolResult::ok(data);

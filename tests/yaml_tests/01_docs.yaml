@@ -1,95 +1,108 @@
 name: docs_tools_smoke
 description: Smoke tests for all documentation query tools
+headless: true
 
-tests:
-  - tool: get_class_list
-    description: Lists all registered Godot classes
-    expect:
-      has_keys: [classes, count]
-      field_checks:
-        - key: count
-          not_empty: true
+pipeline:
+  on_failure: fail_fast
+  stages:
+    - id: main
+      steps:
+        - id: get_class_list
+          tool: get_class_list
+          description: Lists all registered Godot classes
+          expect:
+            has_keys: [classes, count]
+            field_checks:
+              - key: count
+                not_empty: true
 
-  - tool: get_class_info
-    description: Gets Node class metadata
-    args:
-      class_name: "Node"
-    expect:
-      has_keys: [class_name, inherits, inheritance_chain, method_count, property_count, signal_count]
-      field_checks:
-        - key: class_name
-          value: "Node"
-        - key: method_count
-          not_empty: true
-        - key: property_count
-          not_empty: true
+        - id: get_class_info
+          tool: get_class_info
+          description: Gets Node class metadata
+          args:
+            class_name: "Node"
+          expect:
+            has_keys: [class_name, inherits, inheritance_chain, method_count, property_count, signal_count]
+            field_checks:
+              - key: class_name
+                value: "Node"
+              - key: method_count
+                not_empty: true
+              - key: property_count
+                not_empty: true
 
-  - tool: search_docs
-    description: Searches docs for Node
-    args:
-      query: "Node"
-    expect:
-      has_keys: [query, results, count]
-      field_checks:
-        - key: query
-          value: "Node"
+        - id: search_docs
+          tool: search_docs
+          description: Searches docs for Node
+          args:
+            query: "Node"
+          expect:
+            has_keys: [query, results, count]
+            field_checks:
+              - key: query
+                value: "Node"
 
-  - tool: get_inheritance_chain
-    description: Gets Node2D inheritance chain
-    args:
-      class_name: "Node2D"
-    expect:
-      has_keys: [class_name, chain, depth]
-      field_checks:
-        - key: class_name
-          value: "Node2D"
-        - key: depth
-          not_empty: true
+        - id: get_inheritance_chain
+          tool: get_inheritance_chain
+          description: Gets Node2D inheritance chain
+          args:
+            class_name: "Node2D"
+          expect:
+            has_keys: [class_name, chain, depth]
+            field_checks:
+              - key: class_name
+                value: "Node2D"
+              - key: depth
+                not_empty: true
 
-  - tool: get_best_practices
-    description: Gets best practices (default all topics)
-    expect:
-      has_keys: [topic, guidelines, count]
-      field_checks:
-        - key: topic
-          value: "all"
-        - key: guidelines
-          not_empty: true
+        - id: get_best_practices
+          tool: get_best_practices
+          description: Gets best practices (default all topics)
+          expect:
+            has_keys: [topic, guidelines, count]
+            field_checks:
+              - key: topic
+                value: "all"
+              - key: guidelines
+                not_empty: true
 
-  - tool: get_property_doc
-    description: Gets Node.name property documentation
-    args:
-      class_name: "Node"
-      property: "name"
-    expect:
-      has_keys: [class_name, property, type, getter, setter]
-      field_checks:
-        - key: class_name
-          value: "Node"
-        - key: property
-          value: "name"
+        - id: get_property_doc
+          tool: get_property_doc
+          description: Gets Node.name property documentation
+          args:
+            class_name: "Node"
+            property: "name"
+          expect:
+            has_keys: [class_name, property, type, getter, setter]
+            field_checks:
+              - key: class_name
+                value: "Node"
+              - key: property
+                value: "name"
 
-  - tool: get_method_doc
-    description: Gets Node.add_child method documentation
-    args:
-      class_name: "Node"
-      method: "add_child"
-    expect:
-      has_keys: [class_name, method, arg_count]
-      field_checks:
-        - key: class_name
-          value: "Node"
-        - key: method
-          value: "add_child"
+        - id: get_method_doc
+          tool: get_method_doc
+          description: Gets Node.add_child method documentation
+          args:
+            class_name: "Node"
+            method: "add_child"
+          expect:
+            has_keys: [class_name, method, arg_count]
+            field_checks:
+              - key: class_name
+                value: "Node"
+              - key: method
+                value: "add_child"
 
-  - tool: get_enum_doc
-    description: Lists all enums for Node class
-    args:
-      class_name: "Node"
-    expect:
-      has_keys: [class_name, enums, count]
-      field_checks:
-        - key: class_name
-          value: "Node"
-        - key: count
-          not_empty: true
+        - id: get_enum_doc
+          tool: get_enum_doc
+          description: Lists all enums for Node class
+          args:
+            class_name: "Node"
+          expect:
+            has_keys: [class_name, enums, count]
+            field_checks:
+              - key: class_name
+                value: "Node"
+              - key: count
+                not_empty: true

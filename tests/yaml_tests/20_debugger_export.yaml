@@ -1,29 +1,44 @@
 name: debugger_export
 description: Debugger control, breakpoints, export, project scaffold
-before_all:
-  - tool: new_scene
-    args: { root_type: "Node", root_name: "Root" }
-tests:
-  - tool: debugger_control
-    description: Breaks into debugger
-    args: { action: "break" }
-    expect: { status: success }
-  - tool: get_locals
-    description: Gets local variables (empty)
-    args: {}
-    expect: { status: success }
-  - tool: list_breakpoints
-    description: Lists breakpoints
-    args: {}
-    expect: { status: success }
-  - tool: set_breakpoint
-    description: Sets a breakpoint
-    args: { script_path: "res://addons/godot_mcp/plugin.gd", line: 10 }
-    expect: { status: success }
-  - tool: remove_breakpoint
-    description: Removes the breakpoint
-    args: { script_path: "res://addons/godot_mcp/plugin.gd", line: 10 }
-    expect: { status: success }
-after_all:
-  - tool: new_scene
-    args: { root_type: "Node", root_name: "Cleanup" }
+headless: false
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: new_scene
+      args: { root_type: "Node", root_name: "Root" }
+  after_all:
+    - tool: new_scene
+      args: { root_type: "Node", root_name: "Cleanup" }
+  stages:
+    - id: main
+      steps:
+        - id: debugger_control
+          tool: debugger_control
+          description: Breaks into debugger
+          args: { action: "break" }
+          expect: { status: success }
+
+        - id: get_locals
+          tool: get_locals
+          description: Gets local variables (empty)
+          args: {}
+          expect: { status: success }
+
+        - id: list_breakpoints
+          tool: list_breakpoints
+          description: Lists breakpoints
+          args: {}
+          expect: { status: success }
+
+        - id: set_breakpoint
+          tool: set_breakpoint
+          description: Sets a breakpoint
+          args: { script_path: "res://addons/godot_mcp/plugin.gd", line: 10 }
+          expect: { status: success }
+
+        - id: remove_breakpoint
+          tool: remove_breakpoint
+          description: Removes the breakpoint
+          args: { script_path: "res://addons/godot_mcp/plugin.gd", line: 10 }
+          expect: { status: success }

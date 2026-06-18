@@ -1,6 +1,6 @@
 # 运行时工具
 
-> 通过 12 个 ITool 封装对运行中游戏的查询与控制。分为两组：**桥接工具**（经 RuntimeBridge ↔ TCP ↔ GameBridgeNode 与游戏进程通信，6 个）和**生命周期工具**（通过 EditorInterface 直接控制编辑器播放状态，6 个）。
+> 通过 13 个 ITool 封装对运行中游戏的查询与控制。分为两组：**桥接工具**（经 RuntimeBridge ↔ TCP ↔ GameBridgeNode 与游戏进程通信，7 个）和**生命周期工具**（通过 EditorInterface 直接控制编辑器播放状态，6 个）。
 
 ## 架构
 
@@ -40,20 +40,21 @@ graph TB
 
 | 行 | 类名 | 工具名 | is_destructive | 组 |
 |----|------|--------|:--------------:|:--:|
-| 186 | `GetGameSceneTreeTool` | `get_game_scene_tree` | false | bridge |
-| 187 | `GetGameNodePropertyTool` | `get_game_node_property` | false | bridge |
-| 188 | `SetGameNodePropertyTool` | `set_game_node_property` | true | bridge |
-| 189 | `CallMethodInGameTool` | `call_method_in_game` | false | bridge |
-| 190 | `CaptureGameScreenshotTool` | `capture_game_screenshot` | false | bridge |
-| 191 | `SimulateGameInputTool` | `simulate_game_input` | false | bridge |
-| 194 | `RunProjectTool` | `run_project` | false | lifecycle |
-| 195 | `RunCurrentSceneTool` | `run_current_scene` | false | lifecycle |
-| 196 | `RunSpecificSceneTool` | `run_specific_scene` | false | lifecycle |
-| 197 | `StopProjectTool` | `stop_project` | false | lifecycle |
-| 198 | `PauseProjectTool` | `pause_project` | false | lifecycle |
-| 199 | `SetMovieMakerTool` | `set_movie_maker` | false | lifecycle |
+| 167 | `WaitForBridgeTool` | `wait_for_bridge` | false | bridge |
+| 168 | `GetGameSceneTreeTool` | `get_game_scene_tree` | false | bridge |
+| 169 | `GetGameNodePropertyTool` | `get_game_node_property` | false | bridge |
+| 170 | `SetGameNodePropertyTool` | `set_game_node_property` | true | bridge |
+| 171 | `CallMethodInGameTool` | `call_method_in_game` | false | bridge |
+| 172 | `CaptureGameScreenshotTool` | `capture_game_screenshot` | false | bridge |
+| 173 | `SimulateGameInputTool` | `simulate_game_input` | false | bridge |
+| 176 | `RunProjectTool` | `run_project` | false | lifecycle |
+| 177 | `RunCurrentSceneTool` | `run_current_scene` | false | lifecycle |
+| 178 | `RunSpecificSceneTool` | `run_specific_scene` | false | lifecycle |
+| 179 | `StopProjectTool` | `stop_project` | false | lifecycle |
+| 180 | `PauseProjectTool` | `pause_project` | false | lifecycle |
+| 181 | `SetMovieMakerTool` | `set_movie_maker` | false | lifecycle |
 
-## 桥接工具（6 个）
+## 桥接工具（7 个）
 
 所有桥接工具共同的调用模式：
 
@@ -99,6 +100,15 @@ graph TB
 - 参数：`type`（string, "key"/"mouse"/"action"/"button"），`event`（object）
 - 命令：`"simulate_input"`
 - 实现：GameBridgeNode 端构造 `InputEvent` 子类 → `Input::parse_input_event()`
+
+### wait_for_bridge（`wait_for_bridge.hpp:16`）
+
+- 参数：`timeout_ms`（int，默认 8000），`interval_ms`（int，默认 200）
+- **不发送 TCP 命令**，直接轮询 `RuntimeBridge::is_connected()`
+- 用于 `run_project`/`run_current_scene`/`run_specific_scene` 之后，阻塞等待桥接就绪
+- 已连接时立即返回 `{"message": "Bridge already connected"}`
+- 超时返回 `BRIDGE_TIMEOUT` 错误
+- 实现：`OS::delay_msec(interval_ms)` 循环内调用 `bridge->poll()` + `bridge->connect()`（需游戏已启动）
 
 ## 生命周期工具（6 个）
 
@@ -189,6 +199,7 @@ sequenceDiagram
 
 | 文件 | 工具 |
 |------|------|
+| `runtime_tools/bridge/wait_for_bridge.hpp` | wait_for_bridge |
 | `runtime_tools/bridge/get_game_scene_tree.hpp` | get_game_scene_tree |
 | `runtime_tools/bridge/get_game_node_property.hpp` | get_game_node_property |
 | `runtime_tools/bridge/set_game_node_property.hpp` | set_game_node_property |
@@ -201,4 +212,4 @@ sequenceDiagram
 | `runtime_tools/lifecycle/stop_project.hpp` | stop_project |
 | `runtime_tools/lifecycle/pause_project.hpp` | pause_project |
 | `runtime_tools/lifecycle/set_movie_maker.hpp` | set_movie_maker |
-| `register_existing.hpp` | 186-199 注册行 |
+| `register_existing.hpp` | 167-181 注册行 |

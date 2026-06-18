@@ -26,6 +26,5 @@
 | 工具 | 限制 |
 |------|------|
 | `get_node_property` / `set_node_property` | 仅 `@export` 变量在编辑器模式下可用。非导出成员使用 `PlaceHolderScriptInstance` |
-| `validate_gd_script` | 需要 Editor Settings → Network → Language Server → Enable 为 ON |
-| `validate_csharp_script` | 需要 .NET SDK 在 PATH 中 |
+| `validate_script` | GDScript 需要 Editor Settings → Network → Language Server → Enable 为 ON；C# 需要 .NET SDK 在 PATH 中 |
 | `rename_node` | 如果目标已打开但不是活动标签，可能返回错误 |

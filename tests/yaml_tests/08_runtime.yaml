@@ -1,74 +1,83 @@
 name: runtime_lifecycle_smoke
 description: Smoke tests for all runtime lifecycle tools (run/stop/movie_maker)
+headless: false
 
-before_all:
-  - tool: new_scene
-    args:
-      root_type: "Node2D"
-      root_name: "TestRoot"
-  - tool: create_directory
-    args:
-      path: "res://test_mcp_runtime"
-  - tool: save_scene
-    args:
-      path: "res://test_mcp_runtime/runtime_test.tscn"
+pipeline:
+  before_all:
+    - tool: new_scene
+      args:
+        root_type: "Node2D"
+        root_name: "TestRoot"
+    - tool: create_directory
+      args:
+        path: "res://test_mcp_runtime"
+    - tool: save_scene
+      args:
+        path: "res://test_mcp_runtime/runtime_test.tscn"
+  after_all:
+    - tool: new_scene
+      args:
+        root_type: "Node"
+        root_name: "Cleanup"
+    - tool: delete_file
+      args:
+        path: "res://test_mcp_runtime"
+        recursive: true
+    - tool: set_movie_maker
+      args:
+        enabled: false
+  stages:
+    - id: main
+      name: Main tests
+      steps:
+        - id: run_current_scene
+          tool: run_current_scene
+          description: Kicks off the current scene
+          expect:
+            has_keys: [action, scene, status]
 
-tests:
-  - tool: run_current_scene
-    description: Kicks off the current scene
-    expect:
-      has_keys: [action, scene, status]
+        - id: run_project
+          tool: run_project
+          description: Tries to run main scene (no-op if none set)
+          expect:
+            has_keys: [action, status]
 
-  - tool: run_project
-    description: Tries to run default main scene (may fail if none set)
-    expect:
-      has_keys: [action, status]
+        - id: run_specific_scene
+          tool: run_specific_scene
+          description: Runs the saved scene file
+          args:
+            scene_path: "res://test_mcp_runtime/runtime_test.tscn"
+          expect:
+            has_keys: [action, scene_path, status]
 
-  - tool: run_specific_scene
-    description: Runs the saved scene file
-    args:
-      scene_path: "res://test_mcp_runtime/runtime_test.tscn"
-    expect:
-      has_keys: [action, scene_path, status]
+        - id: stop_project
+          tool: stop_project
+          description: Stops the running project
+          expect:
+            has_keys: [action, was_running]
 
-  - tool: stop_project
-    description: Stops the running project
-    expect:
-      has_keys: [action, was_running]
+        - id: set_movie_maker_enable
+          tool: set_movie_maker
+          description: Enables Movie Maker mode
+          args:
+            enabled: true
+          expect:
+            has_keys: [action, previous, current]
+            field_checks:
+              - key: action
+                value: "set_movie_maker_enabled"
+              - key: current
+                value: true
 
-  - tool: set_movie_maker
-    description: Enables Movie Maker mode
-    args:
-      enabled: true
-    expect:
-      has_keys: [action, previous, current]
-      field_checks:
-        - key: action
-          value: "set_movie_maker_enabled"
-        - key: current
-          value: true
-
-  - tool: set_movie_maker
-    description: Disables Movie Maker mode (cleanup)
-    args:
-      enabled: false
-    expect:
-      has_keys: [action, previous, current]
-      field_checks:
-        - key: action
-          value: "set_movie_maker_enabled"
-        - key: current
-          value: false
-
-after_all:
-  - tool: new_scene
-    args:
-      root_type: "Node"
-      root_name: "Cleanup"
-  - tool: delete_file
-    args:
-      path: "res://test_mcp_runtime"
-      recursive: true
-  - tool: set_movie_maker
-    args:
-      enabled: false
+        - id: set_movie_maker_disable
+          tool: set_movie_maker
+          description: Disables Movie Maker mode (cleanup)
+          args:
+            enabled: false
+          expect:
+            has_keys: [action, previous, current]
+            field_checks:
+              - key: action
+                value: "set_movie_maker_enabled"
+              - key: current
+                value: false

@@ -1,105 +1,116 @@
 name: 3d_nav_collision_tilemap_smoke
 description: Smoke tests for 3D, navigation, collision, and tilemap tools
+headless: false
 
-before_all:
-  - tool: new_scene
-    args:
-      root_type: "Node3D"
-      root_name: "Test3DRoot"
-  - tool: add_node
-    args:
-      class_name: "MeshInstance3D"
-      node_name: "TestMesh"
-      parent_path: ""
-  - tool: add_node
-    args:
-      class_name: "WorldEnvironment"
-      node_name: "TestEnv"
-      parent_path: ""
+pipeline:
+  before_all:
+    - tool: new_scene
+      args:
+        root_type: "Node3D"
+        root_name: "Test3DRoot"
+    - tool: add_node
+      args:
+        class_name: "MeshInstance3D"
+        node_name: "TestMesh"
+        parent_path: ""
+    - tool: add_node
+      args:
+        class_name: "WorldEnvironment"
+        node_name: "TestEnv"
+        parent_path: ""
+  after_all:
+    - tool: new_scene
+      args:
+        root_type: "Node"
+        root_name: "Cleanup"
+  stages:
+    - id: main
+      name: Main tests
+      steps:
+        - id: create_mesh_instance_3d
+          tool: create_mesh_instance_3d
+          description: Creates a new MeshInstance3D with a box mesh
+          args:
+            node_name: "NewBoxMesh"
+            mesh_type: "box"
+            parent_path: ""
+          expect:
+            status: error
+            error_contains: "not available in this mode"
 
-tests:
-  - tool: create_mesh_instance_3d
-    description: Creates a new MeshInstance3D with a box mesh
-    args:
-      node_name: "NewBoxMesh"
-      mesh_type: "box"
-      parent_path: ""
-    expect:
-      status: error
-      error_contains: "not available in this mode"
+        - id: create_light_3d
+          tool: create_light_3d
+          description: Creates a DirectionalLight3D
+          args:
+            node_name: "SunLight"
+            light_type: "directional"
+            parent_path: ""
+          expect:
+            has_keys: [node_name, node_path, class_name, light_type]
+            field_checks:
+              - key: light_type
+                value: "directional"
 
-  - tool: create_light_3d
-    description: Creates a DirectionalLight3D
-    args:
-      node_name: "SunLight"
-      light_type: "directional"
-      parent_path: ""
-    expect:
-      has_keys: [node_name, node_path, class_name, light_type]
-      field_checks:
-        - key: light_type
-          value: "directional"
+        - id: set_world_environment
+          tool: set_world_environment
+          description: Sets environment background mode
+          args:
+            mode: "Canvas"
+          expect:
+            has_keys: [node_name, created, sky_enabled, fog_enabled]
 
-  - tool: set_world_environment
-    description: Sets environment background mode
-    args:
-      mode: "Canvas"
-    expect:
-      has_keys: [node_name, created, sky_enabled, fog_enabled]
+        - id: create_collision_shape
+          tool: create_collision_shape
+          description: Creates a CollisionShape3D child
+          args:
+            node_name: "TestCollider"
+            shape_type: "box"
+            dimension: "3d"
+            parent_path: ""
+          expect:
+            has_keys: [body_path, shape_path, shape_type, body_type, dimension]
+            field_checks:
+              - key: dimension
+                value: "3d"
 
-  - tool: create_collision_shape
-    description: Creates a CollisionShape3D child
-    args:
-      node_name: "TestCollider"
-      shape_type: "box"
-      dimension: "3d"
-      parent_path: ""
-    expect:
-      has_keys: [body_path, shape_path, shape_type, body_type, dimension]
-      field_checks:
-        - key: dimension
-          value: "3d"
+        - id: create_navigation_region
+          tool: create_navigation_region
+          description: Creates a NavigationRegion3D
+          args:
+            node_name: "TestNavRegion"
+            parent_path: ""
+          expect:
+            has_keys: [node_name, node_path, class_name, dimension]
+            field_checks:
+              - key: dimension
+                value: "3d"
 
-  - tool: create_navigation_region
-    description: Creates a NavigationRegion3D
-    args:
-      node_name: "TestNavRegion"
-      parent_path: ""
-    expect:
-      has_keys: [node_name, node_path, class_name, dimension]
-      field_checks:
-        - key: dimension
-          value: "3d"
+        - id: create_navigation_agent
+          tool: create_navigation_agent
+          description: Creates a NavigationAgent3D
+          args:
+            node_name: "TestNavAgent"
+            parent_path: ""
+          expect:
+            has_keys: [node_name, node_path, class_name, dimension]
+            field_checks:
+              - key: dimension
+                value: "3d"
 
-  - tool: create_navigation_agent
-    description: Creates a NavigationAgent3D
-    args:
-      node_name: "TestNavAgent"
-      parent_path: ""
-    expect:
-      has_keys: [node_name, node_path, class_name, dimension]
-      field_checks:
-        - key: dimension
-          value: "3d"
+        - id: add_tilemap
+          tool: add_node
+          description: Adds a TileMap node for get_tilemap_info
+          args:
+            class_name: "TileMapLayer"
+            node_name: "TestTileMap"
+            parent_path: ""
+          expect:
+            has_keys: [node, type, name]
 
-  - tool: add_node
-    description: Adds a TileMap node for get_tilemap_info
-    args:
-      class_name: "TileMapLayer"
-      node_name: "TestTileMap"
-      parent_path: ""
-    expect:
-      has_keys: [node, type, name]
-
-  - tool: get_tilemap_info
-    description: Gets tilemap info (no tileset set, returns empty structure)
-    args:
-      node_path: "Test3DRoot/TestTileMap"
-    expect:
-      has_keys: [enabled, tile_set, used_cells_count, collision_enabled, navigation_enabled]
-
-after_all:
-  - tool: new_scene
-    args:
-      root_type: "Node"
-      root_name: "Cleanup"
+        - id: get_tilemap_info
+          tool: get_tilemap_info
+          description: Gets tilemap info (no tileset set, returns empty structure)
+          args:
+            node_path: "Test3DRoot/TestTileMap"
+          expect:
+            has_keys: [enabled, tile_set, used_cells_count, collision_enabled, navigation_enabled]
