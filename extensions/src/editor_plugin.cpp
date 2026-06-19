@@ -101,11 +101,32 @@ void McpEditorPlugin::restart_server() {
     http_server_.stop();
     runtime_bridge_.disconnect();
     load_config();
-    http_server_.start(http_port_, &mcp_handler_, http_host_);
+
+    constexpr int kMaxPortAttempts = 10;
+    bool server_started = false;
+
+    for (int i = 0; i < kMaxPortAttempts; ++i) {
+        const int try_port = http_port_ + i;
+        const Error err = http_server_.start(
+            static_cast<uint16_t>(try_port), &mcp_handler_, http_host_);
+        if (err == OK) {
+            actual_http_port_ = try_port;
+            actual_bridge_port_ = bridge_port_ + i;
+            server_started = true;
+            break;
+        }
+    }
+
+    if (!server_started) {
+        log_error("plugin", "Server restart failed - all ports in use");
+        started_ = false;
+        return;
+    }
+
     http_server_.set_test_engine(&test_engine_);
-    runtime_bridge_.set_port(bridge_port_);
+    runtime_bridge_.set_port(actual_bridge_port_);
     started_ = true;
-    log_info("plugin", String("Server restarted on HTTP :") + String::num_int64(http_port_));
+    log_info("plugin", String("Server restarted on HTTP :") + String::num_int64(actual_http_port_));
 }
 
 void McpEditorPlugin::_enter_tree() {
@@ -122,8 +143,29 @@ void McpEditorPlugin::_enter_tree() {
     load_config();
     runtime_bridge_.set_port(bridge_port_);
 
-    if (http_server_.start(http_port_, &mcp_handler_, http_host_) != OK) {
-        log_error("plugin", String("Failed to start HTTP server on ") + http_host_ + String(":") + String::num_int64(http_port_));
+    // Port fallback: try http_port_ + 0..9
+    constexpr int kMaxPortAttempts = 10;
+    bool server_started = false;
+
+    for (int i = 0; i < kMaxPortAttempts; ++i) {
+        const int try_port = http_port_ + i;
+        const Error err = http_server_.start(
+            static_cast<uint16_t>(try_port), &mcp_handler_, http_host_);
+        if (err == OK) {
+            actual_http_port_ = try_port;
+            actual_bridge_port_ = bridge_port_ + i;
+            server_started = true;
+            break;
+        }
+        log_warn("plugin",
+            String("Port ") + String::num_int64(try_port) +
+            String(" in use, trying next..."));
+    }
+
+    if (!server_started) {
+        log_error("plugin",
+            String("Failed to start HTTP server after ") +
+            String::num_int64(kMaxPortAttempts) + String(" attempts"));
         return;
     }
 
@@ -202,7 +244,7 @@ void McpEditorPlugin::_enter_tree() {
     started_ = true;
 
     log_info("plugin", String("Godot MCP v") + String(GODOT_MCP_PLUGIN_VERSION) +
-                           String(" ready on HTTP :") + String::num_int64(http_port_) +
+                           String(" ready on HTTP :") + String::num_int64(actual_http_port_) +
                            String(" (") + String::num_int64(registry_.builtin_tool_count()) +
                            String(" builtin tools)"));
 }

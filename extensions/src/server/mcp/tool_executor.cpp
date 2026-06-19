@@ -1,7 +1,6 @@
 #include "tool_executor.hpp"
 
 #include "logging.hpp"
-#include "built_in/cmd_utils.hpp"
 #include "server/registry/handler_registry.hpp"
 
 #include <godot_cpp/classes/json.hpp>
@@ -55,8 +54,6 @@ Dictionary ToolExecutor::execute(const String &tool_name, const Dictionary &argu
         }
     }
 
-    log_tool_call(tool_name, arguments);
-
     Dictionary tool_result;
     try {
         tool_result = registry_.execute(tool_name, arguments);
@@ -65,56 +62,18 @@ Dictionary ToolExecutor::execute(const String &tool_name, const Dictionary &argu
         result["_raw_result"] = Dictionary();
         result["_exec_duration_ms"] = static_cast<double>(Time::get_singleton()->get_ticks_msec() - start_msec);
         result["_exec_error"] = format_error(kErrorInternal, String(e.what()));
-        log_warn("mcp", String("tools/call FAILED (exception): ") + tool_name + String(" - ") + String(e.what()));
+        log_warn("executor", String("tools/call FAILED (exception): ") + tool_name + String(" - ") + String(e.what()));
         return result;
     } catch (...) {
         Dictionary result;
         result["_raw_result"] = Dictionary();
         result["_exec_duration_ms"] = static_cast<double>(Time::get_singleton()->get_ticks_msec() - start_msec);
         result["_exec_error"] = format_error(kErrorInternal, "Unknown error");
-        log_warn("mcp", String("tools/call FAILED (unknown exception): ") + tool_name);
+        log_warn("executor", String("tools/call FAILED (unknown exception): ") + tool_name);
         return result;
     }
 
-    // Log result summary
-    bool success = true;
-    {
-        String summary;
-        if (tool_result.has("error")) {
-            success = false;
-            Variant err_val = tool_result["error"];
-            if (err_val.get_type() == Variant::DICTIONARY) {
-                Dictionary ed = err_val;
-                summary = String("error=") + String(ed.get("code", "?")) + String(": ") + String(ed.get("message", "?"));
-            } else {
-                summary = String("error=") + String(err_val);
-            }
-        } else if (tool_result.has("success") && tool_result["success"].get_type() == Variant::BOOL && !static_cast<bool>(tool_result["success"])) {
-            success = false;
-            summary = String("success=false");
-        } else if (tool_result.has("data") && tool_result["data"].get_type() == Variant::DICTIONARY) {
-            Dictionary data = tool_result["data"];
-            Array dk = data.keys();
-            for (int i = 0; i < dk.size() && summary.length() < 120; i++) {
-                if (!summary.is_empty()) summary += ", ";
-                String k = dk[i];
-                Variant v = data[k];
-                summary += k + String("=");
-                if (v.get_type() == Variant::STRING) {
-                    String sv = v;
-                    if (sv.length() > 60) sv = sv.substr(0, 60) + String("...");
-                    summary += String("\"") + sv + String("\"");
-                } else {
-                    summary += json_stringify_safe(v);
-                }
-            }
-        }
-        if (success) {
-            log_info("mcp", String("  -> ok: ") + summary);
-        } else {
-            log_warn("mcp", String("  -> FAIL: ") + summary);
-        }
-    }
+    bool success = !tool_result.has("error") && (!tool_result.has("success") || static_cast<bool>(tool_result.get("success", true)));
 
     const double duration_ms = static_cast<double>(Time::get_singleton()->get_ticks_msec() - start_msec);
 
@@ -165,34 +124,6 @@ Dictionary ToolExecutor::extract_result(const Dictionary &exec_result) {
         return exec_result["_raw_result"];
     }
     return Dictionary();
-}
-
-String ToolExecutor::format_params_for_log(const Dictionary &args) {
-    String param_log;
-    Array param_keys = args.keys();
-    for (int i = 0; i < param_keys.size(); i++) {
-        if (!param_log.is_empty()) param_log += ", ";
-        String k = param_keys[i];
-        Variant v = args[k];
-        param_log += k + String("=");
-        if (v.get_type() == Variant::STRING) {
-            String sv = v;
-            if (sv.length() > 80) sv = sv.substr(0, 80) + String("...");
-            param_log += String("\"") + sv + String("\"");
-        } else {
-            param_log += json_stringify_safe(v);
-        }
-    }
-    if (param_log.length() > 200) param_log = param_log.substr(0, 200) + String("...");
-    return param_log;
-}
-
-void ToolExecutor::log_tool_call(const String &tool_name, const Dictionary &args) {
-    log_info("mcp", String("tools/call: ") + tool_name);
-    String param_log = format_params_for_log(args);
-    if (!param_log.is_empty()) {
-        log_info("mcp", String("  args: ") + param_log);
-    }
 }
 
 Dictionary ToolExecutor::format_success(const Dictionary & /*raw_result*/, const Dictionary &tool_result) {

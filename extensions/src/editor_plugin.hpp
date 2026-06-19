@@ -38,6 +38,9 @@ public:
     bool is_started() const { return started_; }
     bool is_bridge_connected() const { return runtime_bridge_.is_connected(); }
 
+    int actual_http_port() const noexcept { return actual_http_port_; }
+    int actual_bridge_port() const noexcept { return actual_bridge_port_; }
+
     void save_config();
     void restart_server();
 
@@ -66,11 +69,11 @@ private:
     static constexpr uint64_t kConfirmTimeoutMs = 30000;
     int http_port_ = 9600;
     int bridge_port_ = 9601;
+    int actual_http_port_ = 9600;
+    int actual_bridge_port_ = 9601;
     godot::String http_host_ = "127.0.0.1";
     bool started_ = false;
     bool game_was_running_ = false;
-
-
     void load_config();
 };
 

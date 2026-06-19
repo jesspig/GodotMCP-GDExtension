@@ -357,7 +357,16 @@ void McpDock::update_status() {
     }
 
     if (plugin_ && plugin_->is_started()) {
-        String st = "[ON]";
+        const int cfg_port = plugin_->http_port();
+        const int actual_port = plugin_->actual_http_port();
+        String st;
+        if (actual_port != cfg_port) {
+            st = String("[ON :") + String::num_int64(actual_port) +
+                 String("] (cfg ") + String::num_int64(cfg_port) +
+                 String(" in use)");
+        } else {
+            st = String("[ON :") + String::num_int64(actual_port) + String("]");
+        }
         Color sc(0.2f, 0.9f, 0.2f);
         if (st != cached_status_text_ || sc != cached_status_color_) {
             cached_status_text_ = st;

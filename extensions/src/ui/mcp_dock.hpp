@@ -60,6 +60,8 @@ private:
     godot::SpinBox *max_entries_spin_ = nullptr;
     godot::LineEdit *log_dir_edit_ = nullptr;
 
+
+
     godot::String last_config_content_;
 
     // Status cache (avoid redundant UI updates)
