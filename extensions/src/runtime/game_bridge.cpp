@@ -27,24 +27,7 @@ namespace godot_mcp {
 // the header; redeclaring the default here would be an ODR violation, so omit it).
 Variant json_to_variant(const Variant &jv, int depth);
 
-static Dictionary make_error(const String &msg) {
-    Dictionary r;
-    r["ok"] = false;
-    r["error"] = msg;
-    return r;
-}
-
 static constexpr int64_t MAX_MESSAGE_SIZE = 65536;
-
-static void reset_read_state(PackedByteArray &buf, String &text, int64_t &offset,
-                              int &retries, int64_t &fail_offset, int64_t &consumed) {
-    buf.clear();
-    text = String();
-    offset = 0;
-    retries = 0;
-    fail_offset = -1;
-    consumed = 0;
-}
 
 // -----------------------------------------------------------------------
 // Lifecycle
@@ -169,75 +152,45 @@ void GameBridgeNode::read_clients() {
     read_buf_.append_array(data);
 
     if (read_buf_.size() > BUFFER_LIMIT) {
-        Dictionary err = make_error("Message body too large");
-        send_response(client_, err);
-        client_->disconnect_from_host();
-        client_.unref();
+        log_warn("game_bridge", "Buffer overflow, resetting");
         reset_read_state_internal();
         return;
     }
 
-    // Decode only newly received bytes and accumulate the decoded text
-    int64_t new_bytes = read_buf_.size() - read_offset_;
-    if (new_bytes > 0) {
-        const uint8_t* raw = read_buf_.ptr() + read_offset_;
-        String chunk_text;
-        int64_t parse_len = (new_bytes > 65536) ? 65536 : new_bytes;
-        Error utf8_err = chunk_text.parse_utf8((const char*)raw, static_cast<int>(parse_len));
-        if (utf8_err != OK) {
-            if (read_offset_ == utf8_fail_offset_) {
-                utf8_retries_++;
-            } else {
-                utf8_retries_ = 0;
-                utf8_fail_offset_ = read_offset_;
-            }
-            if (utf8_retries_ >= 3) {
-                read_offset_ = read_buf_.size();
-                utf8_retries_ = 0;
-                utf8_fail_offset_ = -1;
-                log_warn("game_bridge", "Discarding un-decodable UTF-8 data");
-            }
-            return;
-        }
-        utf8_retries_ = 0;
-        utf8_fail_offset_ = -1;
-        read_text_ += chunk_text;
-        read_offset_ = read_buf_.size();
-    }
-
-    if (read_text_.is_empty()) return;
-
-    // Process newline-delimited messages (fixes pipelined messages and JSON parse hang)
     while (true) {
-        int64_t newline_idx = read_text_.find("\n");
-        if (newline_idx == -1) {
-            // Incomplete message – guard against runaway accumulation
-            if (read_text_.length() > MAX_MESSAGE_SIZE) {
-                log_warn("game_bridge", "Message too large, discarding buffer");
-                reset_read_state_internal();
-            }
+        if (read_offset_ + 4 > read_buf_.size()) break;
+
+        const uint8_t *p = read_buf_.ptr() + read_offset_;
+        const uint32_t msg_len = (static_cast<uint32_t>(p[0]) << 24) |
+                                 (static_cast<uint32_t>(p[1]) << 16) |
+                                 (static_cast<uint32_t>(p[2]) << 8) |
+                                  static_cast<uint32_t>(p[3]);
+
+        if (msg_len == 0 || msg_len > MAX_MESSAGE_SIZE) {
+            log_warn("game_bridge", "Invalid message length, resetting buffer");
+            reset_read_state_internal();
             return;
         }
 
-        String line = read_text_.substr(0, static_cast<int>(newline_idx));
-        read_text_ = read_text_.substr(static_cast<int>(newline_idx) + 1);
+        if (read_offset_ + 4 + static_cast<int64_t>(msg_len) > read_buf_.size()) break;
 
-        // All of read_buf_ has been decoded, safe to clear
-        read_buf_.clear();
-        read_offset_ = 0;
+        read_offset_ += 4;
 
-        if (line.is_empty()) continue;
+        String text;
+        text.parse_utf8(reinterpret_cast<const char *>(read_buf_.ptr() + read_offset_),
+                        static_cast<int>(msg_len));
+        read_offset_ += static_cast<int64_t>(msg_len);
 
         Ref<JSON> json;
         json.instantiate();
-        if (json->parse(line) != OK) {
-            log_warn("game_bridge", "Skipping unparseable JSON message");
+        if (json->parse(text) != OK) {
+            log_warn("game_bridge", "Invalid JSON message");
             continue;
         }
 
         Variant msg = json->get_data();
         if (msg.get_type() != Variant::DICTIONARY) {
-            log_warn("game_bridge", "Message must be a JSON object, skipping");
+            log_warn("game_bridge", "Message is not a dictionary");
             continue;
         }
 
@@ -250,19 +203,46 @@ void GameBridgeNode::read_clients() {
         result["id"] = id;
         send_response(client_, result);
     }
+
+    if (read_offset_ > 0) {
+        const int remaining = read_buf_.size() - static_cast<int>(read_offset_);
+        if (remaining > 0) {
+            PackedByteArray new_buf;
+            new_buf.resize(remaining);
+            std::copy_n(read_buf_.ptr() + read_offset_, remaining, new_buf.ptrw());
+            read_buf_ = new_buf;
+        } else {
+            read_buf_.clear();
+        }
+        read_offset_ = 0;
+    }
 }
 
 void GameBridgeNode::reset_read_state_internal() {
-    reset_read_state(read_buf_, read_text_, read_offset_,
-                      utf8_retries_, utf8_fail_offset_, consumed_bytes_);
+    read_buf_.clear();
+    read_offset_ = 0;
 }
 
 void GameBridgeNode::send_response(const Ref<StreamPeerTCP> &client, const Dictionary &msg) {
     if (!client.is_valid()) return;
-    String json_str = JSON::stringify(msg);
-    PackedByteArray data = json_str.to_utf8_buffer();
-    data.push_back('\n');
-    Error err = client->put_data(data);
+
+    PackedByteArray json_bytes = JSON::stringify(msg).to_utf8_buffer();
+    if (json_bytes.size() > MAX_MESSAGE_SIZE) {
+        log_error("game_bridge", "Response too large");
+        return;
+    }
+
+    const uint32_t len = static_cast<uint32_t>(json_bytes.size());
+    PackedByteArray frame;
+    frame.resize(4 + json_bytes.size());
+    auto *p = frame.ptrw();
+    p[0] = static_cast<uint8_t>((len >> 24) & 0xFF);
+    p[1] = static_cast<uint8_t>((len >> 16) & 0xFF);
+    p[2] = static_cast<uint8_t>((len >> 8) & 0xFF);
+    p[3] = static_cast<uint8_t>(len & 0xFF);
+    std::copy_n(json_bytes.ptr(), json_bytes.size(), p + 4);
+
+    Error err = client->put_data(frame);
     if (err != OK) {
         log_error("game_bridge", String("send_response put_data failed: err=") + String::num_int64(err));
     }
