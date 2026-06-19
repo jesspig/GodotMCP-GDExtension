@@ -86,7 +86,7 @@ cmake --build build --target deep-clean      # 仅清 addons/bin/ + _deps/
 
 ## 版本管理
 
-- 单版本源在根 `CMakeLists.txt:10`：`set(PROJECT_VERSION "0.2.1")`
+- 单版本源在根 `CMakeLists.txt:10`：`set(PROJECT_VERSION "0.2.2-dev1")`
 - `plugin.cfg` 和 `godot_mcp.gdextension` 由 CMake 从 `PROJECT_VERSION` 自动生成（`CMakeLists.txt:59-83`）
 - 升级 CMake 版本即可；不需要手动编辑 `plugin.cfg`
 - `pyproject.toml` 中的 `version` 需手动同步

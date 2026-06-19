@@ -49,7 +49,7 @@ flowchart LR
   "plugin": {
     "builtin_tools": 153,
     "custom_tools": 0,
-    "version": "0.2.1"
+    "version": "0.2.2-dev1"
   },
   "project": {
     "name": "MyGame",
