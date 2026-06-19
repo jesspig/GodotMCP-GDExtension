@@ -59,6 +59,7 @@ private:
         uint64_t sse_last_event_msec = 0;
         bool keep_alive = true;
         bool is_sse_stream = false;
+        bool sse_from_post_intercept = false;
         godot::String mcp_method;
         godot::String mcp_name;
 

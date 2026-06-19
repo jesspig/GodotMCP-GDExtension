@@ -28,7 +28,23 @@ McpEditorPlugin::McpEditorPlugin() = default;
 
 McpEditorPlugin::~McpEditorPlugin() = default;
 
-void McpEditorPlugin::_bind_methods() {}
+void McpEditorPlugin::_bind_methods() {
+    ClassDB::bind_method(D_METHOD("_on_confirm_allow", "id"), &McpEditorPlugin::_on_confirm_allow);
+    ClassDB::bind_method(D_METHOD("_on_confirm_deny", "id"), &McpEditorPlugin::_on_confirm_deny);
+    ClassDB::bind_method(D_METHOD("_on_confirm_allow_all", "id"), &McpEditorPlugin::_on_confirm_allow_all);
+}
+
+void McpEditorPlugin::_on_confirm_allow(const Variant &id) {
+    mcp_handler_.resolve_pending_op(id, true, false);
+}
+
+void McpEditorPlugin::_on_confirm_deny(const Variant &id) {
+    mcp_handler_.resolve_pending_op(id, false, false);
+}
+
+void McpEditorPlugin::_on_confirm_allow_all(const Variant &id) {
+    mcp_handler_.resolve_pending_op(id, true, true);
+}
 
 String McpEditorPlugin::_get_plugin_name() const {
     return "Godot MCP";
@@ -122,6 +138,16 @@ void McpEditorPlugin::_enter_tree() {
     // Register as Engine singleton so C# can access via Engine.GetSingleton("McpToolRegistry")
     Engine::get_singleton()->register_singleton("McpToolRegistry", sdk_registry);
 
+    // Confirmation dialog for destructive operations
+    confirm_dialog_ = memnew(McpConfirmDialog);
+    confirm_dialog_->connect("confirmed", Callable(this, "_on_confirm_allow"));
+    confirm_dialog_->connect("denied", Callable(this, "_on_confirm_deny"));
+    confirm_dialog_->connect("allow_all_session", Callable(this, "_on_confirm_allow_all"));
+
+    mcp_handler_.set_confirm_callback([this](const PendingDestructiveOp &op) {
+        pending_dialog_op_ = op;
+    });
+
     // Wire up TestEngine
     http_server_.set_test_engine(&test_engine_);
 
@@ -207,6 +233,13 @@ void McpEditorPlugin::_exit_tree() {
         mcp_console_ = nullptr;
     }
 
+    if (confirm_dialog_) {
+        confirm_dialog_->queue_free();
+        confirm_dialog_ = nullptr;
+    }
+    mcp_handler_.set_confirm_callback(nullptr);
+    mcp_handler_.reset_session_flags();
+
     runtime_bridge_.disconnect();
 
     http_server_.stop();
@@ -226,6 +259,17 @@ void McpEditorPlugin::_process(double /*delta*/) {
     if (!started_) return;
 
     http_server_.poll();
+
+    // Show pending confirmation dialog (deferred from poll callback)
+    if (pending_dialog_op_.has_value()) {
+        confirm_dialog_->show_for_op(
+            pending_dialog_op_->jsonrpc_id,
+            pending_dialog_op_->tool_name,
+            pending_dialog_op_->arguments);
+        pending_dialog_op_.reset();
+    }
+
+    mcp_handler_.check_pending_timeouts(kConfirmTimeoutMs);
 
     _try_bridge_connect();
 

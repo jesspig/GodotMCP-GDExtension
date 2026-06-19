@@ -27,6 +27,7 @@ enabled=PackedStringArray()
 http_port=9600
 http_host="127.0.0.1"
 bridge_port=9601
+progressive_disclosure=true
 
 [rendering]
 

@@ -300,10 +300,9 @@ Dictionary McpHandler::handle_tools_list(const Dictionary & /*params*/, const Va
     if (!registry_) {
         return make_jsonrpc_error(id, kInternalError, "Registry not initialized");
     }
-    Array always_on = registry_->get_always_on_tools();
 
     Dictionary result;
-    result["tools"] = always_on;
+    result["tools"] = registry_->get_always_on_tools();
     return make_jsonrpc_result(id, result);
 }
 
@@ -319,6 +318,35 @@ Dictionary McpHandler::handle_tools_call(const Dictionary &params, const Variant
     const Dictionary args = params.has("arguments") && params["arguments"].get_type() == Variant::DICTIONARY
                                 ? Dictionary(params["arguments"])
                                 : Dictionary();
+
+    // Unwrap call_tool to check the actual tool's destructiveness
+    String effective_tool_name = tool_name;
+    Dictionary effective_args = args;
+    if (tool_name == "call_tool" && args.has("tool_name")) {
+        effective_tool_name = args["tool_name"];
+        if (args.has("arguments") && args["arguments"].get_type() == Variant::DICTIONARY) {
+            effective_args = args["arguments"];
+        }
+    }
+
+    // Destructive tool interception (checks effective tool, not call_tool wrapper)
+    if (registry_) {
+        const ToolInfo *info = registry_->find_tool_info(effective_tool_name);
+        if (info && info->is_destructive && !allow_all_for_session_) {
+            PendingDestructiveOp op;
+            op.jsonrpc_id = id;
+            op.tool_name = effective_tool_name;
+            op.arguments = effective_args;
+            op.created_msec = Time::get_singleton()->get_ticks_msec();
+            pending_ops_.push_back(std::move(op));
+
+            if (confirm_callback_) {
+                confirm_callback_(pending_ops_.back());
+            }
+
+            return Dictionary();
+        }
+    }
 
     // Delegate to ToolExecutor for execution, logging, and MCP formatting
     Dictionary exec_result = tool_executor_.execute(tool_name, args);
@@ -585,6 +613,84 @@ Dictionary McpHandler::_build_scene_tree_node(Node *node, int depth, int max_dep
     }
     d["children"] = children;
     return d;
+}
+
+// -------------------------------------------------------------------------
+// resolve_pending_op — process user confirmation for destructive operation
+// -------------------------------------------------------------------------
+void McpHandler::resolve_pending_op(const Variant &id, bool allow, bool allow_all_for_session) {
+    if (allow_all_for_session) {
+        allow_all_for_session_ = true;
+    }
+
+    for (auto it = pending_ops_.begin(); it != pending_ops_.end(); ++it) {
+        if (it->jsonrpc_id != id) continue;
+        if (it->state != PendingDestructiveOp::State::Pending) continue;
+
+        it->state = PendingDestructiveOp::State::Resolved;
+
+        if (allow) {
+            Dictionary exec_result = tool_executor_.execute(it->tool_name, it->arguments);
+
+            if (log_callback_) {
+                ToolCallLog log_entry;
+                log_entry.timestamp = Time::get_singleton()->get_datetime_string_from_system();
+                log_entry.tool_name = it->tool_name;
+                log_entry.success = !exec_result.has("_exec_error");
+                log_entry.args = it->arguments;
+                log_entry.result = ToolExecutor::extract_result(exec_result);
+                log_entry.duration_ms = exec_result.get("_exec_duration_ms", 0.0);
+                log_callback_(log_entry);
+            }
+
+            Dictionary jsonrpc_resp;
+            if (exec_result.has("_exec_error")) {
+                const Dictionary err_info = exec_result["_exec_error"];
+                jsonrpc_resp = make_jsonrpc_error(it->jsonrpc_id,
+                    err_info.get("code", kInternalError),
+                    err_info.get("message", "Unknown error"),
+                    err_info.get("data", Variant()));
+            } else {
+                exec_result.erase("_raw_result");
+                exec_result.erase("_exec_duration_ms");
+                jsonrpc_resp = make_jsonrpc_result(it->jsonrpc_id, exec_result);
+            }
+            enqueue_event(jsonrpc_resp);
+        } else {
+            if (log_callback_) {
+                ToolCallLog log_entry;
+                log_entry.timestamp = Time::get_singleton()->get_datetime_string_from_system();
+                log_entry.tool_name = it->tool_name;
+                log_entry.success = false;
+                log_entry.args = it->arguments;
+                log_entry.duration_ms = 0.0;
+                log_callback_(log_entry);
+            }
+            Dictionary err_resp = make_jsonrpc_error(it->jsonrpc_id, kInvalidRequest,
+                String("Destructive tool denied by user: ") + it->tool_name);
+            enqueue_event(err_resp);
+        }
+
+        pending_ops_.erase(it);
+        return;
+    }
+}
+
+void McpHandler::check_pending_timeouts(uint64_t timeout_msec) {
+    const uint64_t now = Time::get_singleton()->get_ticks_msec();
+    std::deque<PendingDestructiveOp> still_pending;
+
+    for (auto &op : pending_ops_) {
+        if (op.state != PendingDestructiveOp::State::Pending) continue;
+        if (now - op.created_msec > timeout_msec) {
+            Dictionary err_resp = make_jsonrpc_error(op.jsonrpc_id, kInvalidRequest,
+                String("Destructive tool timed out (no user response): ") + op.tool_name);
+            enqueue_event(err_resp);
+        } else {
+            still_pending.push_back(std::move(op));
+        }
+    }
+    pending_ops_ = std::move(still_pending);
 }
 
 } // namespace godot_mcp

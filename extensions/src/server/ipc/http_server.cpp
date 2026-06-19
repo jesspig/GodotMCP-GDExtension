@@ -203,6 +203,10 @@ void HttpServer::poll() {
             }
             if (mcp_handler_ && mcp_handler_->has_pending_events()) {
                 flush_sse(conn);
+                if (conn.sse_from_post_intercept) {
+                    dead.push_back(conn_id);
+                    continue;
+                }
             }
             continue;
         }
@@ -244,7 +248,7 @@ void HttpServer::poll() {
             // reliably handle rapid-fire keepalive due to frame timing).
             conn.keep_alive = false;
             dispatch_request(conn_id, conn);
-            if (connections_.has(conn_id)) {
+            if (connections_.has(conn_id) && !conn.is_sse_stream) {
                 dead.push_back(conn_id);
             }
         }
@@ -494,6 +498,16 @@ void HttpServer::handle_post(int conn_id, Connection &conn) {
         if (mcp_handler_->has_pending_events()) {
             send_sse_headers(conn);
             flush_sse(conn);
+            return;
+        }
+        if (mcp_handler_->pending_op_count() > 0) {
+            conn.is_sse_stream = true;
+            conn.sse_from_post_intercept = true;
+            conn.sse_last_event_msec = Time::get_singleton()->get_ticks_msec();
+            send_sse_headers(conn);
+            Dictionary endpoint_event;
+            endpoint_event["endpoint"] = "/mcp";
+            send_sse_event(conn, "endpoint", json_stringify_safe(endpoint_event));
             return;
         }
         send_response(conn_id, conn, 202, "Accepted", "text/plain", "");
