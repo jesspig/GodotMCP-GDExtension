@@ -258,15 +258,33 @@ String McpDock::get_selected_client() const {
 // 回调
 // ---------------------------------------------------------------------
 
+static String _get_config_url() {
+    int port = 9600;
+    ProjectSettings *ps = ProjectSettings::get_singleton();
+    if (ps) {
+        Variant port_v = ps->get_setting("godot_mcp/http_port");
+        if (port_v.get_type() == Variant::INT) {
+            port = static_cast<int>(static_cast<int64_t>(port_v));
+        }
+    }
+    return String("http://127.0.0.1:") + String::num_int64(port) + String("/mcp");
+}
+
+String McpDock::_generate_config(const String &client_name) {
+    int count;
+    const ClientEntry *entries = get_entries(count);
+    String url = _get_config_url();
+    for (int i = 0; i < count; i++) {
+        if (client_name == String(entries[i].name)) {
+            return entries[i].generator(url);
+        }
+    }
+    return String();
+}
+
 void McpDock::_on_generate_pressed() {
-    if (!registry_) return;
-    Dictionary args;
-    args["client"] = get_selected_client();
-    args["write_to_project"] = true;
-    Dictionary result = registry_->execute("generate_client_config", args);
-    if (result.has("data")) {
-        Dictionary data = result["data"];
-        last_config_content_ = data.get("config_content", "");
+    last_config_content_ = _generate_config(get_selected_client());
+    if (!last_config_content_.is_empty()) {
         config_preview_->set_text(last_config_content_);
     }
 }
@@ -277,14 +295,8 @@ void McpDock::_on_client_changed(int index) {
 }
 
 void McpDock::refresh_preview() {
-    if (!registry_) return;
-    Dictionary args;
-    args["client"] = get_selected_client();
-    args["write_to_project"] = false;
-    Dictionary result = registry_->execute("generate_client_config", args);
-    if (result.has("data")) {
-        Dictionary data = result["data"];
-        last_config_content_ = data.get("config_content", "");
+    last_config_content_ = _generate_config(get_selected_client());
+    if (!last_config_content_.is_empty()) {
         config_preview_->set_text(last_config_content_);
     }
 }

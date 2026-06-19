@@ -90,6 +90,7 @@ private:
 
     void populate_client_list();
     godot::String get_selected_client() const;
+    godot::String _generate_config(const godot::String &client_name);
     void refresh_preview();
 };
 
