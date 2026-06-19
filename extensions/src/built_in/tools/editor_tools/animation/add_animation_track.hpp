@@ -113,7 +113,7 @@ protected:
 
         int32_t track_idx = animation->get_track_count();
 
-        auto *ur = begin_undo_action("MCP: Add Animation Track");
+        auto *ur = begin_undo_action("MCP: Add Animation Track", ctx.root);
         if (!ur) {
             animation->add_track(track_type);
             animation->track_set_path(track_idx, godot::NodePath(target_path));

@@ -80,7 +80,7 @@ protected:
             world_env->set_name("WorldEnvironment");
             created = true;
 
-            auto *ur = begin_undo_action("MCP: Create WorldEnvironment");
+            auto *ur = begin_undo_action("MCP: Create WorldEnvironment", ctx.root);
             if (!ur) {
                 parent->add_child(world_env, true, Node::INTERNAL_MODE_DISABLED);
                 world_env->set_owner(ctx.root);

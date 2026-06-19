@@ -121,10 +121,7 @@ protected:
                 ur->create_action("MCP: Paste " + inst->get_name());
                 ur->add_do_method(target, "replace_by", inst, true);
                 ur->add_undo_method(inst, "replace_by", target, true);
-                ur->add_do_reference(inst);
-                ur->add_undo_reference(inst);
-                ur->add_do_reference(target);
-                ur->add_undo_reference(target);
+
                 commit_undo_action(ur);
             } else {
                 target->replace_by(inst, true);

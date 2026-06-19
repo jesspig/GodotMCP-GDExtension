@@ -107,14 +107,11 @@ protected:
             }
         }
 
-        auto *ur = begin_undo_action("MCP: Change Type " + old_type + " -> " + new_type);
+        auto *ur = begin_undo_action("MCP: Change Type " + old_type + " -> " + new_type, ctx.root);
         if (ur) {
             ur->add_do_method(node, "replace_by", new_node, true);
             ur->add_undo_method(new_node, "replace_by", node, true);
-            ur->add_do_reference(new_node);
-            ur->add_undo_reference(new_node);
-            ur->add_do_reference(node);
-            ur->add_undo_reference(node);
+
             if (old_index >= 0) {
                 ur->add_do_method(parent, "move_child", new_node, static_cast<int64_t>(old_index));
                 ur->add_undo_method(parent, "move_child", node, static_cast<int64_t>(old_index));

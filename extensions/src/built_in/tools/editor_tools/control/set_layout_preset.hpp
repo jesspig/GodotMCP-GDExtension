@@ -59,7 +59,7 @@ protected:
         double old_offset_right = control->get_offset(godot::Side::SIDE_RIGHT);
         double old_offset_bottom = control->get_offset(godot::Side::SIDE_BOTTOM);
 
-        auto *ur = begin_undo_action("MCP: Set Layout Preset " + preset_name);
+        auto *ur = begin_undo_action("MCP: Set Layout Preset " + preset_name, ctx.root);
         if (!ur) {
             control->set_anchors_preset(preset, keep_offsets);
             mark_scene_dirty();

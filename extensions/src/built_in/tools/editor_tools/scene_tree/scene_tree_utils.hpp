@@ -7,10 +7,6 @@
 //
 // Key conventions
 // --------------
-// * add_do_reference(obj)   — protect an object created in `do` from being
-//                             freed before `undo`/Redo replays the action.
-// * add_undo_reference(obj) — protect an object removed in `do` so that
-//                             `undo` can re-insert it back into the tree.
 // * add_do_method(parent, "add_child", child, true, InternalMode::INTERNAL_MODE_DISABLED)
 //                             — use force_read_only=false; ownership is
 //                               established separately via set_owner.

@@ -56,7 +56,7 @@ protected:
         String deleted_type = node->get_class();
         int64_t index = node->get_index();
 
-        auto *ur = begin_undo_action("MCP: Delete " + deleted_type);
+        auto *ur = begin_undo_action("MCP: Delete " + deleted_type, ctx.root);
         if (!ur) {
             parent->remove_child(node);
             memdelete(node);
@@ -66,9 +66,6 @@ protected:
                                 static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_undo_method(parent, "move_child", node, index);
             ur->add_undo_method(node, "set_owner", ctx.root);
-
-            ur->add_do_reference(node);
-            ur->add_undo_reference(node);
 
             commit_undo_action(ur);
         }

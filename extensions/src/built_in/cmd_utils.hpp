@@ -97,9 +97,12 @@ void undoable_set(godot::Node *node,
 
 // Begin a named undo/redo action. Returns the EditorUndoRedoManager or
 // nullptr if undo is unavailable (e.g. in runtime/game mode).
-inline godot::EditorUndoRedoManager *begin_undo_action(const godot::String &name) {
+// Pass scene_root as custom_context to associate the action with the correct
+// scene history in EditorUndoRedoManager (prevents auto-detection issues).
+inline godot::EditorUndoRedoManager *begin_undo_action(const godot::String &name,
+                                                         godot::Node *custom_context = nullptr) {
     auto *ur = get_undo_redo();
-    if (ur) ur->create_action(name);
+    if (ur) ur->create_action(name, godot::UndoRedo::MERGE_DISABLE, custom_context);
     return ur;
 }
 

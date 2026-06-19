@@ -74,7 +74,7 @@ protected:
             old_stream = p->get_stream();
         }
 
-        auto *ur = begin_undo_action("MCP: Set Audio Stream");
+        auto *ur = begin_undo_action("MCP: Set Audio Stream", ctx.root);
         if (!ur) {
             if (class_name == "AudioStreamPlayer") {
                 Object::cast_to<godot::AudioStreamPlayer>(node)->set_stream(stream);

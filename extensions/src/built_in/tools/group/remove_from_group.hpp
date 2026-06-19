@@ -53,7 +53,7 @@ protected:
 
         auto *ur = get_undo_redo();
         if (ur) {
-            auto *ur_rg = begin_undo_action("MCP: Remove from group");
+            auto *ur_rg = begin_undo_action("MCP: Remove from group", ctx.root);
             if (ur_rg) {
             ur_rg->add_do_method(node, "remove_from_group", group_name);
             ur_rg->add_undo_method(node, "add_to_group", group_name, persistent);

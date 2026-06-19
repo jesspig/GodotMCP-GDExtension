@@ -76,7 +76,7 @@ protected:
             agent_node->set("avoidance_enabled", true);
         }
 
-        auto *ur = begin_undo_action("MCP: Create " + class_name);
+        auto *ur = begin_undo_action("MCP: Create " + class_name, ctx.root);
         if (!ur) {
             parent->add_child(agent_node, true, Node::INTERNAL_MODE_DISABLED);
             agent_node->set_owner(ctx.root);

@@ -125,7 +125,7 @@ protected:
             p->set_volume_db(static_cast<float>(volume_db));
         }
 
-        auto *ur = begin_undo_action("MCP: Create AudioPlayer " + class_name);
+        auto *ur = begin_undo_action("MCP: Create AudioPlayer " + class_name, ctx.root);
         if (!ur) {
             parent->add_child(player_node, true, Node::INTERNAL_MODE_DISABLED);
             player_node->set_owner(ctx.root);

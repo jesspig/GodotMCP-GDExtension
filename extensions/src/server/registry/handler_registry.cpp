@@ -70,37 +70,8 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool, bool is_custom)
 Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args) {
     record_tool_call(name);
 
-    auto info_it = tool_info_.find(name);
-    bool undoable = false;
-    if (info_it != tool_info_.end()) {
-        const ITool *tp = find_itool(name);
-        if (tp) undoable = tp->supports_undo();
-    }
-
-    // Check ITool table first
     auto it = itool_table_.find(name);
     if (it != itool_table_.end()) {
-        // Auto-Undo wrapping
-        if (undoable) {
-            EditorUndoRedoManager *undo_redo = get_undo_redo();
-            if (undo_redo) {
-                undo_redo->create_action(
-                    String("MCP: ") + name,
-                    UndoRedo::MERGE_ENDS);
-
-                Dictionary result = it->second->execute(args);
-
-                if (result.has("success") && result["success"].operator bool()) {
-                    undo_redo->commit_action(false);
-                } else {
-                    undo_redo->commit_action(true);
-                }
-
-                return result;
-            }
-        }
-
-        // No undo wrapping (tool doesn't support undo, or no undo manager)
         return it->second->execute(args);
     }
 

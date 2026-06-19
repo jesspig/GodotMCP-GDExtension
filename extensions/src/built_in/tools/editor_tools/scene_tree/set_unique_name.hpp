@@ -48,7 +48,7 @@ protected:
             data["changed"] = false;
             return ToolResult::ok(data);
         }
-        auto *ur = begin_undo_action("MCP: Toggle Unique Name");
+        auto *ur = begin_undo_action("MCP: Toggle Unique Name", ctx.root);
         if (ur) {
             ur->add_do_method(node, "set_unique_name_in_owner", enable);
             ur->add_undo_method(node, "set_unique_name_in_owner", old);

@@ -62,7 +62,7 @@ protected:
 
         godot::Ref<godot::Script> old_script = node->get_script();
 
-        auto *ur = begin_undo_action("MCP: Attach Script " + script_path);
+        auto *ur = begin_undo_action("MCP: Attach Script " + script_path, ctx.root);
         if (ur) {
             ur->add_do_method(node, "set_script", script);
             if (old_script.is_valid()) {
