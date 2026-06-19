@@ -4,7 +4,7 @@
 #include "logging.hpp"
 #include "sdk/mcp_tool_registry.hpp"
 #include "ui/mcp_console.hpp"
-#include "ui/mcp_dock.hpp"
+
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/engine.hpp>
@@ -57,13 +57,12 @@ int McpEditorPlugin::read_port_from_env(const String &env_var, int default_port)
 void McpEditorPlugin::load_config() {
     ProjectSettings *ps = ProjectSettings::get_singleton();
 
-    bool any_nil = false;
+    register_project_settings();
 
     Variant http_port_v = ps->get_setting("godot_mcp/http_port");
     if (http_port_v.get_type() == Variant::INT) {
         http_port_ = static_cast<int>(static_cast<int64_t>(http_port_v));
     } else {
-        any_nil = true;
         http_port_ = read_port_from_env("GODOT_MCP_HTTP_PORT", 9600);
     }
 
@@ -71,7 +70,6 @@ void McpEditorPlugin::load_config() {
     if (http_host_v.get_type() == Variant::STRING) {
         http_host_ = static_cast<String>(http_host_v);
     } else {
-        any_nil = true;
         http_host_ = OS::get_singleton()->get_environment("GODOT_MCP_HTTP_HOST");
         if (http_host_.is_empty()) http_host_ = "127.0.0.1";
     }
@@ -80,13 +78,60 @@ void McpEditorPlugin::load_config() {
     if (bridge_port_v.get_type() == Variant::INT) {
         bridge_port_ = static_cast<int>(static_cast<int64_t>(bridge_port_v));
     } else {
-        any_nil = true;
         bridge_port_ = read_port_from_env("GODOT_MCP_BRIDGE_PORT", 9601);
     }
 
-    if (any_nil) {
-        save_config();
+    Variant log_dir_v = ps->get_setting("godot_mcp/log_dir");
+    if (log_dir_v.get_type() == Variant::STRING) {
+        logger_.set_log_dir(static_cast<String>(log_dir_v));
     }
+
+    Variant max_log_v = ps->get_setting("godot_mcp/max_log_entries");
+    if (max_log_v.get_type() == Variant::INT) {
+        logger_.set_max_entries(static_cast<int>(static_cast<int64_t>(max_log_v)));
+    }
+}
+
+void McpEditorPlugin::register_project_settings() {
+    ProjectSettings *ps = ProjectSettings::get_singleton();
+
+    // http_port: basic, restart required
+    if (!ps->has_setting("godot_mcp/http_port")) {
+        ps->set_setting("godot_mcp/http_port", 9600);
+    }
+    ps->set_initial_value("godot_mcp/http_port", 9600);
+    ps->set_as_basic("godot_mcp/http_port", true);
+    ps->set_restart_if_changed("godot_mcp/http_port", true);
+
+    // http_host: basic, restart required
+    if (!ps->has_setting("godot_mcp/http_host")) {
+        ps->set_setting("godot_mcp/http_host", "127.0.0.1");
+    }
+    ps->set_initial_value("godot_mcp/http_host", "127.0.0.1");
+    ps->set_as_basic("godot_mcp/http_host", true);
+    ps->set_restart_if_changed("godot_mcp/http_host", true);
+
+    // bridge_port: basic, restart required
+    if (!ps->has_setting("godot_mcp/bridge_port")) {
+        ps->set_setting("godot_mcp/bridge_port", 9601);
+    }
+    ps->set_initial_value("godot_mcp/bridge_port", 9601);
+    ps->set_as_basic("godot_mcp/bridge_port", true);
+    ps->set_restart_if_changed("godot_mcp/bridge_port", true);
+
+    // log_dir: basic
+    if (!ps->has_setting("godot_mcp/log_dir")) {
+        ps->set_setting("godot_mcp/log_dir", "res://.mcp_logs");
+    }
+    ps->set_initial_value("godot_mcp/log_dir", "res://.mcp_logs");
+    ps->set_as_basic("godot_mcp/log_dir", true);
+
+    // max_log_entries: basic
+    if (!ps->has_setting("godot_mcp/max_log_entries")) {
+        ps->set_setting("godot_mcp/max_log_entries", 500);
+    }
+    ps->set_initial_value("godot_mcp/max_log_entries", 500);
+    ps->set_as_basic("godot_mcp/max_log_entries", true);
 }
 
 void McpEditorPlugin::save_config() {
@@ -94,6 +139,8 @@ void McpEditorPlugin::save_config() {
     ps->set_setting("godot_mcp/http_port", http_port_);
     ps->set_setting("godot_mcp/http_host", http_host_);
     ps->set_setting("godot_mcp/bridge_port", bridge_port_);
+    ps->set_setting("godot_mcp/log_dir", logger_.log_dir());
+    ps->set_setting("godot_mcp/max_log_entries", logger_.max_entries());
     ps->save();
 }
 
@@ -193,16 +240,6 @@ void McpEditorPlugin::_enter_tree() {
     // Wire up TestEngine
     http_server_.set_test_engine(&test_engine_);
 
-    // Initialize MCP Logger
-    ProjectSettings *ps = ProjectSettings::get_singleton();
-    Variant ps_log_dir = ps->get_setting("godot_mcp/log_dir");
-    if (ps_log_dir.get_type() == Variant::STRING) {
-        logger_.set_log_dir(static_cast<String>(ps_log_dir));
-    }
-    Variant ps_max = ps->get_setting("godot_mcp/max_log_entries");
-    if (ps_max.get_type() == Variant::INT) {
-        logger_.set_max_entries(static_cast<int>(static_cast<int64_t>(ps_max)));
-    }
     logger_.rotate();
 
     // Connect log callback
@@ -217,16 +254,11 @@ void McpEditorPlugin::_enter_tree() {
         logger_.append(entry);
     });
 
-    // Right sidebar Dock
-    mcp_dock_ = memnew(McpDock);
-    mcp_dock_->set_plugin(this);
-    mcp_dock_->set_registry(&registry_);
-    mcp_dock_->set_logger(&logger_);
-    add_control_to_dock(DOCK_SLOT_RIGHT_UL, mcp_dock_);
-
-    // Bottom MCP Console
+    // Bottom MCP Console (with integrated status bar)
     mcp_console_ = memnew(McpConsole);
     mcp_console_->set_logger(&logger_);
+    mcp_console_->set_registry(&registry_);
+    mcp_console_->set_plugin(this);
     logger_.set_log_callback([this](const McpLogger::LogEntry &entry) {
         if (mcp_console_) {
             mcp_console_->on_log_appended(entry);
@@ -264,11 +296,6 @@ void McpEditorPlugin::_exit_tree() {
     }
 
     // Clean up UI
-    if (mcp_dock_) {
-        remove_control_from_docks(mcp_dock_);
-        memdelete(mcp_dock_);
-        mcp_dock_ = nullptr;
-    }
     if (mcp_console_) {
         remove_control_from_bottom_panel(mcp_console_);
         memdelete(mcp_console_);

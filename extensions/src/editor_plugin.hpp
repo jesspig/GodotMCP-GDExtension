@@ -13,7 +13,6 @@
 
 namespace godot_mcp {
 
-class McpDock;
 class McpConsole;
 
 class McpEditorPlugin : public godot::EditorPlugin {
@@ -62,7 +61,6 @@ private:
     TestEngine test_engine_{&registry_};
     RuntimeBridge runtime_bridge_;
     McpLogger logger_;
-    McpDock *mcp_dock_ = nullptr;
     McpConsole *mcp_console_ = nullptr;
     McpConfirmDialog *confirm_dialog_ = nullptr;
     std::optional<PendingDestructiveOp> pending_dialog_op_;
@@ -75,6 +73,7 @@ private:
     bool started_ = false;
     bool game_was_running_ = false;
     void load_config();
+    void register_project_settings();
 };
 
 }  // namespace godot_mcp

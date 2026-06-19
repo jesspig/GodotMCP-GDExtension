@@ -69,7 +69,6 @@ set(GODOT_MCP_SOURCES
     src/testing/pipeline_parser.cpp
     src/testing/pipeline_context.cpp
     src/testing/pipeline_runner.cpp
-    src/ui/mcp_dock.cpp
     src/ui/mcp_logger.cpp
     src/ui/mcp_console.cpp
     src/ui/mcp_confirm_dialog.cpp

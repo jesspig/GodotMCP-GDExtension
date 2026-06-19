@@ -10,7 +10,6 @@
 #include "sdk/mcp_tool_definition.hpp"
 #include "sdk/mcp_tool_registry.hpp"
 #include "ui/mcp_console.hpp"
-#include "ui/mcp_dock.hpp"
 #include "ui/mcp_confirm_dialog.hpp"
 
 #include <godot_cpp/classes/editor_plugin.hpp>
@@ -40,7 +39,6 @@ static void initialize_godot_mcp(ModuleInitializationLevel p_level) {
     GDREGISTER_CLASS(godot_mcp::McpToolDefinition);
     GDREGISTER_CLASS(godot_mcp::McpToolRegistry);
     GDREGISTER_CLASS(godot_mcp::McpConsole);
-    GDREGISTER_CLASS(godot_mcp::McpDock);
     GDREGISTER_CLASS(godot_mcp::McpConfirmDialog);
 
     GDREGISTER_CLASS(godot_mcp::McpEditorPlugin);
