@@ -354,7 +354,7 @@ Layer 4: 操作暂存 — shadow scene 非破坏编辑（Phase 4 新增）
   server/registry/handler_registry   — 缓存优化 + 搜索索引增强
   server/mcp/mcp_handler             — 渐进式披露不变, 
                                          notify_tools_list_changed() 实装
-  built_in/tools/meta/               — 元工具精简 8→6
+  built_in/tools/meta/               — 元工具精简 7→5
   runtime/bridge                     — RuntimeBridge → RuntimeBridgeServer,
                                          TcpServer + 多实例连接池,
                                          send_command_async 按 instance_id 路由,
@@ -364,7 +364,7 @@ Layer 4: 操作暂存 — shadow scene 非破坏编辑（Phase 4 新增）
 架构变化:
   [同步桥接] → [异步帧驱动 + SSE 推送]
 
-零破坏性: 渐进式披露保持不变, 元工具精简 8→6 不改变 tools/list 行为
+零破坏性: 渐进式披露保持不变, 元工具精简 7→5 不改变 tools/list 行为
 ```
 
 ### Phase 2: `feature/capability-catchup`
@@ -374,12 +374,16 @@ Layer 4: 操作暂存 — shadow scene 非破坏编辑（Phase 4 新增）
   新建: tools/editor_tools/scripts/run_editor_script.hpp
   修改: runtime_tools/bridge/call_method_in_game.hpp
   修改: tools/runtime_tools/bridge/capture_game_screenshot.hpp
+  修改: server/mcp/mcp_handler.hpp/.cpp   — 新增 8 个 Resources handler
+  修改: server/mcp/prompt_provider.cpp     — 增强 3 个 Prompt + 新增 4 个
 
 架构变化:
   [无逃生口] → [write_script + run_editor_script 组合]
   [JSON base64 截图] → [MCP image content 类型]
+  [3 Resources] → [11 Resources]           — 只读操作转为 Resources
+  [5 静态 Prompts] → [9 动态 Prompts]     — 运行时数据注入 + 工作流
 
-零破坏性: Image content 保留 data 字段向后兼容
+零破坏性: Image content 保留 data 字段向后兼容; 旧工具路径仍可用
 ```
 
 ### Phase 3: `feature/workflow-advance`
@@ -466,6 +470,8 @@ addons/
 | Shadow Scene diff 100 节点 | N/A | < 50ms | 计时 |
 | 截图返回延迟 | ~500ms | < 200ms | 端到端测量 |
 | 多实例切换延迟 | N/A | < 100ms | 计时 |
+| Resources 响应 (任意) | ~1-2ms | < 1ms | 内部计时 |
+| `explain_node` ClassDB 查询 | N/A | < 5ms | 内部计时 |
 
 ---
 
