@@ -64,6 +64,7 @@ set(GODOT_MCP_SOURCES
     src/built_in/cmd_utils.cpp
     src/built_in/cmd_utils_json.cpp
     src/runtime/bridge.cpp
+    src/runtime/bridge_server.cpp
     src/runtime/game_bridge.cpp
     src/testing/test_engine.cpp
     src/testing/pipeline_parser.cpp
