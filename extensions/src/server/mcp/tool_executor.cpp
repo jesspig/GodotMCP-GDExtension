@@ -17,7 +17,7 @@ namespace godot_mcp {
 ToolExecutor::ToolExecutor(HandlerRegistry &registry)
     : registry_(registry) {}
 
-Dictionary ToolExecutor::execute(const String &tool_name, const Dictionary &arguments) {
+Dictionary ToolExecutor::execute(const String &tool_name, const Dictionary &arguments, const Variant &jsonrpc_id) {
     const uint64_t start_msec = Time::get_singleton()->get_ticks_msec();
 
     String perm_policy = OS::get_singleton()->get_environment("GODOT_MCP_PERMISSION");
@@ -56,7 +56,7 @@ Dictionary ToolExecutor::execute(const String &tool_name, const Dictionary &argu
 
     Dictionary tool_result;
     try {
-        tool_result = registry_.execute(tool_name, arguments);
+        tool_result = registry_.execute(tool_name, arguments, jsonrpc_id);
     } catch (const std::exception &e) {
         Dictionary result;
         result["_raw_result"] = Dictionary();
@@ -71,6 +71,14 @@ Dictionary ToolExecutor::execute(const String &tool_name, const Dictionary &argu
         result["_exec_error"] = format_error(kErrorInternal, "Unknown error");
         log_warn("executor", String("tools/call FAILED (unknown exception): ") + tool_name);
         return result;
+    }
+
+    // Pending bridge request — pass through without MCP wrapping
+    if (tool_result.has("pending") &&
+        tool_result["pending"].get_type() == Variant::INT) {
+        tool_result["_raw_result"] = tool_result;
+        tool_result["_exec_duration_ms"] = static_cast<double>(Time::get_singleton()->get_ticks_msec() - start_msec);
+        return tool_result;
     }
 
     bool success = !tool_result.has("error") && (!tool_result.has("success") || static_cast<bool>(tool_result.get("success", true)));

@@ -31,6 +31,7 @@ bool HandlerRegistry::unregister_custom_tool(const String &name) {
 
     search_index_.erase(name);
     categories_dirty_ = true;
+    notify_tools_changed();
     return true;
 }
 
@@ -61,18 +62,21 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool, bool is_custom)
     }
 
     itool_table_[name] = std::move(tool);
+
+    categories_dirty_ = true;
+    notify_tools_changed();
 }
 
 // ---------------------------------------------------------------------------
 // Unified execution: ITool dispatch
 // ---------------------------------------------------------------------------
 
-Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args) {
+Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args, const Variant &jsonrpc_id) {
     record_tool_call(name);
 
     auto it = itool_table_.find(name);
     if (it != itool_table_.end()) {
-        return it->second->execute(args);
+        return it->second->execute(args, jsonrpc_id);
     }
 
     Dictionary error;
@@ -271,6 +275,21 @@ Array HandlerRegistry::get_categories() const {
     return result;
 }
 
+PackedStringArray HandlerRegistry::get_all_category_paths() const {
+    PackedStringArray paths;
+    for (const auto &[name, info] : tool_info_) {
+        if (!info.enabled) continue;
+        const ITool *tool = find_itool(name);
+        if (!tool) continue;
+        const String cat = tool->category();
+        if (cat.is_empty()) continue;
+        if (paths.find(cat) < 0) {
+            paths.push_back(cat);
+        }
+    }
+    return paths;
+}
+
 Array HandlerRegistry::get_tools_in_category(const String &category) const {
     Array result;
     for (const auto &[name, info] : tool_info_) {
@@ -337,12 +356,30 @@ PackedStringArray HandlerRegistry::tokenize(const String &text) {
     return result;
 }
 
+void HandlerRegistry::notify_tools_changed() {
+    if (on_tools_changed_) {
+        on_tools_changed_();
+    }
+}
+
+void HandlerRegistry::apply_freq_decay() {
+    for (auto &kv : freq_index_) {
+        kv.value = static_cast<int>(kv.value * 0.99);
+    }
+}
+
 void HandlerRegistry::record_tool_call(const String &name) {
     auto it = freq_index_.find(name);
     if (it != freq_index_.end()) {
         it->value++;
     } else {
         freq_index_[name] = 1;
+    }
+
+    freq_decay_counter_++;
+    if (freq_decay_counter_ >= 50) {
+        apply_freq_decay();
+        freq_decay_counter_ = 0;
     }
 }
 

@@ -44,9 +44,10 @@ Dictionary ITool::input_schema() const {
 // ITool::execute — 模板方法
 // =========================================================================
 
-Dictionary ITool::execute(const Dictionary &args) {
+Dictionary ITool::execute(const Dictionary &args, const Variant &jsonrpc_id) {
     ToolContext ctx;
     ctx.args = args;
+    ctx.jsonrpc_id = jsonrpc_id;
 
     // ── Input Schema Validation ──
     {
@@ -74,10 +75,11 @@ Dictionary ITool::execute(const Dictionary &args) {
                     bool type_ok = true;
                     if (expected_type == "string" && val.get_type() != Variant::STRING)
                         type_ok = false;
-                    else if (expected_type == "integer" && val.get_type() != Variant::INT)
+                    else                     if (expected_type == "integer" && val.get_type() != Variant::INT && val.get_type() != Variant::FLOAT)
                         type_ok = false;
                     else if (expected_type == "number" && val.get_type() != Variant::FLOAT && val.get_type() != Variant::INT)
                         type_ok = false;
+
                     else if (expected_type == "boolean" && val.get_type() != Variant::BOOL)
                         type_ok = false;
                     else if (expected_type == "array" && val.get_type() != Variant::ARRAY)
@@ -129,6 +131,11 @@ Dictionary ITool::execute(const Dictionary &args) {
 
     // ── 执行业务逻辑 ──
     Dictionary result = execute_impl(ctx);
+
+    // ── 异步待处理结果：直接透传，不包裹 ──
+    if (result.has("pending")) {
+        return result;
+    }
 
     // ── 安全包裹：确保统一返回信封 ──
     if (!result.has("success")) {

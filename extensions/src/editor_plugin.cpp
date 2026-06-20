@@ -95,7 +95,6 @@ void McpEditorPlugin::load_config() {
 void McpEditorPlugin::register_project_settings() {
     ProjectSettings *ps = ProjectSettings::get_singleton();
 
-    // http_port: basic, restart required
     if (!ps->has_setting("godot_mcp/http_port")) {
         ps->set_setting("godot_mcp/http_port", 9600);
     }
@@ -103,7 +102,6 @@ void McpEditorPlugin::register_project_settings() {
     ps->set_as_basic("godot_mcp/http_port", true);
     ps->set_restart_if_changed("godot_mcp/http_port", true);
 
-    // http_host: basic, restart required
     if (!ps->has_setting("godot_mcp/http_host")) {
         ps->set_setting("godot_mcp/http_host", "127.0.0.1");
     }
@@ -111,7 +109,6 @@ void McpEditorPlugin::register_project_settings() {
     ps->set_as_basic("godot_mcp/http_host", true);
     ps->set_restart_if_changed("godot_mcp/http_host", true);
 
-    // bridge_port: basic, restart required
     if (!ps->has_setting("godot_mcp/bridge_port")) {
         ps->set_setting("godot_mcp/bridge_port", 9601);
     }
@@ -119,14 +116,12 @@ void McpEditorPlugin::register_project_settings() {
     ps->set_as_basic("godot_mcp/bridge_port", true);
     ps->set_restart_if_changed("godot_mcp/bridge_port", true);
 
-    // log_dir: basic
     if (!ps->has_setting("godot_mcp/log_dir")) {
         ps->set_setting("godot_mcp/log_dir", "res://.mcp_logs");
     }
     ps->set_initial_value("godot_mcp/log_dir", "res://.mcp_logs");
     ps->set_as_basic("godot_mcp/log_dir", true);
 
-    // max_log_entries: basic
     if (!ps->has_setting("godot_mcp/max_log_entries")) {
         ps->set_setting("godot_mcp/max_log_entries", 500);
     }
@@ -146,6 +141,7 @@ void McpEditorPlugin::save_config() {
 
 void McpEditorPlugin::restart_server() {
     http_server_.stop();
+    bridge_server_.stop();
     runtime_bridge_.disconnect();
     load_config();
 
@@ -171,6 +167,8 @@ void McpEditorPlugin::restart_server() {
     }
 
     http_server_.set_test_engine(&test_engine_);
+    bridge_server_.set_port(actual_bridge_port_);
+    bridge_server_.start(actual_bridge_port_);
     runtime_bridge_.set_port(actual_bridge_port_);
     started_ = true;
     log_info("plugin", String("Server restarted on HTTP :") + String::num_int64(actual_http_port_));
@@ -186,9 +184,42 @@ void McpEditorPlugin::_enter_tree() {
 
     // Wire RuntimeBridge into HandlerRegistry (runtime tools need it)
     registry_.set_runtime_bridge(&runtime_bridge_);
+    registry_.set_runtime_bridge_server(&bridge_server_);
 
     load_config();
     runtime_bridge_.set_port(bridge_port_);
+    bridge_server_.set_port(bridge_port_);
+
+    // Wire up RuntimeBridgeServer -> McpHandler
+    bridge_server_.set_mcp_handler(&mcp_handler_);
+    mcp_handler_.set_bridge_server(&bridge_server_);
+
+    // Wire up RuntimeBridgeServer response callback -> McpHandler enqueue_event
+    bridge_server_.set_response_callback(
+        [this](const Dictionary &response) {
+            Dictionary jsonrpc;
+            jsonrpc["jsonrpc"] = "2.0";
+            jsonrpc["id"] = response["id"];
+
+            if (response.has("error")) {
+                Variant err_val = response["error"];
+                String err_msg = "Bridge command failed";
+                if (err_val.get_type() == Variant::DICTIONARY) {
+                    Dictionary err_dict = err_val;
+                    err_msg = err_dict.get("message", err_msg);
+                }
+                Dictionary err;
+                err["code"] = -32603;
+                err["message"] = err_msg;
+                jsonrpc["error"] = err;
+            } else if (response.has("result")) {
+                Dictionary raw = response["result"];
+                Dictionary formatted = RuntimeBridgeServer::make_response(raw);
+                jsonrpc["result"] = formatted;
+            }
+
+            mcp_handler_.enqueue_event(jsonrpc);
+        });
 
     // Port fallback: try http_port_ + 0..9
     constexpr int kMaxPortAttempts = 10;
@@ -216,6 +247,9 @@ void McpEditorPlugin::_enter_tree() {
         return;
     }
 
+    // Start bridge server
+    bridge_server_.start(actual_bridge_port_);
+
     // Inject dependencies into McpToolRegistry singleton (SDK layer)
     McpToolRegistry *sdk_registry = McpToolRegistry::get_singleton();
     if (!sdk_registry) {
@@ -224,7 +258,6 @@ void McpEditorPlugin::_enter_tree() {
     sdk_registry->set_handler_registry(&registry_);
     sdk_registry->set_mcp_handler(&mcp_handler_);
 
-    // Register as Engine singleton so C# can access via Engine.GetSingleton("McpToolRegistry")
     Engine::get_singleton()->register_singleton("McpToolRegistry", sdk_registry);
 
     // Confirmation dialog for destructive operations
@@ -237,12 +270,10 @@ void McpEditorPlugin::_enter_tree() {
         pending_dialog_op_ = op;
     });
 
-    // Wire up TestEngine
     http_server_.set_test_engine(&test_engine_);
 
     logger_.rotate();
 
-    // Connect log callback
     mcp_handler_.set_log_callback([this](const McpHandler::ToolCallLog &log) {
         McpLogger::LogEntry entry;
         entry.timestamp = log.timestamp;
@@ -254,7 +285,6 @@ void McpEditorPlugin::_enter_tree() {
         logger_.append(entry);
     });
 
-    // Bottom MCP Console (with integrated status bar)
     mcp_console_ = memnew(McpConsole);
     mcp_console_->set_logger(&logger_);
     mcp_console_->set_registry(&registry_);
@@ -267,7 +297,6 @@ void McpEditorPlugin::_enter_tree() {
     mcp_console_->refresh();
     add_control_to_bottom_panel(mcp_console_, "MCP Console");
 
-    // Auto-detect own plugin path for self-protection checks
     Variant self_path_v = call("get_plugin_path");
     if (self_path_v.get_type() == Variant::STRING) {
         g_mcp_self_plugin_path = String(self_path_v).utf8().get_data();
@@ -284,18 +313,15 @@ void McpEditorPlugin::_enter_tree() {
 void McpEditorPlugin::_exit_tree() {
     if (!started_) return;
 
-    // Clear log callbacks to prevent dangling lambda captures
     mcp_handler_.set_log_callback(nullptr);
     logger_.set_log_callback(nullptr);
 
-    // Disconnect SDK registry from handler to prevent dangling references
     McpToolRegistry *sdk_registry = McpToolRegistry::get_singleton();
     if (sdk_registry) {
         sdk_registry->set_handler_registry(nullptr);
         sdk_registry->set_mcp_handler(nullptr);
     }
 
-    // Clean up UI
     if (mcp_console_) {
         remove_control_from_bottom_panel(mcp_console_);
         memdelete(mcp_console_);
@@ -309,11 +335,11 @@ void McpEditorPlugin::_exit_tree() {
     mcp_handler_.set_confirm_callback(nullptr);
     mcp_handler_.reset_session_flags();
 
+    bridge_server_.stop();
     runtime_bridge_.disconnect();
 
     http_server_.stop();
 
-    // Unregister and clean up SDK registry singleton
     if (sdk_registry) {
         Engine::get_singleton()->unregister_singleton("McpToolRegistry");
         memdelete(sdk_registry);
@@ -329,7 +355,6 @@ void McpEditorPlugin::_process(double /*delta*/) {
 
     http_server_.poll();
 
-    // Show pending confirmation dialog (deferred from poll callback)
     if (pending_dialog_op_.has_value()) {
         confirm_dialog_->show_for_op(
             pending_dialog_op_->jsonrpc_id,
@@ -340,24 +365,7 @@ void McpEditorPlugin::_process(double /*delta*/) {
 
     mcp_handler_.check_pending_timeouts(kConfirmTimeoutMs);
 
-    _try_bridge_connect();
-
-    runtime_bridge_.poll();
-}
-
-void McpEditorPlugin::_try_bridge_connect() {
-    EditorInterface *ei = EditorInterface::get_singleton();
-    if (!ei) return;
-
-    bool game_running = ei->is_playing_scene();
-    if (game_running) {
-        if (!game_was_running_ || !runtime_bridge_.is_connected()) {
-            runtime_bridge_.connect();
-        }
-    } else if (game_was_running_) {
-        runtime_bridge_.disconnect();
-    }
-    game_was_running_ = game_running;
+    bridge_server_.poll();
 }
 
 }  // namespace godot_mcp
