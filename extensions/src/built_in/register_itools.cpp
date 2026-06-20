@@ -21,7 +21,6 @@ using namespace godot;
 #include "built_in/tools/meta/get_info.hpp"
 #include "built_in/tools/meta/get_tools.hpp"
 #include "built_in/tools/meta/get_categories.hpp"
-#include "built_in/tools/meta/get_tool_detail.hpp"
 #include "built_in/tools/meta/find_tool.hpp"
 #include "built_in/tools/meta/call_tool.hpp"
 // ── Signal tools ──

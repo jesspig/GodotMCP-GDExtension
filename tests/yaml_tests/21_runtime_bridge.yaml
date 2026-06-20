@@ -57,7 +57,7 @@ pipeline:
 
         - id: get_game_scene_tree
           tool: get_game_scene_tree
-          description: Gets runtime scene tree (may fail GAME_NOT_RUNNING if bridge not connected)
+          description: Gets runtime scene tree (may fail if bridge not connected)
           expect:
             status: error
             error_contains: "GAME_NOT_RUNNING"

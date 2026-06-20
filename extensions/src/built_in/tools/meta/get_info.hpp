@@ -1,8 +1,11 @@
 
 #pragma once
 
+#include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
+#include "client_config_registry.hpp"
 #include "runtime/bridge.hpp"
+#include "runtime/bridge_server.hpp"
 #include "server/registry/handler_registry.hpp"
 
 #include <godot_cpp/classes/control.hpp>
@@ -23,13 +26,20 @@ public:
     String description() const override {
         return String("Returns the editor's runtime information, including connection status, "
                       "engine version, project configuration, and editor state (current scene, "
-                      "play status, open scenes list).");
+                      "play status, open scenes list). Set include_configs=true to also receive "
+                      "client configuration snippets.");
+    }
+
+    Dictionary build_input_schema() const override {
+        return SchemaBuilder()
+            .prop("include_configs", "boolean", "If true, include client configuration snippets", false)
+            .build();
     }
 
     bool is_meta() const noexcept override { return true; }
 
 protected:
-    Dictionary execute_impl(const ToolContext &) override {
+    Dictionary execute_impl(const ToolContext &ctx) override {
         Dictionary result;
 
         Dictionary conn;
@@ -100,8 +110,31 @@ protected:
                 bridge["port"] = rb->port();
                 bridge["connected"] = rb->is_connected();
             }
+            RuntimeBridgeServer *bs = reg_->get_runtime_bridge_server();
+            if (bs) {
+                bridge["server_status"] = static_cast<int>(bs->status());
+                bridge["server_port"] = bs->port();
+                bridge["server_connected"] = bs->is_connected();
+                bridge["instance_count"] = bs->instance_count();
+                bridge["server_listening"] = (bs->status() == RuntimeBridgeServer::ACCEPTING);
+                if (bs->has_instances()) {
+                    bridge["instances"] = bs->get_connected_instances();
+                }
+            }
         }
         result["bridge"] = bridge;
+
+        const bool include_configs = ctx.args.get("include_configs", false);
+        if (include_configs) {
+            int count = 0;
+            const ClientEntry *entries = get_entries(count);
+            Dictionary configs;
+            const String url = String("http://127.0.0.1:") + String::num_int64(9600) + String("/mcp");
+            for (int i = 0; i < count; ++i) {
+                configs[String(entries[i].name)] = entries[i].generator(url);
+            }
+            result["client_configs"] = configs;
+        }
 
         return ToolResult::ok(result);
     }
