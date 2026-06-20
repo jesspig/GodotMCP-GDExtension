@@ -60,7 +60,7 @@ protected:
         }
 
         String old_name = node->get_name();
-        auto *ur = begin_undo_action("MCP: Rename " + old_name);
+        auto *ur = begin_undo_action("MCP: Rename " + old_name, ctx.root);
         if (ur) {
             ur->add_do_method(node, "set_name", new_name);
             ur->add_undo_method(node, "set_name", old_name);

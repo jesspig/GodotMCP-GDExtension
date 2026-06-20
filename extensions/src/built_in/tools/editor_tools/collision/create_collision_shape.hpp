@@ -413,7 +413,7 @@ protected:
             return ToolResult::err("NAME_CONFLICT", String("A node with the same name already exists: ") + body_name);
         }
 
-        auto *ur = begin_undo_action("MCP: Create CollisionShape " + body_name);
+        auto *ur = begin_undo_action("MCP: Create CollisionShape " + body_name, ctx.root);
         if (!ur) {
             parent->add_child(body, true, Node::INTERNAL_MODE_DISABLED);
             body->set_owner(ctx.root);
@@ -423,13 +423,8 @@ protected:
         } else {
             ur->add_do_method(parent, "add_child", body, true, static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(body, "set_owner", ctx.root);
-            ur->add_do_reference(body);
-            ur->add_undo_reference(body);
-
             ur->add_do_method(body, "add_child", shape_node, true, static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_do_method(shape_node, "set_owner", ctx.root);
-            ur->add_do_reference(shape_node);
-            ur->add_undo_reference(shape_node);
 
             ur->add_undo_method(shape_node, "set_owner", Variant());
             ur->add_undo_method(body, "remove_child", shape_node);

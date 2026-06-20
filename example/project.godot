@@ -22,12 +22,6 @@ project/assembly_name="Example"
 
 enabled=PackedStringArray()
 
-[godot_mcp]
-
-http_port=9600
-http_host="127.0.0.1"
-bridge_port=9601
-
 [rendering]
 
 rendering_device/driver.windows="d3d12"

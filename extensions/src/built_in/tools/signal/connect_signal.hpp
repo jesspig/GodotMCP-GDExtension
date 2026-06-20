@@ -69,6 +69,7 @@ protected:
             ur->create_action("MCP: Connect signal", godot::UndoRedo::MERGE_DISABLE, ctx.root);
             ur->add_do_method(source, "connect", signal_name, callable, static_cast<uint32_t>(flags));
             ur->add_undo_method(source, "disconnect", signal_name, callable);
+
             ur->commit_action();
         } else {
             Error err = source->connect(signal_name, callable, static_cast<uint32_t>(flags));

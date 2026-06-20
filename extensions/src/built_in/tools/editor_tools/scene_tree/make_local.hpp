@@ -47,7 +47,7 @@ protected:
                 "Node is not a scene instance (no scene_file_path)");
         }
 
-        auto *ur = begin_undo_action("MCP: Make Local " + node->get_name());
+        auto *ur = begin_undo_action("MCP: Make Local " + node->get_name(), ctx.root);
         if (ur) {
             ur->add_do_method(node, "set_scene_file_path", String());
             ur->add_undo_method(node, "set_scene_file_path", old_sfp);

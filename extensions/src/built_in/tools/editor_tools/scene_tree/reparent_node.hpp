@@ -80,7 +80,7 @@ protected:
                 data["changed"] = false;
                 return ToolResult::ok(data);
             }
-        auto *ur = begin_undo_action("MCP: Reparent (reorder)");
+        auto *ur = begin_undo_action("MCP: Reparent (reorder)", ctx.root);
         if (ur) {
                 ur->add_do_method(new_parent, "move_child", node, target);
                 ur->add_undo_method(new_parent, "move_child", node, cur_idx);
@@ -101,7 +101,7 @@ protected:
         if (target < 0) target = new_parent->get_child_count();
         if (target > new_parent->get_child_count()) target = new_parent->get_child_count();
 
-        auto *ur = begin_undo_action("MCP: Reparent " + node->get_name());
+        auto *ur = begin_undo_action("MCP: Reparent " + node->get_name(), ctx.root);
         if (ur) {
             ur->add_do_method(old_parent, "remove_child", node);
             ur->add_do_method(new_parent, "add_child", node, true,
@@ -111,8 +111,7 @@ protected:
             ur->add_undo_method(old_parent, "add_child", node, true,
                                 static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_undo_method(old_parent, "move_child", node, old_index);
-            ur->add_do_reference(node);
-            ur->add_undo_reference(node);
+
             commit_undo_action(ur);
         } else {
             old_parent->remove_child(node);

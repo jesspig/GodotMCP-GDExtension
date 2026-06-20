@@ -109,7 +109,7 @@ protected:
             }
             mark_scene_dirty();
         } else {
-            auto *ur_action = begin_undo_action("MCP: Set TileMap Cells");
+            auto *ur_action = begin_undo_action("MCP: Set TileMap Cells", ctx.root);
             if (!ur_action) {
                 for (int64_t i = 0; i < count; i++) {
                     Dictionary cell = cells[i];

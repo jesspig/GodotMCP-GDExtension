@@ -58,14 +58,13 @@ protected:
         scene_tree_utils::set_clipboard(scene);
 
         int64_t index = node->get_index();
-        auto *ur = begin_undo_action("MCP: Cut " + node->get_name());
+        auto *ur = begin_undo_action("MCP: Cut " + node->get_name(), ctx.root);
         if (ur) {
             ur->add_do_method(parent, "remove_child", node);
             ur->add_undo_method(parent, "add_child", node, true,
                                 static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_undo_method(parent, "move_child", node, index);
-            ur->add_do_reference(node);
-            ur->add_undo_reference(node);
+
             commit_undo_action(ur);
         } else {
             parent->remove_child(node);

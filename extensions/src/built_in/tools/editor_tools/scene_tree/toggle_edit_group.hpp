@@ -39,7 +39,7 @@ protected:
             data["changed"] = false;
             return ToolResult::ok(data);
         }
-        auto *ur = begin_undo_action("MCP: Toggle Edit Group");
+        auto *ur = begin_undo_action("MCP: Toggle Edit Group", ctx.root);
         if (ur) {
             if (enable) {
                 ur->add_do_method(node, "set_meta", "_edit_group_",

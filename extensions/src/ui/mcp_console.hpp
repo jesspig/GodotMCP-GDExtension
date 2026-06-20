@@ -3,6 +3,8 @@
 #include "mcp_logger.hpp"
 
 #include <godot_cpp/classes/v_box_container.hpp>
+#include <godot_cpp/classes/panel.hpp>
+#include <godot_cpp/classes/panel_container.hpp>
 #include <godot_cpp/classes/tree.hpp>
 #include <godot_cpp/classes/button.hpp>
 #include <godot_cpp/classes/check_box.hpp>
@@ -13,6 +15,7 @@
 #include <godot_cpp/classes/input_event_mouse_button.hpp>
 #include <godot_cpp/classes/input_event_mouse_motion.hpp>
 #include <godot_cpp/classes/label.hpp>
+#include <godot_cpp/classes/option_button.hpp>
 #include <godot_cpp/classes/popup_menu.hpp>
 #include <godot_cpp/classes/text_edit.hpp>
 #include <godot_cpp/classes/code_edit.hpp>
@@ -23,6 +26,9 @@
 
 namespace godot_mcp {
 
+class HandlerRegistry;
+class McpEditorPlugin;
+
 class McpConsole : public godot::VBoxContainer {
     GDCLASS(McpConsole, godot::VBoxContainer)
 
@@ -31,8 +37,11 @@ public:
     ~McpConsole() override;
 
     void set_logger(McpLogger *logger);
+    void set_registry(HandlerRegistry *r) { registry_ = r; }
+    void set_plugin(McpEditorPlugin *p) { plugin_ = p; }
     void on_log_appended(const McpLogger::LogEntry &entry);
     void refresh();
+    void _process(double delta) override;
 
 protected:
     static void _bind_methods();
@@ -43,6 +52,8 @@ private:
     godot::Button *expand_btn_ = nullptr;
     godot::Button *collapse_btn_ = nullptr;
     godot::Button *clear_btn_ = nullptr;
+    godot::OptionButton *config_client_selector_ = nullptr;
+    godot::Button *config_apply_btn_ = nullptr;
     godot::CheckBox *auto_scroll_chk_ = nullptr;
     godot::Label *count_label_ = nullptr;
 
@@ -52,16 +63,34 @@ private:
     godot::PopupMenu *context_menu_ = nullptr;
 
     godot::Label *time_header_ = nullptr;
-    godot::Control *drag_area_ = nullptr;
+    godot::Panel *drag_area_ = nullptr;
+
+    // Status bar
+    godot::Label *status_icon_ = nullptr;
+    godot::Label *tools_count_ = nullptr;
+    godot::Label *bridge_status_ = nullptr;
+
+    godot::String cached_status_text_;
+    godot::Color cached_status_color_;
+    godot::String cached_tools_text_;
+    godot::String cached_bridge_text_;
+    godot::Color cached_bridge_color_;
+    double time_since_status_update_ = 0.0;
+
+    HandlerRegistry *registry_ = nullptr;
+    McpEditorPlugin *plugin_ = nullptr;
 
     McpLogger *logger_ = nullptr;
     bool auto_scroll_ = true;
     static constexpr int kMaxVisible = 500;
 
+    void update_status();
+
     std::deque<McpLogger::LogEntry> logged_entries_;
 
     void _on_clear_pressed();
     void _on_expand_all();
+    void _on_config_apply_pressed();
     void _on_collapse_all();
     void _on_auto_scroll_toggled(bool pressed);
     void _on_item_activated();

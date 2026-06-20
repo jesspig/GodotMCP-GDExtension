@@ -69,9 +69,9 @@ set(GODOT_MCP_SOURCES
     src/testing/pipeline_parser.cpp
     src/testing/pipeline_context.cpp
     src/testing/pipeline_runner.cpp
-    src/ui/mcp_dock.cpp
     src/ui/mcp_logger.cpp
     src/ui/mcp_console.cpp
+    src/ui/mcp_confirm_dialog.cpp
 )
 
 file(GLOB_RECURSE TOOL_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.cpp")

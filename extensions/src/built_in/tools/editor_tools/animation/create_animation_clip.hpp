@@ -91,7 +91,7 @@ protected:
 
         animation->set_length(static_cast<float>(length));
 
-        auto *ur = begin_undo_action("MCP: Create Animation Clip");
+        auto *ur = begin_undo_action("MCP: Create Animation Clip", ctx.root);
         if (!ur) {
             library->add_animation(godot::StringName(clip_name), animation);
             mark_scene_dirty();

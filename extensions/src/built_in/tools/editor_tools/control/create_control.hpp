@@ -96,7 +96,7 @@ protected:
             ));
         }
 
-        auto *ur = begin_undo_action("MCP: Create Control " + class_name);
+        auto *ur = begin_undo_action("MCP: Create Control " + class_name, ctx.root);
         if (!ur) {
             parent->add_child(child, true, godot::Node::INTERNAL_MODE_DISABLED);
             child->set_owner(ctx.root);

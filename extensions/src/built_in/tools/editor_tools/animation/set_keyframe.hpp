@@ -167,7 +167,7 @@ protected:
                 animation->track_insert_key(static_cast<int32_t>(track_index), time, value);
                 mark_scene_dirty();
             } else {
-                auto *ur_ins = begin_undo_action("MCP: Insert Keyframe");
+                auto *ur_ins = begin_undo_action("MCP: Insert Keyframe", ctx.root);
                 if (!ur_ins) {
                     animation->track_insert_key(static_cast<int32_t>(track_index), time, value);
                     mark_scene_dirty();
@@ -198,7 +198,7 @@ protected:
                 animation->track_remove_key_at_time(static_cast<int32_t>(track_index), time);
                 mark_scene_dirty();
             } else {
-                auto *ur_del = begin_undo_action("MCP: Delete Keyframe");
+                auto *ur_del = begin_undo_action("MCP: Delete Keyframe", ctx.root);
                 if (!ur_del) {
                     animation->track_remove_key_at_time(static_cast<int32_t>(track_index), time);
                     mark_scene_dirty();
@@ -226,7 +226,7 @@ protected:
                 animation->track_set_key_value(static_cast<int32_t>(track_index), key_idx, value);
                 mark_scene_dirty();
             } else {
-                auto *ur_set = begin_undo_action("MCP: Set Keyframe Value");
+                auto *ur_set = begin_undo_action("MCP: Set Keyframe Value", ctx.root);
                 if (!ur_set) {
                     animation->track_set_key_value(static_cast<int32_t>(track_index), key_idx, value);
                     mark_scene_dirty();

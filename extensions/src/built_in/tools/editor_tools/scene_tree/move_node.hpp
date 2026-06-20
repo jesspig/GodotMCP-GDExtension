@@ -93,7 +93,7 @@ protected:
         }
 
         int64_t old_index = cur;
-        auto *ur = begin_undo_action("MCP: Move Node");
+        auto *ur = begin_undo_action("MCP: Move Node", ctx.root);
         if (ur) {
             if (new_parent != old_parent) {
                 ur->add_do_method(old_parent, "remove_child", node);
@@ -103,8 +103,7 @@ protected:
                 ur->add_undo_method(old_parent, "add_child", node, true,
                                     static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
                 ur->add_undo_method(old_parent, "move_child", node, old_index);
-                ur->add_do_reference(node);
-                ur->add_undo_reference(node);
+
             }
             ur->add_do_method(new_parent, "move_child", node, target);
             ur->add_undo_method(new_parent, "move_child", node, old_index);

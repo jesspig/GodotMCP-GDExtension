@@ -69,10 +69,11 @@ protected:
         if (is_persist) {
             auto *ur = get_undo_redo();
             if (ur) {
-                auto *ur_dc = begin_undo_action("MCP: Disconnect signal");
+                auto *ur_dc = begin_undo_action("MCP: Disconnect signal", ctx.root);
                 if (ur_dc) {
                 ur_dc->add_do_method(source, "disconnect", signal_name, callable);
                 ur_dc->add_undo_method(source, "connect", signal_name, callable, (uint32_t)4);
+
                 commit_undo_action(ur_dc);
                 }
             } else {

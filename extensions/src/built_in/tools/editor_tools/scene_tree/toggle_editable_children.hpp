@@ -52,7 +52,7 @@ protected:
             data["changed"] = false;
             return ToolResult::ok(data);
         }
-        auto *ur = begin_undo_action("MCP: Toggle Editable Children");
+        auto *ur = begin_undo_action("MCP: Toggle Editable Children", ctx.root);
         if (ur) {
             ur->add_do_method(parent, "set_editable_instance", node, enable);
             ur->add_undo_method(parent, "set_editable_instance", node, current);

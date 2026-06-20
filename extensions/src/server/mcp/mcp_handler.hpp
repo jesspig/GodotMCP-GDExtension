@@ -2,6 +2,7 @@
 
 #include "tool_executor.hpp"
 #include "prompt_provider.hpp"
+#include "pending_operation.hpp"
 #include "../registry/handler_registry.hpp"
 
 #include <deque>
@@ -43,6 +44,13 @@ public:
 
     using McpLogCallback = std::function<void(const ToolCallLog &)>;
     void set_log_callback(McpLogCallback cb);
+
+    using ConfirmCallback = std::function<void(const PendingDestructiveOp &)>;
+    void set_confirm_callback(ConfirmCallback cb) { confirm_callback_ = std::move(cb); }
+    void resolve_pending_op(const godot::Variant &id, bool allow, bool allow_all_for_session);
+    void check_pending_timeouts(uint64_t timeout_msec);
+    void reset_session_flags() { allow_all_for_session_ = false; }
+    int pending_op_count() const noexcept { return static_cast<int>(pending_ops_.size()); }
 
     // Utility: parse a MCP-Protocol-Version header and return a compatible version.
     static String negotiate_protocol_version(const String &header_value);
@@ -94,6 +102,9 @@ private:
     ToolExecutor tool_executor_;
     std::deque<Dictionary> global_event_queue_;
     String log_level_ = "info";
+    std::deque<PendingDestructiveOp> pending_ops_;
+    bool allow_all_for_session_ = false;
+    ConfirmCallback confirm_callback_;
 };
 
 } // namespace godot_mcp

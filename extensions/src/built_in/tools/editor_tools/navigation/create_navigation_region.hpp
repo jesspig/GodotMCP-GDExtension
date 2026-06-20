@@ -121,7 +121,7 @@ protected:
             }
         }
 
-        auto *ur = begin_undo_action("MCP: Create " + class_name);
+        auto *ur = begin_undo_action("MCP: Create " + class_name, ctx.root);
         if (!ur) {
             parent->add_child(region_node, true, Node::INTERNAL_MODE_DISABLED);
             region_node->set_owner(ctx.root);

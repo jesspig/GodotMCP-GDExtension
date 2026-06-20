@@ -95,7 +95,7 @@ protected:
             String inst_name = node_name.is_empty() ? String(instance->get_name()) : node_name;
             instance->set_name(inst_name);
 
-            auto *ur = begin_undo_action("MCP: Instance scene");
+            auto *ur = begin_undo_action("MCP: Instance scene", ctx.root);
             if (!ur) {
                 parent->add_child(instance, true, Node::INTERNAL_MODE_DISABLED);
                 instance->set_owner(ctx.root);
@@ -224,7 +224,7 @@ protected:
         }
         mesh_inst->set_name(node_name);
 
-        auto *ur = begin_undo_action("MCP: Create MeshInstance3D");
+        auto *ur = begin_undo_action("MCP: Create MeshInstance3D", ctx.root);
         if (!ur) {
             parent->add_child(mesh_inst, true, Node::INTERNAL_MODE_DISABLED);
             mesh_inst->set_owner(ctx.root);

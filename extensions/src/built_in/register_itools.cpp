@@ -3,6 +3,16 @@
 #pragma warning(disable: 4244) // int64_t→int from Godot API calls in tool headers
 #endif
 
+#include <godot_cpp/classes/dir_access.hpp>
+#include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/file_access.hpp>
+#include <godot_cpp/classes/os.hpp>
+#include <godot_cpp/classes/project_settings.hpp>
+#include <godot_cpp/classes/time.hpp>
+#include <godot_cpp/templates/hash_map.hpp>
+
+using namespace godot;
+
 #include "server/registry/handler_registry.hpp"
 #include "built_in/cmd_utils/dispatch_map.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
@@ -14,8 +24,6 @@
 #include "built_in/tools/meta/get_tool_detail.hpp"
 #include "built_in/tools/meta/find_tool.hpp"
 #include "built_in/tools/meta/call_tool.hpp"
-#include "built_in/tools/meta/generate_client_config.hpp"
-
 // ── Signal tools ──
 #include "built_in/tools/signal/connect_signal.hpp"
 #include "built_in/tools/signal/disconnect_signal.hpp"

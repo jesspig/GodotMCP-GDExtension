@@ -70,7 +70,7 @@ protected:
                 return ToolResult::err("NOT_A_CONTROL", String("Node is not a Control: ") + node_path);
             }
 
-            auto *ur = begin_undo_action("MCP: Create StyleBox " + stylebox_name);
+            auto *ur = begin_undo_action("MCP: Create StyleBox " + stylebox_name, ctx.root);
             if (!ur) {
                 control->add_theme_stylebox_override(stylebox_name, sb);
                 mark_scene_dirty();

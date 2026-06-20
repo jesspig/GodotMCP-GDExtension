@@ -100,7 +100,7 @@ protected:
             }
             mark_scene_dirty();
         } else {
-            auto *ur_action = begin_undo_action("MCP: Erase TileMap Cells");
+            auto *ur_action = begin_undo_action("MCP: Erase TileMap Cells", ctx.root);
             if (!ur_action) {
                 for (int64_t i = 0; i < count; i++) {
                     godot::Vector2i coords = read_cell_arr(cells[i]);

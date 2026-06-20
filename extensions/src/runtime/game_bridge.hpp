@@ -48,12 +48,8 @@ private:
     godot::Ref<godot::TCPServer> server_;
     godot::Ref<godot::StreamPeerTCP> client_;
     godot::PackedByteArray read_buf_;
-    godot::String read_text_;
     int64_t read_offset_ = 0;
     int port_ = 9601;
-    int utf8_retries_ = 0;
-    int64_t utf8_fail_offset_ = -1;
-    int64_t consumed_bytes_ = 0;
     static constexpr int64_t BUFFER_LIMIT = 1024 * 1024;
 };
 

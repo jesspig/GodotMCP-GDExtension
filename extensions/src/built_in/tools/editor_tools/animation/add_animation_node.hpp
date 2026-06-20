@@ -163,7 +163,7 @@ protected:
             }
         }
 
-        auto *ur = begin_undo_action("MCP: Add AnimationNode " + node_name);
+        auto *ur = begin_undo_action("MCP: Add AnimationNode " + node_name, ctx.root);
         if (!ur) {
             sm->add_node(godot::StringName(node_name), anim_node, position);
             mark_scene_dirty();

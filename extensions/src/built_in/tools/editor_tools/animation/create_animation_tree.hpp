@@ -96,7 +96,7 @@ protected:
                 String("A node with the same name already exists: ") + node_name);
         }
 
-        auto *ur = begin_undo_action("MCP: Create AnimationTree");
+        auto *ur = begin_undo_action("MCP: Create AnimationTree", ctx.root);
         if (!ur) {
             parent->add_child(tree_node, true, Node::INTERNAL_MODE_DISABLED);
             tree_node->set_owner(ctx.root);
