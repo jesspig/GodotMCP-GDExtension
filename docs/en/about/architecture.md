@@ -29,7 +29,7 @@ graph TB
         SDK --> HR
         RB -.->|TCP :9601| GameProcess[Game Process]
 
-        HR --> tools_meta[Meta tools: 7]
+        HR --> tools_meta[Meta tools: 8]
         HR --> tools_scene[Scene tree: 24]
         HR --> tools_script[Scripts: 12]
         HR --> tools_fs[Filesystem: 12]
@@ -80,7 +80,7 @@ Each tool implements the `ITool` interface (`name()`, `category()`, `input_schem
 | Layer | Name | Count | Description |
 |-------|------|-------|-------------|
 | 0 | Generic Fallback | 2 | `get_node_property` / `set_node_property` |
-| 1 | Meta Tools | 7 | Tool introspection, search, discovery |
+| 1 | Meta Tools | 8 | Tool introspection, search, discovery |
 | 2 | Semantic Tools | 136 | Purpose-built tools for every domain |
 | 3 | Doc Query Tools | 8 | ClassDB-powered documentation queries |
 

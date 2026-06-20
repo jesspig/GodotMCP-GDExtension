@@ -7,16 +7,16 @@ GodotMCP provides **153 built-in tools** organized into a four-layer system. Too
 | Layer | Count | Purpose |
 |-------|-------|---------|
 | Layer 0: Generic Fallback | 2 | Universal property get/set for any node |
-| Layer 1: Meta Tools | 7 | Tool discovery, introspection, configuration |
+| Layer 1: Meta Tools | 8 | Tool discovery, introspection, configuration |
 | Layer 2: Semantic Tools | 136 | Purpose-built tools for every editor domain |
 | Layer 3: Doc Query Tools | 8 | ClassDB-powered Godot API reference |
 
 ## Category Tree
 
 ```
-meta_tools/                       # 7 tools
+meta_tools/                       # 8 tools
   get_info, get_tools, get_categories, get_tool_detail,
-  find_tool, call_tool, generate_client_config
+  find_tool, call_tool, generate_client_config, list_settings
 
 node_tools/
   signal/                         # 4 tools

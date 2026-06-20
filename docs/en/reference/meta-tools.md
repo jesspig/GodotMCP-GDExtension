@@ -1,6 +1,6 @@
 ﻿# Meta Tools
 
-7 tools for tool discovery, introspection, and configuration.
+8 tools for tool discovery, introspection, and configuration.
 
 ## `get_info`
 

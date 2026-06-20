@@ -43,6 +43,36 @@
 3. 调用 `EditorInterface::set_plugin_enabled(name, enabled)`
 4. 刷新文件系统
 
+## 工作流程
+
+以下序列图展示了调用 `set_plugin_enabled` 时各组件间的交互：
+
+```mermaid
+sequenceDiagram
+    participant Client as MCP 客户端
+    participant HTTP as HTTP Server
+    participant Handler as set_plugin_enabled Handler
+    participant FS as Editor Filesystem
+    participant Plugin as EditorPlugin
+
+    Client->>HTTP: POST /tools/call (plugin, enabled)
+    HTTP->>Handler: 分发调用
+    Handler->>FS: 扫描 res://addons/
+    FS-->>Handler: 插件目录列表
+    loop 每个插件目录
+        Handler->>FS: 读取 plugin.cfg
+        FS-->>Handler: 配置内容
+    end
+    alt 匹配成功
+        Handler->>Plugin: EditorInterface::set_plugin_enabled(name, enabled)
+        Plugin-->>Handler: 操作结果
+        Handler->>FS: refresh_filesystem()
+    else 未匹配
+        Handler-->>Client: 错误：插件未找到
+    end
+    Handler-->>Client: 成功响应
+```
+
 ## 实现细节
 
 - 插件状态通过 `ConfigFile` 读取 `plugin.cfg`

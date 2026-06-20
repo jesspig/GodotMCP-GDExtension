@@ -122,4 +122,4 @@ GODOT_MCP_TOOL(cls, is_destructive_val)
 
 ## 参考
 
-- [工具目录](docs/en/reference/tools-catalog.md) — 所有工具参数和返回值
+- [工具目录](docs/en/guide/tools-overview.md) — 所有工具参数和返回值

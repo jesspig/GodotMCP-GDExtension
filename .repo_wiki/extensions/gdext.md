@@ -101,7 +101,7 @@ extensions/src/
 │   ├── bridge.hpp/.cpp             # RuntimeBridge：编辑器侧 TCP 客户端（→9601）
 │   └── game_bridge.hpp/.cpp        # GameBridgeNode：游戏进程 TCP 服务端（:9601）
 ├── sdk/
-│   ├── mcp_tool_definition.hpp/.cpp  # GDScript 可继承的 RefCounted 基类
+│   ├── mcp_tool_definition.hpp/.cpp  # GDScript 可继承的 EditorScript 子类
 │   └── mcp_tool_registry.hpp/.cpp    # 单例注册表
 ├── ui/
 │   ├── mcp_dock.cpp/.hpp           # 右侧面板（工具浏览）

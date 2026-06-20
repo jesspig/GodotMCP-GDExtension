@@ -29,7 +29,7 @@ graph TB
         SDK --> HR
         RB -.->|TCP :9601| GameProcess[Game Process]
 
-        HR --> tools_meta[Meta tools: 7]
+        HR --> tools_meta[Meta tools: 8]
         HR --> tools_scene[Scene tree: 24]
         HR --> tools_script[Scripts: 12]
         HR --> tools_fs[Filesystem: 12]

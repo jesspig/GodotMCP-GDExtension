@@ -16,12 +16,19 @@
 | 008 | 2025-2026 | C++ 重写取代 Rust | 消除 `MainThreadDispatcher`/tokio/MPSC 日志通道等 ~50% 跨线程代码 |
 | 009 | 2026 | C# 工具注册启用 | `register_script_cs` 已在注册流程中激活 |
 | 010 | 2026-06 | 统一 ITool 接口 | 所有工具实现同一接口，`execute()` 模板方法 + `input_schema()` 自描述 |
-| 011 | 2026-06 | 运行时桥接 | `GameBridgeNode`（游戏进程 TCP :9601 服务端）+ `RuntimeBridge`（编辑器侧客户端） |
+| 011 | 2026-06 | 运行时桥接 | `GameBridgeNode`（游戏进程 TCP 客户端）+ `RuntimeBridgeServer`（编辑器侧 TCP 服务端 :9601） |
+| 011a | 2026-06-20 | 桥接方向翻转 | 编辑器改为 TCP 服务端，游戏进程改为 TCP 客户端，支持多游戏实例连接（[LLD](01-lld-bridge-async.md)） |
 | 012 | 2026-06-04 | 场景树分类 + Undo 策略 | 全部用 `EditorUndoRedoManager`；剪贴板用 `PackedScene`；脚本工具归入 `scene_tree` 分类 |
 | 013 | 2026-06-08 | 移除 PCH | Unity Build 已覆盖优化价值，消除 ~100MB `.pch` + 管理复杂度 |
 | 014 | 2026-06-08 | P0/P1/P2 功能路线图 | 7 运行时命令 + 14 脚本工具 + 13 P1 工具 + 24 P2 工具，全部完成 |
 | 015 | 2026-06-11 | 四层工具体系 + 搜索引擎 + X-macro | 工具数 ~11791→~153；搜索引擎（4 阶段权重）；SDK 工具平权（IToolAdapter） |
 | 016 | 2026-06-14 | V2 产品化 | 预编译分发 + 底部面板 UI + CORS/Session 安全 + 限流 + 客户端配置模板 |
+| 017 | 2026-06-20 | Bridge 异步化 | `send_command_async()` 帧驱动轮询 + SSE 事件队列交付，消除编辑器冻结（[LLD](01-lld-bridge-async.md)） |
+| 018 | 2026-06-20 | 渐进式披露优化 | 保留 `tools/list` 仅返回元工具，精简元工具 8→6，缓存+搜索引擎优化（[LLD](02-lld-tools-list.md)） |
+| 019 | 2026-06-20 | `run_editor_script`（EditorScript） | 利用 Godot 内置 `EditorScript` 机制替代自建沙箱（[LLD](03-lld-run-editor-script.md)） |
+| 020 | 2026-06-20 | Pipeline 三层继承体系 | `PipelineRunnerBase` 纯执行核心 → `TestRunner`（快照+断言）/ `WorkflowRunner`（JSON/YAML 工作流），`pipeline/` 独立为共享模块（[LLD](05-lld-yaml-workflow.md)） |
+| 021 | 2026-06-20 | Shadow Scene 非破坏编辑 | `PackedScene` 快照 + 属性级 diff + UndoRedo apply，竞品中唯一（[LLD](06-lld-shadow-scene.md)） |
+| 022 | 2026-06-20 | SDK 编译时注册（已废弃） | 运行时 `McpToolDefinition` SDK 已覆盖扩展需求，编译时方案不必要 |
 
 ## 关键决策关联
 
@@ -35,6 +42,13 @@ graph LR
     A012["ADR-012<br/>Undo 策略"] --> A015
     A014["ADR-014<br/>功能路线图"] --> A016
     A011["ADR-011<br/>运行时桥接"] --> A014
+    A016 --> A017["ADR-017<br/>Bridge 异步化"]
+    A016 --> A018["ADR-018<br/>渐进式披露优化"]
+    A016 --> A019["ADR-019<br/>run_editor_script"]
+    A016 --> A020["ADR-020<br/>PipelineRunner 复用"]
+    A016 --> A021["ADR-021<br/>Shadow Scene"]
+    A016 --> A022["ADR-022<br/>SDK 编译时注册（已废弃）"]
+    A011 --> A011a["ADR-011a<br/>桥接方向翻转<br/>编辑器作为 TCP 服务端"]
 ```
 
 ## 已废弃决策

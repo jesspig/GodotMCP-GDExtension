@@ -2,6 +2,8 @@
 
 > C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600，MCP 2026-07-28 协议）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 `godot-cpp 10.0.0-rc1`，X-macro 分文件注册，四层工具体系（元工具 + 语义专用 + 通用兜底 + 文档查询），Godot ClassDB 运行时驱动文档数据，rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。**无 session，无 GET 端点，纯 POST 通信**。
 
+---
+
 ## 项目快照
 
 | 维度 | 当前状态 |
@@ -23,68 +25,145 @@
 | Python | `>=3.14`（`.python-version` 锁定） |
 | MCP 协议 | **Streamable HTTP 2026-07-28**（无 session，无 GET 端点） |
 
-## 快速导航
+---
 
-| 类别 | 文档 |
+## 🏗️ 架构与概念
+
+| 文档 | 说明 |
 |------|------|
-| 架构总览 | [overview/architecture.md](overview/architecture.md) |
-| 线程模型 | [overview/threading-model.md](overview/threading-model.md) |
-| **X-macro 注册体系** | [modules/x-macro-registration.md](modules/x-macro-registration.md) |
-| 命令路由与调度 | [modules/command-routing.md](modules/command-routing.md) |
-| **命令注册中心** | [modules/handler-registry.md](modules/handler-registry.md) |
-| 分类自动发现 | [modules/category-discovery.md](modules/category-discovery.md) |
-| MCP 传输 | [modules/ipc-bridge.md](modules/ipc-bridge.md) |
-| 运行时桥接 | [modules/runtime-bridge.md](modules/runtime-bridge.md) |
-| 运行时工具 | [modules/runtime-tools.md](modules/runtime-tools.md) |
-| 插件生命周期 | [modules/editor-plugin.md](modules/editor-plugin.md) |
-| 元工具 | [modules/meta-tools.md](modules/meta-tools.md) |
-| **通用兜底工具** | [modules/fallback-tools.md](modules/fallback-tools.md) |
-| **文档查询工具** | [modules/doc-tools.md](modules/doc-tools.md) |
-| 场景树工具 | [modules/scene-tree-tools.md](modules/scene-tree-tools.md) |
-| 场景命令模式 | [modules/scene-commands.md](modules/scene-commands.md) |
-| 工作区工具 | [modules/workspace-tools.md](modules/workspace-tools.md) |
-| 文件系统工具 | [modules/filesystem-tools.md](modules/filesystem-tools.md) |
-| 项目设置工具 | [modules/settings-tools.md](modules/settings-tools.md) |
-| 分组工具 | [modules/group-tools.md](modules/group-tools.md) |
-| 信号工具 | [modules/signal-tools.md](modules/signal-tools.md) |
-| 资源管理工具 | [modules/resource-tools.md](modules/resource-tools.md) |
-| 动画工具 | [modules/animation-tools.md](modules/animation-tools.md) |
-| 插件管理工具 | [modules/plugin-management.md](modules/plugin-management.md) |
-| 脚本工具 | [modules/script-tools.md](modules/script-tools.md) |
-| SDK 层 | [modules/sdk-layer.md](modules/sdk-layer.md) |
-| HTTP 服务器 | [modules/http-server.md](modules/http-server.md) |
-| UI 组件 | [modules/ui-components.md](modules/ui-components.md) |
-| 日志系统 | [modules/logging.md](modules/logging.md) |
-| 输入映射 | [modules/input-map.md](modules/input-map.md) |
-| ITool 基类体系 | [modules/tool-base.md](modules/tool-base.md) |
-| 共享工具函数 | [modules/cmd-utils.md](modules/cmd-utils.md) |
-| 构建与打包 | [reference/build-and-package.md](reference/build-and-package.md) |
-| CI/CD 流水线 | [reference/ci-cd.md](reference/ci-cd.md) |
-| 客户端配置 | [reference/client-config.md](reference/client-config.md) |
-| 客户端 quirks | [reference/client-quirks.md](reference/client-quirks.md) |
-| MCP 协议规范 | [specification/ipc-protocol.md](specification/ipc-protocol.md) |
-| 项目结构 | [specification/project-structure.md](specification/project-structure.md) |
-| GDExtension 组件图 | [extensions/gdext.md](extensions/gdext.md) |
-| 设计决策（ADR） | [design/decisions.md](design/decisions.md) |
-| 测试框架 | [testing/overview.md](testing/overview.md) |
-| C++ 测试引擎 | [testing/test-engine.md](testing/test-engine.md) |
-| 测试编排器 | [testing/orchestrator.md](testing/orchestrator.md) |
-| 变更日志 | [log.md](log.md) |
+| [系统架构总览](overview/architecture.md) | 单进程架构、模块划分、数据流、部署拓扑 |
+| [线程模型](overview/threading-model.md) | 纯主线程 `_process()` 驱动模型，无锁设计 |
+| [工具体系架构](concepts/tool-system-architecture.md) | 4 层工具设计理念、渐进式披露、双重注册路径 |
+| [运行时通信](concepts/runtime-communication.md) | 编辑器↔游戏进程 TCP 桥接：协议、异步化、生命周期 |
+| [安全模型](concepts/security-model.md) | 5 层纵深防御：Token 认证、破坏性操作拦截、沙箱、非破坏编辑 |
+
+---
+
+## 🧩 核心模块
+
+| 文档 | 说明 |
+|------|------|
+| [ITool 基类体系](modules/tool-base.md) | `ToolResult` / `ToolContext` / `ITool` 接口契约 |
+| [命令路由与调度](modules/command-routing.md) | `tools/call` → `HandlerRegistry` → `ITool` 调用链路 |
+| [命令注册中心](modules/handler-registry.md) | 搜索、分类树、双重分发、频率索引 |
+| [X-macro 注册体系](modules/x-macro-registration.md) | 编译时宏注册机制，X-macro 文件组织 |
+| [分类自动发现](modules/category-discovery.md) | `category()` 返回值 `/` 分割自动建树 |
+| [MCP 传输层](modules/ipc-bridge.md) | HTTP Server、SSE 流、JSON-RPC 2.0 编解码 |
+| [HTTP 服务器](modules/http-server.md) | `HttpServer` 实现、请求路由、CORS、限流 |
+| [运行时桥接](modules/runtime-bridge.md) | `RuntimeBridge` + `GameBridgeNode` TCP 通信实现 |
+| [SDK 层](modules/sdk-layer.md) | `McpToolDefinition` / `McpToolRegistry` 自定义工具 API |
+| [插件生命周期](modules/editor-plugin.md) | `McpEditorPlugin` 初始化、工具注册、`_process()` 驱动 |
+| [UI 组件](modules/ui-components.md) | 底部面板、确认对话框、控制台、日志器 |
+| [日志系统](modules/logging.md) | 直接 GDExtension `UtilityFunctions::print` 日志 |
+| [共享工具函数](modules/cmd-utils.md) | `SchemaBuilder`、`dispatch_map`、`undo_helpers` 等模板 |
+
+---
+
+## 🛠️ 工具分类
+
+| 分类 | 文档 | 工具数 |
+|------|------|:------:|
+| 元工具 | [meta-tools.md](modules/meta-tools.md) | 8 |
+| 场景树 | [scene-tree-tools.md](modules/scene-tree-tools.md) | 24 |
+| 场景命令 | [scene-commands.md](modules/scene-commands.md) | — |
+| 工作区/调试器 | [workspace-tools.md](modules/workspace-tools.md) | 13 |
+| 脚本 | [script-tools.md](modules/script-tools.md) | 12 |
+| 文件系统 | [filesystem-tools.md](modules/filesystem-tools.md) | 12 |
+| 动画 | [animation-tools.md](modules/animation-tools.md) | 10 |
+| 文档查询 | [doc-tools.md](modules/doc-tools.md) | 8 |
+| 资源管理 | [resource-tools.md](modules/resource-tools.md) | 6 |
+| 运行时工具 | [runtime-tools.md](modules/runtime-tools.md) | 13 |
+| 设置 | [settings-tools.md](modules/settings-tools.md) | 4 |
+| 输入映射 | [input-map.md](modules/input-map.md) | 4 |
+| 信号 | [signal-tools.md](modules/signal-tools.md) | 4 |
+| 分组 | [group-tools.md](modules/group-tools.md) | 4 |
+| 插件管理 | [plugin-management.md](modules/plugin-management.md) | 2 |
+| 通用兜底 | [fallback-tools.md](modules/fallback-tools.md) | 2 |
+
+---
+
+## 📐 设计文档
+
+| 文档 | 说明 |
+|------|------|
+| [系统架构设计](design/00-architecture.md) | 四阶段演进架构、模块职责、技术选型、数据流 |
+| [Bridge 异步化 LLD](design/01-lld-bridge-async.md) | `send_command_async` + SSE 推送，消除编辑器冻结 |
+| [渐进式披露优化 LLD](design/02-lld-tools-list.md) | 元工具精简 + 缓存加速 + SSE 通知 |
+| [run_editor_script LLD](design/03-lld-run-editor-script.md) | EditorScript 执行工具，组合 write_script 使用 |
+| [undo/redo LLD](design/04-lld-undo-redo.md) | `EditorUndoRedoManager` 集成元工具 |
+| [YAML 工作流引擎 LLD](design/05-lld-yaml-workflow.md) | PipelineRunner 复用，ExecuteWorkflowTool 包装 |
+| [Shadow Scene Diff LLD](design/06-lld-shadow-scene.md) | 非破坏编辑：快照、diff、apply/rollback |
+| [DAG 与并行开发方案](design/07-dag-and-parallel-plan.md) | 53 道工序任务拆分、5 人排期、4 里程碑 |
+
+| [设计决策（ADR）](design/08-decisions.md) | 22 项已决策架构记录与演进关系 |
+---
+
+## 🧪 测试
+
+| 文档 | 说明 |
+|------|------|
+| [测试框架概览](testing/overview.md) | 架构组件、运行方式、测试生命周期 |
+| [C++ 测试引擎](testing/test-engine.md) | Pipeline 模型、断言系统、YAML 驱动 |
+| [测试编排器](testing/orchestrator.md) | Python 编排器、Godot 生命周期管理 |
+
+---
+
+## 📋 参考
+
+| 文档 | 说明 |
+|------|------|
+| [构建与打包](reference/build-and-package.md) | CMake 构建、Python 包装、addon 打包 |
+| [CI/CD 流水线](reference/ci-cd.md) | Windows/Linux/macOS 三平台 CI |
+| [客户端配置](reference/client-config.md) | 11 个 MCP 客户端配置说明 |
+| [客户端 quirks](reference/client-quirks.md) | 各客户端已知行为差异 |
+
+---
+
+## 📖 规范
+
+| 文档 | 说明 |
+|------|------|
+| [MCP 协议规范](specification/ipc-protocol.md) | JSON-RPC 2.0 端点、请求/响应格式 |
+| [项目结构](specification/project-structure.md) | 目目录布局、文件命名、模块组织 |
+
+---
+
+## 🔧 GDExtension
+
+| 文档 | 说明 |
+|------|------|
+| [GDExtension 组件图](extensions/gdext.md) | GDExtension 初始化、类注册、生命周期绑定 |
+
+---
 
 ## Agent 上手指南
 
 1. **从 `overview/architecture.md` 开始** — 理解单进程架构、数据流、目录布局
 2. **阅读 `overview/threading-model.md`** — 理解纯主线程 `_process()` 驱动模型
-3. **阅读 `modules/x-macro-registration.md`** — 理解 X-macro 注册体系
-4. **阅读 `modules/command-routing.md`** — 理解 ITool 接口 + HandlerRegistry 调度
-5. **阅读 `modules/handler-registry.md`** — 理解搜索、分类树与双重分发
-6. **阅读 `modules/runtime-bridge.md`** — 理解运行时桥接设计
-7. **添加新工具时**：
-   - 创建 `.hpp` 文件实现 `ITool` 接口
-   - 在 `extensions/src/built_in/tools/register/` 下对应分类的 X-macro 文件加一行
-   - 在 `extensions/src/built_in/register_itools.cpp` 加 `#include`
-   - 不需要 codegen，不需要 `// @tool register`
-8. **运行测试前**：见 `AGENTS.md`「测试」章节
+3. **阅读 `design/00-architecture.md`** — 理解四阶段演进路线与模块职责
+4. **阅读 `concepts/tool-system-architecture.md`** — 理解四层工具体系设计理念
+5. **阅读 `concepts/runtime-communication.md`** — 理解编辑器↔游戏桥接模式
+6. **阅读 `concepts/security-model.md`** — 理解纵深防御安全设计
+7. **阅读 `modules/x-macro-registration.md`** — 理解 X-macro 注册体系
+8. **阅读 `modules/command-routing.md`** — 理解 ITool 接口 + HandlerRegistry 调度
+9. **阅读 `modules/handler-registry.md`** — 理解搜索、分类树与双重分发
+10. **阅读 `modules/runtime-bridge.md`** — 理解运行时桥接实现
+
+### 添加新工具
+
+- 创建 `.hpp` 文件实现 `ITool` 接口
+- 在 `extensions/src/built_in/tools/register/` 下对应分类的 X-macro 文件加一行
+- 在 `extensions/src/built_in/register_itools.cpp` 加 `#include`
+- 不需要 codegen，不需要 `// @tool register`
+- 详细说明见 [X-macro 注册体系](modules/x-macro-registration.md)
+
+### 运行测试
+
+- `uv run python main.py test` — 完整流水线（自动启停 Godot）
+- `uv run python main.py test --file 03_*.yaml` — 仅指定测试文件
+- 详细说明见 [测试框架概览](testing/overview.md)
+
+---
 
 ## 给 Agent 的提醒
 
