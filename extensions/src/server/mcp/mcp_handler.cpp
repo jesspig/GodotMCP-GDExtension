@@ -356,7 +356,7 @@ Dictionary McpHandler::handle_tools_call(const Dictionary &params, const Variant
     if (log_callback_) {
         ToolCallLog log_entry;
         log_entry.timestamp = Time::get_singleton()->get_datetime_string_from_system();
-        log_entry.tool_name = tool_name;
+        log_entry.tool_name = effective_tool_name;
         log_entry.success = !exec_result.has("_exec_error");
         log_entry.args = args;
         log_entry.result = ToolExecutor::extract_result(exec_result);

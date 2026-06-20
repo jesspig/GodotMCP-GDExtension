@@ -146,27 +146,6 @@ Dictionary ToolExecutor::format_success(const Dictionary & /*raw_result*/, const
         result["confirm"] = tool_result["confirm"];
     }
 
-    // Merge extra fields from tool_result (excluding error, success, data)
-    const Array dict_keys = tool_result.keys();
-    for (int i = 0; i < dict_keys.size(); ++i) {
-        const String k = dict_keys[i];
-        if (k != "error" && k != "success" && k != "data") {
-            result[k] = tool_result[k];
-        }
-    }
-
-    // Merge fields from data sub-dictionary
-    if (tool_result.has("data") && tool_result["data"].get_type() == Variant::DICTIONARY) {
-        const Dictionary data = tool_result["data"];
-        const Array data_keys = data.keys();
-        for (int i = 0; i < data_keys.size(); ++i) {
-            const String k = data_keys[i];
-            if (!result.has(k)) {
-                result[k] = data[k];
-            }
-        }
-    }
-
     return result;
 }
 

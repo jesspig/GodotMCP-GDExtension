@@ -12,6 +12,7 @@ McpConfirmDialog::McpConfirmDialog() {
     set_size(Vector2(480, 320));
     set_exclusive(true);
     set_min_size(Vector2(360, 240));
+    set_flag(Window::FLAG_ALWAYS_ON_TOP, true);
 
     VBoxContainer *vbox = memnew(VBoxContainer);
     vbox->set_anchors_preset(Control::PRESET_FULL_RECT);
