@@ -78,11 +78,13 @@ cmake --build build --target deep-clean      # 仅清 addons/bin/ + _deps/
 - **所有平台使用 `uv run python`**（裸 `py -3` 在 Microsoft Store stub 下会挂）
 - **Python >=3.14**：`.python-version` 锁定 `3.14`
 
-## GDExtension 文件锁
+## GDExtension 热重载
 
-| 文件 | 被谁锁定 | 如何处理 |
-|------|---------|----------|
-| `example/addons/godot_mcp/bin/godot_mcp_gdext.dll` | Godot 编辑器（插件已加载） | 关闭编辑器或禁用插件后重建 |
+`.gdextension` 设 `reloadable = true`（Godot 4.2+ 官方机制，`GDExtensionManager::reload_extension()` 自动检测文件变更并重载扩展）。`main.py build` 直接覆盖 DLL，编辑器在检测到变更后自动重载。
+
+**Windows 注意事项**：因 OS Loader 锁定 DLL，覆盖可能失败（视系统版本和配置而异），此时关闭编辑器重试。
+
+**已知约束**：仅限编辑器构建；修改 Godot base class 后需重启编辑器。
 
 ## 版本管理
 

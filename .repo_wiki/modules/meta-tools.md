@@ -4,7 +4,7 @@
 
 ## 工具列表
 
-共 **8 个**元工具：7 个在 `meta_tools` 分类（`register/register_meta.hpp`），1 个在 `editor_tools/settings`（`register/register_existing.hpp:119`）。
+共 **7 个**元工具：6 个在 `meta_tools` 分类（`register/register_meta.hpp`），1 个在 `editor_tools/settings`（`register/register_existing.hpp:119`）。
 
 | 工具名 | 文件 | 分类 | 功能 |
 |--------|------|------|------|
@@ -14,14 +14,13 @@
 | `get_tool_detail` | `meta/get_tool_detail.hpp` | `meta_tools` | 指定工具的完整元数据（参数、类型、用法示例） |
 | `find_tool` | `meta/find_tool.hpp` | `meta_tools` | 搜索引擎：4 阶段权重 + 频率排序 |
 | `call_tool` | `meta/call_tool.hpp` | `meta_tools` | 兜底调用任意工具 |
-| `generate_client_config` | `meta/generate_client_config.hpp` | `meta_tools` | 生成 11 个 MCP 客户端的连接配置 |
 | `list_settings` | `editor_tools/settings/list_settings.hpp` | `editor_tools/settings` | 列出项目设置（`is_meta=true`，`register_existing.hpp:119`） |
 
 ## 渐进式披露
 
 ```mermaid
 flowchart LR
-    A["tools/list<br/>8 个元工具"] --> B["get_categories<br/>分类树"]
+    A["tools/list<br/>7 个元工具"] --> B["get_categories<br/>分类树"]
     B --> C["get_tools(category)<br/>分类下工具列表"]
     C --> D["get_tool_detail(name)<br/>单工具完整 schema"]
     B --> E["find_tool(query)<br/>搜索匹配"]
@@ -29,7 +28,7 @@ flowchart LR
 
 | 阶段 | 操作 | 返回 |
 |------|------|------|
-| 1 | `tools/list` | 8 个元工具（`is_meta=true`） |
+| 1 | `tools/list` | 7 个元工具（`is_meta=true`） |
 | 2 | `get_categories` | 分类树（默认 max_depth=3） |
 | 3 | `get_tools(category)` | 指定分类下工具（id/name/description） |
 | 4 | `find_tool(query)` | 按频率+权重排序的搜索结果 |
@@ -131,20 +130,25 @@ return a.weight > b.weight;                      // 权重次之
 
 返回每条结果包含 `name`、`brief`、`category`、`description`、`frequency` 字段（`:449-460`）。
 
-## `generate_client_config`
+## 客户端自动配置（底部面板）
 
-参数（`generate_client_config.hpp:22-51`）：
+通过 Godot 底部面板（`McpDock`）的配置生成器，可一键生成 11 个 MCP 客户端的项目级配置。实现在 `client_config_registry.hpp`（声明式描述符 + 策略模式）：
 
-| 参数 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `client` | string (enum) | 是 | 客户端名称 |
-| `write_to_project` | bool | 否 | 默认 false，true 时写入项目配置文件 |
+| 客户端 | 配置文件路径 | 格式 |
+|--------|-------------|:----:|
+| Claude Code | `.mcp.json` | JSON |
+| Cursor | `.cursor/mcp.json` | JSON |
+| VS Code Copilot | `.vscode/mcp.json` | JSON |
+| Cline | `.cline/mcp.json` | JSON |
+| OpenCode | `.opencode/opencode.json` | JSON |
+| Codex | `.codex/config.toml` | TOML |
+| Trae | `.trae/mcp.json` | JSON |
+| Qoder | `.qoder/mcp.json` | JSON |
+| CodeBuddy | `.codebuddy/mcp_settings.json` | JSON |
+| Pi | `.pi/settings.json` | JSON |
+| OpenClaw | `.openclaw/openclaw.json` | JSON |
 
-支持 **11 个客户端**（`client_config_registry.hpp:151-163`）：
-
-`claude_code`、`cursor`、`vscode_copilot`、`cline`、`opencode`、`codex`、`trae`、`qoder`、`codebuddy`、`pi`、`openclaw`
-
-返回 `{ client, config_path, config_content, format, scope, url }`。`write_to_project=true` 时按格式（json 深合并 / toml 追加 / 直接写入）落盘。
+所有配置文件为**项目级路径**，避免污染用户全局 MCP 配置。`write_to_project=true` 时按格式（json 深合并 / toml 追加 / 直接写入）落盘。
 
 ## `get_categories`
 

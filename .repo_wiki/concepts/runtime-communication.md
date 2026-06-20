@@ -1,6 +1,10 @@
 # Runtime Communication
 
-> How GodotMCP bridges the editor process and running game instances, enabling AI clients to query and control live game scenes in real time — now with **multi-instance support**.
+> > **⚠️ DESIGN DOC — Target Architecture (Phase 1+). Not fully implemented yet.**
+> > Current state: `RuntimeBridge` is a synchronous TCP client (editor=client, game=server), single-instance.
+> > This doc describes the target async + multi-instance design. See status notes below.
+
+> How GodotMCP bridges the editor process and running game instances, enabling AI clients to query and control live game scenes in real time.
 
 ## The Problem
 
@@ -8,13 +12,26 @@ Godot runs two kinds of processes. The **editor** hosts the GDExtension plugin (
 
 These processes share no memory, no global state, and no built-in RPC mechanism. The game process has the actual runtime state (transforms, physics, scripts), but the MCP client only talks to the editor. Any tool invocation that needs game-state data — reading a node's position, calling a script method, taking a screenshot — must cross this process boundary.
 
+## Current State (Pre-Phase 1)
+
+| Aspect | Current Implementation |
+|--------|----------------------|
+| **Direction** | Editor = TCP client (`RuntimeBridge`), Game = TCP server (`GameBridgeNode`) |
+| **Multi-instance** | Single game at a time |
+| **Blocking** | `send_command()` busy-waits up to `timeout_ms` (default 100ms, screenshot up to 5000ms) with `OS::delay_msec(5)` loop |
+| **Response** | Inline, from blocking read |
+| **Concurrent requests** | Serial only |
+| **Editor freeze** | Visible stutter on every bridge call |
+
+## Target Architecture (Phase 1)
+
 ### Why Flip the Direction?
 
-The original design had the editor as a **TCP client** connecting to the game's **TCP server**. This broke down for **multiplayer testing**: when you launch multiple game instances (remote debug, dedicated server + clients), each game needs its own port, requiring port discovery. Worse, the editor actively polls for the game's presence, creating tight coupling.
+The current design has the editor as a **TCP client** connecting to the game's **TCP server**. This broke down for **multiplayer testing**: when you launch multiple game instances (remote debug, dedicated server + clients), each game needs its own port, requiring port discovery. Worse, the editor actively polls for the game's presence, creating tight coupling.
 
 The flipped design has the **editor as a TCP server**, games as **TCP clients**. Games connect autonomously, the editor just listens. This eliminates port conflicts and enables true multi-instance support.
 
-## Architecture
+## Architecture (Target)
 
 The editor side runs a **TCP server** (`RuntimeBridgeServer`); each game instance runs a **TCP client** (`GameBridgeNode`). Communication is localhost-only, port 9601, using framed JSON messages.
 

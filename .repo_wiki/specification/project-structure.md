@@ -43,8 +43,7 @@ GodotMCP/
 │       ├── server/                # ipc/ + mcp/ + registry/
 │       ├── runtime/               # bridge.cpp + game_bridge.cpp
 │       ├── sdk/                   # McpToolDefinition + McpToolRegistry
-│       ├── pipeline/              # 流式执行引擎共享核心（PipelineRunnerBase + WorkflowRunner）
-│       └── testing/               # 测试前端（TestRunner，继承 PipelineRunnerBase）
+│       └── testing/               # C++ TestEngine + YAML pipeline（PipelineRunner 复用）
 ├── tests/
 │   ├── test_orchestrator.py       # Python 编排器（管理 Godot 生命周期）
 │   ├── godot_manager.py           # Godot 进程管理

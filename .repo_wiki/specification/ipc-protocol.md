@@ -166,9 +166,29 @@ MCP-Protocol-Version: 2026-07-28
 | `completion/complete` | Utilities | 自动补全（资源 URI / prompt 参数） |
 | `notifications/cancelled` | Notifications | 客户端取消请求（无响应） |
 
-## SSE 内联事件
+## SSE 事件
 
-不提供独立的 `GET /mcp` SSE 流。SSE 事件直接在 POST 响应中内联发送——当服务端有未消费事件时，POST 响应以 `Content-Type: text/event-stream` 返回。
+支持两种 SSE 交付方式，无需客户端轮询：
+
+### GET /mcp 长连接
+
+`GET /mcp`（需 `Accept: text/event-stream`）建立长期 SSE 连接，服务端在有事件时通过同一连接推送：
+
+```
+GET /mcp
+Accept: text/event-stream
+
+→ 200 text/event-stream
+→ retry: 5000
+→ event: endpoint
+→ data: {"endpoint":"/mcp"}
+```
+
+连接保持后，事件按需推送。每 15s 发送 keepalive 注释行防止代理超时断开。
+
+### POST 内联响应
+
+当 POST 请求处理前已有 pending 事件时，响应以 `Content-Type: text/event-stream` 返回，事件发送完毕后关闭连接。
 
 ### SSE 格式
 

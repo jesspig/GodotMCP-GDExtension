@@ -24,7 +24,7 @@
 | 015 | 2026-06-11 | 四层工具体系 + 搜索引擎 + X-macro | 工具数 ~11791→~153；搜索引擎（4 阶段权重）；SDK 工具平权（IToolAdapter） |
 | 016 | 2026-06-14 | V2 产品化 | 预编译分发 + 底部面板 UI + CORS/Session 安全 + 限流 + 客户端配置模板 |
 | 017 | 2026-06-20 | Bridge 异步化 | `send_command_async()` 帧驱动轮询 + SSE 事件队列交付，消除编辑器冻结（[LLD](01-lld-bridge-async.md)） |
-| 018 | 2026-06-20 | 渐进式披露优化 | 保留 `tools/list` 仅返回元工具，精简元工具 8→6，缓存+搜索引擎优化（[LLD](02-lld-tools-list.md)） |
+| 018 | 2026-06-20 | 渐进式披露优化 | 保留 `tools/list` 仅返回元工具（当前 7 个，精简目标 5 个），缓存+搜索引擎优化（[LLD](02-lld-tools-list.md)） |
 | 019 | 2026-06-20 | `run_editor_script`（EditorScript） | 利用 Godot 内置 `EditorScript` 机制替代自建沙箱（[LLD](03-lld-run-editor-script.md)） |
 | 020 | 2026-06-20 | Pipeline 三层继承体系 | `PipelineRunnerBase` 纯执行核心 → `TestRunner`（快照+断言）/ `WorkflowRunner`（JSON/YAML 工作流），`pipeline/` 独立为共享模块（[LLD](05-lld-yaml-workflow.md)） |
 | 021 | 2026-06-20 | Shadow Scene 非破坏编辑 | `PackedScene` 快照 + 属性级 diff + UndoRedo apply，竞品中唯一（[LLD](06-lld-shadow-scene.md)） |

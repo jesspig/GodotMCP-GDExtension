@@ -122,7 +122,7 @@ extensions/src/
 1. `register_itools.cpp` 包含所有工具 `.hpp` 的 `#include` 指令
 2. 定义 `GODOT_MCP_TOOL` 宏，展开为 `reg.register_tool(std::make_unique<cls>())`
 3. 通过 `#include` 展开四个注册文件：
-   - `register/register_meta.hpp` — 7 个元工具（另有 `list_settings` 在 `register_existing.hpp` 中以 `is_meta=true` 注册，共 8 个 always-on 工具）
+   - `register/register_meta.hpp` — 6 个元工具（另有 `list_settings` 在 `register_existing.hpp` 中以 `is_meta=true` 注册，共 7 个 always-on 工具）
     - `register/register_existing.hpp` — 136 个功能工具
    - `register/register_fallback.hpp` — 2 个后备属性工具
    - `register/register_docs.hpp` — 8 个文档查询工具

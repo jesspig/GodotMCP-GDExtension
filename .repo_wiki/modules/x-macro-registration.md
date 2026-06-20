@@ -37,7 +37,7 @@ flowchart LR
 
 | 文件 | 工具数 | 内容 |
 |------|--------|------|
-| `register_meta.hpp` | 7 | 元工具（`get_info`、`get_tools`、`get_categories`、`get_tool_detail`、`find_tool`、`call_tool`、`generate_client_config`）。另有 `list_settings` 在 `register_existing.hpp` 中以 `is_meta=true` 注册，共 8 个 always-on 工具 |
+| `register_meta.hpp` | 6 | 元工具（`get_info`、`get_tools`、`get_categories`、`get_tool_detail`、`find_tool`、`call_tool`）。另有 `list_settings` 在 `register_existing.hpp` 中以 `is_meta=true` 注册，共 7 个 always-on 工具 |
 | `register_existing.hpp` | 136 | 功能工具（场景树、文件系统、脚本、工作区等），其中 `list_settings` 有 `is_meta=true` |
 | `register_fallback.hpp` | 2 | Layer 0 通用兜底工具（`get_node_property`、`set_node_property`） |
 | `register_docs.hpp` | 8 | Layer 3 文档查询工具（`search_docs`、`get_class_info`、`get_best_practices`、`get_class_list`、`get_inheritance_chain`、`get_property_doc`、`get_method_doc`、`get_enum_doc`） |

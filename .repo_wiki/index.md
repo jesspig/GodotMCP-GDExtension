@@ -11,7 +11,11 @@
 | C++ 源码根 | `extensions/src/` |
 | 注册方式 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
 | 工具总数 | **153**（全部 X-macro 注册，无重复，无 codegen） |
-| 工具体系 | **四层体系**：语义专用(135，含 13 运行时) + 通用兜底(2) + 文档(8) + 元工具(8) |
+| 工具体系 | **四层体系**：语义专用(135，含 13 运行时) + 通用兜底(2) + 文档(8) + 元工具(7) |
+| 渐进式披露 | `tools/list` 仅返回 7 个元工具（`is_meta()==true`，~3KB JSON），其余通过发现链按需加载 |
+| 发现链 | `get_categories()` → `get_tools(category)` → `get_tool_detail(name)` / `find_tool(query)` |
+| 客户端自动配置 | **11 客户端**支持，项目级配置路径，通过底部面板一键生成 |
+| Resources 层 | 3 个资源（scene-tree, project-settings, editor-info）+ 1 个 URI 模板（scene-node/{path}）[→ Phase 2: 扩展至 11+ 个](design/09-lld-resources-prompts.md) |
 | 指令数据源 | **Godot ClassDB 运行时查询**（零维护） |
 | 顶级分类 | 自动发现：`meta_tools`、`editor_tools`、`node_tools`、`runtime_tools` |
 | 场景树工具 | `editor_tools/scene_tree/`（24 工具） |
@@ -63,7 +67,7 @@
 
 | 分类 | 文档 | 工具数 |
 |------|------|:------:|
-| 元工具 | [meta-tools.md](modules/meta-tools.md) | 8 |
+| 元工具 | [meta-tools.md](modules/meta-tools.md) | 7 |
 | 场景树 | [scene-tree-tools.md](modules/scene-tree-tools.md) | 24 |
 | 场景命令 | [scene-commands.md](modules/scene-commands.md) | — |
 | 工作区/调试器 | [workspace-tools.md](modules/workspace-tools.md) | 13 |
@@ -94,6 +98,7 @@
 | [YAML 工作流引擎 LLD](design/05-lld-yaml-workflow.md) | PipelineRunner 复用，ExecuteWorkflowTool 包装 |
 | [Shadow Scene Diff LLD](design/06-lld-shadow-scene.md) | 非破坏编辑：快照、diff、apply/rollback |
 | [DAG 与并行开发方案](design/07-dag-and-parallel-plan.md) | 53 道工序任务拆分、5 人排期、4 里程碑 |
+| [Resources & Prompts 增强 LLD](design/09-lld-resources-prompts.md) | 只读操作转 Resource、动态 Prompt、工作流指导 |
 
 | [设计决策（ADR）](design/08-decisions.md) | 22 项已决策架构记录与演进关系 |
 ---
@@ -171,6 +176,7 @@
 - **不要修改** `extensions/CMakeLists.txt` 中 `GODOTCPP_API_VERSION "4.6"` 与根 `CMakeLists.txt` 的 `compatibility_minimum = "4.6"` 之间的绑定
 - **升级 godot-cpp / ryml 前必测** — 二者均为 FetchContent 拉取
 - **不要用 `String::utf8("中文")`** — 全英文化后直接 `String("English")` 即可
-- **DLL 文件锁** — Godot 编辑器持有 DLL，重建失败时先关闭编辑器
+- **DLL 热重载** — `.gdextension` 设 `reloadable = true`（Godot 4.2+ 官方机制，`GDExtensionManager::reload_extension()` 自动检测文件变更并重载扩展）。`main.py build` 直接覆盖 DLL，编辑器在检测到变更后自动重载。Windows 下因 OS Loader 锁定 DLL，覆盖可能失败（视系统版本和配置而异），此时关闭编辑器重试。已知约束：仅限编辑器构建、修改 Godot base class 后需重启编辑器。
 - **构建优化** — sccache/ccache、Unity jumbo build、lld-link 均已配置
 - **构建命令** — 始终用 `uv run python main.py`（Python >=3.14）
+- **不要误判渐进式披露** — `tools/list` 仅返回 7 个元工具（`is_meta()==true`，~3KB JSON），153 个工具通过发现链按需加载。首次对话的 token 开销与约 10 个工具的普通 MCP 服务器相当。验证方式：`get_info()` 返回的 `progressive_disclosure` 字段。（注意：`overview/architecture.md` 的 mermaid 图中的 `153 tool schemas` 指的是注册表总数，不是 `tools/list` 返回值；`tools/list` 的实现见 `mcp_handler.cpp:299` / `get_always_on_tools()`）。

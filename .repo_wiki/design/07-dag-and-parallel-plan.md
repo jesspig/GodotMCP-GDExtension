@@ -33,7 +33,7 @@
 
 | ID | 工序名 | 预估 | 依赖 | 产出 |
 |:--:|--------|:---:|:----:|------|
-| **T-1.1** | 元工具精简：合并 `get_tool_detail` → `get_tools`、合并 `generate_client_config` → `get_info` | 1 人日 | — | 8→6 元工具，减少首次 overhead |
+| **T-1.1** | 元工具精简：合并 `get_tool_detail` → `get_tools`、将客户端配置纳入 `get_info` 可选返回字段 | 1 人日 | — | 7→5 元工具，减少首次 overhead |
 | **T-1.2** | 分类树 + schema 缓存优化 | 0.5 人日 | — | `handler_registry.cpp` → 缓存命中时零计算 |
 | **T-1.3** | 搜索引擎增强：搜索索引 tokenize 移至注册时 + 频率衰减 | 0.5 人日 | — | `handler_registry.cpp` → 搜索 < 2ms |
 | **T-1.4** | 实现 `notify_tools_list_changed()` 并接入回调链 | 1 人日 | T-1.3 | `editor_plugin.cpp` → 注册回调；SDK 注册/注销触发通知 |
@@ -51,7 +51,7 @@
 
 ```mermaid
 graph TD
-    T1_1["T-1.1 元工具精简 8→6<br/>1d"] -.-> T1_4["T-1.4 list_changed 通知<br/>1d"]
+    T1_1["T-1.1 元工具精简 7→5<br/>1d"] -.-> T1_4["T-1.4 list_changed 通知<br/>1d"]
     T1_2["T-1.2 缓存优化<br/>0.5d"]
     T1_3["T-1.3 搜索引擎增强<br/>0.5d"]
     T1_5["T-1.5 BridgeServer 连接池<br/>3d"] --> T1_6["T-1.6 send_async 路由<br/>1.5d"]

@@ -18,12 +18,16 @@ graph LR
 
     subgraph GodotProc["Godot 编辑器"]
         HTTP["C++ GDExtension<br/>HTTP Server :9600<br/>MCP Streamable HTTP"]
-        Registry["HandlerRegistry<br/>(153 工具注册表)"]
+        Meta["tools/list → 8 个元工具<br/>(~3KB JSON)"]
+        Discover["发现链<br/>get_categories → get_tools<br/>→ get_tool_detail / find_tool"]
+        Registry["HandlerRegistry<br/>(153 个工具，按需加载)"]
         Editor["EditorInterface /<br/>SceneTree / Node API"]
     end
 
     Client -->|HTTP POST /mcp<br/>JSON-RPC 2.0| HTTP
-    HTTP --> Registry
+    HTTP -->|始终可见| Meta
+    Meta -.->|渐进式披露| Discover
+    Discover -.->|按需加载 schema| Registry
     Registry --> Editor
 ```
 
@@ -32,8 +36,11 @@ Godot MCP 通过 **153 个编辑器命令**将 Godot 4.6+ 编辑器暴露给 AI 
 ## 特性
 
 - **153 个编辑器命令** — 场景/节点操控、动画、文件系统、脚本、调试器、文档查询、设置、输入映射、信号、分组、运行时桥接等
+- **渐进式披露** — `tools/list` 仅返回 8 个元工具（~3KB JSON）；全部 153 个工具通过 `get_categories` → `get_tools` → `get_tool_detail`/`find_tool` 按需发现。首次对话的 token 开销与约 10 个工具的普通 MCP 服务器相当
+- **MCP Resources 层** — `godot://scene-tree`、`godot://project-settings`、`godot://editor-info`（只读状态查询）及 URI 模板 `godot://scene-node/{path}`
+- **11 客户端自动配置** — 通过底部面板或 `generate_client_config` 工具，一键生成项目级配置，无需手动编辑 JSON
 - **单进程架构** — 纯 C++ GDExtension 插件（godot-cpp 10.0.0-rc1），运行在 Godot 编辑器进程内
-- **Streamable HTTP 传输** — MCP Streamable HTTP 协议（`:9600`），无外部进程
+- **Streamable HTTP 传输** — MCP Streamable HTTP 协议（`:9600`），无外部进程，无 session 状态
 - **纯主线程 C++** — 无工作线程、无锁。所有代码通过 `_process()` 在 Godot 主线程运行
 - **AI 客户端支持** — Claude Code、OpenCode、Cursor、GitHub Copilot、Codex、Trae 等
 - **跨平台** — Windows、macOS、Linux
@@ -77,7 +84,9 @@ uv run python main.py build
 
 ### 配置 AI 客户端
 
-在 MCP 客户端配置中添加以下内容：
+通过 Godot 底部面板或 `generate_client_config` 工具，可一键生成项目级配置（非全局），无需手动编辑 JSON。
+
+也可手动添加配置：
 
 ```json
 {
@@ -90,16 +99,23 @@ uv run python main.py build
 }
 ```
 
-### 客户端配置路径
+### 支持客户端及配置路径
 
-| 客户端 | 配置文件路径 |
-|--------|-------------|
-| Claude Code | `~/.claude/mcp.json` |
-| OpenCode | `~/.config/opencode/config.json` |
-| Cursor | `<project>/.cursor/mcp.json` |
-| GitHub Copilot | `<project>/.vscode/mcp.json` |
-| Trae / Trae CN | `<project>/.trae/mcp.json` |
-| Codex | `~/.codex/config.toml` |
+所有配置文件均为**项目级路径**，避免污染全局 MCP 配置：
+
+| 客户端 | 配置文件路径 | 格式 |
+|--------|-------------|:----:|
+| Claude Code | `.mcp.json` | JSON |
+| OpenCode | `.opencode/opencode.json` | JSON |
+| Cursor | `.cursor/mcp.json` | JSON |
+| VS Code Copilot | `.vscode/mcp.json` | JSON |
+| Cline | `.cline/mcp.json` | JSON |
+| Codex | `.codex/config.toml` | TOML |
+| Trae / Trae CN | `.trae/mcp.json` | JSON |
+| Qoder | `.qoder/mcp.json` | JSON |
+| CodeBuddy | `.codebuddy/mcp_settings.json` | JSON |
+| Pi | `.pi/settings.json` | JSON |
+| OpenClaw | `.openclaw/openclaw.json` | JSON |
 
 ## 使用
 
@@ -200,9 +216,9 @@ uv run python main.py test --file 03_*.yaml           # 运行指定测试文件
 uv run python main.py package                         # 打包 addons.zip
 ```
 
-### 文件锁定问题
+### DLL 热重载
 
-- **Godot 编辑器锁定 DLL** → 关闭编辑器或禁用插件后再构建。
+- `.gdextension` 设 `reloadable = true`（Godot 4.2+ 官方机制，`GDExtensionManager::reload_extension()` 自动检测文件变更并重载扩展）。`main.py build` 直接覆盖 DLL，编辑器在检测到变更后自动重载。Windows 下因 OS Loader 锁定 DLL，覆盖可能失败（视系统版本和配置而异），此时关闭编辑器重试。已知约束：仅限编辑器构建、修改 Godot base class 后需重启编辑器。
 
 ### 关键约束
 

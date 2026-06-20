@@ -30,15 +30,14 @@ The 153 tools are not a flat list. They form a specificity hierarchy — each la
 
 ```mermaid
 flowchart TB
-    subgraph Meta["Layer 3: Meta / Discovery (6-8 tools)"]
+    subgraph Meta["Layer 3: Meta / Discovery (7 tools)"]
         M1["get_info"]
         M2["get_categories"]
         M3["get_tools"]
         M4["get_tool_detail (planned: merge→get_tools)"]
         M5["find_tool"]
         M6["call_tool"]
-        M7["generate_client_config (planned: merge→get_info)"]
-        M8["list_settings"]
+        M7["list_settings"]
     end
 
     subgraph Semantic["Layer 2: Semantic Specific (135 tools)"]
@@ -83,7 +82,7 @@ flowchart TB
     style Docs fill:#e65100,color:#fff
 ```
 
-### Layer 3: Meta — Tool Discovery (6-8 tools)
+### Layer 3: Meta — Tool Discovery (7 tools)
 
 The entry point. These tools are the only ones visible to a naive MCP client through `tools/list`. They form a mini-discovery API — intentionally compact to minimize token overhead.
 
@@ -96,9 +95,9 @@ The entry point. These tools are the only ones visible to a naive MCP client thr
 | `call_tool` | Execute any tool by name (used when the AI knows what it wants) |
 | `get_info` | Server version, tool counts, engine version (planned: merge `generate_client_config`) |
 | `list_settings` | ProjectSettings relevant to the MCP plugin |
-| `generate_client_config` | Output MCP client configuration snippets (planned: merge into `get_info`) |
+| (generate_client_config) | Client config generation is available via the bottom panel (`McpDock` UI) and `client_config_registry.hpp`, not a standalone meta tool |
 
-**Planned optimization**: merge `get_tool_detail` into `get_tools(detail=true)` and `generate_client_config` into `get_info(include_configs=true)`, reducing meta-tool count from 8 to 6. This further trims the `tools/list` response overhead by ~25%.
+**Planned optimization**: merge `get_tool_detail` into `get_tools(detail=true)` and fold client config generation into `get_info(include_configs=true)`, reducing meta-tool count from 7 to 5. This further trims the `tools/list` response overhead by ~28%.
 
 ### Layer 2: Semantic — Purpose-Built Tools (135 tools)
 

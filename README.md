@@ -18,12 +18,16 @@ graph LR
 
     subgraph GodotProc["Godot Editor"]
         HTTP["HttpServer + McpHandler<br/>(:9600, MCP Streamable HTTP)"]
-        Registry["HandlerRegistry<br/>(153 tool schemas)"]
+        Meta["tools/list → 8 meta-tools<br/>(~3KB JSON)"]
+        Discover["discovery chain<br/>get_categories → get_tools<br/>→ get_tool_detail / find_tool"]
+        Registry["HandlerRegistry<br/>(153 tools, on-demand)"]
         Editor["EditorInterface /<br/>SceneTree / Node API"]
     end
 
     Client -->|HTTP POST /mcp<br/>JSON-RPC 2.0| HTTP
-    HTTP --> Registry
+    HTTP -->|always-on| Meta
+    Meta -.->|progressive disclosure| Discover
+    Discover -.->|load schema| Registry
     Registry --> Editor
 ```
 
@@ -32,7 +36,10 @@ Godot MCP exposes the Godot 4.6+ editor to AI tools through **153 commands** —
 ## Features
 
 - **153 Editor Commands** — Scene/node manipulation, animation, filesystem, scripts, debugger, docs, settings, input map, signals, groups, runtime bridge, and more
-- **Streamable HTTP Transport** — Direct MCP Streamable HTTP (`:9600`) into the GDExtension, no external process
+- **Progressive Disclosure** — `tools/list` returns only 8 meta-tools (~3KB JSON); full 153 tools discovered on-demand via `get_categories` → `get_tools` → `get_tool_detail`/`find_tool`. Token cost comparable to an ~10-tool MCP server on first connect
+- **MCP Resources Layer** — `godot://scene-tree`, `godot://project-settings`, `godot://editor-info` (read-only state queries), plus URI template `godot://scene-node/{path}`
+- **11-Client Auto-Configuration** — Per-project config generation from the bottom panel or `generate_client_config` tool. No manual JSON editing
+- **Streamable HTTP Transport** — Direct MCP Streamable HTTP (`:9600`) into the GDExtension, no external process, no session state
 - **Single-Process Architecture** — C++ GDExtension plugin (godot-cpp 10.0.0-rc1) running inside the Godot editor
 - **Pure Main-Thread C++** — No worker threads, no locks. Everything runs on Godot's main thread via `_process()`
 - **AI Client Support** — Claude Code, OpenCode, Cursor, GitHub Copilot, Codex, Trae, and more
@@ -77,7 +84,9 @@ This produces `build/addons.zip` — extract into any Godot project to install t
 
 ### Configure Your AI Client
 
-Add this to your MCP client config:
+Use the bottom panel in Godot or call `generate_client_config` to get a per-project config for any supported AI client — no manual JSON editing needed.
+
+Or add the config manually:
 
 ```json
 {
@@ -90,16 +99,23 @@ Add this to your MCP client config:
 }
 ```
 
-### Client Config Locations
+### Supported Clients & Config Paths
 
-| Client | Config Path |
-|--------|-------------|
-| Claude Code | `~/.claude/mcp.json` |
-| OpenCode | `~/.config/opencode/config.json` |
-| Cursor | `<project>/.cursor/mcp.json` |
-| GitHub Copilot | `<project>/.vscode/mcp.json` |
-| Trae / Trae CN | `<project>/.trae/mcp.json` |
-| Codex | `~/.codex/config.toml` |
+Config files are generated at **project-level paths** to avoid polluting global MCP settings:
+
+| Client | Config Path | Format |
+|--------|-------------|:------:|
+| Claude Code | `.mcp.json` | JSON |
+| OpenCode | `.opencode/opencode.json` | JSON |
+| Cursor | `.cursor/mcp.json` | JSON |
+| VS Code Copilot | `.vscode/mcp.json` | JSON |
+| Cline | `.cline/mcp.json` | JSON |
+| Codex | `.codex/config.toml` | TOML |
+| Trae / Trae CN | `.trae/mcp.json` | JSON |
+| Qoder | `.qoder/mcp.json` | JSON |
+| CodeBuddy | `.codebuddy/mcp_settings.json` | JSON |
+| Pi | `.pi/settings.json` | JSON |
+| OpenClaw | `.openclaw/openclaw.json` | JSON |
 
 ## Usage
 
@@ -204,9 +220,9 @@ uv run python main.py test --file 03_*.yaml        # Run specific test files
 uv run python main.py package                      # Package addons.zip
 ```
 
-### File Lock Tips
+### DLL Hot-Reload
 
-- **DLL locked by Godot editor** → close editor or disable plugin before rebuilding.
+- `.gdextension` sets `reloadable = true` (Godot 4.2+ official mechanism — `GDExtensionManager::reload_extension()` auto-detects file changes and reloads the extension). `main.py build` overwrites the DLL directly; the editor reloads automatically on detecting a change. On Windows, the OS loader may lock the DLL and prevent overwriting (varies by system version / configuration); close the editor and retry if this happens. Known constraints: editor builds only; modifying a Godot base class requires restarting the editor.
 
 ### Key Constraints
 
