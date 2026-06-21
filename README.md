@@ -18,9 +18,9 @@ graph LR
 
     subgraph GodotProc["Godot Editor"]
         HTTP["HttpServer + McpHandler<br/>(:9600, MCP Streamable HTTP)"]
-        Meta["tools/list → 8 meta-tools<br/>(~3KB JSON)"]
-        Discover["discovery chain<br/>get_categories → get_tools<br/>→ get_tool_detail / find_tool"]
-        Registry["HandlerRegistry<br/>(153 tools, on-demand)"]
+        Meta["tools/list → 5 meta-tools<br/>(~3KB JSON)"]
+        Discover["discovery chain<br/>get_categories → get_tools<br/>→ find_tool"]
+        Registry["HandlerRegistry<br/>(152 tools, on-demand)"]
         Editor["EditorInterface /<br/>SceneTree / Node API"]
     end
 
@@ -31,12 +31,12 @@ graph LR
     Registry --> Editor
 ```
 
-Godot MCP exposes the Godot 4.6+ editor to AI tools through **153 commands** — create nodes, modify properties, manage scenes, inspect the scene tree, edit GDScript/C# files, animate, debug, and more.
+Godot MCP exposes the Godot 4.6+ editor to AI tools through **152 commands** — create nodes, modify properties, manage scenes, inspect the scene tree, edit GDScript/C# files, animate, debug, and more.
 
 ## Features
 
-- **153 Editor Commands** — Scene/node manipulation, animation, filesystem, scripts, debugger, docs, settings, input map, signals, groups, runtime bridge, and more
-- **Progressive Disclosure** — `tools/list` returns only 8 meta-tools (~3KB JSON); full 153 tools discovered on-demand via `get_categories` → `get_tools` → `get_tool_detail`/`find_tool`. Token cost comparable to an ~10-tool MCP server on first connect
+- **152 Editor Commands** — Scene/node manipulation, animation, filesystem, scripts, debugger, docs, settings, input map, signals, groups, runtime bridge, and more
+- **Progressive Disclosure** — `tools/list` returns only 5 meta-tools (~3KB JSON); full 152 tools discovered on-demand via `get_categories` → `get_tools` → `find_tool`. Token cost comparable to an ~10-tool MCP server on first connect
 - **MCP Resources Layer** — `godot://scene-tree`, `godot://project-settings`, `godot://editor-info` (read-only state queries), plus URI template `godot://scene-node/{path}`
 - **11-Client Auto-Configuration** — Per-project config generation from the bottom panel or `generate_client_config` tool. No manual JSON editing
 - **Streamable HTTP Transport** — Direct MCP Streamable HTTP (`:9600`) into the GDExtension, no external process, no session state
@@ -144,18 +144,18 @@ Config files are generated at **project-level paths** to avoid polluting global 
 "get any errors from the console"
 ```
 
-### Tool Categories (153 total)
+### Tool Categories (152 total)
 
 | Category | Count | Description |
 |----------|-------|-------------|
-| Meta | 8 | Tool discovery, introspection, configuration |
+| Meta | 5 | Tool discovery, introspection, configuration |
 | Scene Tree | 24 | Create/delete/rename/move/duplicate/reparent nodes |
 | Workspace/Debugger | 13 | Viewport capture, console, debugger, breakpoints |
 | Scripts | 12 | Read/write/patch/validate/list GDScript + C# |
 | Filesystem | 12 | Create/delete/move/copy/open/search files |
 | Animation | 10 | Create animation player/clip/track/keyframe/tree |
 | Docs | 8 | Class/method/property/enum queries via ClassDB |
-| Runtime (Bridge + Lifecycle) | 13 | Run/stop/pause game, inspect runtime scene tree |
+| Runtime (Bridge + Lifecycle) | 14 | Run/stop/pause game, inspect runtime scene tree |
 | Resources | 6 | Save/load/new/duplicate/clear/get_info |
 | Shaders | 5 | Create/read/apply preset/get/set uniforms |
 | Control/UI | 4 | Create control, stylebox, layout, theme override |
@@ -238,7 +238,7 @@ uv run python main.py package                      # Package addons.zip
 | [Getting Started](docs/en/guide/getting-started.md) | Install, configure, basic usage |
 | [Architecture](docs/en/about/architecture.md) | Single-process C++ GDExtension architecture |
 | [Building](docs/en/guide/building.md) | Build system, versioning |
-| [Tools Overview](docs/en/guide/tools-overview.md) | All 153 tools by category |
+| [Tools Overview](docs/en/guide/tools-overview.md) | All 152 tools by category |
 | [Client Configuration](docs/en/guide/client-setup.md) | Config templates for all AI clients |
 | [FAQ](docs/en/guide/faq.md) | Frequently asked questions |
 | [Project Wiki](.repo_wiki/index.md) | Knowledge base for AI agents |

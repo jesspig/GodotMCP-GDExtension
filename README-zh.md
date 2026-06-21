@@ -18,9 +18,9 @@ graph LR
 
     subgraph GodotProc["Godot 编辑器"]
         HTTP["C++ GDExtension<br/>HTTP Server :9600<br/>MCP Streamable HTTP"]
-        Meta["tools/list → 8 个元工具<br/>(~3KB JSON)"]
-        Discover["发现链<br/>get_categories → get_tools<br/>→ get_tool_detail / find_tool"]
-        Registry["HandlerRegistry<br/>(153 个工具，按需加载)"]
+        Meta["tools/list → 5 个元工具<br/>(~3KB JSON)"]
+        Discover["发现链<br/>get_categories → get_tools<br/>→ find_tool"]
+        Registry["HandlerRegistry<br/>(152 个工具，按需加载)"]
         Editor["EditorInterface /<br/>SceneTree / Node API"]
     end
 
@@ -31,12 +31,12 @@ graph LR
     Registry --> Editor
 ```
 
-Godot MCP 通过 **153 个编辑器命令**将 Godot 4.6+ 编辑器暴露给 AI 工具——创建节点、修改属性、管理场景、遍历场景树、编辑 GDScript/C# 文件、动画、调试等。
+Godot MCP 通过 **152 个编辑器命令**将 Godot 4.6+ 编辑器暴露给 AI 工具——创建节点、修改属性、管理场景、遍历场景树、编辑 GDScript/C# 文件、动画、调试等。
 
 ## 特性
 
-- **153 个编辑器命令** — 场景/节点操控、动画、文件系统、脚本、调试器、文档查询、设置、输入映射、信号、分组、运行时桥接等
-- **渐进式披露** — `tools/list` 仅返回 8 个元工具（~3KB JSON）；全部 153 个工具通过 `get_categories` → `get_tools` → `get_tool_detail`/`find_tool` 按需发现。首次对话的 token 开销与约 10 个工具的普通 MCP 服务器相当
+- **152 个编辑器命令** — 场景/节点操控、动画、文件系统、脚本、调试器、文档查询、设置、输入映射、信号、分组、运行时桥接等
+- **渐进式披露** — `tools/list` 仅返回 5 个元工具（~3KB JSON）；全部 152 个工具通过 `get_categories` → `get_tools` → `find_tool` 按需发现。首次对话的 token 开销与约 10 个工具的普通 MCP 服务器相当
 - **MCP Resources 层** — `godot://scene-tree`、`godot://project-settings`、`godot://editor-info`（只读状态查询）及 URI 模板 `godot://scene-node/{path}`
 - **11 客户端自动配置** — 通过底部面板或 `generate_client_config` 工具，一键生成项目级配置，无需手动编辑 JSON
 - **单进程架构** — 纯 C++ GDExtension 插件（godot-cpp 10.0.0-rc1），运行在 Godot 编辑器进程内
@@ -140,18 +140,18 @@ uv run python main.py build
 "给 Player 节点添加动画播放器"
 ```
 
-### 工具分类（共 153 个）
+### 工具分类（共 152 个）
 
 | 分类 | 数量 | 描述 |
 |------|:----:|------|
-| 元工具 | 8 | 工具发现、内省、配置 |
+| 元工具 | 5 | 工具发现、内省、配置 |
 | 场景树 | 24 | 创建/删除/重命名/移动/复制/重设父级节点 |
 | 工作区/调试器 | 13 | 视口截图、控制台、调试器、断点 |
 | 脚本 | 12 | 读写/补丁/验证/列出 GDScript + C# |
 | 文件系统 | 12 | 创建/删除/移动/复制/打开/搜索文件 |
 | 动画 | 10 | 创建动画播放器/剪辑/轨道/关键帧/树 |
 | 文档查询 | 8 | 通过 ClassDB 查询类/方法/属性/枚举 |
-| 运行时（桥接+生命周期） | 13 | 运行/停止/暂停游戏、查看运行时场景树 |
+| 运行时（桥接+生命周期） | 14 | 运行/停止/暂停游戏、查看运行时场景树 |
 | 资源管理 | 6 | 保存/加载/新建/复制/清除/获取信息 |
 | 着色器 | 5 | 创建/读取/应用预设/获取/设置参数 |
 | 控件/UI | 4 | 创建控件、样式盒、布局、主题覆盖 |
@@ -234,7 +234,7 @@ uv run python main.py package                         # 打包 addons.zip
 | [快速开始](docs/zh/guide/getting-started.md) | 安装、配置、基本使用 |
 | [架构概览](docs/zh/about/architecture.md) | 单进程 C++ GDExtension 架构 |
 | [构建与打包](docs/zh/guide/building.md) | 构建系统、版本管理 |
-| [工具概览](docs/zh/guide/tools-overview.md) | 全部 153 个工具分类 |
+| [工具概览](docs/zh/guide/tools-overview.md) | 全部 152 个工具分类 |
 | [客户端配置](docs/zh/guide/client-setup.md) | 各 AI 客户端的配置方式 |
 | [常见问题](docs/zh/guide/faq.md) | 常见问题解答 |
 | [项目知识库](.repo_wiki/index.md) | AI Agent 知识库 |
