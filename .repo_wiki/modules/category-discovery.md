@@ -31,13 +31,26 @@ flowchart LR
 
 ## 实现
 
-### `prettify_segment()`（`handler_registry.cpp:228`）
+### `prettify_segment()` 静态函数
 
 ```cpp
 String prettify_segment(const String &seg) {
     if (seg.is_empty()) return seg;
     String result = seg.replace("_", " ");
-    return result.substr(0, 1).to_upper() + result.substr(1);
+    // 跳过前导数字字符，找到第一个字母字符再大写（如 "3d" → "3D"）
+    int first_letter = 0;
+    while (first_letter < result.length() && result[first_letter] >= '0' && result[first_letter] <= '9') {
+        first_letter++;
+    }
+    // 找到第一个非空格的字母字符
+    for (int i = first_letter; i < result.length(); i++) {
+        if (result[i] != ' ') {
+            String upper(1, result[i].to_upper());
+            result = result.substr(0, i) + upper + result.substr(i + 1);
+            break;
+        }
+    }
+    return result;
 }
 ```
 
@@ -69,13 +82,12 @@ String category_description() const override {
 
 ## 数据结构
 
-`CatNode`（`handler_registry.cpp:287`）：
+`CatNode` 局部结构体：
 
 ```cpp
 struct CatNode {
     String name;        // 段名（如 "scene_tree"）
     String description; // 分类描述
-    String label;       // 展示名（顶级可被覆盖，非顶级留空用 prettify）
     int direct = 0;     // 直接挂载数
     int total = 0;      // 累加数（含子分类）
     HashMap<String, CatNode> children;

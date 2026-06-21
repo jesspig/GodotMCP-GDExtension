@@ -33,15 +33,15 @@
 
 **参数**：
 
-- `plugin`：插件名称（匹配 `plugin.cfg` 中的 `name` 字段）
+- `plugin_name`：插件名（字符串，必填）
 - `enabled`：`true` 启用，`false` 禁用
 
 **实现**：
 
-1. 扫描 `res://addons/` 查找匹配插件
-2. 读取其 `plugin.cfg` 确认名称
-3. 调用 `EditorInterface::set_plugin_enabled(name, enabled)`
-4. 刷新文件系统
+1. 通过 `args_string(ctx.args, "plugin_name")` 获取插件名
+2. 扫描 `res://addons/` 查找匹配目录，构建 `plugin_path`
+3. 调用 `EditorInterface::set_plugin_enabled(plugin_path, enabled)`
+4. 返回启/禁用结果
 
 ## 工作流程
 
@@ -52,30 +52,17 @@ sequenceDiagram
     participant Client as MCP 客户端
     participant HTTP as HTTP Server
     participant Handler as set_plugin_enabled Handler
-    participant FS as Editor Filesystem
-    participant Plugin as EditorPlugin
+    participant Editor as EditorInterface
 
-    Client->>HTTP: POST /tools/call (plugin, enabled)
+    Client->>HTTP: POST /tools/call (plugin_name, enabled)
     HTTP->>Handler: 分发调用
-    Handler->>FS: 扫描 res://addons/
-    FS-->>Handler: 插件目录列表
-    loop 每个插件目录
-        Handler->>FS: 读取 plugin.cfg
-        FS-->>Handler: 配置内容
-    end
-    alt 匹配成功
-        Handler->>Plugin: EditorInterface::set_plugin_enabled(name, enabled)
-        Plugin-->>Handler: 操作结果
-        Handler->>FS: refresh_filesystem()
-    else 未匹配
-        Handler-->>Client: 错误：插件未找到
-    end
+    Handler->>Editor: EditorInterface::set_plugin_enabled(plugin_path, enabled)
+    Editor-->>Handler: 操作结果
     Handler-->>Client: 成功响应
 ```
 
 ## 实现细节
 
-- 插件状态通过 `ConfigFile` 读取 `plugin.cfg`
-- 启用/禁用通过 `EditorInterface::set_plugin_enabled()` API
-- 操作后调用 `refresh_filesystem` 确保编辑器立即感知变更
-- 未找到匹配插件时返回错误信息
+- 插件名用于在 `res://addons/` 下定位插件目录
+- 启用/禁用通过 `EditorInterface::set_plugin_enabled(plugin_path, enabled)` API
+- 不刷新文件系统，不读取 `plugin.cfg`

@@ -1,6 +1,6 @@
 # MCP Streamable HTTP 传输 (2026-07-28)
 
-> AI 客户端通过 MCP Streamable HTTP 协议直连 `godot_mcp_gdext.dll`。无 session、无 SSE 持久连接、无 `initialize` 握手。
+> AI 客户端通过 MCP Streamable HTTP 协议直连 `godot_mcp_gdext.dll`。无 session、`initialize` 可选（推荐 `server/discover`，向后兼容保留 `initialize`）。支持持久 SSE 流（`GET /mcp`）和内联 SSE（POST 响应）。
 
 ## 通信流程
 
@@ -53,11 +53,12 @@ sequenceDiagram
 
 | 方法 | 路径 | 用途 | 关键验证 |
 |------|------|------|----------|
+| `GET /mcp` | SSE 持久流建立 | `Accept: text/event-stream`, `Origin` |
 | `POST /mcp` | JSON-RPC 2.0 请求/通知 | `MCP-Protocol-Version`, `Content-Type: application/json`, `Accept: application/json`/`*/*`, `Mcp-Method`(可选), `Mcp-Name`(可选), `Origin` |
 | `POST /run-tests` | C++ 测试引擎入口 | YAML body，仅开发环境启用 |
-| `OPTIONS /mcp` | CORS 预检 | 标准 CORS 响应 `Allow: POST, OPTIONS` |
+| `OPTIONS /mcp` | CORS 预检 | 标准 CORS 响应 `Allow: POST, GET, OPTIONS` |
 
-**已移除的端点**：~~`GET /mcp`~~（SSE 持久流）、~~`DELETE /mcp`~~（会话销毁）、~~`POST /mcp` (initialize/notifications/initialized)~~。
+**已移除的端点**：~~`DELETE /mcp`~~（会话销毁）。`initialize` / `notifications/initialized` 作为向后兼容端点仍受支持（新客户端应使用 `server/discover`）。
 
 ## 协议流程说明
 
@@ -66,7 +67,7 @@ sequenceDiagram
 根据 MCP 2026-07-28 规范，Streamable HTTP **不再使用 session UUID**。每个 POST 请求独立处理：
 
 - `Mcp-Session-Id` header 完全移除
-- 无 `initialize` / `notifications/initialized` 生命周期
+- `initialize` / `notifications/initialized` 作为向后兼容端点仍受支持（推荐使用 `server/discover`）
 - 无服务端会话存储（`sessions_` HashMap 删除）
 - 所有状态（pending requests、cancelled requests）按 request `id` 键控，全局共享
 
@@ -108,7 +109,7 @@ sequenceDiagram
 | `2025-03-26` | `2025-03-26` |
 | 空/未知 | `2025-03-26` (默认回退) |
 
-协议版本在 `mcp_handler.hpp:100-115` 的 `kSupported` 数组中维护。
+协议版本在 `mcp_handler.cpp:96-100` 的 `kSupported` 数组中维护。
 
 ### 4. Mcp-Method / Mcp-Name 头校验
 
@@ -119,7 +120,7 @@ Mcp-Method: tools/call
 Mcp-Name: rename_node
 ```
 
-**校验逻辑**（`http_server.cpp:438-457`）：
+**校验逻辑**（`http_server.cpp:459-477`）：
 
 ```
 Mcp-Method → 与 body.method 比对，不匹配 → 400 HeaderMismatch
@@ -140,16 +141,22 @@ Mcp-Name  → 与 body.params.name 或 body.params.uri 比对，不匹配 → 40
 | `kResourceNotFound` | -32002 | `resources/read` 指定了不存在的 URI |
 | `kServerTerminated` | -32001 | 请求已被 `notifications/cancelled` 取消 |
 
-## SSE 内联事件推送
+## SSE 事件推送
 
-Streamable HTTP 2026-07-28 不维护持久 SSE 连接。事件在 **POST 响应体内联推送**：
+Streamable HTTP 2026-07-28 支持两种 SSE 模式：
+
+1. **持久 SSE 流（`GET /mcp`）**：客户端通过 `GET /mcp` + `Accept: text/event-stream` 建立长期连接，`HttpServer::poll()` 每帧保持心跳并推送事件
+2. **内联 SSE（POST 响应）**：事件在 POST 响应体内联推送
+3. **挂起操作 SSE**：`mcp_handler_->pending_op_count() > 0` 时 POST 响应切换为持久 SSE 模式
+
+SSE 触发条件：
 
 ### 触发条件
 
 `McpHandler::global_event_queue_` 在以下情况会被填充：
 
 - 元工具调用修改工具列表 → `notify_tools_list_changed()` → 入队 `notifications/tools/list_changed`
-- 运行时桥接事件（`RuntimeBridge` 推送消息到事件队列）
+- 运行时桥接事件（`RuntimeBridgeServer` 推送消息到事件队列）
 
 ### 响应格式
 
@@ -174,7 +181,7 @@ data: <next jsonrpc notification>
 
 **SSE 帧细节**（`http_sse.cpp`）：
 
-- `event`: 固定为 `message`
+- `event`: `message`（常规事件）或 `endpoint`（SSE 流初始化时返回 `{"endpoint": "/mcp"}`）
 - `data`: 完整的 JSON-RPC 2.0 notification 对象
 - `id`: 递增整数（`conn.sse_event_id`），`Last-Event-ID` 恢复**不支持**
 - `retry`: 5000 ms（客户端重连建议间隔）
@@ -185,7 +192,10 @@ data: <next jsonrpc notification>
 ```
 handle_post() 处理完 JSON-RPC 消息后:
 
-  ┌─ has_pending_events() && has result JSON?
+  ┌─ pending_op_count() > 0?
+  │   → send_sse_headers() + is_sse_stream = true  (持久 SSE 连接)
+  │
+  ├─ has_pending_events() && has result JSON?
   │   → send_sse_headers() + flush_sse()  (200 text/event-stream)
   │
   ├─ has_pending_events() && no result?
@@ -196,11 +206,17 @@ handle_post() 处理完 JSON-RPC 消息后:
   │
   └─ no events && no result (通知)?
       → 202 Accepted (空 body)
+
+GET /mcp 建立持久 SSE 流:
+  ┌─ Accept: text/event-stream?
+  │   → send_sse_headers() + is_sse_stream = true
+  │   → send_sse_event("endpoint", {"endpoint": "/mcp"})
+  │   → 每帧 poll() 保持心跳 + 推送事件
 ```
 
 ### 核心数据结构
 
-- **事件队列**：`std::deque<Dictionary> global_event_queue_`（`mcp_handler.hpp:96`），无 session 区分
+- **事件队列**：`std::deque<Dictionary> global_event_queue_`（`mcp_handler.hpp:109`），无 session 区分
 - **consume_event()**：FIFO 出队，由 `flush_sse()` 逐条发送
 - **并发安全**：纯主线程 `_process()` 驱动，无锁
 

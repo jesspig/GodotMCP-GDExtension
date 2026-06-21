@@ -43,8 +43,8 @@ flowchart TD
 | Ninja | `seanmiddleditch/gha-setup-ninja@v5` |
 | sccache | `mozilla-actions/sccache-action@v0.0.8` |
 | MSVC (Windows) | `ilammy/msvc-dev-cmd@v1` |
-| Cache godot-cpp | `actions/cache@v4`，key 含 `10.0.0-rc1-v1` |
-| Configure | `cmake -B build -S . -G Ninja -DRELEASE=ON` + sccache |
+| Cache godot-cpp | `actions/cache@v4`，key 为 `godot-cpp-${{ runner.os }}-10.0.0-rc1-v1` |
+| Configure | `uv run python main.py build --release`（内部使用 `cmake --preset` + `CMAKE_BUILD_TYPE=Release`） |
 | Build | `cmake --build build --config Release` |
 | Upload | `upload-artifact@v4` → `gdext-{os}` |
 
@@ -72,7 +72,7 @@ flowchart TD
 ```bash
 # Release 构建（与 CI 等价）
 uv run python main.py build --release
-# 或手动
-cmake -B build -S . -G Ninja -DRELEASE=ON
-cmake --build build --config Release
+# 或手动（需指定 CMAKE_BUILD_TYPE；注意 -DRELEASE=ON 不是有效变量）
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build
 ```

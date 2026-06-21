@@ -49,7 +49,9 @@ stateDiagram-v2
     Closed --> [*]
 ```
 
-所有连接处理完一个请求后立即关闭（`keep_alive = false`），无持久 SSE 流。
+大多数连接处理完一个请求后关闭。但以下情况会建立持久 SSE 流：
+- **GET /mcp**：客户端通过 `Accept: text/event-stream` 发起 SSE 长连接，服务器保持连接用于推送事件
+- **POST 触发挂起操作**：当 `mcp_handler_->pending_op_count() > 0` 时，POST 响应切换为 SSE 模式并保持连接
 
 ## 关键设计
 
@@ -59,7 +61,10 @@ stateDiagram-v2
 
 - `polling_` 标志防止重入（`EditorProgress → Main::iteration()` 场景）
 - 每帧：接受新连接 → 读取数据 → 解析 HTTP → 分发请求 → 清理超时连接
-- SSE 事件以内联方式在 `handle_post()` 中即时推送，不做持久流管理
+- SSE 事件通过两种方式推送：
+  1. **持久 SSE 流**：`GET /mcp` 建立长期连接，`poll()` 中 `flush_sse()` 每帧推送
+  2. **内联 SSE**：POST 响应中 `has_pending_events()` 时切换为 `text/event-stream`
+- 当 `pending_op_count() > 0` 时，POST 响应也切换为持久 SSE 模式
 
 ### 连接管理
 
@@ -68,21 +73,19 @@ stateDiagram-v2
 | 最大并发连接 | `kMaxConnections = 32`（`http_server.hpp:35`） |
 | 连接超时 | 30 秒（`http_server.hpp:107`） |
 | 最大请求体 | `kMaxBodyLength = 1 MB`（`http_server.hpp:38`） |
-| 空闲超时 | 30 秒（`http_server.hpp:107`） |
-| 速率限制 | 30 tokens/s，突发 30（`http_server.hpp:92-95`） |
+| 空闲超时 | 30 秒（`http_server.hpp:108`） |
+| 速率限制 | 30 tokens/s，突发 30（`http_server.hpp:95-99`） |
 
 ### 速率限制
 
-```cpp
-struct RateLimiter {
-    int tokens = 30;
-    static constexpr int kMaxTokens = 30;
-    static constexpr double kRefillRate = 30.0;
-    bool try_consume(); // 返回 false 时返回 429
-};
-```
+速率限制参数直接作为 `HttpServer` 的成员变量（`http_server.hpp:95-99`），按连接**全局**限速，非 per-connection：
 
-按连接**全局**限速，非 per-connection。
+| 成员 | 值 | 说明 |
+|------|-----|------|
+| `rate_tokens_` | 30 | 当前可用令牌数 |
+| `kMaxTokens` | 30 | 令牌桶上限 |
+| `kRefillRate` | 30.0 | 每秒补充速率 |
+| `try_consume_rate()` | — | 消耗一个令牌，不足时返回 429 |
 
 ### Token 认证
 
@@ -92,9 +95,9 @@ struct RateLimiter {
 
 | 方法 | 值 |
 |------|-----|
-| `Access-Control-Allow-Methods` | `POST, OPTIONS` |
+| `Access-Control-Allow-Methods` | `POST, GET, OPTIONS` |
 | `Access-Control-Allow-Headers` | `Content-Type, Accept, MCP-Protocol-Version` |
-| `Access-Control-Expose-Headers` | `Last-Event-ID, MCP-Protocol-Version` |
+| `Access-Control-Expose-Headers` | `MCP-Protocol-Version`（OPTIONS 响应）；`Last-Event-ID, MCP-Protocol-Version`（普通 GET/POST 响应） |
 | `Access-Control-Max-Age` | 86400 秒（24 小时） |
 
 - `Access-Control-Allow-Origin` 通过 `validate_origin()` 和 `get_cors_origin()` 动态控制
@@ -108,9 +111,15 @@ struct RateLimiter {
 - **Mcp-Name**: 检查与 body 中 `params.name` 或 `params.uri` 一致
 - 不一致时返回 `-32600 HeaderMismatch` 错误（`http_server.cpp:439-457`）
 
-### SSE 内联推送
+### SSE 推送机制
 
-没有持久 SSE 连接。SSE 仅在 POST 请求的响应中以内联方式使用：当 `McpHandler::has_pending_events()` 为 true 时，`handle_post()` 将响应类型切换为 `text/event-stream`：
+SSE 通过两种方式推送：
+
+1. **GET /mcp 持久 SSE 流**：客户端发送 `GET /mcp` 头部包含 `Accept: text/event-stream`，服务器建立长期 SSE 连接。每帧通过 `poll()` 中的 `flush_sse()` 保持心跳并推送事件。
+2. **内联 SSE（POST 响应）**：当 `McpHandler::has_pending_events()` 为 true 时，`handle_post()` 将响应类型切换为 `text/event-stream`。
+3. **挂起操作 SSE**：当 `mcp_handler_->pending_op_count() > 0` 时，POST 响应也切换为持久 SSE 模式，保持连接直到挂起操作完成。
+
+SSE 实现：
 
 - `send_sse_headers()` 发送 HTTP 200 + `text/event-stream` 头 + `retry: 5000` 帧（`http_sse.cpp:13-46`）
 - `flush_sse()` 逐帧消费 `mcp_handler_->consume_event()` 并格式化 SSE 帧（`http_sse.cpp:80-105`）
@@ -128,6 +137,7 @@ struct RateLimiter {
 
 | 路径 | 方法 | 处理函数 |
 |------|------|---------|
+| `/mcp` | GET | `handle_get()` → SSE 流建立（`Accept: text/event-stream`） |
 | `/mcp` | POST | `handle_post()` → `McpHandler::handle_message()` |
 | `/mcp` | OPTIONS | `handle_options()` → CORS 头 |
 | `/run-tests` | POST | `handle_post()` → `handle_run_tests()` → `TestEngine::run()` |
@@ -151,14 +161,16 @@ struct RateLimiter {
 | `sse_write_errored` | `bool` | SSE 写入失败标志 |
 | `sse_event_id` | `int` | SSE 事件序号计数器 |
 | `sse_last_event_msec` | `uint64_t` | 上次 SSE 事件时间戳 |
-| `keep_alive` | `bool` | 连接保活标志（实际均为 false） |
+| `keep_alive` | `bool` | 连接保活标志（SSE 连接为 true） |
+| `is_sse_stream` | `bool` | 是否为持久 SSE 流连接 |
+| `sse_from_post_intercept` | `bool` | 是否由 POST 挂起操作转换的 SSE 连接 |
 | `mcp_method` | `String` | `Mcp-Method` 请求头值 |
 | `mcp_name` | `String` | `Mcp-Name` 请求头值 |
 
 ## 注意事项
 
-- **非 keep-alive**：所有连接处理完一个请求后立即关闭（`keep_alive = false`），帧时序无法可靠处理快速 keep-alive
+- **非 keep-alive（默认）**：常规 POST/OPTIONS 请求处理完后关闭连接。GET /mcp（SSE）和挂起操作 SSE 连接保持长期打开
 - **死连接清理**：使用 `dead` 列表模式，避免 `HashMap` range-for 内 `erase()` 导致 UB
 - **`/run-tests` 绕过 MCP**：直接调用 `TestEngine::run()`，不经过 `McpHandler`
-- **重入保护**：`polling_` 标志配合 `try/catch`，异常时确保 `polling_` 被复位（`http_server.cpp:240-244`）
+- **重入保护**：`polling_` 标志配合 `try/catch`，异常时确保 `polling_` 被复位（`http_server.cpp:258-261`）
 - **批量请求 SSE**：批量请求中任一元素触发 pending events 时，整个响应切换为 SSE 模式

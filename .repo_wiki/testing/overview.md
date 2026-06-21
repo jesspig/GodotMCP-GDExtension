@@ -38,7 +38,7 @@ tests/
 │   └── base.py                 # PhaseReport / TestResult 数据类
 ├── test_data/                  # 测试用静态文件
 ├── yaml_tests/                 # YAML 测试文件（由编排器发现）
-├── backup/                     # 预测试备份目录
+├── # 备份通过 PipelineRunner 的内存 backup_project_godot() 实现，无独立目录
 ├── output/                     # 报告输出目录
 ├── .env / .env.example         # 环境配置
 └── requirements.txt            # Python 依赖
@@ -62,7 +62,7 @@ pytest tests/test_orchestrator.py -v --asyncio-mode=auto
 ## 依赖
 
 - **C++ 引擎**：ryml（rapidyaml，通过 CMake FetchContent）
-- **Python**：`pytest`、`pytest-asyncio`、`httpx`、`python-dotenv`、`PyYAML`、`mcp`（见 `tests/requirements.txt`）
+- **Python**：`pytest`、`pytest-asyncio`、`httpx`、`python-dotenv`、`mcp`（见 `tests/requirements.txt`；YAML 以 raw text 发送到服务端由 ryml 解析）
 - **前置**：复制 `tests/.env.example` → `tests/.env`，设置 `GODOT_PATH`
 - **Windows**：必须使用 `uv run python`（`.python-version` 锁定 3.14）
 

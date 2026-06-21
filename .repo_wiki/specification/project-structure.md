@@ -14,7 +14,7 @@ flowchart TB
     Root --> Opencode[".opencode/<br/>MCP 客户端配置"]
     Root --> Pkg["pyproject.toml + uv.lock<br/>package.json + pnpm-lock.yaml"]
     Root --> Cfg["CMakeLists.txt (顶级)<br/>main.py"]
-    Src --> Cpp["server/ + sdk/ + built_in/<br/>runtime/ + pipeline/ + testing/ + ui/"]
+    Src --> Cpp["server/ + sdk/ + built_in/<br/>runtime/ + testing/ + ui/"]
     Cpp --> Entry["register_types.cpp + editor_plugin.cpp"]
     Example --> Bin["addons/godot_mcp/bin/<br/>(godot_mcp_gdext.{dll,so,dylib})"]
 ```
@@ -30,7 +30,7 @@ GodotMCP/
 │   ├── icon.svg                   #
 │   ├── .gitignore                 #
 │   └── addons/godot_mcp/          # 构建产物目录
-│       ├── plugin.cfg             # 由 CMake 从 PROJECT_VERSION 生成
+│       ├── plugin.cfg             # 由 main.py build 从 PROJECT_VERSION 生成（scripts/_addon.py）
 │       ├── godot_mcp.gdextension  # entry_symbol = gdext_mcp_init, compatibility_minimum = 4.6
 │       └── bin/                   # godot_mcp_gdext.dll/.so/.dylib（gitignored）
 ├── extensions/
@@ -41,17 +41,16 @@ GodotMCP/
 │       ├── client_config_registry.hpp    # 11 种 AI 客户端配置模板
 │       ├── built_in/              # ITool + cmd_utils + tools/
 │       ├── server/                # ipc/ + mcp/ + registry/
-│       ├── runtime/               # bridge.cpp + game_bridge.cpp
+│       ├── runtime/               # bridge.cpp + bridge_server.cpp + game_bridge.cpp
 │       ├── sdk/                   # McpToolDefinition + McpToolRegistry
 │       └── testing/               # C++ TestEngine + YAML pipeline（PipelineRunner 复用）
 ├── tests/
 │   ├── test_orchestrator.py       # Python 编排器（管理 Godot 生命周期）
 │   ├── godot_manager.py           # Godot 进程管理
 │   ├── report.py                  # 报告生成（JSON + Markdown）
-│   ├── requirements.txt           # mcp / pytest / httpx / python-dotenv / PyYAML
-│   ├── .env.example               # GODOT_PATH 等环境变量模板（.env gitignored）
+│   ├── .env.example               # GODOT_PATH 等环境变量模板（.env gitignored，依赖在 pyproject.toml）
 │   ├── output/                    # 报告输出（gitignored）
-│   └── backup/                    # 测试前备份（gitignored）
+│   # 备份通过 PipelineRunner 的内存 backup_project_godot() 实现，无独立目录
 ├── build/                         # CMake 输出（gitignored）
 │   ├── _deps/                     #   godot-cpp + ryml FetchContent 缓存
 │   └── addons.zip                 #   CPack 产物

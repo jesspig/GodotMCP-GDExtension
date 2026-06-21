@@ -14,7 +14,7 @@ flowchart LR
         CAPVP["capture_viewport"]
         CAPGV["capture_game_viewport"]
     end
-    subgraph Debugger["调试器（8 实际工具）"]
+    subgraph Debugger["调试器（7 实际工具）"]
         STATE["get_debugger_state<br/>含 status/errors"]
         STACK["get_stack_trace"]
         LOCALS["get_locals"]
@@ -42,14 +42,14 @@ flowchart LR
 
 **实现细节**：通过场景树 `find_children("*", "EditorLog", true, false)` 定位 `EditorLog` 控件，再调用 `RichTextLabel.get_text()` 获取原始文本。由于 `EditorLog` 是编辑器内部类（不在 godot-cpp 绑定中），全程使用 `call()` 动态调用。
 
-### 调试器（8 个工具）
+### 调试器（7 个工具）
 
 | 名称 | 类型 | 说明 |
 |------|------|------|
 | `get_debugger_state` | 复合 | 综合状态（错误/警告计数 + 中断/可调试/会话状态 + 栈帧位置）。子操作：`get_debugger_status` + `get_debugger_errors` 合并 |
 | `get_stack_trace` | 复合 | 栈追踪信息。仅在调试器中断时可用，无活跃会话时返回合理错误 |
 | `get_locals` | 专用 | 获取当前栈帧的局部变量 |
-| `debugger_control` | 复合 | 统一入口：控制调试器。参数 `action`（break/continue/step_over/step_into）。子操作对应 `debugger_break`、`debugger_continue`、`debugger_step_over`、`debugger_step_into`、`debugger_step_out` |
+| `debugger_control` | 复合 | 统一入口：控制调试器。参数 `action`（break/continue/step_over/step_into/step_out）。子操作对应 `debugger_break`、`debugger_continue`、`debugger_step_over`、`debugger_step_into`、`debugger_step_out` |
 | `list_breakpoints` | 专用 | 列出所有断点 |
 | `set_breakpoint` | 专用 | 设置断点（指定源文件和行号） |
 | `remove_breakpoint` | 专用 | 移除断点 |
@@ -60,7 +60,7 @@ flowchart LR
 
 | 名称 | 类型 | 说明 |
 |------|------|------|
-| `get_performance_monitors` | 复合 | 全量 59 个监视器数据，支持 `name` 参数按名称筛选。子操作对应 `get_fps`、`get_memory_usage`、`get_object_count`、`get_render_stats`、`get_physics_stats` |
+| `get_performance_monitors` | 复合 | 全量 59 个监视器数据，支持 `monitors` 参数（数组）按名称筛选。子操作对应 `get_fps`、`get_memory_usage`、`get_object_count`、`get_render_stats`、`get_physics_stats` |
 
 **实现细节**：使用 Godot 公开 API `Performance::get_singleton()->get_monitor(Monitor)`，通过枚举值 `Performance::MONITOR_MAX`（59）遍历所有监视器。枚举映射在 `get_performance_monitors.hpp:27-92` 中硬编码。
 
@@ -68,7 +68,7 @@ flowchart LR
 
 | 名称 | 类型 | 说明 |
 |------|------|------|
-| `capture_viewport` | 专用 | 截取编辑器视口图像，返回 PNG Base64 |
+| `capture_viewport` | 专用 | 截取编辑器视口图像，保存到 `res://screenshots/`，返回文件路径、尺寸和格式信息 |
 | `capture_game_viewport` | 专用 | 截取游戏视口图像（需游戏运行中） |
 
 ### 工作区切换（1 个工具）
@@ -93,8 +93,8 @@ flowchart LR
 
 三级过滤策略：
 
-1. 控制台通用 `get_console_output` 中的 `exclude_mcp` 参数（默认 `true`），按正则 `(?i)mcp|godot_mcp` 过滤
-2. `get_console_output` 的 `type` 参数可筛选 error/warning/info
+1. 控制台通用 `get_console_output` 中的 `exclude_mcp` 参数（默认 `true`），按子串 `mcp`/`MCP`/`godot_mcp` 过滤
+2. `get_console_output` 的 `type` 参数可筛选 `std`/`error`/`warning`/`editor`，支持 `max_lines`（默认 500，-1 不限）
 3. 用户可显式传入 `exclude_mcp=false` 获取全量日志
 
 ### 编辑器内部类访问

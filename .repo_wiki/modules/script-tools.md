@@ -57,8 +57,8 @@ flowchart TB
 | `GrepScriptsTool` | false |
 | `GlobScriptsTool` | false |
 | `ReadCsharpScriptTool` | false |
-| `WriteCsharpScriptTool` | false |
-| `PatchCsharpScriptTool` | false |
+| `WriteCsharpScriptTool` | true |
+| `PatchCsharpScriptTool` | true |
 | `ValidateCsharpScriptTool` | false |
 | `ListCsharpScriptsTool` | false |
 
@@ -131,7 +131,7 @@ flowchart TB
 ### `write_csharp_script`
 `register_existing.hpp:111` — 模板参数 `ScriptLang::CSHARP`
 
-- **非销毁性注册**（`is_destructive = false`，但仍会覆盖写入）
+- **销毁性注册**（`is_destructive = true`，会覆盖写入文件）
 - `content` 为空时使用 `script_utils::sanitize_class_name()` 生成默认模板：
   ```
   using Godot;
@@ -146,7 +146,7 @@ flowchart TB
 ### `patch_csharp_script`
 `register_existing.hpp:112` — 模板参数 `ScriptLang::CSHARP`
 
-- **非销毁性注册**（`is_destructive = false`）
+- **销毁性注册**（`is_destructive = true`）
 - 与 `patch_gd_script` 逻辑相同，但**不包含** `whole_word` 参数
 - `occurrence <= 0` 时使用 `String::replace()` 批量替换（与 GDScript 的手动拼接不同）
 

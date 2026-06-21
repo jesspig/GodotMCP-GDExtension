@@ -55,13 +55,12 @@ flowchart LR
 读取节点属性的当前资源引用，调用 `ResourceSaver::save(resource, path)` 保存到磁盘文件。写后自动调用 `notify_file_changed(path)` 通知编辑器刷新。
 
 ### `clear_resource`
-将节点属性设为 `Variant()`（null）。通过 `notify_file_changed()` 通知变更。
+将节点属性设为 `Variant()`（null）。通过 `undoable_set()` 变更。
 
 ### `get_resource_info`
-不需要场景。通过 `ResourceLoader::get_singleton()->has(path)` 和 `load(path)` 查询资源的类型、大小、路径等信息。
+需要场景（`needs_scene: true`）。通过节点属性获取已加载的 `Resource` 对象，返回其类型、路径、名称、内嵌状态和可读写属性列表。
 
 ## 注意事项
 
-- `load_resource`、`new_resource`、`duplicate_resource`、`save_resource`、`clear_resource` 均需要场景（`needs_scene: true`）
-- `get_resource_info` 不需要场景，适合文件系统浏览
+- `load_resource`、`new_resource`、`duplicate_resource`、`save_resource`、`clear_resource`、`get_resource_info` 均需要场景（`needs_scene: true`）
 - 所有修改节点属性的工具优先使用 `undoable_set()` 支持撤销

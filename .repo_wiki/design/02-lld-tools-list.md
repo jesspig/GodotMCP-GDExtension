@@ -14,7 +14,7 @@
 
 | 维度 | 全量返回方案 | 渐进式披露方案（当前+优化） |
 |------|-------------|--------------------------|
-| tools/list 返回 | 153 个工具 schema（~50KB JSON） | 7 个元工具（~3KB JSON） |
+| tools/list 返回 | 152 个工具 schema（~50KB JSON） | 5 个元工具（~3KB JSON） |
 | AI 首次 token 消耗 | 高（全部 schema 进入 context） | 低（仅元工具进入 context） |
 | 工具发现路径 | 单次调用即可 | 元工具链 + 搜索引擎 |
 | 标准 MCP 兼容性 | 完全兼容 | 需 AI 使用元工具发现 |
@@ -28,7 +28,7 @@
 
 | 客户端 | 已知 Issue | 对全量方案的影響 | 对渐进式披露的影响 |
 |--------|-----------|-----------------|-------------------|
-| Claude Code | `#45` — `tools/list` 缓存 1 小时 TTL | 153 工具列表静默过期 | **无影响** — 元工具始终即时可用 |
+| Claude Code | `#45` — `tools/list` 缓存 1 小时 TTL | 152 工具列表静默过期 | **无影响** — 元工具始终即时可用 |
 | Claude Code | `#24785` — 分页 broken，`nextCursor` 被忽略 | 超出一页的工具静默丢失 | **无影响** — 发现链不走分页 |
 | Claude Code | `#4118` — `list_changed` 通知不生效 | 工具变更后客户端看不到更新 | **无影响** — AI 每次 `tools/call` 都是实时查询 |
 | Claude Web | `#45` comment — `list_changed` 后新工具查不到 | 新工具无法调用 | **无影响** — `find_tool` / `get_tools` 总是返回最新 |
@@ -48,7 +48,7 @@ MCP 社区也正在向渐进式披露方向演进：`Discussion #1923` 提案 `t
 
 ### 2.1 现状
 
-当前 7 个元工具（`is_meta()==true`）：
+当前 5 个元工具（`is_meta()==true`）：
 
 ```json
 get_info              // 连接状态、引擎版本、项目配置等
@@ -88,7 +88,7 @@ list_settings         // 列出项目设置（is_meta=false，属 editor_tools/s
     {"id": "add_node", "name": "Add a new node", "description": "...", "category": "editor_tools/scene_tree"},
     ...
   ],
-  "count": 153
+  "count": 152
 }
 ```
 
@@ -103,7 +103,7 @@ list_settings         // 列出项目设置（is_meta=false，属 editor_tools/s
 {
   "connection": {"status": "ok"},
   "engine": {"version": "4.6.stable"},
-  "plugin": {"builtin_tools": 153},
+  "plugin": {"builtin_tools": 152},
   "client_configs": {
     "claude_code": {"url": "http://localhost:9600/mcp", ...},
     "cursor": {"url": "http://localhost:9600/mcp", ...}
@@ -221,7 +221,7 @@ void McpToolRegistry::_on_tools_changed() {
 
 ## 6. 向后兼容
 
-- `tools/list` 行为**完全不变**——仍返回元工具（当前 7 个，精简后 5 个）
+- `tools/list` 行为**完全不变**——仍返回元工具（已从 7 个精简至 5 个）
 - 现有 MCP 客户端无需任何配置变更
 - 现有 AI 工作流（`get_categories` → `get_tools` → `get_tool_detail`）完全不变
 - `notifications/tools/list_changed` 是新增（修复）功能，不会破坏现有客户端
@@ -232,7 +232,7 @@ void McpToolRegistry::_on_tools_changed() {
 
 | ID | 名称 | 预期 |
 |:--:|------|------|
-| UT1 | `tools/list` 返回元工具 | 全部 `is_meta==true`（当前 7 个，精简后 5 个） |
+| UT1 | `tools/list` 返回元工具 | 全部 `is_meta==true`（已精简至 5 个） |
 | UT2 | 渐进式发现链完整 | `get_categories` → `get_tools(...)` → 工具存在 |
 | UT3 | 搜索引擎匹配 | `find_tool("add_node")` → `[name: "add_node", weight: 1000]` |
 | UT4 | 分类树缓存 | 二次调用 `get_categories` 快于首次 |
@@ -246,12 +246,12 @@ void McpToolRegistry::_on_tools_changed() {
 
 ## 8. 验收标准
 
-1. `tools/list` 返回元工具（当前 7 个，精简后 5 个），行为不变
+1. `tools/list` 返回元工具（已从 7 个精简至 5 个），行为不变
 2. `get_categories` 响应时间 < 1ms（首次） / < 0.1ms（缓存命中）
-3. `find_tool` 模糊搜索在 153 个工具中 < 2ms
+3. `find_tool` 模糊搜索在 152 个工具中 < 2ms
 4. SDK 工具注册后 SSE `tools/list_changed` 通知在 1 帧内送达
 5. Schema 缓存生效：同工具二次调用 `input_schema()` 零分配
-6. 所有 153 个工具仍可通过渐进式发现链完整访问
+6. 所有 152 个工具仍可通过渐进式发现链完整访问
 7. 全部现有 YAML 测试通过
 
 ---

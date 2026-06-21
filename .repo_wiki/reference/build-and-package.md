@@ -27,8 +27,8 @@ CMake 自动处理：
 
 | 优化 | 状态 | 说明 |
 |------|:----:|------|
-| **sccache/ccache** | 自动检测 | 根 `CMakeLists.txt:29-35`，加速增量构建 2-5x |
-| **Unity (jumbo) build** | 默认 ON | batch size 自动匹配 CPU 核数（上限 32） |
+| **sccache/ccache** | 自动检测 | `cmake/cache.cmake`，加速增量构建 2-5x |
+| **Unity (jumbo) build** | 默认 ON | batch size = min(CPU核数, ceil(源文件数/4))，无硬上限 |
 | **lld-link** | 自动检测 | MSVC + lld-link 加速链接 |
 | **PCH** | 已移除 | ADR-013：Unity Build 已覆盖其优化价值，移除以简化构建 |
 
@@ -89,12 +89,12 @@ cmake --build build --target deep-clean      # 仅清 addons/bin/ + _deps/
 ## 版本管理
 
 - 单版本源在根 `CMakeLists.txt:10`：`set(PROJECT_VERSION "0.2.2-dev1")`
-- `plugin.cfg` 和 `godot_mcp.gdextension` 由 CMake 从 `PROJECT_VERSION` 自动生成（`CMakeLists.txt:59-83`）
+- `plugin.cfg` 和 `godot_mcp.gdextension` 由 `main.py build` 调用 `scripts/_addon.py:generate_addon_configs()` 从 `PROJECT_VERSION` 自动生成
 - 升级 CMake 版本即可；不需要手动编辑 `plugin.cfg`
-- `pyproject.toml` 中的 `version` 需手动同步
+- `pyproject.toml` 中的 `version` 需手动同步（CMake 使用 `0.2.2-dev1`，pyproject.toml 使用 PEP 508 `0.2.2.dev1`，为正常格式差异）
 
 ## 依赖锁定
 
-- `godot-cpp 10.0.0-rc1`：通过 FetchContent 固定标签（`extensions/CMakeLists.txt:17-21`）
-- `ryml v0.7.0`：通过 FetchContent git tag（`extensions/CMakeLists.txt:33-42`），GIT_SUBMODULES 包含 c4core
+- `godot-cpp 10.0.0-rc1`：通过 FetchContent 固定标签（`extensions/CMakeLists.txt:10-16`）
+- `ryml v0.7.0`：通过 FetchContent git tag（`extensions/CMakeLists.txt:23-30`），GIT_SUBMODULES 包含 c4core
 - Python 依赖：`uv.lock` 锁定

@@ -44,12 +44,12 @@ sequenceDiagram
 |------|------|------|
 | `load_config()` | 从 `.env` 加载环境变量，计算路径 | `:71` |
 | `discover_yaml_files(cfg)` | 扫描 `tests/yaml_tests/` 下 `.yaml`/`.yml` 文件 | `:28` |
-| `pre_cleanup(cfg)` | 删除 `example/` 下 `test_mcp_*` 目录 | `:88` |
+| `pre_cleanup(cfg)` | 删除 `example/` 下 `test_mcp_*` 目录 | `:90` |
 | `cleanup_old_reports(cfg)` | 清理 `output/` 中旧 JSON 报告，保留最近 10 份 | `:99` |
 | `check_run_tests_endpoint(port)` | POST 空 YAML 探测 `/run-tests` 可用性 | `:41` |
 | `run_yaml_test_file(path, port)` | 读取 YAML 文件并 POST 到 `/run-tests` | `:56` |
-| `run_test_session(cfg)` | 异步主流程：启动 → 探测 → 遍历 YAML → 报告 | `:115` |
-| `main()` | 入口点，验证 `GODOT_PATH`，失败退出码 1 | `:219` |
+| `run_test_session(cfg)` | 异步主流程：启动 → 探测 → 遍历 YAML → 报告 | `:117` |
+| `main()` | 入口点，验证 `GODOT_PATH`，失败退出码 1 | `:291` |
 
 ### GodotManager（`godot_manager.py`）
 
@@ -60,7 +60,7 @@ sequenceDiagram
 | `_check_mcp_ready()` | POST `/mcp` JSON-RPC ping 检测就绪 | `:89` |
 | `stop(timeout)` | terminate → 等待 → kill 兜底 | `:32` |
 
-启动命令：`godot --editor --path <project> [--headless]`（`godot_manager.py:57-59`）
+启动命令：`godot --editor --path <project> [--headless]`（`godot_manager.py:56-58`）
 
 ### 报告（`report.py`）
 
@@ -79,13 +79,13 @@ sequenceDiagram
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `GODOT_PATH` | （必填） | Godot 4.6 可执行文件路径 |
-| `GODOT_HEADLESS` | `true` | 是否使用 `--headless` 启动 |
+| `GODOT_HEADLESS` | `false` | 是否使用 `--headless` 启动（代码默认 `"false"`，见 `test_orchestrator.py:77`） |
 | `GODOT_MCP_HTTP_PORT` | `9600` | MCP HTTP 端口 |
 | `GODOT_PROJECT_PATH` | `../example` | 测试用 Godot 项目路径 |
 
 ## 响应解析
 
-编排器从 `/run-tests` 响应中提取（`test_orchestrator.py:157-176`）：
+编排器从 `/run-tests` 响应中提取（`test_orchestrator.py:188-203`）：
 
 ```
 summary.total / summary.passed / summary.failed
@@ -114,4 +114,4 @@ uv run python tests/test_orchestrator.py
 pytest tests/test_orchestrator.py -v --asyncio-mode=auto
 ```
 
-退出码：`0` = 全部通过，`1` = 有失败或致命错误（`test_orchestrator.py:231-237`）。
+退出码：`0` = 全部通过，`1` = 有失败或致命错误（`test_orchestrator.py:303-309`）。

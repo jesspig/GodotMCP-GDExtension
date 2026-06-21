@@ -390,7 +390,7 @@ Phase 3+: 恢复原计划
 时间: Phase 1 结束时（Week 3-4）
 交付: feature/foundation-fixes
 验证:
-  ✅ 元工具精简至 6 个，首次交互 overhead -25%
+  ✅ 元工具精简至 5 个，首次交互 overhead -25%
   ✅ 分类树/schema 缓存命中零计算开销
   ✅ 桥接调用不再冻结编辑器
   ✅ 运行时截图、场景树查询等操作不卡主线程

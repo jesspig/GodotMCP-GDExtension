@@ -9,9 +9,9 @@ flowchart LR
     subgraph Source["日志来源"]
         TOOL["ITool::execute_impl()"]
         HTTP["HttpServer"]
-        BRIDGE["RuntimeBridge"]
+        BRIDGE["RuntimeBridgeServer"]
     end
-    subgraph Logging["logging.hpp (28 行)"]
+    subgraph Logging["logging.hpp (24 行)"]
         INFO["log_info(scope, msg)"]
         WARN["log_warn(scope, msg)"]
         ERR["log_error(scope, msg)"]
@@ -35,7 +35,7 @@ flowchart LR
 ## 实现
 
 ```cpp
-// logging.hpp — 整个文件 28 行
+// logging.hpp — 整个文件 24 行
 namespace godot_mcp {
 
 inline void log_info(const String &scope, const String &message) {

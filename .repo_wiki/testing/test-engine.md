@@ -2,7 +2,7 @@
 
 > 进程内 YAML 测试引擎，通过 `POST /run-tests` 接收 YAML，直接调用 `HandlerRegistry::execute()` 执行工具，自动清理测试产物。
 > 
-> 测试引擎是**双前端架构**的一部分：`TestRunner`（测试）和 `WorkflowRunner`（工作流）共享同一纯执行基类 `PipelineRunnerBase`。详见 [`design/05-lld-yaml-workflow.md`](../design/05-lld-yaml-workflow.md)。
+> 测试引擎由单一 `PipelineRunner` 类实现，包含断言、快照、清理和 chain 执行。注意：`design/05-lld-yaml-workflow.md` 中描述的三层继承体系（`PipelineRunnerBase` → `TestRunner`/`WorkflowRunner`）是 Phase 3 计划，尚未实现——当前代码中只有一个统一的 `PipelineRunner` 类位于 `extensions/src/testing/` 下。
 
 ## 架构
 
@@ -10,22 +10,13 @@
 
 ### 类继承体系
 
-```
-PipelineRunnerBase (pipeline/ — 纯执行核心)
-  ↙                    ↘
-TestRunner (testing/)   WorkflowRunner (pipeline/)
-(快照+断言+cleanup)       (vars+结果聚合)
-```
-
-**内部架构（重构后）**：
-
 ```mermaid
 flowchart TB
     subgraph TestEngine["TestEngine (门面)"]
-        run["run(yaml) → parse_yaml → parse_pipeline → TestRunner.run_test"]
+        run["run(yaml) → parse_yaml → parse_pipeline → PipelineRunner.run_test"]
     end
 
-    subgraph TestRunner["TestRunner (继承 PipelineRunnerBase)"]
+    subgraph PipelineRunner["PipelineRunner (统一执行器)"]
         direction TB
         P[backup→snapshot(before)]
         BA[before_all chain]
@@ -56,16 +47,15 @@ flowchart TB
 
 | 类 | 文件 | 职责 |
 |------|------|------|
-| `PipelineDef` | `pipeline/pipeline_types.hpp` | 解析产的 Pipeline 配置（只读） |
-| `StageDef` | `pipeline/pipeline_types.hpp` | Stage 定义（steps + 局部生命周期） |
-| `StepDef` | `pipeline/pipeline_types.hpp` | Step 定义（工具/参数/断言/依赖/条件/重试） |
-| `PipelineParser` | `pipeline/pipeline_parser.hpp/.cpp` | Dictionary → PipelineDef（共享解析逻辑） |
-| `PipelineContext` | `pipeline/pipeline_context.hpp/.cpp` | Step 结果存储、模板展开、when 求值 |
-| `PipelineRunnerBase` | `pipeline/pipeline_runner_base.hpp/.cpp` | 纯执行基类（无断言、无快照） |
-| `TestRunner` | `testing/test_runner.hpp/.cpp` | 派生类：快照 + cleanup + 断言 |
-| `TestEngine` | `testing/test_engine.hpp/.cpp` | 薄门面，委托 TestRunner |
+| `PipelineDef` | `testing/pipeline_types.hpp` | 解析产的 Pipeline 配置（只读） |
+| `StageDef` | `testing/pipeline_types.hpp` | Stage 定义（steps + 局部生命周期） |
+| `StepDef` | `testing/pipeline_types.hpp` | Step 定义（工具/参数/断言/依赖/条件/重试） |
+| `PipelineParser` | `testing/pipeline_parser.hpp/.cpp` | Dictionary → PipelineDef（共享解析逻辑） |
+| `PipelineContext` | `testing/pipeline_context.hpp/.cpp` | Step 结果存储、模板展开、when 求值 |
+| `PipelineRunner` | `testing/pipeline_runner.hpp/.cpp` | 统一执行器：生命周期/快照/断言/清理 |
+| `TestEngine` | `testing/test_engine.hpp/.cpp` | 薄门面，委托 PipelineRunner |
 
-**现代 C++ 特性**：`std::shared_ptr`（PipelineDef/Context 共享所有权）、`std::unique_ptr`（Runner 独占）、`std::optional`（可选字段）、`std::variant`（ParseResult）、`std::function`（when 谓词）、`std::mutex`（Context 防御性封装）、结构化绑定、`std::string_view`。
+**现代 C++ 特性**：`std::shared_ptr`（PipelineDef/Context 共享所有权）、`std::unique_ptr`（Runner 独占）、`std::optional`（可选字段）、`std::variant`（ParseResult）、`std::mutex`（Context 防御性封装）。`when` 条件使用 `WhenClause` 结构体（`pipeline_types.hpp:54-58`）+ `eval_when()` 求值，而非 `std::function`。
 
 ## 入口
 
@@ -94,7 +84,7 @@ pipeline:
 ```json
 {
   "success": true,
-  "suite_name": "scene_test",
+  "name": "scene_test",
   "summary": {
     "total": 1, "passed": 1, "failed": 0,
     "call_count": 1, "call_success": 1,
@@ -263,7 +253,7 @@ sequenceDiagram
 
 ## 断言引擎
 
-`TestRunner::execute_step()`（重写基类的虚方法）在工具执行后调用 `run_assertions()`（`test_assertions.hpp:27-204`）对工具返回结果执行 4 类检查：
+`PipelineRunner` 在工具执行后调用 `run_assertions()`（`test_assertions.hpp:27-154`）对工具返回结果执行 4 类检查：
 
 ### 结果解包
 
@@ -300,6 +290,7 @@ sequenceDiagram
 |---|---|---|
 | `Vector2` / `Vector2i` | `[100, 100]` | 分量距离 ≤ tolerance |
 | `Vector3` / `Vector3i` | `[1, 2, 3]` | 分量距离 ≤ tolerance |
+| `Vector4` / `Vector4i` | `[1, 2, 3, 4]` | 分量距离 ≤ tolerance |
 | `Color` | `[1, 0, 0, 1]` | 四通道距离 ≤ tolerance |
 | `float` / `double` | `3.14` | `|a-b|` ≤ tolerance |
 | `int` / `integer` | `42` | 精确等于 |
@@ -412,20 +403,17 @@ pipeline:
 
 ## 文件结构
 
+所有文件均位于 `extensions/src/testing/`（无 `pipeline/` 子目录，无 `TestRunner`/`PipelineRunnerBase` 独立文件）：
+
 ```
-extensions/src/pipeline/              ← 共享核心
+extensions/src/testing/
+├── test_engine.hpp/.cpp              TestEngine 门面 → 委托 PipelineRunner
+├── pipeline_runner.hpp/.cpp          PipelineRunner 统一执行器（生命周期/快照/断言/清理）
+├── pipeline_parser.hpp/.cpp          YAML → PipelineDef 解析
+├── pipeline_context.hpp/.cpp         Step 结果存储、模板展开、when 求值
+├── pipeline_types.hpp                Pipeline/Stage/Step 类型定义
 ├── yaml_parser.hpp                   ryml → Godot Variant 递归转换
 ├── type_utils.hpp                    类型别名归一化 + 默认容差常量
-├── pipeline_types.hpp                Pipeline/Stage/Step/ChainStep 类型定义
-├── pipeline_parser.hpp/.cpp          Dictionary → PipelineDef + 校验
-├── pipeline_context.hpp/.cpp         Step 结果存储、模板展开、when 求值
-├── pipeline_runner_base.hpp/.cpp     纯执行基类（无断言、无快照）
-└── workflow_parser.hpp/.cpp          工作流解析器（vars、timeout、JSON/YAML）
-
-extensions/src/testing/               ← 仅测试前端
-├── test_engine.hpp/.cpp              薄门面，委托 TestRunner
-├── test_runner.hpp/.cpp              继承 PipelineRunnerBase，加快照/断言/cleanup
-├── test_parser.hpp/.cpp              测试专用解析器（expect、disk_verify、allow_failure）
 ├── test_assertions.hpp               断言引擎
 └── godot_file_verifier.hpp           磁盘校验
 ```
