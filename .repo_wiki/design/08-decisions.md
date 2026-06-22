@@ -1,6 +1,6 @@
 # 设计决策（ADR 摘要）
 
-> ADR-001~ADR-018 已实施完成；ADR-019~ADR-022 为设计阶段计划（Phase 2~4），尚未实现。此处仅作历史记录。详细上下文可在 git 历史中追溯。
+> ADR-001~ADR-018 已实施完成；ADR-019~ADR-023 为设计阶段计划（Phase 2~4），尚未实现。此处仅作历史记录。详细上下文可在 git 历史中追溯。
 
 ## 已接受决策
 
@@ -29,6 +29,7 @@
 | 020 | 2026-06-20 | Pipeline 三层继承体系 | `PipelineRunnerBase` 纯执行核心 → `TestRunner`（快照+断言）/ `WorkflowRunner`（JSON/YAML 工作流），`pipeline/` 独立为共享模块（[LLD](05-lld-yaml-workflow.md)） |
 | 021 | 2026-06-20 | Shadow Scene 非破坏编辑 | `PackedScene` 快照 + 属性级 diff + UndoRedo apply，竞品中唯一（[LLD](06-lld-shadow-scene.md)） |
 | 022 | 2026-06-20 | SDK 编译时注册（已废弃） | 运行时 `McpToolDefinition` SDK 已覆盖扩展需求，编译时方案不必要 |
+| 023 | 2026-06-22 | MCP 自管理 undo/redo（逆向参数栈） | 放弃委托 Godot `EditorUndoRedoManager`，改用 MCP 独立双栈 + 逆向参数重放。缘由：Godot 明确警告稳定性风险 + 历史 7 次 bug 修复 + godot-cpp 绑定缺失 |
 
 ## 关键决策关联
 
@@ -49,6 +50,7 @@ graph LR
     A016 --> A021["ADR-021<br/>Shadow Scene"]
     A016 --> A022["ADR-022<br/>SDK 编译时注册（已废弃）"]
     A011 --> A011a["ADR-011a<br/>桥接方向翻转<br/>编辑器作为 TCP 服务端"]
+    A016 --> A023["ADR-023<br/>MCP 自管理 undo/redo<br/>（逆向参数栈）"]
 ```
 
 ## 已废弃决策

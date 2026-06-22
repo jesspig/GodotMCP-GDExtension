@@ -369,21 +369,35 @@ Layer 4: 操作暂存 — shadow scene 非破坏编辑（Phase 4 新增）
 
 ### Phase 2: `feature/capability-catchup`
 
+> **v2.0 更新（2026-06-22）**：
+> - undo/redo 从「委托 Godot EditorUndoRedoManager」改为「MCP 自管理逆向参数栈」——零编辑器稳定性风险（缘由：Godot 明确警告 + 历史 7 次 bug 修复）
+> - 截图从「仅 Image Content 格式改造」扩展为「桥接 64KB 限制修复 + 异步 SSE + 尺寸参数 + ImageContent」
+> - 详见 `04-lld-undo-redo.md` 版本变更说明
+
 ```
 影响模块:
   新建: tools/editor_tools/scripts/run_editor_script.hpp
+  新建: tools/meta/undo.hpp, redo.hpp, get_undo_history.hpp
+  新建: cmd_utils/undo_stack.hpp           — MCP 自管理撤销栈
   修改: runtime_tools/bridge/call_method_in_game.hpp
   修改: tools/runtime_tools/bridge/capture_game_screenshot.hpp
+  修改: runtime/bridge_server.hpp          — BRIDGE_MAX_MESSAGE_SIZE 64KB→4MB
+  修改: game_bridge source                 — MAX_MESSAGE_SIZE 64KB→4MB
   修改: server/mcp/mcp_handler.hpp/.cpp   — 新增 8 个 Resources handler
   修改: server/mcp/prompt_provider.cpp     — 增强 3 个 Prompt + 新增 4 个
+  修改: editor_plugin.cpp                  — 注册 godot_mcp/undo_max_steps 配置
+  修改: ~10 个属性类工具                  — 每个 +3 行 push_undo()
 
 架构变化:
   [无逃生口] → [write_script + run_editor_script 组合]
-  [JSON base64 截图] → [MCP image content 类型]
-  [3 Resources] → [11 Resources]           — 只读操作转为 Resources
-  [5 静态 Prompts] → [9 动态 Prompts]     — 运行时数据注入 + 工作流
+  [纯同步桥接] → [64KB→4MB + 异步 SSE 交付]
+  [截图 base64 字段] → [MCP image content 类型 + 尺寸限制参数]
+  [无撤销能力] → [MCP 自管理逆向栈 undo/redo（非 Godot UndoRedo）]
+  [3 Resources] → [11 Resources]
+  [5 静态 Prompts] → [9 动态 Prompts]
 
 零破坏性: Image content 保留 data 字段向后兼容; 旧工具路径仍可用
+undo/redo 不与 EditorUndoRedoManager 交互，独立运行
 ```
 
 ### Phase 3: `feature/workflow-advance`

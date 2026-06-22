@@ -95,6 +95,10 @@ T-1.5 (3d) → T-1.7 (3.5d) → T-1.8 (1.5d) → T-1.10 (2d) → T-1.12 (2d) →
 
 ## 3. Phase 2 DAG: `feature/capability-catchup`
 
+> **v2.0 更新（2026-06-22）**：undo/redo 方案从「委拖 Godot EditorUndoRedoManager」改为「MCP 自管理逆向参数栈」。
+> 缘由：Godot 明确警告直接操作底层 UndoRedo 对象影响编辑器稳定性，且历史上有 7 次 undo 相关 bug 修复。
+> 详见 `04-lld-undo-redo.md` 版本变更说明。
+
 ### 3.1 工序列表
 
 | ID | 工序名 | 预估 | 依赖 | 产出 |
@@ -104,10 +108,11 @@ T-1.5 (3d) → T-1.7 (3.5d) → T-1.8 (1.5d) → T-1.10 (2d) → T-1.12 (2d) →
 | **T-2.3** | 注册工具 + X-macro 一行 | 0.5 人日 | T-2.1 | `register_existing.hpp` + `register_itools.cpp` |
 | **T-2.4** | （已移除 — execute_gdscript 方案废弃） | — | — | — |
 | **T-2.5** | `call_method` 泛化重构 | 2 人日 | Phase 1 | `call_method_in_game.hpp` → 参数扩展 + 类型覆盖 |
-| **T-2.6** | `undo`/`redo` 工具实现 | 1.5 人日 | — | `undo.hpp` + `redo.hpp` |
-| **T-2.7** | `EditorUndoRedoManager` 集成调研 | 1 人日 | — | 确认 API 可用性、history_id 发现策略 |
-| **T-2.8** | 截图 MCP Image Content 类型改造 | 1 人日 | — | `capture_game_screenshot.hpp` + `capture_viewport.hpp` 返回格式变更 |
-| **T-2.9** | Phase 2 YAML 测试 | 2 人日 | T-2.3, T-2.5, T-2.6, T-2.8 | `run_editor_script` 测试 + undo/redo 测试 + 截图测试 |
+| **T-2.6** | UndoManager 基础设施 + ProjectSettings 配置 | 1 人日 | — | `undo_stack.hpp`（双栈结构 + 步数限制 16-512） |
+| **T-2.7** | `undo`/`redo`/`get_undo_history` 元工具 | 1.5 人日 | T-2.6 | `undo.hpp` + `redo.hpp` + `get_undo_history.hpp` |
+| **T-2.8** | 截图修复：桥接 64KB 限制 → 4MB + 异步 SSE + 尺寸参数 + ImageContent | 2 人日 | — | `bridge_server.hpp`/`game_bridge.hpp` 限制增大 + `capture_game_screenshot.hpp` 异步化 + ImageContent |
+| **T-2.11** | 工具集成 undo 推入：~10 个属性类工具加 push_undo | 1.5 人日 | T-2.6 | `set_node_property`/`set_setting` 等 10 个工具每工具 +3 行 |
+| **T-2.9** | Phase 2 YAML 测试 | 2 人日 | T-2.3, T-2.5, T-2.7, T-2.8, T-2.11 | `run_editor_script` + `undo/redo` + `get_undo_history` + 截图测试 |
 | **T-2.10** | Phase 2 冒烟测试 | 1 人日 | T-2.9 | 完整测试流水线通过 |
 
 ### 3.2 DAG 图
@@ -119,25 +124,28 @@ graph TD
         T2_1 --> T2_3["T-2.3 注册工具<br/>0.5d"]
     end
 
+    subgraph "undo/redo (MCP 自管理逆向栈)"
+        T2_6["T-2.6 UndoManager<br/>基础设施<br/>1d"] --> T2_7["T-2.7 undo/redo 元工具<br/>1.5d"]
+        T2_6 --> T2_11["T-2.11 工具集成<br/>逆向推入<br/>1.5d"]
+    end
+
+    subgraph "screenshot + bridge"
+        T2_8["T-2.8 截图修复<br/>桥接限制+异步+ImageContent<br/>2d"]
+    end
+
     subgraph "call_method"
         T2_5["T-2.5 call_method 泛化<br/>2d"]
     end
 
-    subgraph "undo/redo"
-        T2_7["T-2.7 UndoRedo 调研<br/>1d"] --> T2_6["T-2.6 undo/redo 实现<br/>1.5d"]
-    end
-
-    subgraph "screenshot"
-        T2_8["T-2.8 Image Content<br/>1d"]
-    end
-
     T2_3 --> T2_9["T-2.9 测试<br/>2d"]
     T2_5 --> T2_9
-    T2_6 --> T2_9
+    T2_7 --> T2_9
+    T2_11 --> T2_9
     T2_8 --> T2_9
     T2_9 --> T2_10["T-2.10 冒烟测试<br/>1d"]
 
     style T2_1 fill:#ffd,stroke:#333
+    style T2_6 fill:#ffd,stroke:#333
 ```
 
 ### 3.3 关键路径
@@ -145,14 +153,19 @@ graph TD
 ```
 T-2.1 (1d) → T-2.2 (1d) → T-2.3 (0.5d) → T-2.9 (2d) → T-2.10 (1d)
 = 5.5 个工作日 ≈ 1 周
+
+并行独立路径:
+T-2.6 (1d) → T-2.7 (1.5d) + T-2.11 (1.5d) = 2.5d
+T-2.8 (2d)
+T-2.5 (2d)
 ```
 
 ### 3.4 平行簇分配（4 人）
 
 | Batch | 工序 | 人员 | 天数 |
 |:-----:|------|:----:|:----:|
-| B1 | T-2.1 + T-2.7 + T-2.8 + T-2.5 | P1, P2, P3, P4 | 2d |
-| B2 | T-2.2 + T-2.3 + T-2.6 + T-2.9 (调研后可开工) | P1, P2, P3, P4 | 1.5d |
+| B1 | T-2.1 + T-2.6 + T-2.8 + T-2.5 | P1, P2, P3, P4 | 2d |
+| B2 | T-2.2 + T-2.3 + T-2.7 + T-2.11 | P1, P2, P3, P4 | 1.5d |
 | B3 | T-2.9 | P1, P2 | 2d |
 | B4 | T-2.10 | P1 | 1d |
 
