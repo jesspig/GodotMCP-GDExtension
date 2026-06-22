@@ -21,6 +21,10 @@ class GodotManager:
         self.mcp_url = f"http://127.0.0.1:{mcp_port}/mcp"
         self.process: subprocess.Popen | None = None
         self._started_by_us = False
+        self.stderr_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "godot_stderr.log"
+        )
+        self._stderr_file = None
 
     async def ensure_running(self, timeout: int = 60) -> bool:
         if await self._check_mcp_ready():
@@ -40,7 +44,15 @@ class GodotManager:
                 if self.process.poll() is None:
                     self.process.kill()
                     self.process.wait(5)
+        if self.process:
+            rc = self.process.poll()
+            if rc is not None and self._stderr_file:
+                self._stderr_file.write(f"\n[{time.strftime('%Y-%m-%d %H:%M:%S')}] Exit code: {rc}\n")
+                self._stderr_file.flush()
         self.process = None
+        if self._stderr_file:
+            self._stderr_file.close()
+            self._stderr_file = None
 
     async def _start(self, timeout: int) -> bool:
         if not os.path.isfile(self.godot_path):
@@ -57,10 +69,14 @@ class GodotManager:
         if self.headless:
             cmd.append("--headless")
 
+        self._stderr_file = open(self.stderr_path, "w", encoding="utf-8")
+        self._stderr_file.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Starting: {' '.join(cmd)}\n")
+        self._stderr_file.flush()
+
         self.process = subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stderr=self._stderr_file,
             creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
         )
         self._started_by_us = True
@@ -118,3 +134,5 @@ class GodotManager:
                 self.process.terminate()
             except Exception:
                 pass
+        if self._stderr_file:
+            self._stderr_file.close()

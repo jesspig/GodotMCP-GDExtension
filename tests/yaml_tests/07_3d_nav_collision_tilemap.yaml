@@ -99,7 +99,7 @@ pipeline:
 
         - id: add_tilemap
           tool: add_node
-          description: Adds a TileMap node for get_tilemap_info
+          description: Adds a TileMapLayer for get_tilemap_info test
           args:
             class_name: "TileMapLayer"
             node_name: "TestTileMap"
@@ -111,6 +111,6 @@ pipeline:
           tool: get_tilemap_info
           description: Gets tilemap info (no tileset set, returns empty structure)
           args:
-            node_path: "Test3DRoot/TestTileMap"
+            node_path: "TestTileMap"
           expect:
             has_keys: [enabled, tile_set, used_cells_count, collision_enabled, navigation_enabled]

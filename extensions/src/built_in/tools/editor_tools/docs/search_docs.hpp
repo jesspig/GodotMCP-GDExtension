@@ -52,15 +52,9 @@ protected:
                 entry["class_name"] = cls;
                 entry["inherits"] = ClassDB::get_parent_class(cls);
                 entry["match"] = "class_name";
-
-                // Count methods, properties, signals
-                Object *obj = ClassDB::instantiate(cls);
-                if (obj) {
-                    entry["method_count"] = static_cast<int64_t>(obj->get_method_list().size());
-                    entry["property_count"] = static_cast<int64_t>(obj->get_property_list().size());
-                    entry["signal_count"] = static_cast<int64_t>(obj->get_signal_list().size());
-                    memdelete(obj);
-                }
+                entry["method_count"] = static_cast<int64_t>(ClassDB::class_get_method_list(cls, true).size());
+                entry["property_count"] = static_cast<int64_t>(ClassDB::class_get_property_list(cls, true).size());
+                entry["signal_count"] = static_cast<int64_t>(ClassDB::class_get_signal_list(cls, true).size());
                 results.append(entry);
             }
         }
@@ -69,7 +63,7 @@ protected:
         if (results.size() < max_results) {
             for (int64_t i = 0; i < all_classes.size() && results.size() < max_results; i++) {
                 String cls = all_classes[i];
-                godot::TypedArray<godot::Dictionary> methods = ClassDB::class_get_method_list(cls, true);
+                TypedArray<Dictionary> methods = ClassDB::class_get_method_list(cls, true);
                 for (int64_t j = 0; j < methods.size() && results.size() < max_results; j++) {
                     Dictionary m = methods[j];
                     String mname = m.get("name", "");
@@ -93,9 +87,7 @@ protected:
         if (results.size() < max_results) {
             for (int64_t i = 0; i < all_classes.size() && results.size() < max_results; i++) {
                 String cls = all_classes[i];
-                Object *obj = ClassDB::instantiate(cls);
-                if (!obj) continue;
-                Array props = obj->get_property_list();
+                TypedArray<Dictionary> props = ClassDB::class_get_property_list(cls, true);
                 for (int64_t j = 0; j < props.size() && results.size() < max_results; j++) {
                     Dictionary p = props[j];
                     String pname = p.get("name", "");
@@ -108,7 +100,6 @@ protected:
                         results.append(entry);
                     }
                 }
-                memdelete(obj);
             }
         }
 
@@ -116,9 +107,7 @@ protected:
         if (results.size() < max_results) {
             for (int64_t i = 0; i < all_classes.size() && results.size() < max_results; i++) {
                 String cls = all_classes[i];
-                Object *obj = ClassDB::instantiate(cls);
-                if (!obj) continue;
-                Array sigs = obj->get_signal_list();
+                TypedArray<Dictionary> sigs = ClassDB::class_get_signal_list(cls, true);
                 for (int64_t j = 0; j < sigs.size() && results.size() < max_results; j++) {
                     Dictionary s = sigs[j];
                     String sname = s.get("name", "");
@@ -131,7 +120,6 @@ protected:
                         results.append(entry);
                     }
                 }
-                memdelete(obj);
             }
         }
 

@@ -44,23 +44,17 @@ pipeline:
 
         - id: get_tools
           tool: get_tools
-          description: Lists tools in meta_tools category
-          args:
-            category: "meta_tools"
+          description: Lists all registered tools
           expect:
-            has_keys: [category, tools, count]
+            has_keys: [tools, count]
             field_checks:
-              - key: category
-                value: "meta_tools"
               - key: count
                 not_empty: true
 
         - id: get_tool_detail
           tool: get_tools
-          description: Gets full detail for get_info via detail mode
+          description: Gets full detail for get_info via name
           args:
-            category: "meta_tools"
-            detail: true
             name: "get_info"
           expect:
             has_keys: [id, name, description, parameters, required, category_path]
