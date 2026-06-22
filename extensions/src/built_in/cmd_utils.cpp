@@ -82,10 +82,12 @@ Node *resolve_node(Node *root, const String &path, int depth) {
     // Any other path is treated as a NodePath relative to root.
     Node *found = root->get_node_or_null(NodePath(path));
     if (found) return found;
+    // Fallback: treat path as a name and scan all children recursively.
     if (depth >= kMaxResolveDepth) return nullptr;
     for (int64_t i = 0; i < root->get_child_count(); i++) {
-        Node *c = Object::cast_to<Node>(root->get_child(static_cast<int>(i)));
+        Node *c = root->get_child(static_cast<int>(i));
         if (!c) continue;
+        if (c->get_name() == path) return c;
         Node *sub = resolve_node(c, path, depth + 1);
         if (sub) return sub;
     }

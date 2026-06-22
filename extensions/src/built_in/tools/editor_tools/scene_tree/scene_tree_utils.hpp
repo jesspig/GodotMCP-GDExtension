@@ -107,8 +107,13 @@ inline std::optional<godot::Dictionary> resolve_node_or_error(
     godot::Node *root, const godot::String &path, godot::Node *&out_node) {
     out_node = godot_mcp::resolve_node(root, path);
     if (!out_node) {
-        return ToolResult::err("NODE_NOT_FOUND",
-            godot::String("Node not found: ") + path);
+        godot::Dictionary err_dict;
+        err_dict["success"] = false;
+        godot::Dictionary error;
+        error["code"] = "NODE_NOT_FOUND";
+        error["message"] = "Node not found: " + path;
+        err_dict["error"] = error;
+        return err_dict;
     }
     return {};
 }

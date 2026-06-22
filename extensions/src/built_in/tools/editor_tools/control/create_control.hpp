@@ -96,14 +96,7 @@ protected:
             ));
         }
 
-        auto *ur = begin_undo_action("MCP: Create Control " + class_name, ctx.root);
-        if (!ur) {
-            parent->add_child(child, true, godot::Node::INTERNAL_MODE_DISABLED);
-            child->set_owner(ctx.root);
-            mark_scene_dirty();
-        } else {
-            commit_add_child_undo(ur, "MCP: Create Control " + class_name, parent, child, ctx.root);
-        }
+        commit_add_child_undo(get_undo_redo(), "MCP: Create Control " + class_name, parent, child, ctx.root);
         guard.dismiss();
 
         auto *ei = godot::EditorInterface::get_singleton();
