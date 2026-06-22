@@ -4,8 +4,8 @@
 
 ## `get_info`
 
-**Category**: `meta_tools`  
-**Description**: Get editor connection status and runtime environment info.  
+**Category**: `meta_tools`
+**Description**: Get editor connection status and runtime environment info.
 **Destructive**: No | **Undo**: No | **Meta**: Yes
 
 ### Parameters
@@ -20,7 +20,7 @@ None.
   "data": {
     "connection": { "status": "ok" },
     "engine": { "version": "4.6", "major": 4, "minor": 6 },
-    "plugin": { "version": "0.2.2-dev1", "mode": "editor" },
+    "plugin": { "version": "0.2.2-dev2", "mode": "editor" },
     "project": { "name": "My Game", "path": "res://" },
     "editor": { "scene_open": true, "node_count": 5 }
   }
@@ -39,8 +39,8 @@ curl -X POST http://localhost:9600/mcp \
 
 ## `get_tools`
 
-**Category**: `meta_tools`  
-**Description**: List all registered tools.  
+**Category**: `meta_tools`
+**Description**: List all registered tools.
 **Destructive**: No | **Undo**: No | **Meta**: Yes
 
 ### Parameters
@@ -66,8 +66,8 @@ curl -X POST http://localhost:9600/mcp \
 
 ## `get_categories`
 
-**Category**: `meta_tools`  
-**Description**: List tool category tree.  
+**Category**: `meta_tools`
+**Description**: List tool category tree.
 **Destructive**: No | **Undo**: No | **Meta**: Yes
 
 ### Parameters
@@ -82,8 +82,8 @@ Nested category tree structure.
 
 ## `get_tool_detail`
 
-**Category**: `meta_tools`  
-**Description**: Get full metadata for a specific tool.  
+**Category**: `meta_tools`
+**Description**: Get full metadata for a specific tool.
 **Destructive**: No | **Undo**: No | **Meta**: Yes
 
 ### Parameters
@@ -100,8 +100,8 @@ Full tool metadata including input_schema and description.
 
 ## `find_tool`
 
-**Category**: `meta_tools`  
-**Description**: Full-text tool search.  
+**Category**: `meta_tools`
+**Description**: Full-text tool search.
 **Destructive**: No | **Undo**: No | **Meta**: Yes
 
 ### Parameters
@@ -116,8 +116,8 @@ Full tool metadata including input_schema and description.
 
 ## `call_tool`
 
-**Category**: `meta_tools`  
-**Description**: Call any tool by name.  
+**Category**: `meta_tools`
+**Description**: Call any tool by name.
 **Destructive**: No | **Undo**: No | **Meta**: Yes
 
 ### Parameters
@@ -131,8 +131,8 @@ Full tool metadata including input_schema and description.
 
 ## `generate_client_config`
 
-**Category**: `meta_tools`  
-**Description**: Generate MCP client configuration files.  
+**Category**: `meta_tools`
+**Description**: Generate MCP client configuration files.
 **Destructive**: No | **Undo**: No | **Meta**: Yes
 
 ### Parameters

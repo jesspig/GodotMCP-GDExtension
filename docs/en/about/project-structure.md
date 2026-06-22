@@ -22,7 +22,7 @@ scripts/                 Python build/package scripts
 cmake/                   CMake modules (8 files)
 main.py                  Build/test/package entry point
 rspress.config.ts        Documentation site config
-CMakeLists.txt           Root CMake build (version: 0.2.2-dev1)
+CMakeLists.txt           Root CMake build (version: 0.2.2-dev2)
 ```
 
 ## Source Code Layout (extensions/src/)

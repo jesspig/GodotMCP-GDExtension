@@ -74,7 +74,7 @@ call_tool(tool_name, args)  → 兜底调用（知道名字就能调，无需先
 
 ## 版本管理
 
-- **单版本源**：根 `CMakeLists.txt:10` 的 `PROJECT_VERSION = "0.2.2-dev1"`
+- **单版本源**：根 `CMakeLists.txt:10` 的 `PROJECT_VERSION = "0.2.2-dev2"`
 - `plugin.cfg` 和 `.gdextension` 由 `main.py build` 自动生成（`scripts/_addon.py:generate_addon_configs()`）
 - `compatibility_minimum` 从 `GODOTCPP_API_VERSION` 自动推导
 - `pyproject.toml` 版本需手动同步（CMake 用 `-dev1`，pyproject 用 PEP 508 `.dev1`）

@@ -4,8 +4,8 @@
 
 ## `get_info`
 
-**分类**: `meta_tools`  
-**描述**: 获取编辑器连接状态和运行时环境信息。  
+**分类**: `meta_tools`
+**描述**: 获取编辑器连接状态和运行时环境信息。
 **破坏性**: 否 | **撤销**: 否 | **元工具**: 是
 
 ### 参数
@@ -20,7 +20,7 @@
   "data": {
     "connection": { "status": "ok" },
     "engine": { "version": "4.6", "major": 4, "minor": 6 },
-    "plugin": { "version": "0.2.2-dev1", "mode": "editor" },
+    "plugin": { "version": "0.2.2-dev2", "mode": "editor" },
     "project": { "name": "My Game", "path": "res://" },
     "editor": { "scene_open": true, "node_count": 5 }
   }
@@ -39,8 +39,8 @@ curl -X POST http://localhost:9600/mcp \
 
 ## `get_tools`
 
-**分类**: `meta_tools`  
-**描述**: 列出所有已注册的工具。  
+**分类**: `meta_tools`
+**描述**: 列出所有已注册的工具。
 **破坏性**: 否 | **撤销**: 否 | **元工具**: 是
 
 ### 参数
@@ -66,8 +66,8 @@ curl -X POST http://localhost:9600/mcp \
 
 ## `get_categories`
 
-**分类**: `meta_tools`  
-**描述**: 列出工具分类树。  
+**分类**: `meta_tools`
+**描述**: 列出工具分类树。
 **破坏性**: 否 | **撤销**: 否 | **元工具**: 是
 
 ### 参数
@@ -82,8 +82,8 @@ curl -X POST http://localhost:9600/mcp \
 
 ## `get_tool_detail`
 
-**分类**: `meta_tools`  
-**描述**: 获取指定工具的完整元数据。  
+**分类**: `meta_tools`
+**描述**: 获取指定工具的完整元数据。
 **破坏性**: 否 | **撤销**: 否 | **元工具**: 是
 
 ### 参数
@@ -100,8 +100,8 @@ curl -X POST http://localhost:9600/mcp \
 
 ## `find_tool`
 
-**分类**: `meta_tools`  
-**描述**: 全文搜索工具。  
+**分类**: `meta_tools`
+**描述**: 全文搜索工具。
 **破坏性**: 否 | **撤销**: 否 | **元工具**: 是
 
 ### 参数
@@ -116,8 +116,8 @@ curl -X POST http://localhost:9600/mcp \
 
 ## `call_tool`
 
-**分类**: `meta_tools`  
-**描述**: 按名称调用任意工具。  
+**分类**: `meta_tools`
+**描述**: 按名称调用任意工具。
 **破坏性**: 否 | **撤销**: 否 | **元工具**: 是
 
 ### 参数
@@ -131,8 +131,8 @@ curl -X POST http://localhost:9600/mcp \
 
 ## `generate_client_config`
 
-**分类**: `meta_tools`  
-**描述**: 生成 MCP 客户端配置文件。  
+**分类**: `meta_tools`
+**描述**: 生成 MCP 客户端配置文件。
 **破坏性**: 否 | **撤销**: 否 | **元工具**: 是
 
 ### 参数

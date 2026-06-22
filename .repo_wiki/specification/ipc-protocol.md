@@ -127,7 +127,7 @@ Mcp-Method: server/discover
         },
         "serverInfo": {
             "name": "godot-mcp",
-            "version": "0.2.2-dev1"
+            "version": "0.2.2-dev2"
         }
     }
 }
