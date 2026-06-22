@@ -47,6 +47,7 @@ struct ToolContext {
     godot::Node *root = nullptr;
     godot::Node *node = nullptr;
     godot::Dictionary args;
+    godot::Variant jsonrpc_id;
 };
 
 // ── ITool: 所有工具的统一接口 ──
@@ -89,7 +90,7 @@ public:
 
     // ── 统一入口（模板方法）──
     // 自动执行前置检查（root/node 解析）、调�?execute_impl、包裹统一信封
-    godot::Dictionary execute(const godot::Dictionary &args);
+    godot::Dictionary execute(const godot::Dictionary &args, const godot::Variant &jsonrpc_id = {});
 
 protected:
     // 子类实现业务逻辑，ctx �?root/node 已保证非空（如果声明�?needs_scene/needs_node�?

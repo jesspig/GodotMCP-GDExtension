@@ -2,7 +2,6 @@
 
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/classes/ref.hpp>
-#include <godot_cpp/classes/tcp_server.hpp>
 #include <godot_cpp/classes/stream_peer_tcp.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/array.hpp>
@@ -25,12 +24,11 @@ public:
     static void _bind_methods();
 
 private:
-    void start_server();
-    void stop_server();
-    void accept_clients();
-    void read_clients();
+    void connect_to_editor();
+    void disconnect_from_editor();
+    void read_from_editor();
     void reset_read_state_internal();
-    void send_response(const godot::Ref<godot::StreamPeerTCP> &client, const godot::Dictionary &msg);
+    void send_response(const godot::Dictionary &msg);
     godot::Dictionary dispatch(const godot::String &cmd, const godot::Dictionary &params);
 
     godot::Dictionary handle_get_scene_tree(const godot::Dictionary &params);
@@ -45,12 +43,13 @@ private:
     static int read_port();
     godot::Node *get_scene_root();
 
-    godot::Ref<godot::TCPServer> server_;
-    godot::Ref<godot::StreamPeerTCP> client_;
+    godot::Ref<godot::StreamPeerTCP> connection_;
     godot::PackedByteArray read_buf_;
     int64_t read_offset_ = 0;
     int port_ = 9601;
+    uint64_t connect_retry_msec_ = 0;
     static constexpr int64_t BUFFER_LIMIT = 1024 * 1024;
+    static constexpr int64_t MAX_MESSAGE_SIZE = 65536;
 };
 
 } // namespace godot_mcp

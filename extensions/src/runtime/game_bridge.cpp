@@ -15,6 +15,7 @@
 #include <godot_cpp/classes/marshalls.hpp>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/scene_tree.hpp>
+#include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/classes/viewport_texture.hpp>
 #include <godot_cpp/classes/window.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
@@ -23,11 +24,7 @@ using namespace godot;
 
 namespace godot_mcp {
 // Forward declaration - defined in cmd_utils_json.cpp, no editor dependency.
-// Keep this signature in sync with cmd_utils.hpp (the depth default lives in
-// the header; redeclaring the default here would be an ODR violation, so omit it).
 Variant json_to_variant(const Variant &jv, int depth);
-
-static constexpr int64_t MAX_MESSAGE_SIZE = 65536;
 
 // -----------------------------------------------------------------------
 // Lifecycle
@@ -49,21 +46,38 @@ int GameBridgeNode::read_port() {
 
 void GameBridgeNode::_ready() {
     if (Engine::get_singleton()->is_editor_hint()) {
-        // Should never happen - only created in game process
         return;
     }
     set_process(true);
-    start_server();
+    connect_to_editor();
 }
 
 void GameBridgeNode::_exit_tree() {
-    stop_server();
+    disconnect_from_editor();
 }
 
 void GameBridgeNode::_process(double) {
-    if (server_.is_valid()) {
-        accept_clients();
-        read_clients();
+    if (!connection_.is_valid()) {
+        // Retry connection every 2 seconds
+        const uint64_t now = Time::get_singleton()->get_ticks_msec();
+        if (now > connect_retry_msec_) {
+            connect_to_editor();
+            connect_retry_msec_ = now + 2000;
+        }
+        return;
+    }
+
+    connection_->poll();
+    StreamPeerTCP::Status s = connection_->get_status();
+    if (s == StreamPeerTCP::STATUS_ERROR || s == StreamPeerTCP::STATUS_NONE) {
+        log_warn("game_bridge", "Editor bridge disconnected");
+        connection_.unref();
+        reset_read_state_internal();
+        return;
+    }
+
+    if (s == StreamPeerTCP::STATUS_CONNECTED) {
+        read_from_editor();
     }
 }
 
@@ -73,78 +87,52 @@ void GameBridgeNode::_self_add() {
 
     Node *root = get_scene_root();
     if (!root) {
-        // Root not ready yet - try again next frame
         call_deferred("_self_add");
         return;
     }
 
     root->add_child(this);
-    log_info("game_bridge", String("GameBridgeNode added to scene tree, port=") +
+    log_info("game_bridge", String("GameBridgeNode added to scene tree, connecting to editor bridge :") +
                                     String::num_int64(port_));
 }
 
 // -----------------------------------------------------------------------
-// TCP Server
+// TCP Client: connect to editor's RuntimeBridgeServer
 // -----------------------------------------------------------------------
 
-void GameBridgeNode::start_server() {
-    server_.instantiate();
-    Error err = server_->listen(port_, "127.0.0.1");
+void GameBridgeNode::connect_to_editor() {
+    if (connection_.is_valid()) return;
+
+    connection_.instantiate();
+    Error err = connection_->connect_to_host("127.0.0.1", port_);
     if (err != OK) {
-        log_error("game_bridge", String("Failed to listen on :") + String::num_int64(port_));
-        server_.unref();
+        connection_.unref();
         return;
     }
-    log_info("game_bridge", String("GameBridge listening on :") + String::num_int64(port_));
+    log_info("game_bridge", String("Connecting to editor bridge 127.0.0.1:") + String::num_int64(port_));
 }
 
-void GameBridgeNode::stop_server() {
-    if (client_.is_valid()) {
-        client_->disconnect_from_host();
-        client_.unref();
-    }
-    if (server_.is_valid()) {
-        server_->stop();
-        server_.unref();
+void GameBridgeNode::disconnect_from_editor() {
+    if (connection_.is_valid()) {
+        connection_->disconnect_from_host();
+        connection_.unref();
     }
     reset_read_state_internal();
 }
 
-void GameBridgeNode::accept_clients() {
-    if (client_.is_valid()) {
-        // Already have a connected client
-        return;
-    }
-    if (!server_->is_connection_available()) {
-        return;
-    }
-    Ref<StreamPeerTCP> new_client = server_->take_connection();
-    if (new_client.is_valid()) {
-        client_ = new_client;
-        reset_read_state_internal();
-        log_info("game_bridge", "Client connected");
-    }
-}
+// -----------------------------------------------------------------------
+// Read from editor (same framing protocol, now reads from connection_)
+// -----------------------------------------------------------------------
 
-void GameBridgeNode::read_clients() {
-    if (!client_.is_valid()) return;
+void GameBridgeNode::read_from_editor() {
+    if (!connection_.is_valid()) return;
 
-    client_->poll();
-    StreamPeerTCP::Status s = client_->get_status();
-    if (s == StreamPeerTCP::STATUS_ERROR || s == StreamPeerTCP::STATUS_NONE) {
-        client_.unref();
-        reset_read_state_internal();
-        log_info("game_bridge", "Client disconnected");
-        return;
-    }
-
-    int64_t avail = client_->get_available_bytes();
+    int64_t avail = connection_->get_available_bytes();
     if (avail <= 0) return;
 
-    Array chunk = client_->get_partial_data(avail);
+    Array chunk = connection_->get_partial_data(static_cast<int>(avail));
     if (static_cast<int64_t>(chunk[0]) != OK) {
-        client_->disconnect_from_host();
-        client_.unref();
+        connection_.unref();
         reset_read_state_internal();
         return;
     }
@@ -201,7 +189,7 @@ void GameBridgeNode::read_clients() {
 
         Dictionary result = dispatch(cmd, params);
         result["id"] = id;
-        send_response(client_, result);
+        send_response(result);
     }
 
     if (read_offset_ > 0) {
@@ -223,8 +211,8 @@ void GameBridgeNode::reset_read_state_internal() {
     read_offset_ = 0;
 }
 
-void GameBridgeNode::send_response(const Ref<StreamPeerTCP> &client, const Dictionary &msg) {
-    if (!client.is_valid()) return;
+void GameBridgeNode::send_response(const Dictionary &msg) {
+    if (!connection_.is_valid()) return;
 
     PackedByteArray json_bytes = JSON::stringify(msg).to_utf8_buffer();
     if (json_bytes.size() > MAX_MESSAGE_SIZE) {
@@ -242,7 +230,7 @@ void GameBridgeNode::send_response(const Ref<StreamPeerTCP> &client, const Dicti
     p[3] = static_cast<uint8_t>(len & 0xFF);
     std::copy_n(json_bytes.ptr(), json_bytes.size(), p + 4);
 
-    Error err = client->put_data(frame);
+    Error err = connection_->put_data(frame);
     if (err != OK) {
         log_error("game_bridge", String("send_response put_data failed: err=") + String::num_int64(err));
     }
@@ -278,7 +266,7 @@ Dictionary GameBridgeNode::dispatch(const String &cmd, const Dictionary &params)
 }
 
 // -----------------------------------------------------------------------
-// Command handlers
+// Command handlers (unchanged from v1)
 // -----------------------------------------------------------------------
 
 Dictionary GameBridgeNode::handle_get_scene_tree(const Dictionary &params) {
@@ -449,14 +437,12 @@ Dictionary GameBridgeNode::handle_screenshot(const Dictionary &params) {
 static Key key_from_string(const String &name) {
     String upper = name.to_upper();
 
-    // Single letter A-Z
     if (upper.length() == 1) {
         char32_t c = upper[0];
         if (c >= 'A' && c <= 'Z') return static_cast<Key>((KEY_A + (c - 'A')));
         if (c >= '0' && c <= '9') return static_cast<Key>((KEY_0 + (c - '0')));
     }
 
-    // Named keys via constexpr lookup table
     struct KeyEntry { const char *name; Key key; };
     static constexpr KeyEntry kEntries[] = {
         {"ENTER", KEY_ENTER}, {"RETURN", KEY_ENTER},

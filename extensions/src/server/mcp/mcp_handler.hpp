@@ -55,6 +55,9 @@ public:
     // Utility: parse a MCP-Protocol-Version header and return a compatible version.
     static String negotiate_protocol_version(const String &header_value);
 
+    // Enqueue an SSE event (public for RuntimeBridgeServer, McpToolRegistry, etc.)
+    void enqueue_event(const Dictionary &event);
+
     // JSON-RPC 2.0 standard error codes
     static constexpr int kParseError = -32700;
     static constexpr int kInvalidRequest = -32600;
@@ -70,8 +73,6 @@ private:
     static Dictionary make_jsonrpc_error(const Variant &id, int code, const String &message,
                                          const Variant &data = {});
     static Dictionary make_notification(const String &method, const Variant &params);
-
-    void enqueue_event(const Dictionary &event);
 
     // Lifecycle
     Dictionary handle_initialize(const Dictionary &params, const Variant &id);
@@ -97,9 +98,14 @@ private:
     // Notifications (no return value needed)
     void handle_cancelled(const Dictionary & /*params*/);
 
+public:
+    void set_bridge_server(class RuntimeBridgeServer *bs) { bridge_server_ = bs; }
+
+private:
     HandlerRegistry *registry_;
     McpLogCallback log_callback_;
     ToolExecutor tool_executor_;
+    RuntimeBridgeServer *bridge_server_ = nullptr;
     std::deque<Dictionary> global_event_queue_;
     String log_level_ = "info";
     std::deque<PendingDestructiveOp> pending_ops_;

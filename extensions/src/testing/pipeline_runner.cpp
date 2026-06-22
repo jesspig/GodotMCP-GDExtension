@@ -10,6 +10,7 @@
 #include <godot_cpp/classes/editor_file_system.hpp>
 #include <godot_cpp/classes/editor_file_system_directory.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/json.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
@@ -490,6 +491,16 @@ godot::Dictionary PipelineRunner::run(const std::shared_ptr<PipelineDef> &pipeli
     suite_result["description"] = pipeline->description;
 
     const int64_t start_time_us = godot::Time::get_singleton()->get_ticks_usec();
+
+    // Clear UndoRedo history to prevent cross-pipeline accumulation
+    godot::EditorInterface *ei = godot::EditorInterface::get_singleton();
+    if (ei) {
+        godot::EditorUndoRedoManager *ur = ei->get_editor_undo_redo();
+        if (ur) {
+            ur->clear_history();
+        }
+    }
+
     CallStats stats;
     pipeline::StepResult ctx_result;
 

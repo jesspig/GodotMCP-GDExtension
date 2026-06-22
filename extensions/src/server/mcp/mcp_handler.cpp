@@ -1,6 +1,7 @@
 #include "mcp_handler.hpp"
 
 #include "logging.hpp"
+#include "runtime/bridge_server.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/engine.hpp>
@@ -349,13 +350,13 @@ Dictionary McpHandler::handle_tools_call(const Dictionary &params, const Variant
     }
 
     // Delegate to ToolExecutor for execution, logging, and MCP formatting
-    Dictionary exec_result = tool_executor_.execute(tool_name, args);
+    Dictionary exec_result = tool_executor_.execute(tool_name, args, id);
 
     // Structured log callback
     if (log_callback_) {
         ToolCallLog log_entry;
         log_entry.timestamp = Time::get_singleton()->get_datetime_string_from_system();
-        log_entry.tool_name = tool_name;
+        log_entry.tool_name = effective_tool_name;
         log_entry.success = !exec_result.has("_exec_error");
         log_entry.args = args;
         log_entry.result = ToolExecutor::extract_result(exec_result);
@@ -370,6 +371,33 @@ Dictionary McpHandler::handle_tools_call(const Dictionary &params, const Variant
             err_info.get("code", kInternalError),
             err_info.get("message", "Unknown error"),
             err_info.get("data", Variant()));
+    }
+
+    // Pending bridge request — poll bridge server immediately for a fast synchronous response.
+    // For fast commands (scene tree, properties, input) the response arrives within 1 frame.
+    if (exec_result.has("pending") &&
+        exec_result["pending"].get_type() == Variant::INT) {
+        const int64_t pending_id = static_cast<int64_t>(exec_result["pending"]);
+        if (bridge_server_) {
+            // Poll the bridge server to process any incoming responses
+            bridge_server_->poll();
+            // Check if the response for this pending request has been queued
+            // The response_cb_ will have already enqueued an event if data arrived.
+        }
+        // A brief poll is done; if data arrived, it's in the event queue.
+        // Otherwise, return pending info — client can wait for SSE.
+        Dictionary result_content;
+        result_content["pending"] = pending_id;
+        result_content["message"] = "Bridge request in progress, response will arrive via SSE event";
+        Array content;
+        Dictionary text_item;
+        text_item["type"] = "text";
+        text_item["text"] = JSON::stringify(result_content);
+        content.push_back(text_item);
+        Dictionary mcp_result;
+        mcp_result["content"] = content;
+        mcp_result["isError"] = false;
+        return make_jsonrpc_result(id, mcp_result);
     }
 
     // Strip internal keys and use as JSON-RPC result

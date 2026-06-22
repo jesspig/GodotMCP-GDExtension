@@ -28,47 +28,56 @@ pipeline:
 
         - id: wait_for_bridge
           tool: wait_for_bridge
-          args: { timeout_ms: 12000, interval_ms: 200 }
+          args: { timeout_ms: 12000 }
           expect: { status: ok }
+
+        - id: list_game_instances
+          tool: list_game_instances
+          description: Lists connected game instances
+          expect:
+            has_keys: [instances, count]
+            field_checks:
+              - key: count
+                not_empty: true
 
         - id: get_game_scene_tree
           tool: get_game_scene_tree
-          args: { max_depth: 3, timeout_ms: 2000 }
+          args: { max_depth: 3 }
           expect: { status: ok }
 
         - id: get_game_node_property
           tool: get_game_node_property
-          args: { node_path: "/root/TestRoot/TestSprite", property: "name", timeout_ms: 2000 }
+          args: { node_path: "/root/TestRoot/TestSprite", property: "name" }
           expect: { status: ok }
 
         - id: get_game_node_property_2
           tool: get_game_node_property
-          args: { node_path: "/root/TestRoot/TestSprite", property: "visible", timeout_ms: 2000 }
+          args: { node_path: "/root/TestRoot/TestSprite", property: "visible" }
           expect: { status: ok }
 
         - id: set_game_node_property
           tool: set_game_node_property
-          args: { node_path: "/root/TestRoot/TestSprite", property: "visible", value: false, timeout_ms: 2000 }
+          args: { node_path: "/root/TestRoot/TestSprite", property: "visible", value: false }
           expect: { status: ok }
 
         - id: get_game_node_property_3
           tool: get_game_node_property
-          args: { node_path: "/root/TestRoot/TestSprite", property: "visible", timeout_ms: 2000 }
+          args: { node_path: "/root/TestRoot/TestSprite", property: "visible" }
           expect: { status: ok }
 
         - id: capture_game_screenshot
           tool: capture_game_screenshot
-          args: { format: "png", timeout_ms: 5000 }
+          args: { format: "png" }
           expect: { status: ok }
 
         - id: call_method_in_game
           tool: call_method_in_game
-          args: { node_path: "/root/TestRoot", method: "has_node", args: ["TestSprite"], timeout_ms: 2000 }
+          args: { node_path: "/root/TestRoot", method: "has_node", args: ["TestSprite"] }
           expect: { status: ok }
 
         - id: simulate_game_input
           tool: simulate_game_input
-          args: { actions: [{ type: "key", key: "Space", pressed: true }], timeout_ms: 2000 }
+          args: { actions: [{ type: "key", key: "Space", pressed: true }] }
           expect: { status: ok }
 
         - id: stop_project

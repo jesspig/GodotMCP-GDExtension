@@ -14,7 +14,7 @@
 
 | 维度 | 全量返回方案 | 渐进式披露方案（当前+优化） |
 |------|-------------|--------------------------|
-| tools/list 返回 | 153 个工具 schema（~50KB JSON） | 7 个元工具（~3KB JSON） |
+| tools/list 返回 | 152 个工具 schema（~50KB JSON） | 5 个元工具（~3KB JSON） |
 | AI 首次 token 消耗 | 高（全部 schema 进入 context） | 低（仅元工具进入 context） |
 | 工具发现路径 | 单次调用即可 | 元工具链 + 搜索引擎 |
 | 标准 MCP 兼容性 | 完全兼容 | 需 AI 使用元工具发现 |
@@ -28,7 +28,7 @@
 
 | 客户端 | 已知 Issue | 对全量方案的影響 | 对渐进式披露的影响 |
 |--------|-----------|-----------------|-------------------|
-| Claude Code | `#45` — `tools/list` 缓存 1 小时 TTL | 153 工具列表静默过期 | **无影响** — 元工具始终即时可用 |
+| Claude Code | `#45` — `tools/list` 缓存 1 小时 TTL | 152 工具列表静默过期 | **无影响** — 元工具始终即时可用 |
 | Claude Code | `#24785` — 分页 broken，`nextCursor` 被忽略 | 超出一页的工具静默丢失 | **无影响** — 发现链不走分页 |
 | Claude Code | `#4118` — `list_changed` 通知不生效 | 工具变更后客户端看不到更新 | **无影响** — AI 每次 `tools/call` 都是实时查询 |
 | Claude Web | `#45` comment — `list_changed` 后新工具查不到 | 新工具无法调用 | **无影响** — `find_tool` / `get_tools` 总是返回最新 |
@@ -48,16 +48,16 @@ MCP 社区也正在向渐进式披露方向演进：`Discussion #1923` 提案 `t
 
 ### 2.1 现状
 
-当前 7 个元工具（`is_meta()==true`）：
+当前 5 个元工具（`is_meta()==true`）：
 
 ```json
 get_info              // 连接状态、引擎版本、项目配置等
 get_tools             // 按分类路径列出工具（不含子分类）
 get_categories        // 分类树，支持 path 钻取和 max_depth
-get_tool_detail       // 单工具完整 schema
+get_tool_detail       // 单工具完整 schema（已合并入 get_tools 的 detail=true 模式）
 find_tool             // 4 阶段权重搜索引擎
 call_tool             // 兜底调用任意工具
-list_settings         // 列出项目设置（is_meta=true）
+list_settings         // 列出项目设置（is_meta=false，属 editor_tools/settings）
 ```
 
 另有客户端配置生成功能位于底部面板 `McpDock` UI（`client_config_registry.hpp` 实现），作为 `get_info` 的可选返回字段合并计划（见下文）。
@@ -66,30 +66,33 @@ list_settings         // 列出项目设置（is_meta=true）
 
 **合并 `get_tools` + `get_tool_detail` → `get_tools`（增强）**
 
-`get_tools` 改为可选返回详情的模式：
+`get_tools` 简化为两个模式：按名查详情 / 无参列出全部。分类浏览由 `get_categories` 负责，搜索由 `find_tool` 负责。
 
 ```json
-// get_tools(category="editor_tools/scene_tree", detail=false)
-// →
-[
-  {"id": 0, "name": "add_node", "brief": "Add a new node as child"},
-  {"id": 1, "name": "delete_node", "brief": "Delete a node"},
-  ...
-]
-
-// get_tools(category="editor_tools/scene_tree", detail=true, name="add_node")
+// get_tools(name="add_node")
 // →
 {
-  "name": "add_node",
-  "brief": "Add a new node as child",
-  "category": "editor_tools/scene_tree",
-  "inputSchema": { "type": "object", "properties": {...} },
-  "is_destructive": false,
+  "id": "add_node",
+  "name": "Add a new node as child",
+  "description": "...",
+  "category_path": "editor_tools/scene_tree",
+  "parameters": [...],
+  "required": [...],
   "usage_example": "..."
+}
+
+// get_tools()
+// →
+{
+  "tools": [
+    {"id": "add_node", "name": "Add a new node", "description": "...", "category": "editor_tools/scene_tree"},
+    ...
+  ],
+  "count": 152
 }
 ```
 
-这样 `get_tool_detail` 可以作为独立工具移除，节省 1 个元工具槽位。
+这样 `get_tool_detail` 可以作为独立工具移除，节省 1 个元工具槽位。`category` 和 `detail` 参数不再需要——职责分离到 `get_categories` 和 `find_tool`。
 
 **将客户端配置纳入 `get_info`（取代独立工具/UI）**
 
@@ -100,7 +103,7 @@ list_settings         // 列出项目设置（is_meta=true）
 {
   "connection": {"status": "ok"},
   "engine": {"version": "4.6.stable"},
-  "plugin": {"builtin_tools": 153},
+  "plugin": {"builtin_tools": 152},
   "client_configs": {
     "claude_code": {"url": "http://localhost:9600/mcp", ...},
     "cursor": {"url": "http://localhost:9600/mcp", ...}
@@ -115,13 +118,12 @@ list_settings         // 列出项目设置（is_meta=true）
 | 工具 | 功能 | schema 大小 |
 |------|------|:----------:|
 | `get_info` | 精简版：引擎/项目/桥接状态 + 可选客户端配置 | ~1KB |
-| `get_tools` | 统一：按分类查工具列表，可选查看详情 | ~0.5KB |
+| `get_tools` | 按名查工具详情 / 无参列出全部工具（分类浏览交给 get_categories） | ~0.4KB |
 | `get_categories` | 分类树，max_depth 控制钻取深度 | ~0.5KB |
 | `find_tool` | 4 阶段权重搜索引擎（不变） | ~0.5KB |
 | `call_tool` | 兜底调用 | ~0.3KB |
-| `list_settings` | 项目设置查询（不变） | ~0.3KB |
 
-**精简效果**：7 → 5（合并 get_tools+get_tool_detail，客户端配置转入 get_info 可选字段），元工具首次交互 overhead 减少 ~28%。
+**精简效果**：7 → 5（合并 get_tools+get_tool_detail，客户端配置转入 get_info 可选字段，list_settings 移至 editor_tools/settings），元工具首次交互 overhead 减少 ~28%。
 
 ---
 
@@ -219,7 +221,7 @@ void McpToolRegistry::_on_tools_changed() {
 
 ## 6. 向后兼容
 
-- `tools/list` 行为**完全不变**——仍返回元工具（当前 7 个，精简后 5 个）
+- `tools/list` 行为**完全不变**——仍返回元工具（已从 7 个精简至 5 个）
 - 现有 MCP 客户端无需任何配置变更
 - 现有 AI 工作流（`get_categories` → `get_tools` → `get_tool_detail`）完全不变
 - `notifications/tools/list_changed` 是新增（修复）功能，不会破坏现有客户端
@@ -230,7 +232,7 @@ void McpToolRegistry::_on_tools_changed() {
 
 | ID | 名称 | 预期 |
 |:--:|------|------|
-| UT1 | `tools/list` 返回元工具 | 全部 `is_meta==true`（当前 7 个，精简后 5 个） |
+| UT1 | `tools/list` 返回元工具 | 全部 `is_meta==true`（已精简至 5 个） |
 | UT2 | 渐进式发现链完整 | `get_categories` → `get_tools(...)` → 工具存在 |
 | UT3 | 搜索引擎匹配 | `find_tool("add_node")` → `[name: "add_node", weight: 1000]` |
 | UT4 | 分类树缓存 | 二次调用 `get_categories` 快于首次 |
@@ -244,12 +246,12 @@ void McpToolRegistry::_on_tools_changed() {
 
 ## 8. 验收标准
 
-1. `tools/list` 返回元工具（当前 7 个，精简后 5 个），行为不变
+1. `tools/list` 返回元工具（已从 7 个精简至 5 个），行为不变
 2. `get_categories` 响应时间 < 1ms（首次） / < 0.1ms（缓存命中）
-3. `find_tool` 模糊搜索在 153 个工具中 < 2ms
+3. `find_tool` 模糊搜索在 152 个工具中 < 2ms
 4. SDK 工具注册后 SSE `tools/list_changed` 通知在 1 帧内送达
 5. Schema 缓存生效：同工具二次调用 `input_schema()` 零分配
-6. 所有 153 个工具仍可通过渐进式发现链完整访问
+6. 所有 152 个工具仍可通过渐进式发现链完整访问
 7. 全部现有 YAML 测试通过
 
 ---
@@ -258,7 +260,7 @@ void McpToolRegistry::_on_tools_changed() {
 
 | 文件 | 改动 | 行数 |
 |------|------|:----:|
-| `meta/get_tools.hpp` | 增强：支持 `detail=true` 模式 + `name` 过滤 | ~30 |
+| `meta/get_tools.hpp` | 简化：移除 category/detail 参数，name→详情 / 无参→列表 | ~-30 (净减) |
 | `meta/get_info.hpp` | 增强：可选返回客户端配置 | ~15 |
 | `meta/get_tool_detail.hpp` | 移除（功能并入 get_tools） | ~0 (删除) |
 | `generate_client_config`（UI 功能，`client_config_registry.hpp`） | 移除独立 UI，改为 get_info 可选返回字段 | ~0 (修改) |

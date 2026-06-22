@@ -16,7 +16,7 @@ public:
     ToolExecutor(HandlerRegistry &registry);
     ~ToolExecutor() = default;
 
-    godot::Dictionary execute(const godot::String &tool_name, const godot::Dictionary &arguments);
+    godot::Dictionary execute(const godot::String &tool_name, const godot::Dictionary &arguments, const godot::Variant &jsonrpc_id = {});
 
     static godot::Dictionary extract_result(const godot::Dictionary &exec_result);
 

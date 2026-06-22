@@ -2,6 +2,5 @@
 GODOT_MCP_TOOL(GetInfoTool, false)
 GODOT_MCP_TOOL(GetToolsTool, false)
 GODOT_MCP_TOOL(GetCategoriesTool, false)
-GODOT_MCP_TOOL(GetToolDetailTool, false)
 GODOT_MCP_TOOL(FindToolTool, false)
 GODOT_MCP_TOOL(CallToolTool, false)

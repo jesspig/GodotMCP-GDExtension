@@ -30,12 +30,12 @@
 
 - 继承 `Node`，`GDCLASS` 注册（`game_bridge.hpp:12`）
 - `register_types.cpp` 在 `LEVEL_SCENE` 阶段实例化，仅**非编辑器进程**
-- 通过 `call_deferred("_self_add")` 加入场景树（`game_bridge.cpp:70-84`），根节点未就绪时延迟重试
-- `_process()` 每帧：`connect_if_needed()` + `read_from_server()`（`game_bridge.cpp:63-68`）
+- 通过 `call_deferred("_self_add")` 加入场景树（`game_bridge.cpp:84-97`），根节点未就绪时延迟重试
+- `_process()` 每帧：`connect_to_editor()`（延迟重试，每 2 秒）+ `read_from_editor()`（`game_bridge.cpp:59-82`）
 - 端口环境变量：`GODOT_MCP_BRIDGE_PORT`（默认 9601）
 - **从 TCPServer 改为 TCPClient**：不再监听端口，改为连接编辑器的 9601
 - 接收缓冲区上限 **1048576 字节（1MB）**
-- `read_from_server()` 通过 `read_text_`/`read_offset_` 增量累积解码
+- `read_from_editor()` 通过 `read_buf_`/`read_offset_` 增量累积解码
 
 **7 个命令**（`game_bridge.cpp:213-226`）：
 
@@ -53,7 +53,7 @@
 
 | 工具 | 对应命令 | 说明 |
 |------|----------|------|
-| `wait_for_bridge` | — | 等待指定 instance_id 的游戏连接就绪 |
+| `wait_for_bridge` | — | 等待至少一个游戏实例通过桥接连接（不接收 instance_id） |
 | `get_game_scene_tree` | `get_scene_tree` | 参数新增 `instance_id` |
 | `get_game_node_property` | `get_property` | 参数新增 `instance_id` |
 | `set_game_node_property` | `set_property` | 参数新增 `instance_id` |
@@ -85,7 +85,8 @@ stateDiagram-v2
 
 - **`start(port)`**：创建 `TcpServer` 并绑定端口 9601
 - **`poll()`**：每帧执行 `accept_new_connections()`（接受新游戏连接）+ 为每个实例执行 `accumulate_read_data()`（非阻塞读取）+ `process_timeouts()`
-- **`send_command_async(instance_id, cmd, params)`**：通过 `instance_id` 找到对应 `GameInstance`，发送 TCP 帧，返回 `{pending: request_id}`
+- **`send_command_sync(instance_id, cmd, params, max_poll_ms=200)`**：同步发送+轻量轮询，超时返回空 Dictionary
+- **`send_command_async(instance_id, cmd, params)`**：异步发送，返回 `{pending: request_id}`（用于 SSE 延迟交付）
 
 ```mermaid
 sequenceDiagram
@@ -139,5 +140,4 @@ sequenceDiagram
 
 ## 已知限制
 
-1. **`pause_project` 响应格式不一致**：该工具直接返回 `send_command()` 原始 `{ok, data}` 响应，未经 `make_response()` 展平为 `{success, data}` 格式（`pause_project.hpp:49`）。
-2. **连接顺序随机**：多个游戏实例启动顺序不可控，AI 客户端应通过 `list_game_instances` 主动发现后再路由。
+1. **连接顺序随机**：多个游戏实例启动顺序不可控，AI 客户端应通过 `list_game_instances` 主动发现后再路由。

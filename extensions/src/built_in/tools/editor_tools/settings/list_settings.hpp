@@ -22,7 +22,7 @@ public:
         return "Lists all project settings (including feature tag variants). Supports filtering by category prefix (e.g. \"display/window\") "
                "and text search. Returns setting name, type and current value.";
     }
-    bool is_meta() const noexcept override { return true; }
+    bool is_meta() const noexcept override { return false; }
     bool needs_scene() const override { return false; }
     bool needs_node() const override { return false; }
     Dictionary build_input_schema() const override {

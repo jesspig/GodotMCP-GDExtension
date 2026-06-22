@@ -30,6 +30,11 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
 
     const Dictionary data = unwrap_result(result);
 
+    // 0. If tool returned an error, surface it before any key checks
+    if (result.has("error") && !expect.has("status")) {
+        return String("Tool returned error: ") + JSON::stringify(result);
+    }
+
     // 1. status check
     if (expect.has("status")) {
         if (expect["status"].get_type() != Variant::STRING) {

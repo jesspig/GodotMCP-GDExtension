@@ -31,7 +31,7 @@
 ```json
 {
     "mcp": {
-        "godot-mcp": {
+        "godot": {
             "type": "remote",
             "url": "http://127.0.0.1:9600/mcp"
         }
@@ -47,7 +47,6 @@
 {
   "mcpServers": {
     "godot": {
-      "type": "streamable-http",
       "url": "http://localhost:9600/mcp"
     }
   }

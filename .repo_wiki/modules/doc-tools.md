@@ -6,7 +6,7 @@
 
 | 工具 | 功能 | 依赖 |
 |------|------|------|
-| `search_docs` | 搜索 Godot 文档（通过编辑器 help 系统） | `EditorInterface::search_help()` |
+| `search_docs` | 搜索 Godot 文档（通过 ClassDB 手动遍历全部类和方法） | `ClassDB::get_class_list()` + `class_get_method_list()` |
 | `get_class_info` | 实例化类并返回方法/属性/信号列表 | `ClassDB::instantiate()` |
 | `get_best_practices` | 返回 Godot 最佳实践指南 | 内置数据 |
 | `get_class_list` | 列出所有注册类，可选 `inherit` 过滤 | `ClassDB::get_class_list()` |

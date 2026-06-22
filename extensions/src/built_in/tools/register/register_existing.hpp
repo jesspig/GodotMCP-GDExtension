@@ -171,6 +171,7 @@ GODOT_MCP_TOOL(SetGameNodePropertyTool, true)
 GODOT_MCP_TOOL(CallMethodInGameTool, false)
 GODOT_MCP_TOOL(CaptureGameScreenshotTool, false)
 GODOT_MCP_TOOL(SimulateGameInputTool, false)
+GODOT_MCP_TOOL(ListGameInstancesTool, false)
 
 // Runtime lifecycle tools
 GODOT_MCP_TOOL(RunProjectTool, false)

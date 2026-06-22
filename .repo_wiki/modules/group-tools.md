@@ -45,11 +45,11 @@ flowchart LR
 ```yaml
 # add_to_group
 args:
-  path: "Root/Player"
-  group: "enemies"
+  node_path: "Root/Player"
+  group_name: "enemies"
   persistent: true    # 可选，默认 true
 
 # get_nodes_in_group
 args:
-  group: "enemies"
+  group_name: "enemies"
 ```

@@ -36,29 +36,25 @@ protected:
             return ToolResult::err("BAD_PARAM", "class_name is required");
         }
 
-        Object *obj = ClassDB::instantiate(class_name);
-        if (!obj) {
+        if (!ClassDB::class_exists(class_name)) {
             return ToolResult::err("BAD_CLASS",
-                "Cannot instantiate class: " + class_name +
-                ". It may be abstract or not registered.");
+                "Class not found: " + class_name);
         }
 
-        String actual_class = obj->get_class();
-        String parent_class = ClassDB::get_parent_class(actual_class);
-        String inherits = actual_class;
+        String parent_class = ClassDB::get_parent_class(class_name);
+        String inherits = class_name;
 
-        // Walk the inheritance chain
         Array inheritance_chain;
-        inheritance_chain.append(actual_class);
+        inheritance_chain.append(class_name);
         while (!parent_class.is_empty()) {
             inheritance_chain.append(parent_class);
             inherits = parent_class;
             parent_class = ClassDB::get_parent_class(inherits);
         }
 
-        Array method_list = obj->get_method_list();
-        Array property_list = obj->get_property_list();
-        Array signal_list = obj->get_signal_list();
+        TypedArray<Dictionary> method_list = ClassDB::class_get_method_list(class_name, false);
+        TypedArray<Dictionary> property_list = ClassDB::class_get_property_list(class_name, false);
+        TypedArray<Dictionary> signal_list = ClassDB::class_get_signal_list(class_name, false);
 
         Array methods_json;
         for (int i = 0; i < method_list.size(); i++) {
@@ -93,10 +89,8 @@ protected:
             signals_json.append(entry);
         }
 
-        memdelete(obj);
-
         Dictionary data;
-        data["class_name"] = actual_class;
+        data["class_name"] = class_name;
         data["inherits"] = inherits;
         data["inheritance_chain"] = inheritance_chain;
         data["method_count"] = static_cast<int64_t>(methods_json.size());

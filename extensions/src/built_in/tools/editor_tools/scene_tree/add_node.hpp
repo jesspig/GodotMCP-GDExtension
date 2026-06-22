@@ -86,7 +86,8 @@ protected:
         }
         Node *parent = nullptr;
         if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
-            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
+            godot::Dictionary nested = err->get("error", godot::Dictionary());
+            return ToolResult::err("NODE_NOT_FOUND", nested.get("message", parent_path));
         }
         if (node_name.is_empty()) {
             node_name = class_name;

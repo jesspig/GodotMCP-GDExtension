@@ -2,13 +2,9 @@
 """
 GodotMCP Test Orchestrator
 
-Runs YAML test files through the C++ /run-tests endpoint,
-manages Godot editor lifecycle, and generates a test report.
+Runs each YAML test file in its own Godot editor process (serial),
+preventing crashes in one test from cascading to others."""
 
-Usage:
-    python test_orchestrator.py
-    pytest test_orchestrator.py -v --asyncio-mode=auto
-"""
 import asyncio
 import glob
 import os
@@ -26,7 +22,6 @@ from test_phases.base import PhaseReport, TestResult
 
 
 def discover_yaml_files(cfg: dict) -> list[str]:
-    """Find .test.yaml or .yaml test files in yaml_tests/ directory."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     yaml_dir = os.path.join(script_dir, "yaml_tests")
     if not os.path.isdir(yaml_dir):
@@ -39,12 +34,11 @@ def discover_yaml_files(cfg: dict) -> list[str]:
 
 
 async def check_run_tests_endpoint(mcp_port: int) -> bool:
-    """Check if the C++ /run-tests endpoint is available."""
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 f"http://127.0.0.1:{mcp_port}/run-tests",
-                content="name: ping\ntests: []",
+                content="name: ping\npipeline:\n  stages:\n    - id: ping\n      steps: []",
                 headers={"Content-Type": "application/x-yaml"},
                 timeout=5,
             )
@@ -54,7 +48,6 @@ async def check_run_tests_endpoint(mcp_port: int) -> bool:
 
 
 async def run_yaml_test_file(file_path: str, mcp_port: int) -> dict:
-    """Read a YAML file and POST it to /run-tests. Returns the JSON result."""
     with open(file_path, "r", encoding="utf-8") as f:
         yaml_content = f.read()
     async with httpx.AsyncClient() as client:
@@ -114,171 +107,151 @@ def cleanup_old_reports(cfg: dict, keep_count: int = 10):
             pass
 
 
+def parse_yaml_headless(yaml_path: str) -> bool:
+    with open(yaml_path, 'r', encoding='utf-8') as f:
+        for line in f.readlines()[:10]:
+            line = line.strip()
+            if line.startswith('headless:'):
+                val = line.split(':', 1)[1].strip().lower()
+                return val in ('true', 'yes', '1')
+    return True
+
+
 async def run_test_session(cfg: dict) -> TestReport:
     report = TestReport()
-
-    # --- Phase 00: Pre-clean leftover files and old reports ---
     pre_cleanup(cfg)
     cleanup_old_reports(cfg)
 
-    # --- Start Godot ---
-    manager = GodotManager(
+    report.set_env(
         godot_path=cfg["godot_path"],
-        project_path=cfg["project_path"],
         headless=cfg["godot_headless"],
         mcp_port=cfg["mcp_port"],
+        project_path=cfg["project_path"],
     )
 
-    try:
-        if cfg.get("no_auto"):
-            if not await manager._check_mcp_ready():
-                raise RuntimeError("MCP server not reachable on port " + str(cfg["mcp_port"]))
-            print("[setup] Skipping Godot auto-start (--no-auto)")
-        else:
-            started = await manager.ensure_running(timeout=60)
-            if not started:
-                raise RuntimeError("Failed to start Godot editor or connect to MCP server")
+    yaml_files = discover_yaml_files(cfg)
+    if not yaml_files:
+        print("[setup] No YAML test files found in yaml_tests/")
+        return report
 
-        report.set_env(
-            godot_path=cfg["godot_path"],
-            headless=cfg["godot_headless"],
-            mcp_port=cfg["mcp_port"],
-            project_path=cfg["project_path"],
-        )
-    except:
-        await manager.stop()
-        raise
+    headless_default = cfg.get("godot_headless", False)
+    no_auto = cfg.get("no_auto", False)
+    keep_open = cfg.get("keep_open", False)
 
-    # --- Check for C++ /run-tests endpoint ---
-    try:
-        use_cpp_engine = await check_run_tests_endpoint(cfg["mcp_port"])
-        if use_cpp_engine:
-            print("[setup] C++ TestEngine available 鈥?using /run-tests endpoint")
+    last_manager = None
 
-            yaml_files = discover_yaml_files(cfg)
-            if not yaml_files:
-                print("[setup] No YAML test files found in yaml_tests/")
-            else:
-                headless_mode = cfg.get("godot_headless", False)
-                filtered_files = []
-                for yaml_path in yaml_files:
-                    fname = os.path.basename(yaml_path)
-                    with open(yaml_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                    yaml_headless = True
-                    for line in content.split('\n')[:10]:
-                        line = line.strip()
-                        if line.startswith('headless:'):
-                            val = line.split(':', 1)[1].strip().lower()
-                            yaml_headless = val in ('true', 'yes', '1')
-                            break
-                    if headless_mode and not yaml_headless:
-                        print(f"[skip] {fname} — requires GUI, skipping in headless mode")
-                        continue
-                    filtered_files.append(yaml_path)
-                yaml_files = filtered_files
+    for yaml_path in yaml_files:
+        fname = os.path.basename(yaml_path)
 
-                for yaml_path in yaml_files:
-                    t0 = time.time()
-                    fname = os.path.basename(yaml_path)
-                    try:
-                        result = await run_yaml_test_file(yaml_path, cfg["mcp_port"])
-                        elapsed = time.time() - t0
+        yaml_headless = parse_yaml_headless(yaml_path)
+        if headless_default and not yaml_headless:
+            print(f"[skip] {fname} — requires GUI, skipping in headless mode")
+            continue
 
-                        summary = result.get("summary", {})
-                        total = summary.get("total", 0)
-                        passed = summary.get("passed", 0)
-                        failed = summary.get("failed", 0)
-                        deleted = summary.get("cleanup_deleted", [])
-                        skipped = summary.get("cleanup_skipped", [])
-                        skipped_tests = summary.get("skipped", 0)
-                        call_count = summary.get("call_count", 0)
-                        call_success = summary.get("call_success", 0)
-                        call_fail = summary.get("call_fail", 0)
-                        call_skip = summary.get("call_skip", 0)
-                        unique_tools = len(summary.get("unique_tools", []))
-                        unique_success = len(summary.get("unique_success", []))
-                        unique_fail = len(summary.get("unique_fail", []))
-                        unique_skip = len(summary.get("unique_skip", []))
-                        duration_ms = summary.get("duration_ms", 0)
-                        errors = summary.get("errors", [])
-
-                        phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
-                        phase_report.start_time = t0
-                        phase_report.call_count = call_count
-                        phase_report.call_success = call_success
-                        phase_report.call_fail = call_fail
-                        phase_report.call_skip = call_skip
-                        phase_report.unique_tools = unique_tools
-                        phase_report.unique_success = unique_success
-                        phase_report.unique_fail = unique_fail
-                        phase_report.unique_skip = unique_skip
-                        phase_report.duration_ms = duration_ms
-                        phase_report.errors = errors
-                        for t in result.get("tests", []):
-                            tr = TestResult(
-                                tool=t.get("tool", ""),
-                                status="PASS" if t.get("passed") else "FAIL",
-                                expected=t.get("description", ""),
-                                actual={"raw": t},
-                                error=t.get("error", ""),
-                            )
-                            phase_report.results.append(tr)
-                        phase_report.end_time = time.time()
-                        report.add_phase(phase_report)
-
-                        status = "OK" if failed == 0 else f"FAIL({failed})"
-                        print(f"[{fname}] {total} tests, {passed} passed, {failed} failed, {skipped_tests} skipped "
-                              f"({elapsed:.1f}s) | calls: {call_count}({call_success}ok/{call_fail}fail/{call_skip}skip) "
-                              f"| tools: {unique_tools}({unique_success}ok/{unique_fail}fail)")
-                        if failed > 0:
-                            for t in result.get("tests", []):
-                                if not t.get("passed"):
-                                    print(f"  FAIL: {t.get('tool')} ({t.get('description', '')}) 鈥?{t.get('error', '')[:120]}")
-                    except Exception as e:
-                        elapsed = time.time() - t0
-                        phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
-                        phase_report.start_time = t0
-                        phase_report.end_time = time.time()
-                        report.add_phase(phase_report)
-                        print(f"[{fname}] ERROR ({elapsed:.1f}s): {e}")
-
-            total = report.total_tools
-            passed = report.passed
-            failed = report.failed
-            print(f"\n{'='*50}")
-            print(f"Total: {total} | Passed: {passed} | Failed: {failed}")
-            if failed > 0:
-                print(f"\n{'='*50}")
-                print("Failed Tools (cross-pipeline):")
-                failed_rows = []
-                for ts in report.tool_summary:
-                    if ts["fail"] > 0:
-                        phases_str = ",".join(ts["failing_phases"])
-                        failed_rows.append([ts["tool"], ts["phases"], ts["pass"], ts["fail"], phases_str])
-                print(tabulate(failed_rows, headers=["Tool", "Pipelines", "Pass", "Fail", "Failing Phases"],
-                              tablefmt="grid"))
-            else:
-                print(f"\nAll {report.total_unique_tools} tested tools passed across all {len(report.phases)} pipelines.")
-                if len(report.tool_summary) > 0:
-                    print(tabulate(
-                        [[ts["tool"], ts["phases"], ts["total"], ts["pass"], ts["fail"], ts["skip"]]
-                         for ts in report.tool_summary],
-                        headers=["Tool", "Pipelines", "Tests", "Pass", "Fail", "Skip"],
-                        tablefmt="grid"))
-
-            report.set_env(
-                engine="cpp",
-                yaml_files=len(yaml_files),
+        if no_auto:
+            # Use a single persistent Godot (user-managed)
+            manager = GodotManager(
+                godot_path=cfg["godot_path"],
+                project_path=cfg["project_path"],
+                headless=yaml_headless,
+                mcp_port=cfg["mcp_port"],
             )
-        else:
-            raise RuntimeError("C++ /run-tests endpoint not available 鈥?cannot run tests")
+            if not last_manager:
+                if not await manager._check_mcp_ready():
+                    phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
+                    phase_report.start_time = time.time()
+                    phase_report.end_time = time.time()
+                    phase_report.duration_ms = 0
+                    phase_report.call_count = 0
+                    phase_report.call_success = 0
+                    phase_report.call_fail = 1
+                    phase_report.call_skip = 0
+                    phase_report.unique_tools = 1
+                    phase_report.unique_success = 0
+                    phase_report.unique_fail = 1
+                    phase_report.unique_skip = 0
+                    phase_report.errors = [{"tool": "<crash>", "error": "MCP server not reachable"}]
+                    phase_report.results.append(TestResult(tool="<crash>", status="FAIL",
+                        expected="Godot process should complete all tests",
+                        actual={"error": "MCP server not reachable"},
+                        error="MCP server not reachable"))
+                    report.add_phase(phase_report)
+                    print(f"[{fname}] ERROR (0.0s): MCP server not reachable")
+                    continue
+                last_manager = manager
+            await _run_single_file(cfg, report, yaml_path, manager)
+            continue
 
-    finally:
-        if not cfg.get("keep_open"):
+        # Per-file Godot lifecycle
+        use_gui = not yaml_headless
+        manager = GodotManager(
+            godot_path=cfg["godot_path"],
+            project_path=cfg["project_path"],
+            headless=not use_gui,
+            mcp_port=cfg["mcp_port"],
+        )
+        last_manager = manager
+
+        started = await manager.ensure_running(timeout=60)
+        if not started:
+            phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
+            phase_report.start_time = time.time()
+            phase_report.end_time = time.time()
+            phase_report.duration_ms = 0
+            phase_report.call_count = 0
+            phase_report.call_success = 0
+            phase_report.call_fail = 1
+            phase_report.call_skip = 0
+            phase_report.unique_tools = 1
+            phase_report.unique_success = 0
+            phase_report.unique_fail = 1
+            phase_report.unique_skip = 0
+            phase_report.errors = [{"tool": "<crash>", "error": "Failed to start Godot"}]
+            phase_report.results.append(TestResult(tool="<crash>", status="FAIL",
+                expected="Godot process should complete all tests",
+                actual={"error": "Failed to start Godot"},
+                error="Failed to start Godot"))
+            report.add_phase(phase_report)
+            print(f"[{fname}] ERROR (0.0s): Failed to start Godot")
+            continue
+
+        # Run the actual test
+        await _run_single_file(cfg, report, yaml_path, manager)
+
+        # Stop Godot (isolated per file)
+        if not keep_open:
             await manager.stop()
 
-    # --- Save reports ---
+    # Final report summary
+    total = report.total_tools
+    passed = report.passed
+    failed = report.failed
+    print(f"\n{'='*50}")
+    print(f"Total: {total} | Passed: {passed} | Failed: {failed}")
+    if failed > 0:
+        print(f"\n{'='*50}")
+        print("Failed Tools (cross-pipeline):")
+        failed_rows = []
+        for ts in report.tool_summary:
+            if ts["fail"] > 0:
+                phases_str = ",".join(ts["failing_phases"])
+                failed_rows.append([ts["tool"], ts["phases"], ts["pass"], ts["fail"], phases_str])
+        print(tabulate(failed_rows, headers=["Tool", "Pipelines", "Pass", "Fail", "Failing Phases"],
+                       tablefmt="grid"))
+    else:
+        print(f"\nAll {report.total_unique_tools} tested tools passed across all {len(report.phases)} pipelines.")
+        if len(report.tool_summary) > 0:
+            print(tabulate(
+                [[ts["tool"], ts["phases"], ts["total"], ts["pass"], ts["fail"], ts["skip"]]
+                 for ts in report.tool_summary],
+                headers=["Tool", "Pipelines", "Tests", "Pass", "Fail", "Skip"],
+                tablefmt="grid"))
+
+    report.set_env(
+        engine="cpp",
+        yaml_files=len(yaml_files),
+    )
+
     json_path = report.save_json(cfg["output_dir"])
     md_path = report.save_markdown(cfg["output_dir"])
     print(f"\nReports saved:")
@@ -286,6 +259,111 @@ async def run_test_session(cfg: dict) -> TestReport:
     print(f"  Markdown: {md_path}")
 
     return report
+
+
+async def _run_single_file(cfg: dict, report: TestReport, yaml_path: str, manager: GodotManager):
+    fname = os.path.basename(yaml_path)
+    t0 = time.time()
+
+    try:
+        use_cpp = await check_run_tests_endpoint(cfg["mcp_port"])
+        if not use_cpp:
+            raise RuntimeError("C++ /run-tests endpoint not available")
+
+        result = await run_yaml_test_file(yaml_path, cfg["mcp_port"])
+        elapsed = time.time() - t0
+
+        summary = result.get("summary", {})
+        total = summary.get("total", 0)
+        passed = summary.get("passed", 0)
+        failed = summary.get("failed", 0)
+        skipped_tests = summary.get("skipped", 0)
+        call_count = summary.get("call_count", 0)
+        call_success = summary.get("call_success", 0)
+        call_fail = summary.get("call_fail", 0)
+        call_skip = summary.get("call_skip", 0)
+        unique_tools = len(summary.get("unique_tools", []))
+        unique_success = len(summary.get("unique_success", []))
+        unique_fail = len(summary.get("unique_fail", []))
+        unique_skip = len(summary.get("unique_skip", []))
+        duration_ms = summary.get("duration_ms", 0)
+        errors = summary.get("errors", [])
+
+        phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
+        phase_report.start_time = t0
+        phase_report.call_count = call_count
+        phase_report.call_success = call_success
+        phase_report.call_fail = call_fail
+        phase_report.call_skip = call_skip
+        phase_report.unique_tools = unique_tools
+        phase_report.unique_success = unique_success
+        phase_report.unique_fail = unique_fail
+        phase_report.unique_skip = unique_skip
+        phase_report.duration_ms = duration_ms
+        phase_report.errors = errors
+        for t in result.get("tests", []):
+            tr = TestResult(
+                tool=t.get("tool", ""),
+                status="PASS" if t.get("passed") else "FAIL",
+                expected=t.get("description", ""),
+                actual={"raw": t},
+                error=t.get("error", ""),
+            )
+            phase_report.results.append(tr)
+        phase_report.end_time = time.time()
+        report.add_phase(phase_report)
+
+        status = "OK" if failed == 0 else f"FAIL({failed})"
+        print(f"[{fname}] {total} tests, {passed} passed, {failed} failed, {skipped_tests} skipped "
+              f"({elapsed:.1f}s) | calls: {call_count}({call_success}ok/{call_fail}fail/{call_skip}skip) "
+              f"| tools: {unique_tools}({unique_success}ok/{unique_fail}fail)")
+        if failed > 0:
+            for t in result.get("tests", []):
+                if not t.get("passed"):
+                    print(f"  FAIL: {t.get('tool')} ({t.get('description', '')})  - {t.get('error', '')[:120]}")
+
+    except Exception as e:
+        elapsed = time.time() - t0
+        phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
+        phase_report.start_time = t0
+        phase_report.end_time = time.time()
+        phase_report.duration_ms = int(elapsed * 1000)
+        phase_report.call_count = 0
+        phase_report.call_success = 0
+        phase_report.call_fail = 1
+        phase_report.call_skip = 0
+        phase_report.unique_tools = 1
+        phase_report.unique_success = 0
+        phase_report.unique_fail = 1
+        phase_report.unique_skip = 0
+
+        crash_detail = str(e) if str(e) else ""
+        # Check if Godot crashed
+        if manager and manager.process:
+            rc = manager.process.poll()
+            if rc is not None and rc != 0:
+                crash_detail = f"Godot exited with code {rc} ({crash_detail})"
+                print(f"[{fname}] Godot process died, exit code {rc}")
+            elif rc is not None and rc == 0:
+                crash_detail = f"HTTP error after Godot exit: {crash_detail}"
+        if isinstance(e, httpx.HTTPStatusError):
+            body_text = ""
+            try:
+                body_text = e.response.text[:500]
+            except Exception:
+                pass
+            crash_detail = f"HTTP {e.response.status_code}: {body_text or e.response.reason_phrase}"
+
+        phase_report.errors = [{"tool": "<crash>", "error": crash_detail}]
+        phase_report.results.append(TestResult(
+            tool="<crash>",
+            status="FAIL",
+            expected="Godot process should complete all tests",
+            actual={"error": crash_detail},
+            error=crash_detail,
+        ))
+        report.add_phase(phase_report)
+        print(f"[{fname}] ERROR ({elapsed:.1f}s): {crash_detail}")
 
 
 async def main():

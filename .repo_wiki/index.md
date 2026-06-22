@@ -1,6 +1,6 @@
 # Godot MCP — 项目知识库
 
-> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600，MCP 2026-07-28 协议）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 `godot-cpp 10.0.0-rc1`，X-macro 分文件注册，四层工具体系（元工具 + 语义专用 + 通用兜底 + 文档查询），Godot ClassDB 运行时驱动文档数据，rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。**无 session，无 GET 端点，纯 POST 通信**。
+> C++ **GDExtension** 单进程架构，通过 **MCP Streamable HTTP**（端口 9600，MCP 2026-07-28 协议）将 Godot 4.6+ 编辑器暴露给 AI 工具。使用 `godot-cpp 10.0.0-rc1`，X-macro 分文件注册，四层工具体系（元工具 + 语义专用 + 通用兜底 + 文档查询），Godot ClassDB 运行时驱动文档数据，rapidyaml（ryml）YAML 解析，内置 C++ 测试引擎。**无 session，支持 GET（SSE 流）、POST、OPTIONS 三种 HTTP 方法**。
 
 ---
 
@@ -10,24 +10,24 @@
 |------|---------|
 | C++ 源码根 | `extensions/src/` |
 | 注册方式 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
-| 工具总数 | **153**（全部 X-macro 注册，无重复，无 codegen） |
-| 工具体系 | **四层体系**：语义专用(135，含 13 运行时) + 通用兜底(2) + 文档(8) + 元工具(7) |
-| 渐进式披露 | `tools/list` 仅返回 7 个元工具（`is_meta()==true`，~3KB JSON），其余通过发现链按需加载 |
-| 发现链 | `get_categories()` → `get_tools(category)` → `get_tool_detail(name)` / `find_tool(query)` |
+| 工具总数 | **152**（全部 X-macro 注册，无重复，无 codegen） |
+| 工具体系 | **四层体系**：语义专用(137，含 14 运行时) + 通用兜底(2) + 文档(8) + 元工具(5) |
+| 渐进式披露 | `tools/list` 仅返回 5 个元工具（`is_meta()==true`，~3KB JSON），其余通过发现链按需加载 |
+| 发现链 | `get_categories()` → `get_tools(category)` → `get_tools(name, detail=true)` / `find_tool(query)` |
 | 客户端自动配置 | **11 客户端**支持，项目级配置路径，通过底部面板一键生成 |
 | Resources 层 | 3 个资源（scene-tree, project-settings, editor-info）+ 1 个 URI 模板（scene-node/{path}）[→ Phase 2: 扩展至 11+ 个](design/09-lld-resources-prompts.md) |
 | 指令数据源 | **Godot ClassDB 运行时查询**（零维护） |
 | 顶级分类 | 自动发现：`meta_tools`、`editor_tools`、`node_tools`、`runtime_tools` |
 | 场景树工具 | `editor_tools/scene_tree/`（24 工具） |
-| 运行时桥接工具 | `runtime_tools/bridge/`（7 工具）+ `lifecycle/`（6 工具） |
+| 运行时桥接工具 | `runtime_tools/bridge/`（8 工具）+ `lifecycle/`（6 工具） |
 | SDK 层 | `extensions/src/sdk/`（`McpToolDefinition` + `McpToolRegistry`） |
 | 测试框架 | C++ `TestEngine`（`/run-tests`）+ Python 编排器 |
 | HTTP 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） |
 | 桥接端口 | `:9601`（env `GODOT_MCP_BRIDGE_PORT` 覆盖） |
 | Pinned deps | `godot-cpp 10.0.0-rc1`、`ryml v0.7.0` |
-| 版本号 | 仅 `CMakeLists.txt` 的 `PROJECT_VERSION` |
+| 当前版本 | **0.2.2-dev1**（仅 `CMakeLists.txt` 的 `PROJECT_VERSION`） |
 | Python | `>=3.14`（`.python-version` 锁定） |
-| MCP 协议 | **Streamable HTTP 2026-07-28**（无 session，无 GET 端点） |
+| MCP 协议 | **Streamable HTTP 2026-07-28**（无 session，支持 GET SSE 流 + POST + OPTIONS） |
 
 ---
 
@@ -54,7 +54,7 @@
 | [分类自动发现](modules/category-discovery.md) | `category()` 返回值 `/` 分割自动建树 |
 | [MCP 传输层](modules/ipc-bridge.md) | HTTP Server、SSE 流、JSON-RPC 2.0 编解码 |
 | [HTTP 服务器](modules/http-server.md) | `HttpServer` 实现、请求路由、CORS、限流 |
-| [运行时桥接](modules/runtime-bridge.md) | `RuntimeBridge` + `GameBridgeNode` TCP 通信实现 |
+| [运行时桥接](modules/runtime-bridge.md) | `RuntimeBridgeServer` + `GameBridgeNode` TCP 桥接通信实现 |
 | [SDK 层](modules/sdk-layer.md) | `McpToolDefinition` / `McpToolRegistry` 自定义工具 API |
 | [插件生命周期](modules/editor-plugin.md) | `McpEditorPlugin` 初始化、工具注册、`_process()` 驱动 |
 | [UI 组件](modules/ui-components.md) | 底部面板、确认对话框、控制台、日志器 |
@@ -67,16 +67,25 @@
 
 | 分类 | 文档 | 工具数 |
 |------|------|:------:|
-| 元工具 | [meta-tools.md](modules/meta-tools.md) | 7 |
+| 元工具 | [meta-tools.md](modules/meta-tools.md) | 5 |
 | 场景树 | [scene-tree-tools.md](modules/scene-tree-tools.md) | 24 |
-| 场景命令 | [scene-commands.md](modules/scene-commands.md) | — |
 | 工作区/调试器 | [workspace-tools.md](modules/workspace-tools.md) | 13 |
 | 脚本 | [script-tools.md](modules/script-tools.md) | 12 |
 | 文件系统 | [filesystem-tools.md](modules/filesystem-tools.md) | 12 |
 | 动画 | [animation-tools.md](modules/animation-tools.md) | 10 |
 | 文档查询 | [doc-tools.md](modules/doc-tools.md) | 8 |
 | 资源管理 | [resource-tools.md](modules/resource-tools.md) | 6 |
-| 运行时工具 | [runtime-tools.md](modules/runtime-tools.md) | 13 |
+| 运行时工具 | [runtime-tools.md](modules/runtime-tools.md) | 14 |
+| Control/UI | — | 4 |
+| 碰撞形状 | — | 1 |
+| 导出 | — | 4 |
+| Shader | — | 5 |
+| 音频 | — | 3 |
+| 导航 | — | 3 |
+| 3D 场景 | — | 3 |
+| TileMap | — | 3 |
+| 可视化 | — | 1 |
+| 脚手架 | — | 1 |
 | 设置 | [settings-tools.md](modules/settings-tools.md) | 4 |
 | 输入映射 | [input-map.md](modules/input-map.md) | 4 |
 | 信号 | [signal-tools.md](modules/signal-tools.md) | 4 |
@@ -179,4 +188,4 @@
 - **DLL 热重载** — `.gdextension` 设 `reloadable = true`（Godot 4.2+ 官方机制，`GDExtensionManager::reload_extension()` 自动检测文件变更并重载扩展）。`main.py build` 直接覆盖 DLL，编辑器在检测到变更后自动重载。Windows 下因 OS Loader 锁定 DLL，覆盖可能失败（视系统版本和配置而异），此时关闭编辑器重试。已知约束：仅限编辑器构建、修改 Godot base class 后需重启编辑器。
 - **构建优化** — sccache/ccache、Unity jumbo build、lld-link 均已配置
 - **构建命令** — 始终用 `uv run python main.py`（Python >=3.14）
-- **不要误判渐进式披露** — `tools/list` 仅返回 7 个元工具（`is_meta()==true`，~3KB JSON），153 个工具通过发现链按需加载。首次对话的 token 开销与约 10 个工具的普通 MCP 服务器相当。验证方式：`get_info()` 返回的 `progressive_disclosure` 字段。（注意：`overview/architecture.md` 的 mermaid 图中的 `153 tool schemas` 指的是注册表总数，不是 `tools/list` 返回值；`tools/list` 的实现见 `mcp_handler.cpp:299` / `get_always_on_tools()`）。
+- **不要误判渐进式披露** — `tools/list` 仅返回 5 个元工具（`is_meta()==true`，~3KB JSON），152 个工具通过发现链按需加载。首次对话的 token 开销与约 10 个工具的普通 MCP 服务器相当。验证方式：`get_info()` 返回的 `progressive_disclosure` 字段。（注意：`overview/architecture.md` 的 mermaid 图中的 `152 tool schemas` 指的是注册表总数，不是 `tools/list` 返回值；`tools/list` 的实现见 `mcp_handler.cpp` / `get_always_on_tools()`）。
