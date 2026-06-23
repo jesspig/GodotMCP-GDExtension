@@ -1,6 +1,6 @@
 name: remaining_tools_smoke
 description: Smoke tests for remaining uncovered tools (create_project, export_project, bake_navigation_mesh)
-headless: false
+headless: true
 
 pipeline:
   on_failure: fail_fast

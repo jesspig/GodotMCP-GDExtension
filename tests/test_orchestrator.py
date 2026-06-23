@@ -134,30 +134,44 @@ async def run_test_session(cfg: dict) -> TestReport:
         print("[setup] No YAML test files found in yaml_tests/")
         return report
 
-    headless_default = cfg.get("godot_headless", False)
+    headless_only = cfg.get("godot_headless", False)
     no_auto = cfg.get("no_auto", False)
     keep_open = cfg.get("keep_open", False)
 
-    last_manager = None
-
+    # Group files by headless flag
+    headless_files = []
+    gui_files = []
     for yaml_path in yaml_files:
         fname = os.path.basename(yaml_path)
-
         yaml_headless = parse_yaml_headless(yaml_path)
-        if headless_default and not yaml_headless:
-            print(f"[skip] {fname} — requires GUI, skipping in headless mode")
+        if headless_only and not yaml_headless:
+            print(f"[skip] {fname} — requires GUI, skipping in headless-only mode")
             continue
+        if yaml_headless:
+            headless_files.append(yaml_path)
+        else:
+            gui_files.append(yaml_path)
+
+    # Run headless batch first (cheaper), then GUI batch
+    for batch_name, batch_files, batch_headless in [
+        ("headless", headless_files, True),
+        ("gui", gui_files, False),
+    ]:
+        if not batch_files:
+            continue
+        print(f"\n[batch] {batch_name}: {len(batch_files)} test(s)")
 
         if no_auto:
-            # Use a single persistent Godot (user-managed)
+            # Single persistent Godot (user-managed)
             manager = GodotManager(
                 godot_path=cfg["godot_path"],
                 project_path=cfg["project_path"],
-                headless=yaml_headless,
+                headless=batch_headless,
                 mcp_port=cfg["mcp_port"],
             )
-            if not last_manager:
-                if not await manager._check_mcp_ready():
+            if not await manager._check_mcp_ready():
+                for yaml_path in batch_files:
+                    fname = os.path.basename(yaml_path)
                     phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
                     phase_report.start_time = time.time()
                     phase_report.end_time = time.time()
@@ -177,50 +191,47 @@ async def run_test_session(cfg: dict) -> TestReport:
                         error="MCP server not reachable"))
                     report.add_phase(phase_report)
                     print(f"[{fname}] ERROR (0.0s): MCP server not reachable")
-                    continue
-                last_manager = manager
+                continue
+            for yaml_path in batch_files:
+                await _run_single_file(cfg, report, yaml_path, manager)
+            continue
+
+        # Per-file Godot lifecycle within each batch (isolation prevents crashes)
+        for yaml_path in batch_files:
+            manager = GodotManager(
+                godot_path=cfg["godot_path"],
+                project_path=cfg["project_path"],
+                headless=batch_headless,
+                mcp_port=cfg["mcp_port"],
+            )
+            started = await manager.ensure_running(timeout=60)
+            if not started:
+                fname = os.path.basename(yaml_path)
+                phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
+                phase_report.start_time = time.time()
+                phase_report.end_time = time.time()
+                phase_report.duration_ms = 0
+                phase_report.call_count = 0
+                phase_report.call_success = 0
+                phase_report.call_fail = 1
+                phase_report.call_skip = 0
+                phase_report.unique_tools = 1
+                phase_report.unique_success = 0
+                phase_report.unique_fail = 1
+                phase_report.unique_skip = 0
+                phase_report.errors = [{"tool": "<crash>", "error": "Failed to start Godot"}]
+                phase_report.results.append(TestResult(tool="<crash>", status="FAIL",
+                    expected="Godot process should complete all tests",
+                    actual={"error": "Failed to start Godot"},
+                    error="Failed to start Godot"))
+                report.add_phase(phase_report)
+                print(f"[{fname}] ERROR (0.0s): Failed to start Godot")
+                continue
+
             await _run_single_file(cfg, report, yaml_path, manager)
-            continue
 
-        # Per-file Godot lifecycle
-        use_gui = not yaml_headless
-        manager = GodotManager(
-            godot_path=cfg["godot_path"],
-            project_path=cfg["project_path"],
-            headless=not use_gui,
-            mcp_port=cfg["mcp_port"],
-        )
-        last_manager = manager
-
-        started = await manager.ensure_running(timeout=60)
-        if not started:
-            phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
-            phase_report.start_time = time.time()
-            phase_report.end_time = time.time()
-            phase_report.duration_ms = 0
-            phase_report.call_count = 0
-            phase_report.call_success = 0
-            phase_report.call_fail = 1
-            phase_report.call_skip = 0
-            phase_report.unique_tools = 1
-            phase_report.unique_success = 0
-            phase_report.unique_fail = 1
-            phase_report.unique_skip = 0
-            phase_report.errors = [{"tool": "<crash>", "error": "Failed to start Godot"}]
-            phase_report.results.append(TestResult(tool="<crash>", status="FAIL",
-                expected="Godot process should complete all tests",
-                actual={"error": "Failed to start Godot"},
-                error="Failed to start Godot"))
-            report.add_phase(phase_report)
-            print(f"[{fname}] ERROR (0.0s): Failed to start Godot")
-            continue
-
-        # Run the actual test
-        await _run_single_file(cfg, report, yaml_path, manager)
-
-        # Stop Godot (isolated per file)
-        if not keep_open:
-            await manager.stop()
+            if not keep_open:
+                await manager.stop()
 
     # Final report summary
     total = report.total_tools

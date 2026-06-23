@@ -1,6 +1,6 @@
 name: editor_scene_tools
 description: Instanced scene, branch save, toggle edit group, nav region/agent, animation player, light
-headless: false
+headless: true
 
 pipeline:
   on_failure: fail_fast

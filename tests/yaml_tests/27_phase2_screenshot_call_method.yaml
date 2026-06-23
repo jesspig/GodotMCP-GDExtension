@@ -1,0 +1,29 @@
+name: phase2_screenshot_call_method
+description: Phase 2 tests for screenshot params and call_method generalization
+headless: true
+
+pipeline:
+  on_failure: fail_fast
+  stages:
+    - id: screenshot_no_game
+      steps:
+        - id: screenshot_no_running_game
+          tool: capture_game_screenshot
+          description: Screenshot with no game running should fail gracefully
+          args:
+            format: "png"
+          expect:
+            status: error
+            error_code: "GAME_NOT_RUNNING"
+
+    - id: call_method_no_game
+      steps:
+        - id: call_method_no_running_game
+          tool: call_method_in_game
+          description: call_method with no game running should fail gracefully
+          args:
+            node_path: "/root/Main"
+            method: "get_name"
+          expect:
+            status: error
+            error_code: "GAME_NOT_RUNNING"

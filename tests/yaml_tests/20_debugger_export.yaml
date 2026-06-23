@@ -1,6 +1,6 @@
 name: debugger_export
 description: Debugger control, breakpoints, export, project scaffold
-headless: false
+headless: true
 
 pipeline:
   on_failure: fail_fast
