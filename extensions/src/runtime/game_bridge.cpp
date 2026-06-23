@@ -385,6 +385,12 @@ Dictionary GameBridgeNode::handle_call_method(const Dictionary &params) {
         r["error"] = String("Node not found: ") + node_path;
         return r;
     }
+    if (!node->has_method(method)) {
+        Dictionary r;
+        r["ok"] = false;
+        r["error"] = String("Method '") + method + String("' not found on node ") + node_path;
+        return r;
+    }
     Array args = params.get("args", Array());
     Array converted_args;
     converted_args.resize(args.size());
@@ -395,11 +401,16 @@ Dictionary GameBridgeNode::handle_call_method(const Dictionary &params) {
     Dictionary r;
     r["ok"] = true;
     r["data"] = result;
+    r["return_type"] = Variant::get_type_name(result.get_type());
     return r;
 }
 
 Dictionary GameBridgeNode::handle_screenshot(const Dictionary &params) {
     String format = params.get("format", "png");
+    int64_t max_w = params.get("max_width", static_cast<int64_t>(0));
+    int64_t max_h = params.get("max_height", static_cast<int64_t>(0));
+    double quality = params.get("quality", 0.85);
+
     Viewport *vp = get_viewport();
     if (!vp) {
         Dictionary r;
@@ -414,9 +425,26 @@ Dictionary GameBridgeNode::handle_screenshot(const Dictionary &params) {
         r["error"] = String("Unable to get viewport image");
         return r;
     }
+
+    // Resize if max dimensions specified
+    int64_t w = img->get_width();
+    int64_t h = img->get_height();
+    if (max_w > 0 || max_h > 0) {
+        int64_t target_w = max_w > 0 ? max_w : w;
+        int64_t target_h = max_h > 0 ? max_h : h;
+        float scale = std::min(static_cast<float>(target_w) / static_cast<float>(w),
+                               static_cast<float>(target_h) / static_cast<float>(h));
+        if (scale < 1.0f) {
+            int64_t new_w = std::max(static_cast<int64_t>(1), static_cast<int64_t>(w * scale));
+            int64_t new_h = std::max(static_cast<int64_t>(1), static_cast<int64_t>(h * scale));
+            img->resize(static_cast<int>(new_w), static_cast<int>(new_h), Image::INTERPOLATE_BILINEAR);
+        }
+    }
+
     PackedByteArray buf;
     if (format == "jpg" || format == "jpeg") {
-        buf = img->save_jpg_to_buffer(0.85f);
+        float q = static_cast<float>(std::clamp(quality, 0.0, 1.0));
+        buf = img->save_jpg_to_buffer(q);
     } else {
         buf = img->save_png_to_buffer();
     }
@@ -427,6 +455,8 @@ Dictionary GameBridgeNode::handle_screenshot(const Dictionary &params) {
     data["mime"] = mime;
     data["data"] = b64;
     data["size"] = buf.size();
+    data["width"] = img->get_width();
+    data["height"] = img->get_height();
 
     Dictionary r;
     r["ok"] = true;

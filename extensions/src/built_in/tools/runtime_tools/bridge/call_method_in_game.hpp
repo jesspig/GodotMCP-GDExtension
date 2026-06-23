@@ -17,9 +17,12 @@ public:
     String brief() const noexcept override { return String("Call a method on a running game node"); }
     String description() const override {
         return String("Calls an arbitrary method on a node in the running game and returns the result. "
-                              "node_path is the node path (e.g. /root/Main/Player), "
-                              "method is the method name, args is the method argument array. "
-                              "Returns immediately with a pending token; the actual response arrives via SSE.");
+                      "node_path is the node path (e.g. /root/Main/Player), "
+                      "method is the method name, args is the method argument array. "
+                      "Args support all Godot types: primitives, strings, vectors (as {x,y} objects), "
+                      "colors (as {r,g,b,a} objects), and nested arrays/dictionaries. "
+                      "Returns the method's return value with its type name. "
+                      "Returns immediately with a pending token; the actual response arrives via SSE.");
     }
     void set_registry(HandlerRegistry *reg) override { registry_ = reg; }
 
@@ -27,7 +30,7 @@ public:
         return SchemaBuilder()
             .prop("node_path", "string", "Node path, e.g. /root/Main/Player")
             .prop("method", "string", "Method name")
-            .prop("args", "array", "Method argument array (optional)")
+            .prop("args", "array", "Method argument array (optional, supports all Godot types)")
             .prop("instance_id", "integer", "Game instance ID (default: first connected instance)", (int64_t)0)
             .required({"node_path", "method"})
             .build();
@@ -50,7 +53,18 @@ protected:
         params["args"] = ctx.args.get("args", Array());
         Dictionary raw = bridge->send_command_sync(instance_id, "call_method", params);
         if (raw.has("pending")) return raw;
-        return RuntimeBridgeServer::make_response(raw);
+        Dictionary result = RuntimeBridgeServer::make_response(raw);
+
+        // Convert return value to JSON-friendly format
+        if (result.has("success") && static_cast<bool>(result["success"])) {
+            Dictionary data = result.get("data", Dictionary());
+            if (data.has("data")) {
+                Variant ret = data["data"];
+                data["data"] = variant_to_json(ret);
+                result["data"] = data;
+            }
+        }
+        return result;
     }
 };
 

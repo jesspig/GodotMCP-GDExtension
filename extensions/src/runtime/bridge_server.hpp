@@ -17,7 +17,7 @@ namespace godot_mcp {
 
 class McpHandler;
 
-constexpr int64_t BRIDGE_MAX_MESSAGE_SIZE = 65536;
+constexpr int64_t BRIDGE_MAX_MESSAGE_SIZE = 4 * 1024 * 1024; // 4MB — screenshots need more than 64KB
 constexpr int64_t BRIDGE_BUFFER_LIMIT = 1024 * 1024;
 
 class RuntimeBridgeServer {
