@@ -1,0 +1,31 @@
+name: tilemap_smoke
+description: Smoke tests for TileMapLayer tools
+headless: true
+
+pipeline:
+  before_all:
+    - tool: new_scene
+      args:
+        root_type: "Node2D"
+        root_name: "TileRoot"
+    - tool: add_node
+      args:
+        class_name: "TileMapLayer"
+        node_name: "TestTileMap"
+        parent_path: ""
+  after_all:
+    - tool: new_scene
+      args:
+        root_type: "Node"
+        root_name: "Cleanup"
+  stages:
+    - id: main
+      name: Main tests
+      steps:
+        - id: get_tilemap_info
+          tool: get_tilemap_info
+          description: Gets tilemap info (no tileset set, returns empty structure)
+          args:
+            node_path: "TestTileMap"
+          expect:
+            has_keys: [enabled, tile_set, used_cells_count, collision_enabled, navigation_enabled]

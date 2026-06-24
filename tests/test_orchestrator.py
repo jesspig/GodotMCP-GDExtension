@@ -228,6 +228,33 @@ async def run_test_session(cfg: dict) -> TestReport:
                 print(f"[{fname}] ERROR (0.0s): Failed to start Godot")
                 continue
 
+            # Wait for /run-tests endpoint (GDExtension may initialize later than MCP)
+            rt_ready = await manager.wait_for_run_tests(timeout=30)
+            if not rt_ready:
+                fname = os.path.basename(yaml_path)
+                phase_report = PhaseReport(name=fname.replace(".yaml", "").replace(".yml", ""))
+                phase_report.start_time = time.time()
+                phase_report.end_time = time.time()
+                phase_report.duration_ms = 0
+                phase_report.call_count = 0
+                phase_report.call_success = 0
+                phase_report.call_fail = 1
+                phase_report.call_skip = 0
+                phase_report.unique_tools = 1
+                phase_report.unique_success = 0
+                phase_report.unique_fail = 1
+                phase_report.unique_skip = 0
+                phase_report.errors = [{"tool": "<crash>", "error": "C++ /run-tests endpoint not available"}]
+                phase_report.results.append(TestResult(tool="<crash>", status="FAIL",
+                    expected="Godot process should complete all tests",
+                    actual={"error": "C++ /run-tests endpoint not available"},
+                    error="C++ /run-tests endpoint not available"))
+                report.add_phase(phase_report)
+                print(f"[{fname}] ERROR (0.0s): C++ /run-tests endpoint not available")
+                if not keep_open:
+                    await manager.stop()
+                continue
+
             await _run_single_file(cfg, report, yaml_path, manager)
 
             if not keep_open:
