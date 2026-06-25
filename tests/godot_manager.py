@@ -22,6 +22,7 @@ class GodotManager:
         self.run_tests_url = f"http://127.0.0.1:{mcp_port}/run-tests"
         self.process: subprocess.Popen | None = None
         self._started_by_us = False
+        self._start_retries = 0
         self.stderr_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "godot_stderr.log"
         )
@@ -55,7 +56,9 @@ class GodotManager:
             self._stderr_file.close()
             self._stderr_file = None
         # Brief pause to let the OS release the port (avoids TIME_WAIT on Windows)
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(1.0)
+
+    MAX_START_RETRIES = 3
 
     async def _start(self, timeout: int) -> bool:
         if not os.path.isfile(self.godot_path):
@@ -86,6 +89,19 @@ class GodotManager:
 
         if await self._wait_for_mcp(timeout):
             return True
+
+        # Retry transient Godot startup crashes (e.g. "Property info is missing name")
+        has_crashed = self.process and self.process.poll() is not None
+        if has_crashed:
+            retries = getattr(self, '_start_retries', 0)
+            if retries < self.MAX_START_RETRIES:
+                self._start_retries = retries + 1
+                wait = self._start_retries * 0.5
+                print(f"  [retry {self._start_retries}/{self.MAX_START_RETRIES}] Godot crashed on startup, retrying in {wait}s...")
+                await asyncio.sleep(wait)
+                await self.stop()
+                return await self._start(timeout)
+            print(f"  [fail] Godot crashed {self.MAX_START_RETRIES} times, giving up")
 
         if self.headless:
             await self.stop()
