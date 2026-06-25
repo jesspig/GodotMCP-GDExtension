@@ -1,3 +1,5 @@
+// DEPRECATED — use bridge_server.hpp + bridge_server.cpp instead.
+// Retained for reference only. Scheduled for removal in v0.4.0.
 #include "bridge.hpp"
 #include "built_in/cmd_utils/error_codes.hpp"
 #include "logging.hpp"
