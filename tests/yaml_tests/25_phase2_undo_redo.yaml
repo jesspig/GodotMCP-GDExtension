@@ -1,0 +1,122 @@
+name: phase2_undo_redo
+description: Phase 2 tests for MCP undo/redo meta tools
+headless: true
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: new_scene
+      args:
+        root_type: "Node2D"
+        root_name: "UndoTestRoot"
+    - tool: add_node
+      args:
+        class_name: "Sprite2D"
+        node_name: "UndoSprite"
+        parent_path: ""
+  after_all:
+    - tool: new_scene
+      args:
+        root_type: "Node"
+        root_name: "Cleanup"
+  stages:
+    - id: undo_stack_infra
+      steps:
+        - id: get_undo_history_empty
+          tool: get_undo_history
+          description: Undo history should be available (empty or populated)
+          expect:
+            has_keys: [undo_stack, redo_stack, undo_count, redo_count, max_steps, can_undo, can_redo]
+
+        - id: undo_nothing
+          tool: undo
+          description: Undo with nothing on stack should fail
+          expect:
+            status: error
+            error_code: "NOTHING_TO_UNDO"
+
+        - id: redo_nothing
+          tool: redo
+          description: Redo with nothing on stack should fail
+          expect:
+            status: error
+            error_code: "NOTHING_TO_REDO"
+
+    - id: undo_set_property
+      steps:
+        - id: set_prop_for_undo
+          tool: set_node_property
+          description: Set a property so we can undo it
+          args:
+            node_path: "UndoTestRoot/UndoSprite"
+            property: "position"
+            value: {x: 100, y: 200}
+          expect:
+            status: success
+
+        - id: verify_undo_available
+          tool: get_undo_history
+          description: Should have one undo entry after set_node_property
+          expect:
+            has_keys: [undo_count, can_undo]
+            field_checks:
+              - key: can_undo
+                value: true
+
+        - id: undo_set_prop
+          tool: undo
+          description: Undo should restore previous position
+          expect:
+            has_keys: [undone, description]
+            field_checks:
+              - key: undone
+                value: "set_node_property"
+
+        - id: redo_set_prop
+          tool: redo
+          description: Redo should re-apply the position
+          expect:
+            has_keys: [redone, description]
+            field_checks:
+              - key: redone
+                value: "set_node_property"
+
+    - id: undo_rename
+      steps:
+        - id: rename_for_undo
+          tool: rename_node
+          description: Rename node so we can undo
+          args:
+            node_path: "UndoTestRoot/UndoSprite"
+            new_name: "RenamedSprite"
+          expect:
+            status: success
+
+        - id: undo_rename
+          tool: undo
+          description: Undo rename should restore old name
+          expect:
+            has_keys: [undone]
+            field_checks:
+              - key: undone
+                value: "rename_node"
+
+    - id: undo_setting
+      steps:
+        - id: set_setting_for_undo
+          tool: set_setting
+          description: Change a setting so we can undo it
+          args:
+            setting_path: "application/config/name"
+            value: "UndoTestProject"
+          expect:
+            status: success
+
+        - id: undo_setting
+          tool: undo
+          description: Undo setting change
+          expect:
+            has_keys: [undone]
+            field_checks:
+              - key: undone
+                value: "set_setting"

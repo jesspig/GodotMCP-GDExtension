@@ -1,6 +1,6 @@
 name: animation_playback
 description: Create clip, add position track, set keyframes on AnimationPlayer
-headless: false
+headless: true
 
 pipeline:
   on_failure: fail_fast

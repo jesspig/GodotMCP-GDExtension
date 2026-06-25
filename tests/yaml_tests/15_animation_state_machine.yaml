@@ -1,6 +1,6 @@
 name: animation_state_machine
 description: create_animation_tree, add_animation_node, get_animation_tree_info
-headless: false
+headless: true
 
 pipeline:
   on_failure: fail_fast

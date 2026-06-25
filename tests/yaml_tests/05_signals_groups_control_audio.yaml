@@ -1,6 +1,6 @@
 name: signals_groups_control_audio_smoke
 description: Smoke tests for signal, group, control, and audio tools
-headless: false
+headless: true
 
 pipeline:
   before_all:

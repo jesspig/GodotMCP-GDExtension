@@ -49,7 +49,7 @@ private:
     int port_ = 9601;
     uint64_t connect_retry_msec_ = 0;
     static constexpr int64_t BUFFER_LIMIT = 1024 * 1024;
-    static constexpr int64_t MAX_MESSAGE_SIZE = 65536;
+    static constexpr int64_t MAX_MESSAGE_SIZE = 4 * 1024 * 1024; // 4MB — screenshots need more than 64KB
 };
 
 } // namespace godot_mcp

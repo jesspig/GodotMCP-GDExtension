@@ -1,6 +1,6 @@
 name: scene_toggle
 description: toggle_editable_children, toggle_placeholder on instanced node
-headless: false
+headless: true
 
 pipeline:
   on_failure: fail_fast

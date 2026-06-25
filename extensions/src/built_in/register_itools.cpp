@@ -23,6 +23,9 @@ using namespace godot;
 #include "built_in/tools/meta/get_categories.hpp"
 #include "built_in/tools/meta/find_tool.hpp"
 #include "built_in/tools/meta/call_tool.hpp"
+#include "built_in/tools/meta/undo.hpp"
+#include "built_in/tools/meta/redo.hpp"
+#include "built_in/tools/meta/get_undo_history.hpp"
 // ── Signal tools ──
 #include "built_in/tools/signal/connect_signal.hpp"
 #include "built_in/tools/signal/disconnect_signal.hpp"
@@ -141,6 +144,7 @@ using namespace godot;
 #include "built_in/tools/editor_tools/scripts/list_scripts.hpp"
 #include "built_in/tools/editor_tools/scripts/grep_scripts.hpp"
 #include "built_in/tools/editor_tools/scripts/glob_scripts.hpp"
+#include "built_in/tools/editor_tools/scripts/run_editor_script.hpp"
 
 // ── Settings tools ──
 #include "built_in/tools/editor_tools/settings/get_setting.hpp"

@@ -4,9 +4,11 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/schema_builder.hpp"
+#include "built_in/cmd_utils/undo_stack.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
+#include <godot_cpp/classes/time.hpp>
 
 namespace godot_mcp {
 
@@ -114,6 +116,26 @@ protected:
                 new_parent->add_child(node, true, godot::Node::INTERNAL_MODE_DISABLED);
             }
             new_parent->move_child(node, target);
+        }
+
+        // Push MCP undo record
+        if (g_undo_manager) {
+            String node_rel = relative_path(ctx.root, node);
+            UndoRecord rec;
+            rec.tool_name = "move_node";
+            Dictionary fwd;
+            fwd["node_path"] = node_rel;
+            fwd["position"] = position;
+            if (!parent_path.is_empty()) fwd["parent_path"] = parent_path;
+            rec.forward_args = fwd;
+            Dictionary rev;
+            rev["node_path"] = node_rel;
+            rev["position"] = String::num_int64(old_index);
+            rev["parent_path"] = relative_path(ctx.root, old_parent);
+            rec.reverse_args = rev;
+            rec.timestamp = godot::Time::get_singleton()->get_unix_time_from_system();
+            rec.description = String("Move ") + node_rel;
+            g_undo_manager->push(std::move(rec));
         }
 
         Dictionary data;

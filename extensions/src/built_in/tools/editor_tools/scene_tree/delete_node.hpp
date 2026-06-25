@@ -4,11 +4,13 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/schema_builder.hpp"
+#include "built_in/cmd_utils/undo_stack.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_selection.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/time.hpp>
 
 namespace godot_mcp {
 
@@ -77,6 +79,25 @@ protected:
             if (sel) {
                 sel->clear();
             }
+        }
+
+        // Push MCP undo record (reverse = add_node, properties lost — known limitation)
+        if (g_undo_manager) {
+            String parent_path = relative_path(ctx.root, parent);
+            UndoRecord rec;
+            rec.tool_name = "delete_node";
+            Dictionary fwd;
+            fwd["node_path"] = deleted_path;
+            rec.forward_args = fwd;
+            Dictionary rev;
+            rev["parent_path"] = parent_path;
+            rev["class_name"] = deleted_type;
+            rev["node_name"] = String(deleted_path).get_file();
+            rev["index"] = static_cast<int64_t>(index);
+            rec.reverse_args = rev;
+            rec.timestamp = godot::Time::get_singleton()->get_unix_time_from_system();
+            rec.description = String("Delete ") + deleted_path;
+            g_undo_manager->push(std::move(rec));
         }
 
         Dictionary data;

@@ -19,6 +19,7 @@ class GodotManager:
         self.headless = headless
         self.mcp_port = mcp_port
         self.mcp_url = f"http://127.0.0.1:{mcp_port}/mcp"
+        self.run_tests_url = f"http://127.0.0.1:{mcp_port}/run-tests"
         self.process: subprocess.Popen | None = None
         self._started_by_us = False
         self.stderr_path = os.path.join(
@@ -53,6 +54,8 @@ class GodotManager:
         if self._stderr_file:
             self._stderr_file.close()
             self._stderr_file = None
+        # Brief pause to let the OS release the port (avoids TIME_WAIT on Windows)
+        await asyncio.sleep(0.3)
 
     async def _start(self, timeout: int) -> bool:
         if not os.path.isfile(self.godot_path):
@@ -123,6 +126,28 @@ class GodotManager:
                 return await _ping(c)
         except Exception:
             return False
+
+    async def wait_for_run_tests(self, timeout: int = 30) -> bool:
+        """Wait until the /run-tests endpoint returns 200 (separate from MCP ping)."""
+        deadline = time.time() + timeout
+        async with httpx.AsyncClient() as client:
+            while time.time() < deadline:
+                if self.process and self.process.poll() is not None:
+                    return False
+                try:
+                    resp = await client.post(
+                        self.run_tests_url,
+                        content="name: ping\npipeline:\n  stages:\n    - id: ping\n      steps: []",
+                        headers={"Content-Type": "application/x-yaml"},
+                        timeout=5,
+                    )
+                    if resp.status_code == 200:
+                        return True
+                    # 400/500 means server is up but GDExtension not ready — retry
+                except Exception:
+                    pass
+                await asyncio.sleep(0.5)
+        return False
 
     @property
     def is_running(self) -> bool:

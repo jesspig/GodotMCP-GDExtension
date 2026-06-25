@@ -1,5 +1,6 @@
 #include "editor_plugin.hpp"
 #include "built_in/cmd_utils.hpp"
+#include "built_in/cmd_utils/undo_stack.hpp"
 #include "built_in/tool_base.hpp"
 #include "logging.hpp"
 #include "sdk/mcp_tool_registry.hpp"
@@ -127,6 +128,8 @@ void McpEditorPlugin::register_project_settings() {
     }
     ps->set_initial_value("godot_mcp/max_log_entries", 500);
     ps->set_as_basic("godot_mcp/max_log_entries", true);
+
+    UndoManager::register_setting();
 }
 
 void McpEditorPlugin::save_config() {
@@ -181,6 +184,9 @@ void McpEditorPlugin::_enter_tree() {
     registry_.set_engine_version(Engine::get_singleton()->get_version_info().get("string", String()));
     registry_.set_plugin_version(String(GODOT_MCP_PLUGIN_VERSION));
     register_itools(registry_);
+
+    // Initialize global UndoManager
+    g_undo_manager = new UndoManager();
 
     // Wire RuntimeBridge into HandlerRegistry (runtime tools need it)
     registry_.set_runtime_bridge(&runtime_bridge_);
@@ -339,6 +345,11 @@ void McpEditorPlugin::_exit_tree() {
     runtime_bridge_.disconnect();
 
     http_server_.stop();
+
+    if (g_undo_manager) {
+        delete g_undo_manager;
+        g_undo_manager = nullptr;
+    }
 
     if (sdk_registry) {
         Engine::get_singleton()->unregister_singleton("McpToolRegistry");

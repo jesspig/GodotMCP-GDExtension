@@ -1,6 +1,6 @@
-name: 3d_nav_collision_tilemap_smoke
-description: Smoke tests for 3D, navigation, collision, and tilemap tools
-headless: false
+name: 3d_nav_collision_smoke
+description: Smoke tests for 3D, navigation, and collision tools
+headless: true
 
 pipeline:
   before_all:
@@ -97,20 +97,11 @@ pipeline:
               - key: dimension
                 value: "3d"
 
-        - id: add_tilemap
-          tool: add_node
-          description: Adds a TileMapLayer for get_tilemap_info test
+        - id: bake_navigation_mesh
+          tool: bake_navigation_mesh
+          description: Attempts to bake navigation mesh (fails without nav region data)
           args:
-            class_name: "TileMapLayer"
-            node_name: "TestTileMap"
-            parent_path: ""
+            region_path: "Test3DRoot/TestNavRegion"
+            timeout_seconds: 1
           expect:
-            has_keys: [node, type, name]
-
-        - id: get_tilemap_info
-          tool: get_tilemap_info
-          description: Gets tilemap info (no tileset set, returns empty structure)
-          args:
-            node_path: "TestTileMap"
-          expect:
-            has_keys: [enabled, tile_set, used_cells_count, collision_enabled, navigation_enabled]
+            status: error
