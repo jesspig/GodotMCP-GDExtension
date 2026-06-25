@@ -1,7 +1,7 @@
 #pragma once
 
-#include "type_utils.hpp"
-#include "yaml_parser.hpp"
+#include "../pipeline/type_utils.hpp"
+#include "../pipeline/yaml_parser.hpp"
 
 #include <godot_cpp/classes/config_file.hpp>
 #include <godot_cpp/classes/file_access.hpp>

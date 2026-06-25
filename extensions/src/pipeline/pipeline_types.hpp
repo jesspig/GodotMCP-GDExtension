@@ -8,7 +8,6 @@
 
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <variant>
 #include <vector>
@@ -16,16 +15,8 @@
 namespace godot_mcp {
 namespace pipeline {
 
-// ---------------------------------------------------------------------------
-// Enums
-// ---------------------------------------------------------------------------
-
 enum class FailPolicy { Continue, Stop, FailFast };
 enum class StepStatus { Pending, Running, Passed, Failed, Skipped };
-
-// ---------------------------------------------------------------------------
-// Error & result types (replace error codes / exceptions)
-// ---------------------------------------------------------------------------
 
 struct StepError {
     godot::String code;
@@ -47,29 +38,17 @@ struct StepResult {
     int retry_attempts = 0;
 };
 
-// ---------------------------------------------------------------------------
-// When clause
-// ---------------------------------------------------------------------------
-
 struct WhenClause {
     godot::String step_id;
     godot::String field;
     bool expected = true;
 };
 
-// ---------------------------------------------------------------------------
-// Chain step (before_all / after_all / before_each / after_each)
-// ---------------------------------------------------------------------------
-
 struct ChainStep {
     godot::String tool;
     godot::Dictionary args;
     FailPolicy on_failure = FailPolicy::Stop;
 };
-
-// ---------------------------------------------------------------------------
-// Core definitions
-// ---------------------------------------------------------------------------
 
 struct StepDef {
     godot::String id;
@@ -104,10 +83,6 @@ struct PipelineDef {
     std::vector<StageDef> stages;
     FailPolicy on_failure = FailPolicy::FailFast;
 };
-
-// ---------------------------------------------------------------------------
-// Parse result (variant replaces exceptions)
-// ---------------------------------------------------------------------------
 
 struct ParseError {
     godot::String message;
