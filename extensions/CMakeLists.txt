@@ -69,6 +69,9 @@ set(GODOT_MCP_SOURCES
     src/testing/test_engine.cpp
     src/pipeline/pipeline_parser.cpp
     src/pipeline/pipeline_context.cpp
+    src/pipeline/workflow_parser.cpp
+    src/pipeline/workflow_runner.cpp
+    src/pipeline/test_parser.cpp
     src/pipeline/pipeline_runner_base.cpp
     src/testing/test_runner.cpp
     src/ui/mcp_logger.cpp
