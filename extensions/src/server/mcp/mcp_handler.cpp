@@ -4,11 +4,15 @@
 #include "runtime/bridge_server.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/editor_file_system.hpp>
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/json.hpp>
+#include <godot_cpp/classes/performance.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/os.hpp>
+#include <godot_cpp/classes/script_editor.hpp>
 #include <godot_cpp/classes/time.hpp>
+#include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/object.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
@@ -433,6 +437,55 @@ Dictionary McpHandler::handle_resources_list(const Variant &id) {
     editor_info_res["mimeType"] = "application/json";
     resources.append(editor_info_res);
 
+    Dictionary console_res;
+    console_res["uri"] = "godot://console";
+    console_res["name"] = "Editor Console";
+    console_res["description"] = "Recent editor console output and errors";
+    console_res["mimeType"] = "application/json";
+    resources.append(console_res);
+
+    Dictionary breakpoints_res;
+    breakpoints_res["uri"] = "godot://breakpoints";
+    breakpoints_res["name"] = "Breakpoints";
+    breakpoints_res["description"] = "Current script breakpoints";
+    breakpoints_res["mimeType"] = "application/json";
+    resources.append(breakpoints_res);
+
+    Dictionary performance_res;
+    performance_res["uri"] = "godot://performance";
+    performance_res["name"] = "Performance Metrics";
+    performance_res["description"] = "Runtime performance metrics (FPS, memory, objects)";
+    performance_res["mimeType"] = "application/json";
+    resources.append(performance_res);
+
+    Dictionary filesystem_res;
+    filesystem_res["uri"] = "godot://filesystem";
+    filesystem_res["name"] = "FileSystem";
+    filesystem_res["description"] = "FileSystem dock state and file listings";
+    filesystem_res["mimeType"] = "application/json";
+    resources.append(filesystem_res);
+
+    Dictionary signals_res;
+    signals_res["uri"] = "godot://signals";
+    signals_res["name"] = "Signal Connections";
+    signals_res["description"] = "Signal connections in the current scene";
+    signals_res["mimeType"] = "application/json";
+    resources.append(signals_res);
+
+    Dictionary groups_res;
+    groups_res["uri"] = "godot://groups";
+    groups_res["name"] = "Node Groups";
+    groups_res["description"] = "Node groups defined in the current scene";
+    groups_res["mimeType"] = "application/json";
+    resources.append(groups_res);
+
+    Dictionary classes_res;
+    classes_res["uri"] = "godot://classes";
+    classes_res["name"] = "Registered Classes";
+    classes_res["description"] = "All Godot classes registered in ClassDB";
+    classes_res["mimeType"] = "application/json";
+    resources.append(classes_res);
+
     Dictionary result;
     result["resources"] = resources;
     return make_jsonrpc_result(id, result);
@@ -500,20 +553,38 @@ Dictionary McpHandler::handle_resources_read(const Dictionary &params, const Var
         return make_jsonrpc_result(id, result);
     }
 
-    if (uri == "godot://project-settings") {
+    if (uri.begins_with("godot://project-settings")) {
         Dictionary data;
         ProjectSettings *ps = ProjectSettings::get_singleton();
         if (ps) {
-            data["project_name"] = ps->get_setting("application/config/name");
-            data["description"] = ps->get_setting("application/config/description");
-            data["version"] = ps->get_setting("application/config/version");
-            data["boot_splash"] = ps->get_setting("application/boot_splash/image");
-            data["icon"] = ps->get_setting("application/config/icon");
-            data["window_size"] = ps->get_setting("display/window/size/viewport_width");
-            data["window_height"] = ps->get_setting("display/window/size/viewport_height");
-            data["window_mode"] = ps->get_setting("display/window/size/mode");
-            data["vsync"] = ps->get_setting("display/window/vsync/vsync_mode");
-            data["renderer"] = ps->get_setting("rendering/renderer/rendering_method");
+            // Parse optional filter query parameter
+            // URI format: godot://project-settings or godot://project-settings?filter=key1,key2
+            PackedStringArray filter_keys;
+            int qpos = uri.find("?filter=");
+            if (qpos >= 0) {
+                String filter_str = uri.substr(qpos + 8);
+                filter_keys = filter_str.split(",", false);
+            }
+
+            if (filter_keys.size() > 0) {
+                for (int i = 0; i < filter_keys.size(); i++) {
+                    String key = filter_keys[i].strip_edges();
+                    if (!key.is_empty()) {
+                        data[key] = ps->get_setting(key);
+                    }
+                }
+            } else {
+                data["project_name"] = ps->get_setting("application/config/name");
+                data["description"] = ps->get_setting("application/config/description");
+                data["version"] = ps->get_setting("application/config/version");
+                data["boot_splash"] = ps->get_setting("application/boot_splash/image");
+                data["icon"] = ps->get_setting("application/config/icon");
+                data["window_size"] = ps->get_setting("display/window/size/viewport_width");
+                data["window_height"] = ps->get_setting("display/window/size/viewport_height");
+                data["window_mode"] = ps->get_setting("display/window/size/mode");
+                data["vsync"] = ps->get_setting("display/window/vsync/vsync_mode");
+                data["renderer"] = ps->get_setting("rendering/renderer/rendering_method");
+            }
         }
         Array contents;
         Dictionary text_item;
@@ -549,6 +620,233 @@ Dictionary McpHandler::handle_resources_read(const Dictionary &params, const Var
         return make_jsonrpc_result(id, result);
     }
 
+    if (uri == "godot://console") {
+        Dictionary data;
+        EditorInterface *ei = EditorInterface::get_singleton();
+        if (ei) {
+            auto *base = ei->get_base_control();
+            if (base) {
+                Array nodes = base->find_children("*", "EditorDebuggerNode", true, false);
+                if (nodes.size() > 0) {
+                    auto *dbg = Object::cast_to<Node>(nodes[0]);
+                    if (dbg) {
+                        Object *active = dbg->call("get_current_debugger");
+                        if (active) {
+                            data["error_count"] = static_cast<int64_t>(active->call("get_error_count"));
+                        }
+                    }
+                }
+            }
+        }
+        Array contents;
+        Dictionary text_item;
+        text_item["type"] = "text";
+        text_item["text"] = JSON::stringify(data);
+        contents.append(text_item);
+        Dictionary result;
+        result["contents"] = contents;
+        return make_jsonrpc_result(id, result);
+    }
+
+    if (uri == "godot://breakpoints") {
+        Dictionary data;
+        EditorInterface *ei = EditorInterface::get_singleton();
+        if (ei) {
+            ScriptEditor *se = ei->get_script_editor();
+            if (se) {
+                Array bps = se->get_breakpoints();
+                data["count"] = bps.size();
+                data["breakpoints"] = bps;
+            }
+        }
+        Array contents;
+        Dictionary text_item;
+        text_item["type"] = "text";
+        text_item["text"] = JSON::stringify(data);
+        contents.append(text_item);
+        Dictionary result;
+        result["contents"] = contents;
+        return make_jsonrpc_result(id, result);
+    }
+
+    if (uri == "godot://performance") {
+        Dictionary data;
+        Performance *perf = Performance::get_singleton();
+        if (perf) {
+            data["fps"] = perf->get_monitor(Performance::TIME_FPS);
+            data["process_time"] = perf->get_monitor(Performance::TIME_PROCESS);
+            data["physics_time"] = perf->get_monitor(Performance::TIME_PHYSICS_PROCESS);
+            data["memory_static"] = perf->get_monitor(Performance::MEMORY_STATIC);
+            data["memory_max"] = perf->get_monitor(Performance::MEMORY_STATIC_MAX);
+            data["objects_count"] = perf->get_monitor(Performance::OBJECT_COUNT);
+            data["nodes_count"] = perf->get_monitor(Performance::OBJECT_NODE_COUNT);
+            data["orphan_nodes"] = perf->get_monitor(Performance::OBJECT_ORPHAN_NODE_COUNT);
+        }
+        Array contents;
+        Dictionary text_item;
+        text_item["type"] = "text";
+        text_item["text"] = JSON::stringify(data);
+        contents.append(text_item);
+        Dictionary result;
+        result["contents"] = contents;
+        return make_jsonrpc_result(id, result);
+    }
+
+    if (uri == "godot://filesystem") {
+        Dictionary data;
+        EditorInterface *ei = EditorInterface::get_singleton();
+        if (ei) {
+            EditorFileSystem *efs = ei->get_resource_filesystem();
+            if (efs) {
+                data["is_scanning"] = efs->is_scanning();
+                data["scanning_progress"] = efs->get_scanning_progress();
+            }
+        }
+        Array contents;
+        Dictionary text_item;
+        text_item["type"] = "text";
+        text_item["text"] = JSON::stringify(data);
+        contents.append(text_item);
+        Dictionary result;
+        result["contents"] = contents;
+        return make_jsonrpc_result(id, result);
+    }
+
+    if (uri == "godot://signals") {
+        Dictionary data;
+        EditorInterface *ei = EditorInterface::get_singleton();
+        if (ei) {
+            Node *root = ei->get_edited_scene_root();
+            if (root) {
+                Array signal_names;
+                // Walk the tree to collect signal names from each node
+                std::function<void(Node*)> collect_signals = [&](Node *node) -> void {
+                    if (!node) return;
+                    TypedArray<Dictionary> sigs = node->get_signal_list();
+                    for (int i = 0; i < sigs.size(); i++) {
+                        Dictionary entry = sigs[i];
+                        entry["node_path"] = node->get_path();
+                        signal_names.append(entry);
+                    }
+                    for (int64_t c = 0; c < node->get_child_count(); c++) {
+                        Node *child = Object::cast_to<Node>(node->get_child(static_cast<int>(c)));
+                        if (child) collect_signals(child);
+                    }
+                };
+                collect_signals(root);
+                data["count"] = signal_names.size();
+                data["signals"] = signal_names;
+            } else {
+                data["message"] = "No scene open";
+            }
+        }
+        Array contents;
+        Dictionary text_item;
+        text_item["type"] = "text";
+        text_item["text"] = JSON::stringify(data);
+        contents.append(text_item);
+        Dictionary result;
+        result["contents"] = contents;
+        return make_jsonrpc_result(id, result);
+    }
+
+    if (uri == "godot://groups") {
+        Dictionary data;
+        EditorInterface *ei = EditorInterface::get_singleton();
+        if (ei) {
+            Node *root = ei->get_edited_scene_root();
+            if (root) {
+                Array all_groups;
+                std::function<void(Node*)> collect_groups = [&](Node *node) -> void {
+                    if (!node) return;
+                    PackedStringArray groups = node->get_groups();
+                    for (int i = 0; i < groups.size(); i++) {
+                        Dictionary entry;
+                        entry["group"] = groups[i];
+                        entry["node_path"] = node->get_path();
+                        all_groups.append(entry);
+                    }
+                    for (int64_t c = 0; c < node->get_child_count(); c++) {
+                        Node *child = Object::cast_to<Node>(node->get_child(static_cast<int>(c)));
+                        if (child) collect_groups(child);
+                    }
+                };
+                collect_groups(root);
+                data["count"] = all_groups.size();
+                data["groups"] = all_groups;
+            } else {
+                data["message"] = "No scene open";
+            }
+        }
+        Array contents;
+        Dictionary text_item;
+        text_item["type"] = "text";
+        text_item["text"] = JSON::stringify(data);
+        contents.append(text_item);
+        Dictionary result;
+        result["contents"] = contents;
+        return make_jsonrpc_result(id, result);
+    }
+
+    if (uri == "godot://classes") {
+        Dictionary data;
+        Array class_names = ClassDB::get_class_list();
+        data["count"] = class_names.size();
+        data["classes"] = class_names;
+        Array contents;
+        Dictionary text_item;
+        text_item["type"] = "text";
+        text_item["text"] = JSON::stringify(data);
+        contents.append(text_item);
+        Dictionary result;
+        result["contents"] = contents;
+        return make_jsonrpc_result(id, result);
+    }
+
+    // Template: godot://class/{name}
+    if (uri.begins_with("godot://class/")) {
+        String class_name = uri.substr(13); // length of "godot://class/"
+        if (class_name.is_empty() || !ClassDB::class_exists(class_name)) {
+            Dictionary err_data;
+            err_data["message"] = "Class not found";
+            Array contents;
+            Dictionary text_item;
+            text_item["type"] = "text";
+            text_item["text"] = JSON::stringify(err_data);
+            contents.append(text_item);
+            Dictionary result;
+            result["contents"] = contents;
+            return make_jsonrpc_result(id, result);
+        }
+        Dictionary data;
+        data["class_name"] = class_name;
+        String parent_class = ClassDB::get_parent_class(class_name);
+        Array inheritance_chain;
+        inheritance_chain.append(class_name);
+        String cur = class_name;
+        while (!parent_class.is_empty()) {
+            inheritance_chain.append(parent_class);
+            cur = parent_class;
+            parent_class = ClassDB::get_parent_class(cur);
+        }
+        data["inherits"] = cur;
+        data["inheritance_chain"] = inheritance_chain;
+        TypedArray<Dictionary> method_list = ClassDB::class_get_method_list(class_name, false);
+        TypedArray<Dictionary> property_list = ClassDB::class_get_property_list(class_name, false);
+        TypedArray<Dictionary> signal_list = ClassDB::class_get_signal_list(class_name, false);
+        data["method_count"] = static_cast<int64_t>(method_list.size());
+        data["property_count"] = static_cast<int64_t>(property_list.size());
+        data["signal_count"] = static_cast<int64_t>(signal_list.size());
+        Array contents;
+        Dictionary text_item;
+        text_item["type"] = "text";
+        text_item["text"] = JSON::stringify(data);
+        contents.append(text_item);
+        Dictionary result;
+        result["contents"] = contents;
+        return make_jsonrpc_result(id, result);
+    }
+
     return make_jsonrpc_error(id, kResourceNotFound, String("Resource not found: ") + uri);
 }
 
@@ -564,6 +862,13 @@ Dictionary McpHandler::handle_resources_templates_list(const Variant &id) {
     scene_node_tpl["description"] = "Get info about a specific node in the scene tree by its path";
     scene_node_tpl["mimeType"] = "application/json";
     templates.append(scene_node_tpl);
+
+    Dictionary class_tpl;
+    class_tpl["uriTemplate"] = "godot://class/{name}";
+    class_tpl["name"] = "Class Info";
+    class_tpl["description"] = "Get ClassDB information about a Godot class by name";
+    class_tpl["mimeType"] = "application/json";
+    templates.append(class_tpl);
 
     Dictionary result;
     result["resourceTemplates"] = templates;
