@@ -4,6 +4,7 @@
 #include "built_in/tool_base.hpp"
 #include "logging.hpp"
 #include "sdk/mcp_tool_registry.hpp"
+#include "scene_diff/scene_shadow.hpp"
 #include "ui/mcp_console.hpp"
 
 
@@ -128,6 +129,12 @@ void McpEditorPlugin::register_project_settings() {
     }
     ps->set_initial_value("godot_mcp/max_log_entries", 500);
     ps->set_as_basic("godot_mcp/max_log_entries", true);
+
+    if (!ps->has_setting("godot_mcp/shadow_scene_enabled")) {
+        ps->set_setting("godot_mcp/shadow_scene_enabled", false);
+    }
+    ps->set_initial_value("godot_mcp/shadow_scene_enabled", false);
+    ps->set_as_basic("godot_mcp/shadow_scene_enabled", true);
 
     UndoManager::register_setting();
 }
@@ -377,6 +384,19 @@ void McpEditorPlugin::_process(double /*delta*/) {
     mcp_handler_.check_pending_timeouts(kConfirmTimeoutMs);
 
     bridge_server_.poll();
+
+    if (scene_diff::get_global_shadow().has_shadow()) {
+        auto *ei = EditorInterface::get_singleton();
+        if (ei) {
+            Node *current_scene = ei->get_edited_scene_root();
+            if (current_scene) {
+                String current_path = current_scene->get_scene_file_path();
+                if (current_path != scene_diff::get_global_shadow().current_scene_path()) {
+                    scene_diff::get_global_shadow().clear();
+                }
+            }
+        }
+    }
 }
 
 }  // namespace godot_mcp

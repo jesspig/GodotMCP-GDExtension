@@ -208,6 +208,18 @@ using namespace godot;
 #include "built_in/tools/runtime_tools/bridge/capture_game_screenshot.hpp"
 #include "built_in/tools/runtime_tools/bridge/simulate_game_input.hpp"
 
+// ── Shadow Scene tools ──
+#include "built_in/tools/editor_tools/scene/stage_change.hpp"
+#include "built_in/tools/editor_tools/scene/preview_change.hpp"
+#include "built_in/tools/editor_tools/scene/apply_changes.hpp"
+#include "built_in/tools/editor_tools/scene/discard_changes.hpp"
+
+// ── Diff Scene States tool ──
+#include "scene_diff/diff_scene_states.hpp"
+
+// ── Recording / Replay tools ──
+#include "replay/replay_tools.hpp"
+
 // ── Runtime lifecycle tools ──
 #include "built_in/tools/runtime_tools/lifecycle/run_project.hpp"
 #include "built_in/tools/runtime_tools/lifecycle/run_current_scene.hpp"
@@ -223,7 +235,7 @@ using namespace godot;
 
 namespace godot_mcp {
 
-// is_destructive_val �?the tool's virtual method overrides (name(), category(), etc.) are authoritative.
+// is_destructive_val �?the tool's virtual method overrides (name(), category(), etc.) are authoritative.
 #define GODOT_MCP_TOOL(cls, is_destructive_val) \
     { \
         auto tool = std::make_unique<cls>(); \

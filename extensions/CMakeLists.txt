@@ -77,6 +77,14 @@ set(GODOT_MCP_SOURCES
     src/ui/mcp_logger.cpp
     src/ui/mcp_console.cpp
     src/ui/mcp_confirm_dialog.cpp
+    src/scene_diff/scene_diff.cpp
+    src/scene_diff/scene_snapshot.cpp
+    src/scene_diff/scene_shadow.cpp
+    src/scene_diff/scene_patcher.cpp
+    src/scene_diff/diff_scene_states.cpp
+    src/replay/operation_recorder.cpp
+    src/replay/operation_replay.cpp
+    src/replay/replay_tools.cpp
 )
 
 file(GLOB_RECURSE TOOL_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.cpp")

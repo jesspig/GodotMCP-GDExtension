@@ -1,5 +1,6 @@
 #include "prompt_provider.hpp"
 
+#include <godot_cpp/classes/control.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/core/class_db.hpp>
@@ -191,12 +192,12 @@ Dictionary make_animate_node_prompt(const Dictionary &args) {
 
 Dictionary make_shadow_edit_prompt(const Dictionary &args) {
     String prompt_text = "To use the shadow scene (non-destructive editing) workflow:\n"
-                         "1. Save a snapshot of the current scene state using the snapshot_scene tool.\n"
-                         "2. Make changes to nodes and properties as needed.\n"
-                         "3. If the changes work as expected, keep them (they are already applied).\n"
-                         "4. To revert, use undo (Ctrl+Z) or load from a previously saved scene file.\n"
-                         "Note: Non-destructive editing creates a shadow copy of the scene before modifications.\n"
-                         "Useful tools: save_scene, reload_scene, get_node_property, set_node_property.";
+                         "1. Capture the current scene state using stage_scene_change.\n"
+                         "2. Make changes using scene tools (add_node, set_node_property, etc.).\n"
+                         "3. Preview the accumulated changes with preview_change.\n"
+                         "4. Apply all changes atomically with apply_changes (single undo step).\n"
+                         "5. Or discard all staged changes with discard_changes.\n"
+                         "Useful tools: stage_scene_change, preview_change, apply_changes, discard_changes.";
 
     Array messages;
     messages.append(make_text_message(prompt_text));
