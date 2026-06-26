@@ -1,6 +1,5 @@
 #pragma once
 
-#include "runtime/bridge.hpp"
 #include "runtime/bridge_server.hpp"
 #include "server/registry/handler_registry.hpp"
 #include "server/ipc/http_server.hpp"
@@ -58,7 +57,6 @@ private:
     McpHandler mcp_handler_{&registry_};
     HttpServer http_server_;
     TestEngine test_engine_{&registry_};
-    RuntimeBridge runtime_bridge_;
     RuntimeBridgeServer bridge_server_;
     McpLogger logger_;
     McpConsole *mcp_console_ = nullptr;

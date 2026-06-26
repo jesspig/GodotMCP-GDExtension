@@ -1,3 +1,6 @@
+// DEPRECATED — use bridge_server.hpp (RuntimeBridgeServer) instead.
+// This file is retained for reference only. No active tools depend on RuntimeBridge.
+// Scheduled for removal in v0.4.0.
 #pragma once
 
 #include <godot_cpp/classes/ref.hpp>

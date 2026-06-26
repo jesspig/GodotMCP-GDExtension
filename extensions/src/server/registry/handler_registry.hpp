@@ -43,6 +43,7 @@ public:
     // --- Category queries (for progressive disclosure) ---
     [[nodiscard]] godot::Array get_categories() const;
     [[nodiscard]] godot::Array get_tools_in_category(const godot::String &category) const;
+    [[nodiscard]] godot::Array get_tools_by_group(const godot::String &group) const;
     [[nodiscard]] godot::PackedStringArray get_all_category_paths() const;
 
     // --- Always-on tools list ---
@@ -91,7 +92,7 @@ private:
     std::map<godot::String, std::unique_ptr<ITool>> itool_table_;
     godot::HashMap<godot::String, ToolInfo> tool_info_;
 
-    // 预构建搜索索引：在 register_tool() 时增量构建，避免 search_tools() 实时 tokenize
+    // 预构建搜索索引：�?register_tool() 时增量构建，避免 search_tools() 实时 tokenize
     struct SearchIndexEntry {
         godot::PackedStringArray tokens;
     };

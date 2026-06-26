@@ -1,6 +1,6 @@
 #pragma once
 
-#include "type_utils.hpp"
+#include "../pipeline/type_utils.hpp"
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>

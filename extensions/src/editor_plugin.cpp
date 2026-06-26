@@ -145,7 +145,6 @@ void McpEditorPlugin::save_config() {
 void McpEditorPlugin::restart_server() {
     http_server_.stop();
     bridge_server_.stop();
-    runtime_bridge_.disconnect();
     load_config();
 
     constexpr int kMaxPortAttempts = 10;
@@ -172,7 +171,6 @@ void McpEditorPlugin::restart_server() {
     http_server_.set_test_engine(&test_engine_);
     bridge_server_.set_port(actual_bridge_port_);
     bridge_server_.start(actual_bridge_port_);
-    runtime_bridge_.set_port(actual_bridge_port_);
     started_ = true;
     log_info("plugin", String("Server restarted on HTTP :") + String::num_int64(actual_http_port_));
 }
@@ -188,12 +186,15 @@ void McpEditorPlugin::_enter_tree() {
     // Initialize global UndoManager
     g_undo_manager = new UndoManager();
 
-    // Wire RuntimeBridge into HandlerRegistry (runtime tools need it)
-    registry_.set_runtime_bridge(&runtime_bridge_);
+    // Wire RuntimeBridgeServer into HandlerRegistry (runtime tools need it)
     registry_.set_runtime_bridge_server(&bridge_server_);
 
+    // Wire tools-changed notification
+    registry_.set_on_tools_changed([this]() {
+        mcp_handler_.notify_tools_list_changed();
+    });
+
     load_config();
-    runtime_bridge_.set_port(bridge_port_);
     bridge_server_.set_port(bridge_port_);
 
     // Wire up RuntimeBridgeServer -> McpHandler
@@ -342,7 +343,6 @@ void McpEditorPlugin::_exit_tree() {
     mcp_handler_.reset_session_flags();
 
     bridge_server_.stop();
-    runtime_bridge_.disconnect();
 
     http_server_.stop();
 

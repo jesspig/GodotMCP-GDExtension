@@ -15,12 +15,16 @@ namespace pipeline {
 class PipelineContext {
     mutable std::mutex mtx_;
     godot::HashMap<godot::String, StepResult> step_results_;
+    godot::Dictionary workflow_vars_;
 
 public:
     void record_step(const godot::String &id, const StepResult &r);
     std::optional<StepResult> get_step(const godot::String &id) const;
     bool eval_when(const WhenClause &c) const;
     godot::Dictionary expand_templates(const godot::Dictionary &args) const;
+
+    void set_workflow_vars(const godot::Dictionary &vars) { workflow_vars_ = vars; }
+    const godot::Dictionary &get_workflow_vars() const { return workflow_vars_; }
 };
 
 } // namespace pipeline

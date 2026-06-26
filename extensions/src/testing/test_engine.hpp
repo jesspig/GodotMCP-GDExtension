@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../testing/pipeline_runner.hpp"
+#include "testing/test_runner.hpp"
 
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
@@ -18,7 +18,7 @@ public:
     godot::Dictionary run(const godot::String &yaml_content);
 
 private:
-    std::unique_ptr<pipeline::PipelineRunner> runner_;
+    std::unique_ptr<pipeline::TestRunner> runner_;
 };
 
 } // namespace godot_mcp

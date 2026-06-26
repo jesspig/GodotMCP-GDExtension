@@ -1,0 +1,37 @@
+name: phase3_workflow
+description: Phase 3 workflow engine integration tests
+headless: false
+
+pipeline:
+  on_failure: fail_fast
+  stages:
+    - id: main
+      before_each:
+        - tool: list_settings
+
+      steps:
+        - id: get_info
+          tool: get_info
+          description: Meta tool still works after PipelineRunnerBase extraction
+          expect:
+            has_keys: [connection, engine, plugin]
+
+        - id: get_categories
+          tool: get_categories
+          description: Category tree still works
+          expect:
+            has_keys: [categories]
+
+        - id: get_tools_list
+          tool: get_tools
+          description: Tool listing still works
+          expect:
+            has_keys: [tools, count]
+
+        - id: call_workflow
+          tool: call_tool
+          description: call_tool fallback still works
+          args:
+            tool_name: get_info
+          expect:
+            has_keys: [connection, engine]

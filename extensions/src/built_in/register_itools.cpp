@@ -26,6 +26,7 @@ using namespace godot;
 #include "built_in/tools/meta/undo.hpp"
 #include "built_in/tools/meta/redo.hpp"
 #include "built_in/tools/meta/get_undo_history.hpp"
+#include "built_in/tools/meta/execute_workflow.hpp"
 // ── Signal tools ──
 #include "built_in/tools/signal/connect_signal.hpp"
 #include "built_in/tools/signal/disconnect_signal.hpp"
@@ -222,7 +223,7 @@ using namespace godot;
 
 namespace godot_mcp {
 
-// is_destructive_val — the tool's virtual method overrides (name(), category(), etc.) are authoritative.
+// is_destructive_val �?the tool's virtual method overrides (name(), category(), etc.) are authoritative.
 #define GODOT_MCP_TOOL(cls, is_destructive_val) \
     { \
         auto tool = std::make_unique<cls>(); \

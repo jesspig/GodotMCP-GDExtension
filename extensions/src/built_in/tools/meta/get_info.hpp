@@ -4,7 +4,6 @@
 #include "built_in/cmd_utils/schema_builder.hpp"
 #include "built_in/tool_base.hpp"
 #include "client_config_registry.hpp"
-#include "runtime/bridge.hpp"
 #include "runtime/bridge_server.hpp"
 #include "server/registry/handler_registry.hpp"
 
@@ -104,12 +103,6 @@ protected:
 
         Dictionary bridge;
         if (reg_) {
-            RuntimeBridge *rb = reg_->get_runtime_bridge();
-            if (rb) {
-                bridge["status"] = static_cast<int>(rb->status());
-                bridge["port"] = rb->port();
-                bridge["connected"] = rb->is_connected();
-            }
             RuntimeBridgeServer *bs = reg_->get_runtime_bridge_server();
             if (bs) {
                 bridge["server_status"] = static_cast<int>(bs->status());
