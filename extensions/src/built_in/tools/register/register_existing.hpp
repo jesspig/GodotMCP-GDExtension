@@ -174,6 +174,19 @@ GODOT_MCP_TOOL(CaptureGameScreenshotTool, false)
 GODOT_MCP_TOOL(SimulateGameInputTool, false)
 GODOT_MCP_TOOL(ListGameInstancesTool, false)
 
+// Shadow Scene tools
+GODOT_MCP_TOOL(StageSceneChangeTool, false)
+GODOT_MCP_TOOL(PreviewChangeTool, false)
+GODOT_MCP_TOOL(ApplyChangesTool, true)
+GODOT_MCP_TOOL(DiscardChangesTool, false)
+
+// Diff Scene States tool
+GODOT_MCP_TOOL(DiffSceneStatesTool, false)
+
+// Recording / Replay tools
+GODOT_MCP_TOOL(RecordOperationsTool, false)
+GODOT_MCP_TOOL(ReplayOperationsTool, true)
+
 // Runtime lifecycle tools
 GODOT_MCP_TOOL(RunProjectTool, false)
 GODOT_MCP_TOOL(RunCurrentSceneTool, false)

@@ -1,0 +1,137 @@
+name: phase4_shadow_scene
+description: Tests for shadow scene non-destructive editing workflow (T-4.1 through T-4.5)
+headless: false
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: set_setting
+      args:
+        setting_path: "godot_mcp/shadow_scene_enabled"
+        value: true
+    - tool: new_scene
+      args:
+        root_type: "Node2D"
+        root_name: "ShadowRoot"
+    - tool: add_node
+      args:
+        class_name: "Sprite2D"
+        node_name: "TestSprite"
+        parent_path: ""
+    - tool: save_scene
+      args:
+        path: "res://shadow_test_scene.tscn"
+  after_all:
+    - tool: set_setting
+      args:
+        setting_path: "godot_mcp/shadow_scene_enabled"
+        value: false
+    - tool: delete_file
+      args:
+        path: "res://shadow_test_scene.tscn"
+        recursive: false
+    - tool: new_scene
+      args:
+        root_type: "Node"
+        root_name: "Cleanup"
+  stages:
+    - id: shadow_scene_tests
+      steps:
+        - id: stage_no_shadow
+          tool: stage_scene_change
+          description: Stage scene for the first time (smoke test)
+          expect:
+            has_keys: [scene, has_shadow]
+            field_checks:
+              - key: has_shadow
+                value: true
+              - key: scene
+                not_empty: true
+
+        - id: make_change_and_preview
+          tool: add_node
+          args:
+            class_name: "Node2D"
+            node_name: "PreviewNode"
+            parent_path: ""
+          description: Add a node to generate a diff
+          expect:
+            success: true
+
+        - id: preview_with_changes
+          tool: preview_change
+          description: Preview should detect the added node
+          expect:
+            has_keys: [changes, total, has_changes, scene]
+            field_checks:
+              - key: has_changes
+                value: true
+              - key: total
+                gte: 1
+              - key: changes
+                not_empty: true
+
+        - id: discard_changes
+          tool: discard_changes
+          description: Discard staged changes
+          expect:
+            has_keys: [discarded]
+            field_checks:
+              - key: discarded
+                value: true
+
+        - id: stage_apply_workflow
+          tool: stage_scene_change
+          description: Restage for apply test
+          expect:
+            field_checks:
+              - key: has_shadow
+                value: true
+
+        - id: add_for_apply
+          tool: add_node
+          args:
+            class_name: "Node2D"
+            node_name: "ApplyTestNode"
+            parent_path: ""
+          description: Add node to apply
+          expect:
+            success: true
+
+        - id: apply_changes
+          tool: apply_changes
+          description: Apply changes atomically
+          expect:
+            has_keys: [applied, action_name]
+            field_checks:
+              - key: applied
+                gte: 1
+              - key: action_name
+                value: "MCP: Apply scene changes"
+
+        - id: restage_multiple_changes
+          tool: stage_scene_change
+          description: Restage for multi-change test
+          expect:
+            field_checks:
+              - key: has_shadow
+                value: true
+
+        - id: stage_set_property
+          tool: rename_node
+          args:
+            node_path: "ShadowRoot"
+            new_name: "RenamedRoot"
+          description: Change a property on root node
+          expect:
+            success: true
+
+        - id: preview_multi_change
+          tool: preview_change
+          description: Preview should detect property change
+          expect:
+            field_checks:
+              - key: total
+                gte: 1
+              - key: has_changes
+                value: true
