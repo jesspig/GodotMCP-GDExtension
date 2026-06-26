@@ -20,7 +20,7 @@ None.
   "data": {
     "connection": { "status": "ok" },
     "engine": { "version": "4.6", "major": 4, "minor": 6 },
-    "plugin": { "version": "0.2.2-dev3", "mode": "editor" },
+    "plugin": { "version": "0.2.2-dev4", "mode": "editor" },
     "project": { "name": "My Game", "path": "res://" },
     "editor": { "scene_open": true, "node_count": 5 }
   }
