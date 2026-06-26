@@ -1,0 +1,154 @@
+name: phase4_replay
+description: Tests for operation recording, replay, and diff_scene_states (T-4.6 through T-4.9)
+headless: true
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: set_setting
+      args:
+        setting_path: "godot_mcp/shadow_scene_enabled"
+        value: true
+  after_all:
+    - tool: set_setting
+      args:
+        setting_path: "godot_mcp/shadow_scene_enabled"
+        value: false
+  stages:
+    - id: record_replay_tests
+      steps:
+        - id: record_start
+          tool: record_operations
+          args:
+            action: "start"
+          description: Start recording
+          expect:
+            field_checks:
+              - key: recording
+                value: true
+
+        - id: record_a_tool
+          tool: get_info
+          args: {}
+          description: Record a get_info call
+          expect:
+            success: true
+
+        - id: record_stop
+          tool: record_operations
+          args:
+            action: "stop"
+          description: Stop recording and get YAML
+          expects_success: true
+          expect:
+            has_keys: [recording, yaml, operation_count]
+            field_checks:
+              - key: recording
+                value: false
+              - key: operation_count
+                gte: 1
+              - key: yaml
+                not_empty: true
+
+        - id: replay_valid_workflow
+          tool: replay_operations
+          args:
+            yaml: |
+              name: test_replay
+              steps:
+                - tool: get_info
+                  args: {}
+          description: Replay a simple get_info call
+          expects_success: true
+          expect:
+            has_keys: [steps_executed, steps_total]
+            field_checks:
+              - key: steps_executed
+                gte: 1
+              - key: steps_total
+                gte: 1
+
+    - id: diff_scene_states_tests
+      steps:
+        - id: new_scene_for_diff
+          tool: new_scene
+          args:
+            root_type: "Node2D"
+            root_name: "DiffSource"
+          description: Create a scene for diff test
+          expect:
+            success: true
+
+        - id: save_first_scene
+          tool: save_scene
+          args:
+            path: "res://diff_source.tscn"
+          description: Save first scene
+          expect:
+            success: true
+
+        - id: modify_scene
+          tool: add_node
+          args:
+            class_name: "Node2D"
+            node_name: "DiffChild"
+            parent_path: ""
+          description: Add a node to the scene
+          expect:
+            success: true
+
+        - id: save_second_scene
+          tool: save_scene
+          args:
+            path: "res://diff_modified.tscn"
+          description: Save modified scene
+          expect:
+            success: true
+
+        - id: diff_identical
+          tool: diff_scene_states
+          args:
+            scene_path_a: "res://diff_source.tscn"
+            scene_path_b: "res://diff_source.tscn"
+          description: Diff identical files returns no changes
+          expects_success: true
+          expect:
+            field_checks:
+              - key: has_changes
+                value: false
+              - key: total
+                value: 0
+
+        - id: diff_different
+          tool: diff_scene_states
+          args:
+            scene_path_a: "res://diff_source.tscn"
+            scene_path_b: "res://diff_modified.tscn"
+          description: Diff different files shows change
+          expects_success: true
+          expect:
+            field_checks:
+              - key: has_changes
+                value: true
+              - key: total
+                gte: 1
+              - key: changes
+                not_empty: true
+
+        - id: cleanup_diff_files
+          tool: delete_file
+          args:
+            path: "res://diff_source.tscn"
+            recursive: false
+          description: Cleanup diff source
+          expect:
+            success: true
+
+        - id: cleanup_modified_file
+          tool: delete_file
+          args:
+            path: "res://diff_modified.tscn"
+            recursive: false
+          description: Cleanup diff modified
+          expect:
+            success: true
