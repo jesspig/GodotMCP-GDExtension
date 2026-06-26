@@ -2,22 +2,27 @@
 
 > 进程内 YAML 测试引擎，通过 `POST /run-tests` 接收 YAML，直接调用 `HandlerRegistry::execute()` 执行工具，自动清理测试产物。
 > 
-> 测试引擎由单一 `PipelineRunner` 类实现，包含断言、快照、清理和 chain 执行。注意：`design/05-lld-yaml-workflow.md` 中描述的三层继承体系（`PipelineRunnerBase` → `TestRunner`/`WorkflowRunner`）是 Phase 3 计划，尚未实现——当前代码中只有一个统一的 `PipelineRunner` 类位于 `extensions/src/testing/` 下。
+> 测试引擎由三层继承体系实现：`PipelineRunnerBase` → `TestRunner`/`WorkflowRunner`，位于 `extensions/src/pipeline/` 下。
 
 ## 架构
 
 `TestEngine` 是普通 C++ 类（非 `Object` 子类），持有 `HandlerRegistry*` 指针，**绕过 MCP 协议层**直接调用工具，避免"工具测试工具"的套娃问题。
 
-### 类继承体系
+### 类继承体系（Phase 3 三层架构）
 
 ```mermaid
 flowchart TB
     subgraph TestEngine["TestEngine (门面)"]
-        run["run(yaml) → parse_yaml → parse_pipeline → PipelineRunner.run_test"]
+        run["run(yaml) → TestParser::parse → TestRunner.run_test"]
     end
 
-    subgraph PipelineRunner["PipelineRunner (统一执行器)"]
-        direction TB
+    subgraph Pipeline["extensions/src/pipeline/"]
+        PBB["PipelineRunnerBase<br/>核心执行引擎"]
+        TR["TestRunner<br/>继承 PipelineRunnerBase<br/>+ 断言 + 磁盘校验 + 清理"]
+        WR["WorkflowRunner<br/>继承 PipelineRunnerBase<br/>+ 变量替换 + 超时"]
+    end
+
+    subgraph TestFlow["TestRunner 工作流"]
         P[backup→snapshot(before)]
         BA[before_all chain]
         S[stages loop]
@@ -41,21 +46,30 @@ flowchart TB
             DV --> AE[after_each]
         end
     end
+
+    TestEngine --> TR
+    TR --> PBB
+    PBB --> TestFlow
+    WR --> PBB
 ```
 
 **类职责**：
 
 | 类 | 文件 | 职责 |
 |------|------|------|
-| `PipelineDef` | `testing/pipeline_types.hpp` | 解析产的 Pipeline 配置（只读） |
-| `StageDef` | `testing/pipeline_types.hpp` | Stage 定义（steps + 局部生命周期） |
-| `StepDef` | `testing/pipeline_types.hpp` | Step 定义（工具/参数/断言/依赖/条件/重试） |
-| `PipelineParser` | `testing/pipeline_parser.hpp/.cpp` | Dictionary → PipelineDef（共享解析逻辑） |
-| `PipelineContext` | `testing/pipeline_context.hpp/.cpp` | Step 结果存储、模板展开、when 求值 |
-| `PipelineRunner` | `testing/pipeline_runner.hpp/.cpp` | 统一执行器：生命周期/快照/断言/清理 |
-| `TestEngine` | `testing/test_engine.hpp/.cpp` | 薄门面，委托 PipelineRunner |
+| `PipelineDef` | `pipeline/pipeline_types.hpp` | 解析产的 Pipeline 配置（只读） |
+| `StageDef` | `pipeline/pipeline_types.hpp` | Stage 定义（steps + 局部生命周期） |
+| `StepDef` | `pipeline/pipeline_types.hpp` | Step 定义（工具/参数/断言/依赖/条件/重试） |
+| `PipelineParser` | `pipeline/pipeline_parser.hpp/.cpp` | Dictionary → PipelineDef（共享解析逻辑） |
+| `PipelineContext` | `pipeline/pipeline_context.hpp/.cpp` | Step 结果存储、模板展开、when 求值 |
+| `PipelineRunnerBase` | `pipeline/pipeline_runner_base.hpp/.cpp` | 核心执行器：拓扑排序、chain 执行、step 循环 |
+| `TestRunner` | `pipeline/test_runner.hpp/.cpp` | 继承 PipelineRunnerBase，添加断言/磁盘校验/清理 |
+| `WorkflowRunner` | `pipeline/workflow_runner.hpp/.cpp` | 继承 PipelineRunnerBase，用于 execute_workflow 元工具 |
+| `TestEngine` | `testing/test_engine.hpp/.cpp` | 薄门面，委托 TestRunner |
+| `TestParser` | `pipeline/test_parser.hpp/.cpp` | YAML → PipelineDef（测试格式，含 expect/disk_verify） |
+| `WorkflowParser` | `pipeline/workflow_parser.hpp/.cpp` | YAML/JSON → PipelineDef（工作流格式，无 expect/disk_verify） |
 
-**现代 C++ 特性**：`std::shared_ptr`（PipelineDef/Context 共享所有权）、`std::unique_ptr`（Runner 独占）、`std::optional`（可选字段）、`std::variant`（ParseResult）、`std::mutex`（Context 防御性封装）。`when` 条件使用 `WhenClause` 结构体（`pipeline_types.hpp:54-58`）+ `eval_when()` 求值，而非 `std::function`。
+**现代 C++ 特性**：`std::shared_ptr`（PipelineDef/Context 共享所有权）、`std::unique_ptr`（Runner 独占）、`std::optional`（可选字段）、`std::variant`（ParseResult）。`when` 条件使用 `WhenClause` 结构体（`pipeline_types.hpp`）+ `eval_when()` 求值，而非 `std::function`。
 
 ## 入口
 
@@ -107,7 +121,7 @@ pipeline:
 }
 ```
 
-**响应构建**：PipelineRunner::run() → 扁平 `tests[]` 数组 + `summary`。**JSON 形状向后兼容**，仅新增可选字段 `step_id`/`stage`。
+**响应构建**：TestRunner::run_test() → 扁平 `tests[]` 数组 + `summary`。**JSON 形状向后兼容**，仅新增可选字段 `step_id`/`stage`。
 
 ## 执行流程
 
@@ -116,6 +130,7 @@ sequenceDiagram
     participant C as HTTP Client
     participant H as HttpServer
     participant E as TestEngine
+    participant TP as TestParser
     participant TR as TestRunner
     participant PB as PipelineRunnerBase
     participant R as HandlerRegistry
@@ -124,7 +139,7 @@ sequenceDiagram
     C->>H: POST /run-tests (YAML body)
     H->>E: run(yaml_content)
     E->>E: parse_yaml() → Dictionary
-    E->>E: TestParser::parse() → shared_ptr<PipelineDef>
+    E->>TP: TestParser::parse() → shared_ptr<PipelineDef>
     E->>TR: run_test(pipeline)
     TR->>FS: backup_project_godot()
     TR->>FS: take_snapshot() (before)
@@ -253,7 +268,7 @@ sequenceDiagram
 
 ## 断言引擎
 
-`PipelineRunner` 在工具执行后调用 `run_assertions()`（`test_assertions.hpp:27-154`）对工具返回结果执行 4 类检查：
+`PipelineRunnerBase` 基类在工具执行后通过 `execute_step()` 虚方法，`TestRunner` 重写该方法并调用 `run_assertions()`（`test_assertions.hpp`）对工具返回结果执行 4 类检查：
 
 ### 结果解包
 
@@ -403,17 +418,23 @@ pipeline:
 
 ## 文件结构
 
-所有文件均位于 `extensions/src/testing/`（无 `pipeline/` 子目录，无 `TestRunner`/`PipelineRunnerBase` 独立文件）：
+核心执行引擎已迁移到 `extensions/src/pipeline/`，`extensions/src/testing/` 保留门面和断言/校验：
 
 ```
-extensions/src/testing/
-├── test_engine.hpp/.cpp              TestEngine 门面 → 委托 PipelineRunner
-├── pipeline_runner.hpp/.cpp          PipelineRunner 统一执行器（生命周期/快照/断言/清理）
-├── pipeline_parser.hpp/.cpp          YAML → PipelineDef 解析
+extensions/src/pipeline/              # Pipeline 执行引擎（Phase 3）
+├── pipeline_runner_base.hpp/.cpp     PipelineRunnerBase 核心执行器
 ├── pipeline_context.hpp/.cpp         Step 结果存储、模板展开、when 求值
+├── pipeline_parser.hpp/.cpp          Dictionary → PipelineDef（共享解析）
 ├── pipeline_types.hpp                Pipeline/Stage/Step 类型定义
 ├── yaml_parser.hpp                   ryml → Godot Variant 递归转换
 ├── type_utils.hpp                    类型别名归一化 + 默认容差常量
+├── test_parser.hpp/.cpp              TestParser（expect/disk_verify 格式）
+├── test_runner.hpp/.cpp              TestRunner（断言 + 磁盘校验 + 清理）
+├── workflow_parser.hpp/.cpp          WorkflowParser（工作流格式，无断言）
+└── workflow_runner.hpp/.cpp          WorkflowRunner（用于 execute_workflow）
+
+extensions/src/testing/               # 遗留 — 仅门面 + 断言/校验
+├── test_engine.hpp/.cpp              TestEngine 门面 → 委托 TestRunner
 ├── test_assertions.hpp               断言引擎
 └── godot_file_verifier.hpp           磁盘校验
 ```

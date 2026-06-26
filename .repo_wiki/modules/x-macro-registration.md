@@ -13,7 +13,7 @@ flowchart LR
         REGCPP["register_itools.cpp"]
         INCLUDE["#include 所有工具头文件"]
         MACRO["#define GODOT_MCP_TOOL(cls, is_destructive_val)"]
-        REGMETA["register/register_meta.hpp<br/>(5 个元工具)"]
+        REGMETA["register/register_meta.hpp<br/>(9 个元工具)"]
         REGEXIST["register/register_existing.hpp<br/>(137 个现有工具)"]
         REGFALL["register/register_fallback.hpp<br/>(2 个兜底工具)"]
         REGDOCS["register/register_docs.hpp<br/>(8 个文档工具)"]
@@ -37,8 +37,8 @@ flowchart LR
 
 | 文件 | 工具数 | 内容 |
 |------|--------|------|
-| `register_meta.hpp` | 5 | 元工具（`get_info`、`get_tools`、`get_categories`、`find_tool`、`call_tool`）。全部 `is_meta()=true`，共 5 个 always-on 工具 |
-| `register_existing.hpp` | 137 | 137 tools (functional tools: scene tree, filesystem, scripts, workspace, bridge, lifecycle, etc.) |
+| `register_meta.hpp` | 9 | 元工具（`get_info`、`get_tools`、`get_categories`、`find_tool`、`call_tool`）。全部 `is_meta()=true`，共 9 个 always-on 工具 |
+| `register_existing.hpp` | 145 | 145 tools (functional tools: scene tree, filesystem, scripts, workspace, bridge, lifecycle, etc.) |
 | `register_fallback.hpp` | 2 | Layer 0 通用兜底工具（`get_node_property`、`set_node_property`） |
 | `register_docs.hpp` | 8 | Layer 3 文档查询工具（`search_docs`、`get_class_info`、`get_best_practices`、`get_class_list`、`get_inheritance_chain`、`get_property_doc`、`get_method_doc`、`get_enum_doc`） |
 

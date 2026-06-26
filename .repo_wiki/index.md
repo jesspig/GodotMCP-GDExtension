@@ -10,16 +10,20 @@
 |------|---------|
 | C++ 源码根 | `extensions/src/` |
 | 注册方式 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
-| 工具总数 | **152**（全部 X-macro 注册，无重复，无 codegen） |
-| 工具体系 | **四层体系**：语义专用(137，含 14 运行时) + 通用兜底(2) + 文档(8) + 元工具(5) |
-| 渐进式披露 | `tools/list` 仅返回 5 个元工具（`is_meta()==true`，~3KB JSON），其余通过发现链按需加载 |
+| 工具总数 | **164**（全部 X-macro 注册，无重复，无 codegen） |
+| 工具体系 | **四层体系**：语义专用(145，含 14 运行时) + 通用兜底(2) + 文档(8) + 元工具(9) |
+| 渐进式披露 | `tools/list` 仅返回 9 个元工具（`is_meta()==true`，~4KB JSON），其余通过发现链按需加载 |
 | 发现链 | `get_categories()` → `get_tools(category)` → `get_tools(name, detail=true)` / `find_tool(query)` |
 | 客户端自动配置 | **11 客户端**支持，项目级配置路径，通过底部面板一键生成 |
-| Resources 层 | 3 个资源（scene-tree, project-settings, editor-info）+ 1 个 URI 模板（scene-node/{path}）[→ Phase 2: 扩展至 11+ 个](design/09-lld-resources-prompts.md) |
+| Resources 层 | 10 个资源（scene-tree, project-settings, editor-info, console, breakpoints, performance, filesystem, signals, groups, classes）+ 2 个 URI 模板（scene-node/{path}, class/{name}） |
 | 指令数据源 | **Godot ClassDB 运行时查询**（零维护） |
-| 顶级分类 | 自动发现：`meta_tools`、`editor_tools`、`node_tools`、`runtime_tools` |
+| 顶级分类 | 自动发现：`meta_tools`、`editor_tools`（含 `scene_tree/`、`scene/` 等子分类）、`node_tools`、`runtime_tools` |
 | 场景树工具 | `editor_tools/scene_tree/`（24 工具） |
+| 影子场景工具 | `editor_tools/scene/`（4 工具：stage_scene_change, preview_change, apply_changes, discard_changes）+ `scene_diff/` 引擎（diff, snapshot, patcher, shadow）+ diff_scene_states |
 | 运行时桥接工具 | `runtime_tools/bridge/`（8 工具）+ `lifecycle/`（6 工具） |
+| 操作录制/重放 | `replay/`（OperationRecorder, OperationReplay）+ 2 个 ITool（record_operations, replay_operations） |
+| Pipeline 引擎 | `pipeline/`（PipelineRunnerBase + TestRunner + WorkflowRunner），`testing/` 为薄门面 |
+| Prompt 系统 | 9 个动态 Prompt（create_scene, create_node, fix_error, explain_node, code_review, debug_session, animate_node, shadow_edit, export_project） |
 | SDK 层 | `extensions/src/sdk/`（`McpToolDefinition` + `McpToolRegistry`） |
 | 测试框架 | C++ `TestEngine`（`/run-tests`）+ Python 编排器 |
 | HTTP 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） |
@@ -40,8 +44,6 @@
 | [工具体系架构](concepts/tool-system-architecture.md) | 4 层工具设计理念、渐进式披露、双重注册路径 |
 | [运行时通信](concepts/runtime-communication.md) | 编辑器↔游戏进程 TCP 桥接：协议、异步化、生命周期 |
 | [安全模型](concepts/security-model.md) | 5 层纵深防御：Token 认证、破坏性操作拦截、沙箱、非破坏编辑 |
-
----
 
 ## 🧩 核心模块
 
@@ -67,15 +69,17 @@
 
 | 分类 | 文档 | 工具数 |
 |------|------|:------:|
-| 元工具 | [meta-tools.md](modules/meta-tools.md) | 5 |
+| 元工具 | [meta-tools.md](modules/meta-tools.md) | 9 |
 | 场景树 | [scene-tree-tools.md](modules/scene-tree-tools.md) | 24 |
+| 影子场景 | [scene-diff-tools.md](modules/scene-diff-tools.md) | 7 |
 | 工作区/调试器 | [workspace-tools.md](modules/workspace-tools.md) | 13 |
-| 脚本 | [script-tools.md](modules/script-tools.md) | 12 |
+| 脚本 | [script-tools.md](modules/script-tools.md) | 13 |
 | 文件系统 | [filesystem-tools.md](modules/filesystem-tools.md) | 12 |
 | 动画 | [animation-tools.md](modules/animation-tools.md) | 10 |
 | 文档查询 | [doc-tools.md](modules/doc-tools.md) | 8 |
 | 资源管理 | [resource-tools.md](modules/resource-tools.md) | 6 |
 | 运行时工具 | [runtime-tools.md](modules/runtime-tools.md) | 14 |
+| 影子场景 + 录制回放 | [scene-diff-tools.md](modules/scene-diff-tools.md) | 7 |
 | Control/UI | — | 4 |
 | 碰撞形状 | — | 1 |
 | 导出 | — | 4 |
@@ -95,21 +99,7 @@
 
 ---
 
-## 📐 设计文档
-
-| 文档 | 说明 |
-|------|------|
-| [系统架构设计](design/00-architecture.md) | 四阶段演进架构、模块职责、技术选型、数据流 |
-| [Bridge 异步化 LLD](design/01-lld-bridge-async.md) | `send_command_async` + SSE 推送，消除编辑器冻结 |
-| [渐进式披露优化 LLD](design/02-lld-tools-list.md) | 元工具精简 + 缓存加速 + SSE 通知 |
-| [run_editor_script LLD](design/03-lld-run-editor-script.md) | EditorScript 执行工具，组合 write_script 使用 |
-| [undo/redo LLD](design/04-lld-undo-redo.md) | `EditorUndoRedoManager` 集成元工具 |
-| [YAML 工作流引擎 LLD](design/05-lld-yaml-workflow.md) | PipelineRunner 复用，ExecuteWorkflowTool 包装 |
-| [Shadow Scene Diff LLD](design/06-lld-shadow-scene.md) | 非破坏编辑：快照、diff、apply/rollback |
-| [DAG 与并行开发方案](design/07-dag-and-parallel-plan.md) | 53 道工序任务拆分、5 人排期、4 里程碑 |
-| [Resources & Prompts 增强 LLD](design/09-lld-resources-prompts.md) | 只读操作转 Resource、动态 Prompt、工作流指导 |
-
-| [设计决策（ADR）](design/08-decisions.md) | 22 项已决策架构记录与演进关系 |
+> Phase 1~4 所有对应的 LLD 设计文档与 ADR 摘要已在 v0.2.2-dev4 实施后清理，代码和模块文档为当前权威参考。
 ---
 
 ## 🧪 测试
@@ -117,8 +107,9 @@
 | 文档 | 说明 |
 |------|------|
 | [测试框架概览](testing/overview.md) | 架构组件、运行方式、测试生命周期 |
-| [C++ 测试引擎](testing/test-engine.md) | Pipeline 模型、断言系统、YAML 驱动 |
+| [C++ 测试引擎](testing/test-engine.md) | Pipeline 模型、三引擎体系（PipelineRunnerBase / TestRunner / WorkflowRunner）、断言系统、YAML 驱动 |
 | [测试编排器](testing/orchestrator.md) | Python 编排器、Godot 生命周期管理 |
+| Workflow 引擎 | [元工具](modules/meta-tools.md) 中的 execute_workflow + [PipelineRunnerBase](testing/test-engine.md) 多步骤编排 |
 
 ---
 
@@ -154,7 +145,7 @@
 
 1. **从 `overview/architecture.md` 开始** — 理解单进程架构、数据流、目录布局
 2. **阅读 `overview/threading-model.md`** — 理解纯主线程 `_process()` 驱动模型
-3. **阅读 `design/00-architecture.md`** — 理解四阶段演进路线与模块职责
+3. **阅读 `overview/architecture.md`** — 理解架构总览与各模块职责
 4. **阅读 `concepts/tool-system-architecture.md`** — 理解四层工具体系设计理念
 5. **阅读 `concepts/runtime-communication.md`** — 理解编辑器↔游戏桥接模式
 6. **阅读 `concepts/security-model.md`** — 理解纵深防御安全设计
@@ -188,4 +179,4 @@
 - **DLL 热重载** — `.gdextension` 设 `reloadable = true`（Godot 4.2+ 官方机制，`GDExtensionManager::reload_extension()` 自动检测文件变更并重载扩展）。`main.py build` 直接覆盖 DLL，编辑器在检测到变更后自动重载。Windows 下因 OS Loader 锁定 DLL，覆盖可能失败（视系统版本和配置而异），此时关闭编辑器重试。已知约束：仅限编辑器构建、修改 Godot base class 后需重启编辑器。
 - **构建优化** — sccache/ccache、Unity jumbo build、lld-link 均已配置
 - **构建命令** — 始终用 `uv run python main.py`（Python >=3.14）
-- **不要误判渐进式披露** — `tools/list` 仅返回 5 个元工具（`is_meta()==true`，~3KB JSON），152 个工具通过发现链按需加载。首次对话的 token 开销与约 10 个工具的普通 MCP 服务器相当。验证方式：`get_info()` 返回的 `progressive_disclosure` 字段。（注意：`overview/architecture.md` 的 mermaid 图中的 `152 tool schemas` 指的是注册表总数，不是 `tools/list` 返回值；`tools/list` 的实现见 `mcp_handler.cpp` / `get_always_on_tools()`）。
+- **不要误判渐进式披露** — `tools/list` 仅返回 9 个元工具（`is_meta()==true`，~4KB JSON），164 个工具通过发现链按需加载。首次对话的 token 开销与约 10 个工具的普通 MCP 服务器相当。验证方式：`get_info()` 返回的 `progressive_disclosure` 字段。（注意：`overview/architecture.md` 的 mermaid 图中的 `164 tool schemas` 指的是注册表总数，不是 `tools/list` 返回值；`tools/list` 的实现见 `mcp_handler.cpp` / `get_always_on_tools()`）。

@@ -39,7 +39,7 @@ sequenceDiagram
 flowchart LR
     REG["HandlerRegistry::execute(name, args)"]
     ITBL["itool_table_<br/>std::map<String, unique_ptr<ITool>>"]
-    BUILTIN["X-macro 注册的内置工具<br/>(152 个 ITool 子类)"]
+    BUILTIN["X-macro 注册的内置工具<br/>(164 个 ITool 子类)"]
     SDK["SDK 自定义工具<br/>(McpToolRegistry → IToolAdapter)"]
     RES["返回 ToolResult 字典"]
     REG -->|"查 itool_table_"| ITBL

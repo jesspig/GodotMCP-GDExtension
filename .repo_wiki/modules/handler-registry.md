@@ -165,7 +165,7 @@ flowchart LR
 
 ```mermaid
 graph TD
-    ROOT["root"] --> META["meta_tools<br/>5 tools"]
+    ROOT["root"] --> META["meta_tools<br/>9 tools"]
     ROOT --> EDITOR["editor_tools<br/>~117 tools"]
     ROOT --> NODE["node_tools<br/>16 tools"]
     ROOT --> RUNTIME["runtime_tools<br/>~14 tools"]
@@ -174,7 +174,7 @@ graph TD
     EDITOR --> CONTROL["control<br/>4 tools"]
     EDITOR --> DOCS["docs<br/>8 tools"]
     EDITOR --> FS["filesystem<br/>12 tools"]
-    EDITOR --> SCRIPT["scripts<br/>12 tools"]
+    EDITOR --> SCRIPT["scripts<br/>13 tools"]
     EDITOR --> SETTINGS["settings<br/>4 tools"]
     EDITOR --> WORKSPACE["workspace<br/>13 tools"]
     EDITOR --> _3D["3d_scene<br/>3 tools"]
@@ -204,7 +204,7 @@ component
 
     subgraph BUILTIN["内置工具层"]
         XMACRO["X-macro #include"]
-        ITOOLS["ITool 子类<br/>(152 个)"]
+        ITOOLS["ITool 子类<br/>(164 个)"]
     end
 
     subgraph SDK["SDK 工具层"]

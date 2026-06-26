@@ -155,8 +155,8 @@ public:
         if (!ps->has_setting("godot_mcp/undo_max_steps")) {
             ps->set_setting("godot_mcp/undo_max_steps", static_cast<int64_t>(64));
         }
-        // Basic info
         godot::Dictionary info;
+        info["name"] = "godot_mcp/undo_max_steps";
         info["type"] = static_cast<int64_t>(godot::Variant::INT);
         info["hint"] = static_cast<int64_t>(godot::PROPERTY_HINT_RANGE);
         info["hint_string"] = "16,512,1";

@@ -14,7 +14,7 @@ flowchart TB
     Root --> Opencode[".opencode/<br/>MCP 客户端配置"]
     Root --> Pkg["pyproject.toml + uv.lock<br/>package.json + pnpm-lock.yaml"]
     Root --> Cfg["CMakeLists.txt (顶级)<br/>main.py"]
-    Src --> Cpp["server/ + sdk/ + built_in/<br/>runtime/ + testing/ + ui/"]
+    Src --> Cpp["server/ + sdk/ + built_in/<br/>runtime/ + pipeline/ + testing/<br/>+ scene_diff/ + replay/ + ui/"]
     Cpp --> Entry["register_types.cpp + editor_plugin.cpp"]
     Example --> Bin["addons/godot_mcp/bin/<br/>(godot_mcp_gdext.{dll,so,dylib})"]
 ```
@@ -43,7 +43,10 @@ GodotMCP/
 │       ├── server/                # ipc/ + mcp/ + registry/
 │       ├── runtime/               # bridge.cpp + bridge_server.cpp + game_bridge.cpp
 │       ├── sdk/                   # McpToolDefinition + McpToolRegistry
-│       └── testing/               # C++ TestEngine + YAML pipeline（PipelineRunner 复用）
+│       ├── pipeline/              # PipelineRunnerBase + TestRunner + WorkflowRunner
+│       ├── scene_diff/            # 非破坏编辑引擎（diff/snapshot/patcher/shadow）
+│       ├── replay/                # 操作录制与重放（recorder/replay/replay_tools）
+│       └── testing/               # 薄门面（TestEngine 委托 pipeline::TestRunner）
 ├── tests/
 │   ├── test_orchestrator.py       # Python 编排器（管理 Godot 生命周期）
 │   ├── godot_manager.py           # Godot 进程管理

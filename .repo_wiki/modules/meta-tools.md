@@ -4,7 +4,7 @@
 
 ## 工具列表
 
-共 **5 个**元工具（`is_meta()==true`），全部在 `meta_tools` 分类（`register/register_meta.hpp`）。`list_settings` 的 `is_meta()=false`，通过发现链按需加载。
+共 **9 个**元工具（`is_meta()==true`），全部在 `meta_tools` 分类（`register/register_meta.hpp`）。`list_settings` 的 `is_meta()=false`，通过发现链按需加载。
 
 | 工具名 | 文件 | 分类 | 功能 |
 |--------|------|------|------|
@@ -13,12 +13,40 @@
 | `get_categories` | `meta/get_categories.hpp` | `meta_tools` | 分类树，支持 path 钻取和 max_depth 控制 |
 | `find_tool` | `meta/find_tool.hpp` | `meta_tools` | 搜索引擎：4 阶段权重 + 频率排序 |
 | `call_tool` | `meta/call_tool.hpp` | `meta_tools` | 兜底调用任意工具 |
+| `undo` | `meta/undo.hpp` | `meta_tools` | 回退上一次编辑器操作 |
+| `redo` | `meta/redo.hpp` | `meta_tools` | 重做上一次 undo 操作 |
+| `get_undo_history` | `meta/get_undo_history.hpp` | `meta_tools` | 查看 undo/redo 栈历史 |
+| `execute_workflow` | `meta/execute_workflow.hpp` | `meta_tools` | 执行多步骤工作流 |
+
+## undo / redo / get_undo_history
+
+基于 `EditorUndoRedoManager` 的元工具，提供对编辑器操作历史栈的查询与撤销能力。实现在 `meta/undo.hpp`、`meta/redo.hpp`、`meta/get_undo_history.hpp`。
+
+- `undo`：调用 `EditorUndoRedoManager::undo()` 回退一步，返回操作描述
+- `redo`：调用 `EditorUndoRedoManager::redo()` 重做一步，返回操作描述
+- `get_undo_history`：返回 `undo`/`redo` 操作列表，含 `action_name`、`type`（undo/redo）
+
+各工具配合内置的 `UndoStack`（`cmd_utils/undo_stack.hpp`）自管理栈。详见 `extensions/src/built_in/cmd_utils/undo_stack.hpp`。
+
+## execute_workflow
+
+基于 `[WorkflowRunner](../pipeline/workflow_runner.hpp)` 的多步骤编排元工具。实现在 `meta/execute_workflow.hpp`。
+
+参数：
+
+| 参数 | 类型 | 必需 | 默认 | 说明 |
+|------|------|------|------|------|
+| `workflow_json` | object | 否 | — | 工作流定义 JSON（stages/steps/vars/timeout） |
+| `workflow_yaml` | string | 否 | — | 工作流定义 YAML 字符串 |
+| `dry_run` | boolean | 否 | false | 仅验证不执行 |
+
+支持 `$\{vars.*\}` 变量替换和 `$\{steps.<id>.result.<path>\}` 步骤结果链式引用。内部使用 `PipelineRunnerBase` 执行引擎（`extensions/src/pipeline/pipeline_runner_base.hpp`）。
 
 ## 渐进式披露
 
 ```mermaid
 flowchart LR
-    A["tools/list<br/>5 个元工具"] --> B["get_categories<br/>分类树"]
+    A["tools/list<br/>9 个元工具"] --> B["get_categories<br/>分类树"]
     B --> C["get_tools(category)<br/>分类下工具列表"]
     C --> D["get_tools(name, detail=true)<br/>单工具完整 schema"]
     B --> E["find_tool(query)<br/>搜索匹配"]
@@ -26,7 +54,7 @@ flowchart LR
 
 | 阶段 | 操作 | 返回 |
 |------|------|------|
-| 1 | `tools/list` | 5 个元工具（`is_meta=true`） |
+| 1 | `tools/list` | 9 个元工具（`is_meta=true`） |
 | 2 | `get_categories` | 分类树（默认 max_depth=3） |
 | 3 | `get_tools(category)` | 指定分类下工具（id/name/description） |
 | 4 | `find_tool(query)` | 按频率+权重排序的搜索结果 |
@@ -44,7 +72,7 @@ flowchart LR
     "hash": "abc123..."
   },
   "plugin": {
-    "builtin_tools": 152,
+    "builtin_tools": 164,
     "custom_tools": 0,
     "version": "0.2.2-dev4"
   },

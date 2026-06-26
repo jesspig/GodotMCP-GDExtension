@@ -38,11 +38,21 @@ tests/
 │   └── base.py                 # PhaseReport / TestResult 数据类
 ├── test_data/                  # 测试用静态文件
 ├── yaml_tests/                 # YAML 测试文件（由编排器发现）
-├── # 备份通过 PipelineRunner 的内存 backup_project_godot() 实现，无独立目录
+├── # 备份通过 TestRunner 的内存 backup_project_godot() 实现，无独立目录
 ├── output/                     # 报告输出目录
 ├── .env / .env.example         # 环境配置
 └── requirements.txt            # Python 依赖
 ```
+
+## C++ 引擎结构
+
+C++ 测试引擎已重构为三层继承体系，所有执行引擎位于 `extensions/src/pipeline/`：
+
+- `PipelineRunnerBase` — 核心执行器：拓扑排序、chain 执行、step 循环
+- `TestRunner` — 继承 PipelineRunnerBase，添加断言/磁盘校验/清理
+- `WorkflowRunner` — 继承 PipelineRunnerBase，用于 execute_workflow 元工具
+
+详见 [C++ 测试引擎](test-engine.md)。
 
 ## 运行
 
@@ -70,5 +80,5 @@ pytest tests/test_orchestrator.py -v --asyncio-mode=auto
 
 | 文档 | 说明 |
 |------|------|
-| [C++ 测试引擎](test-engine.md) | TestEngine 架构、YAML 格式、断言引擎、磁盘校验、清理策略 |
+| [C++ 测试引擎](test-engine.md) | TestEngine 架构、三层继承体系、YAML 格式、断言引擎、磁盘校验、清理策略 |
 | [测试编排器](orchestrator.md) | Python 编排器生命周期、配置、报告格式 |
