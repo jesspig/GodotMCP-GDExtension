@@ -74,7 +74,7 @@ extensions/src/
 │       │   ├── inputmap/           #   4 个输入映射工具
 │   │   ├── plugin/             #   2 个插件管理工具
 │       │   ├── scaffold/           #   1 个脚手架工具
-│       │   ├── scripts/            #   12 个脚本读写验证工具
+│       │   ├── scripts/            #   13 个脚本读写验证工具
 │       │   ├── settings/           #   4 个设置工具
 │       │   ├── shader/             #   5 个 shader 工具
 │       │   ├── audio/              #   3 个音频工具
@@ -113,10 +113,9 @@ extensions/src/
 │   └── mcp_confirm_dialog.cpp/.hpp # 破坏性操作确认弹窗（Window）
 └── testing/
     ├── test_engine.cpp/.hpp        # 进程内 YAML 测试引擎
-    ├── yaml_parser.hpp             # ryml → Godot Variant 解析
+    ├── test_runner.cpp/.hpp        # 测试运行器
     ├── test_assertions.hpp         # 断言引擎（status/has_keys/field_checks/error_contains）
-    ├── godot_file_verifier.hpp     # .tscn/project.godot 磁盘验证
-    └── type_utils.hpp              # 类型辅助
+    └── godot_file_verifier.hpp     # .tscn/project.godot 磁盘验证
 ```
 
 ## 工具注册（X-macro 分文件）
@@ -126,8 +125,8 @@ extensions/src/
 1. `register_itools.cpp` 包含所有工具 `.hpp` 的 `#include` 指令
 2. 定义 `GODOT_MCP_TOOL` 宏，展开为 `reg.register_tool(std::make_unique<cls>())`
 3. 通过 `#include` 展开四个注册文件：
-   - `register/register_meta.hpp` — 5 个元工具（全部 `is_meta()=true`，共 5 个 always-on 工具；`list_settings` 的 `is_meta()=false`，通过发现链按需加载）
-    - `register/register_existing.hpp` — 137 个功能工具
+    - `register/register_meta.hpp` — 9 个元工具（全部 `is_meta()=true`，共 9 个 always-on 工具；`list_settings` 的 `is_meta()=false`，通过发现链按需加载）
+    - `register/register_existing.hpp` — 145 个功能工具
    - `register/register_fallback.hpp` — 2 个后备属性工具
    - `register/register_docs.hpp` — 8 个文档查询工具
 
@@ -136,7 +135,7 @@ extensions/src/
 1. 在 `extensions/src/built_in/tools/<category>/` 创建 `<name>.hpp`，实现 ITool 接口
 2. 在 `extensions/src/built_in/tools/register/` 对应 X-macro 文件加一行：
    ```cpp
-    GODOT_MCP_TOOL(MyTool, "my_tool", "editor_tools/my_category", false, false, false, false)
+    GODOT_MCP_TOOL(MyTool, false)
    ```
 3. 在 `extensions/src/built_in/register_itools.cpp` 对应分类区域加 `#include`
 4. 编译 —— CMake GLOB 收集 `tools/**/*.cpp`（当前所有工具为 header-only，X-macro 编译期注册）

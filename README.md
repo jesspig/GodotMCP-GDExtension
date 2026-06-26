@@ -1,6 +1,6 @@
 # Godot MCP
 
-[![Version](https://img.shields.io/badge/version-0.2.2--dev1-blue?logo=github)](https://github.com/jessp/godot-mcp)
+[![Version](https://img.shields.io/badge/version-0.2.2--dev4-blue?logo=github)](https://github.com/jessp/godot-mcp)
 [![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=c%2B%2B)](https://isocpp.org)
 [![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?logo=godot%20engine)](https://godotengine.org)
 [![MCP](https://badge.mcpx.dev/?type=plugin&plugin_id=github.com/jessp/godot-mcp&logo=true)](https://modelcontextprotocol.io)
@@ -18,9 +18,9 @@ graph LR
 
     subgraph GodotProc["Godot Editor"]
         HTTP["HttpServer + McpHandler<br/>(:9600, MCP Streamable HTTP)"]
-        Meta["tools/list → 5 meta-tools<br/>(~3KB JSON)"]
+        Meta["tools/list → 9 meta-tools<br/>(~4KB JSON)"]
         Discover["discovery chain<br/>get_categories → get_tools<br/>→ find_tool"]
-        Registry["HandlerRegistry<br/>(152 tools, on-demand)"]
+        Registry["HandlerRegistry<br/>(164 tools, on-demand)"]
         Editor["EditorInterface /<br/>SceneTree / Node API"]
     end
 
@@ -31,14 +31,14 @@ graph LR
     Registry --> Editor
 ```
 
-Godot MCP exposes the Godot 4.6+ editor to AI tools through **152 commands** — create nodes, modify properties, manage scenes, inspect the scene tree, edit GDScript/C# files, animate, debug, and more.
+Godot MCP exposes the Godot 4.6+ editor to AI tools through **164 commands** — create nodes, modify properties, manage scenes, inspect the scene tree, edit GDScript/C# files, animate, debug, and more.
 
 ## Features
 
-- **152 Editor Commands** — Scene/node manipulation, animation, filesystem, scripts, debugger, docs, settings, input map, signals, groups, runtime bridge, and more
-- **Progressive Disclosure** — `tools/list` returns only 5 meta-tools (~3KB JSON); full 152 tools discovered on-demand via `get_categories` → `get_tools` → `find_tool`. Token cost comparable to an ~10-tool MCP server on first connect
-- **MCP Resources Layer** — `godot://scene-tree`, `godot://project-settings`, `godot://editor-info` (read-only state queries), plus URI template `godot://scene-node/{path}`
-- **11-Client Auto-Configuration** — Per-project config generation from the bottom panel or `generate_client_config` tool. No manual JSON editing
+- **164 Editor Commands** — Scene/node manipulation, animation, filesystem, scripts, debugger, docs, settings, input map, signals, groups, shadow scene editing, runtime bridge, and more
+- **Progressive Disclosure** — `tools/list` returns only 9 meta-tools (~4KB JSON); full 164 tools discovered on-demand via `get_categories` → `get_tools` → `find_tool`. Token cost comparable to an ~10-tool MCP server on first connect
+- **MCP Resources Layer** — 10 read-only resources (`godot://scene-tree`, `godot://project-settings`, `godot://editor-info`, `godot://console`, `godot://breakpoints`, `godot://performance`, `godot://filesystem`, `godot://signals`, `godot://groups`, `godot://classes`) plus 2 URI templates (`godot://scene-node/{path}`, `godot://class/{name}`)
+- **11-Client Auto-Configuration** — Per-project config generation from the bottom panel. No manual JSON editing
 - **Streamable HTTP Transport** — Direct MCP Streamable HTTP (`:9600`) into the GDExtension, no external process, no session state
 - **Single-Process Architecture** — C++ GDExtension plugin (godot-cpp 10.0.0-rc1) running inside the Godot editor
 - **Pure Main-Thread C++** — No worker threads, no locks. Everything runs on Godot's main thread via `_process()`
@@ -84,7 +84,7 @@ This produces `build/addons.zip` — extract into any Godot project to install t
 
 ### Configure Your AI Client
 
-Use the bottom panel in Godot or call `generate_client_config` to get a per-project config for any supported AI client — no manual JSON editing needed.
+Use the bottom panel in Godot to get a per-project config for any supported AI client — no manual JSON editing needed.
 
 Or add the config manually:
 
@@ -144,24 +144,27 @@ Config files are generated at **project-level paths** to avoid polluting global 
 "get any errors from the console"
 ```
 
-### Tool Categories (152 total)
+### Tool Categories (164 total)
 
 | Category | Count | Description |
 |----------|-------|-------------|
-| Meta | 5 | Tool discovery, introspection, configuration |
+| Meta | 9 | Tool discovery, introspection, undo/redo, workflow execution |
 | Scene Tree | 24 | Create/delete/rename/move/duplicate/reparent nodes |
+| Shadow Scene | 4 | Non-destructive editing: stage/preview/apply/discard |
+| Diff Scene States | 1 | Compare scene snapshots |
+| Recording/Replay | 2 | Record and replay editor operations |
 | Workspace/Debugger | 13 | Viewport capture, console, debugger, breakpoints |
-| Scripts | 12 | Read/write/patch/validate/list GDScript + C# |
+| Scripts | 13 | Read/write/patch/validate/list GDScript + C#, run EditorScript |
 | Filesystem | 12 | Create/delete/move/copy/open/search files |
 | Animation | 10 | Create animation player/clip/track/keyframe/tree |
 | Docs | 8 | Class/method/property/enum queries via ClassDB |
-| Runtime (Bridge + Lifecycle) | 14 | Run/stop/pause game, inspect runtime scene tree |
+| Runtime (Bridge + Lifecycle) | 14 | Run/stop/pause game, inspect/modify runtime scene tree |
 | Resources | 6 | Save/load/new/duplicate/clear/get_info |
 | Shaders | 5 | Create/read/apply preset/get/set uniforms |
 | Control/UI | 4 | Create control, stylebox, layout, theme override |
 | Settings | 4 | Get/set/reset/list project settings |
 | Input Map | 4 | List/add/remove input actions and event bindings |
-| Signals | 4 | Connect/disconnect/list signals and connections |
+| Signals | 4 | Connect/disconnect/list/get signal connections |
 | Groups | 4 | Add/remove/get node groups |
 | Export | 4 | List/validate/create export presets |
 | 3D Scene | 3 | Mesh, light, environment |
@@ -169,6 +172,7 @@ Config files are generated at **project-level paths** to avoid polluting global 
 | Navigation | 3 | Region, agent, navmesh bake |
 | TileMap | 3 | Get info, set cells, erase cells |
 | Plugin | 2 | List/enable/disable plugins |
+| Fallback | 2 | Universal node property get/set (Layer 0) |
 | Collision | 1 | Create collision shape |
 | Scaffold | 1 | Create project |
 | Visualizer | 1 | Get project graph |
@@ -180,7 +184,7 @@ Config files are generated at **project-level paths** to avoid polluting global 
 ```
 extensions/                   C++ GDExtension plugin (godot-cpp 10.0.0-rc1)
   ├── src/
-  │   ├── built_in/           Built-in tools (153 tools, 4-layer system)
+  │   ├── built_in/           Built-in tools (164 tools, 4-layer system)
   │   │   ├── tools/          ITool implementations by category
   │   │   ├── register/       X-macro registration files
   │   │   ├── cmd_utils/      Shared tool utilities (SchemaBuilder, undo_helpers, …)
@@ -191,7 +195,10 @@ extensions/                   C++ GDExtension plugin (godot-cpp 10.0.0-rc1)
   │   │   └── registry/       HandlerRegistry (tool table, search, categories)
   │   ├── sdk/                McpToolDefinition, McpToolRegistry
   │   ├── runtime/            RuntimeBridge (editor↔game TCP :9601)
-  │   ├── testing/            C++ TestEngine, YAML pipeline
+  │   ├── pipeline/           PipelineRunnerBase + TestRunner + WorkflowRunner
+  │   ├── scene_diff/         Non-destructive editing engine (diff/snapshot/patcher/shadow)
+  │   ├── replay/             Operation recorder and replay
+  │   ├── testing/            C++ TestEngine façade (delegates to pipeline::TestRunner)
   │   ├── ui/                 Bottom panel, confirm dialog, console, logger
   │   ├── editor_plugin.cpp   EditorPlugin — HTTP poll via _process()
   │   └── register_types.cpp  GDExtension entry (symbol: gdext_mcp_init)
@@ -238,7 +245,7 @@ uv run python main.py package                      # Package addons.zip
 | [Getting Started](docs/en/guide/getting-started.md) | Install, configure, basic usage |
 | [Architecture](docs/en/about/architecture.md) | Single-process C++ GDExtension architecture |
 | [Building](docs/en/guide/building.md) | Build system, versioning |
-| [Tools Overview](docs/en/guide/tools-overview.md) | All 152 tools by category |
+| [Tools Overview](docs/en/guide/tools-overview.md) | All 164 tools by category |
 | [Client Configuration](docs/en/guide/client-setup.md) | Config templates for all AI clients |
 | [FAQ](docs/en/guide/faq.md) | Frequently asked questions |
 | [Project Wiki](.repo_wiki/index.md) | Knowledge base for AI agents |

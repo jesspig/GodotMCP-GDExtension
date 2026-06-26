@@ -16,7 +16,7 @@ flowchart LR
             MCPHandler["McpHandler<br/>(JSON-RPC 2.0)"]
             Executor["ToolExecutor<br/>(权限/异常/计时包装)"]
             Registry["HandlerRegistry<br/>(ITool 统一调度)"]
-            Tools["built_in/tools/<br/>152 工具 (X-macro 注册)"]
+            Tools["built_in/tools/<br/>164 工具 (X-macro 注册)"]
             RBS["RuntimeBridgeServer<br/>(TCP :9601 服务器)"]
         end
         Main["_process() 每帧驱动<br/>poll HTTP + poll Bridge"]
@@ -41,7 +41,7 @@ flowchart LR
 | 进程数 | **1**（C++ GDExtension 加载到 Godot 编辑器内） |
 | 传输 | MCP Streamable HTTP，端口 `:9600` |
 | 工具注册 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
-| 工具总数 | **152**（无 codegen，无 YAML 数据库生成） |
+| 工具总数 | **164**（无 codegen，无 YAML 数据库生成） |
 | 线程模型 | **纯主线程**（`McpEditorPlugin::_process()` 驱动） |
 | 入口符号 | `gdext_mcp_init`（`register_types.cpp:60`） |
 | 编码规范 | `cmake/compiler.cmake:7` 已加 `/utf-8 /bigobj`（MSVC） |
@@ -92,9 +92,10 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │   ├── cmd_utils.hpp/.cpp       # 共享工具（resolve_node / undoable_set / notify_file_changed）
 │   ├── cmd_utils_json.cpp       # JSON↔Variant 递归转换
 │   ├── screenshot_utils.hpp     # 截图捕获
-│   ├── cmd_utils/               # 模板化共享工具（7 个独立头文件）
+│   ├── cmd_utils/               # 模板化共享工具（8 个独立头文件）
 │   │   ├── dispatch_map.hpp     # 编译期 String→String 查表
 │   │   ├── undo_helpers.hpp     # 统一 undo 模式
+│   │   ├── undo_stack.hpp       # UndoManager 自管理栈
 │   │   ├── args_get_typed.hpp   # 类型安全参数提取
 │   │   ├── error_codes.hpp      # 错误码常量
 │   │   ├── memdelete_guard.hpp  # RAII memdelete 守卫
@@ -106,7 +107,7 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │       │   ├── register_existing.hpp
 │       │   ├── register_fallback.hpp
 │       │   └── register_docs.hpp
-│       ├── meta/                # 5 个元工具
+│       ├── meta/                # 9 个元工具
 │       ├── signal/              # 4 个信号工具
 │       ├── group/               # 4 个分组工具
 │       ├── node_tools/general/  # 6 个资源管理工具
@@ -122,7 +123,7 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │       │   ├── inputmap/        # 4 个输入映射工具
 │       │   ├── plugin/          # 2 个插件管理工具
 │       │   ├── scaffold/        # 1 个脚手架工具
-│       │   ├── scripts/         # 12 个脚本工具
+│       │   ├── scripts/         # 13 个脚本工具（含 run_editor_script）
 │       │   ├── settings/        # 4 个设置工具
 │       │   ├── shader/          # 5 个 shader 工具
 │       │   ├── audio/           # 3 个音频工具
@@ -134,6 +135,16 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │       └── runtime_tools/
 │           ├── bridge/          # 8 个运行时桥接工具
 │           └── lifecycle/       # 6 个游戏生命周期工具
+├── scene_diff/                  # 非破坏编辑引擎
+│   ├── scene_diff.cpp/.hpp      # 场景差异计算
+│   ├── scene_diff_detail.hpp    # diff 细节类型
+│   ├── scene_snapshot.cpp/.hpp  # PackedScene 快照
+│   ├── scene_patcher.cpp/.hpp   # diff → undoable 应用
+│   └── scene_shadow.cpp/.hpp    # 影子场景管理器
+├── replay/                      # 操作录制与重放
+│   ├── operation_recorder.cpp/.hpp  # 操作录制器
+│   ├── operation_replay.cpp/.hpp    # 操作重放器
+│   └── replay_tools.cpp/.hpp        # ITool 包装（record_operations/replay_operations）
 ├── server/
 │   ├── ipc/                     # MCP HTTP 服务器
 │   │   ├── http_server.cpp/.hpp
@@ -153,16 +164,22 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │   ├── bridge.cpp/.hpp           # RuntimeBridge（TCP 客户端，向后兼容）
 │   ├── bridge_server.cpp/.hpp    # RuntimeBridgeServer（TCP 服务器，多实例）
 │   └── game_bridge.cpp/.hpp      # GameBridgeNode（游戏进程 TCP 客户端）
-└── testing/
-    ├── test_engine.cpp/.hpp      # C++ 进程内测试引擎
-    ├── pipeline_runner.cpp/.hpp  # Pipeline 运行器
-    ├── pipeline_parser.cpp/.hpp  # YAML → Pipeline 解析
-    ├── pipeline_context.cpp/.hpp # Pipeline 上下文
-    ├── pipeline_types.hpp        # Pipeline 类型定义
-    ├── yaml_parser.hpp           # ryml → Godot Variant
+├── pipeline/                    # Pipeline 执行引擎（TestRunner/WorkflowRunner）
+│   ├── pipeline_runner_base.cpp/.hpp  # 基础执行器
+│   ├── pipeline_context.cpp/.hpp      # Pipeline 上下文
+│   ├── pipeline_parser.cpp/.hpp       # YAML → PipelineDef 解析
+│   ├── pipeline_types.hpp             # 类型定义
+│   ├── yaml_parser.hpp                # ryml → Godot Variant
+│   ├── type_utils.hpp                 # 类型辅助
+│   ├── test_parser.cpp/.hpp           # 测试解析器
+│   ├── test_runner.cpp/.hpp           # 带断言/磁盘校验的测试执行器
+│   ├── workflow_parser.cpp/.hpp       # 工作流解析器
+│   └── workflow_runner.cpp/.hpp       # WorkflowRunner
+└── testing/                     # 薄门面（委托 pipeline::TestRunner）
+    ├── test_engine.cpp/.hpp      # TestEngine 门面
+    ├── test_runner.cpp/.hpp      # 测试运行器
     ├── test_assertions.hpp       # 断言运行器
-    ├── godot_file_verifier.hpp   # 磁盘文件校验
-    └── type_utils.hpp            # 类型辅助
+    └── godot_file_verifier.hpp   # 磁盘文件校验
 ```
 
 ## 运行时桥接
