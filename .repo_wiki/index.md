@@ -29,7 +29,7 @@
 | HTTP 端口 | `:9600`（env `GODOT_MCP_HTTP_PORT` 覆盖） |
 | 桥接端口 | `:9601`（env `GODOT_MCP_BRIDGE_PORT` 覆盖） |
 | Pinned deps | `godot-cpp 10.0.0-rc1`、`ryml v0.7.0` |
-| 当前版本 | **0.2.2-dev4**（仅 `CMakeLists.txt` 的 `PROJECT_VERSION`） |
+| 当前版本 | **0.2.2**（仅 `CMakeLists.txt` 的 `PROJECT_VERSION`） |
 | Python | `>=3.14`（`.python-version` 锁定） |
 | MCP 协议 | **Streamable HTTP 2026-07-28**（无 session，支持 GET SSE 流 + POST + OPTIONS） |
 
@@ -99,7 +99,7 @@
 
 ---
 
-> Phase 1~4 所有对应的 LLD 设计文档与 ADR 摘要已在 v0.2.2-dev4 实施后清理，代码和模块文档为当前权威参考。
+> Phase 1~4 所有对应的 LLD 设计文档与 ADR 摘要已在 v0.2.2 实施后清理，代码和模块文档为当前权威参考。
 ---
 
 ## 🧪 测试

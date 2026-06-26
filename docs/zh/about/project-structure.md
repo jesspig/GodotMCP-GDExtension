@@ -22,7 +22,7 @@ scripts/                 Python 构建/打包脚本
 cmake/                   CMake 模块（8 个文件）
 main.py                  构建/测试/打包入口点
 rspress.config.ts        文档站点配置
-CMakeLists.txt           根 CMake 构建（版本：0.2.2-dev4）
+CMakeLists.txt           根 CMake 构建（版本：0.2.2）
 ```
 
 ## 源代码布局（extensions/src/）

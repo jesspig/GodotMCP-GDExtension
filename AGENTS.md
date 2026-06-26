@@ -67,9 +67,9 @@ uv run python main.py test --file 03_*.yaml   # 仅指定测试文件
 
 ## 版本管理
 
-- **单版本源**：根 `CMakeLists.txt:10` 的 `PROJECT_VERSION = "0.2.2-dev4"`
+- **单版本源**：根 `CMakeLists.txt:10` 的 `PROJECT_VERSION = "0.2.2"`
 - `plugin.cfg` 和 `.gdextension` 由 `main.py build` 自动生成
-- `pyproject.toml` 版本需手动同步（CMake 用 `-dev1`，pyproject 用 PEP 508 `.dev1`）
+- `pyproject.toml` 版本需手动同步
 
 ## 添加内置工具
 
