@@ -1,22 +1,22 @@
 ﻿# Tools Overview
 
-GodotMCP provides **153 built-in tools** organized into a four-layer system. Tools are auto-discovered by category and searchable via the `find_tool` meta tool.
+GodotMCP provides **164 built-in tools** organized into a four-layer system. Tools are auto-discovered by category and searchable via the `find_tool` meta tool.
 
 ## Four-Layer System
 
 | Layer | Count | Purpose |
 |-------|-------|---------|
 | Layer 0: Generic Fallback | 2 | Universal property get/set for any node |
-| Layer 1: Meta Tools | 8 | Tool discovery, introspection, configuration |
-| Layer 2: Semantic Tools | 136 | Purpose-built tools for every editor domain |
+| Layer 1: Meta Tools | 9 | Tool discovery, introspection, configuration |
+| Layer 2: Semantic Tools | 145 | Purpose-built tools for every editor domain |
 | Layer 3: Doc Query Tools | 8 | ClassDB-powered Godot API reference |
 
 ## Category Tree
 
 ```
-meta_tools/                       # 8 tools
-  get_info, get_tools, get_categories, get_tool_detail,
-  find_tool, call_tool, generate_client_config, list_settings
+meta_tools/                       # 9 tools
+  get_info, get_tools, get_categories, find_tool, call_tool,
+  undo, redo, get_undo_history, execute_workflow
 
 node_tools/
   signal/                         # 4 tools
@@ -26,7 +26,7 @@ node_tools/
 
 editor_tools/
   scene_tree/                     # 24 tools
-  scripts/                        # 12 tools (GD + C#)
+  scripts/                        # 13 tools (8 GD + 5 C#)
   filesystem/                     # 12 tools
   workspace/                      # 13 tools
   animation/                      # 10 tools
@@ -36,6 +36,7 @@ editor_tools/
   inputmap/                       # 4 tools
   export/                         # 4 tools
   docs/                           # 8 tools
+  scene/                          # 7 tools
   audio/                          # 3 tools
   navigation/                     # 3 tools
   3d_scene/                       # 3 tools
@@ -46,7 +47,7 @@ editor_tools/
   visualizer/                     # 1 tool
 
 runtime_tools/
-  bridge/                         # 7 tools
+  bridge/                         # 8 tools
   lifecycle/                      # 6 tools
 ```
 

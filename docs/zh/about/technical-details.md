@@ -37,7 +37,7 @@ void McpEditorPlugin::_process(double delta) {
 | 主机配置 | GODOT_MCP_HTTP_HOST 环境变量（默认：127.0.0.1） |
 | 协议 | JSON-RPC 2.0 |
 | 会话 | **无** — 无状态，无会话 ID |
-| GET 端点 | **无** — 纯 POST + OPTIONS |
+| GET 端点 | **SSE 流式** — 支持 GET、POST、OPTIONS |
 | SSE | 内联在 POST 响应体中 |
 
 ### HTTP 头
@@ -123,7 +123,7 @@ Game → Editor: {"ok":true,"data":{...},"id":1}
 1. Godot 加载 GDExtension → 调用 gdext_mcp_init()
 2. McpEditorPlugin 注册为 EditorPlugin
 3. _enter_tree() 触发：
-   - 创建 HandlerRegistry 并通过 X-macro 注册所有 153 个内置工具
+   - 创建 HandlerRegistry 并通过 X-macro 注册所有 164 个内置工具
    - 创建 McpToolRegistry 单例供 SDK 访问
    - 读取端口配置
    - 在配置的端口上启动 HttpServer

@@ -37,7 +37,7 @@ The server implements the MCP Streamable HTTP transport (2026-07-28 revision).
 | Host config | GODOT_MCP_HTTP_HOST env var (default: 127.0.0.1) |
 | Protocol | JSON-RPC 2.0 |
 | Session | **None** — stateless, no session IDs |
-| GET endpoints | **None** — pure POST + OPTIONS |
+| GET endpoints | SSE streaming for real-time responses |
 | SSE | Inline in POST response body |
 
 ### HTTP Headers
@@ -123,7 +123,7 @@ Game → Editor: {"ok":true,"data":{...},"id":1}
 1. Godot loads the GDExtension → calls gdext_mcp_init()
 2. McpEditorPlugin is registered as an EditorPlugin
 3. _enter_tree() fires:
-   - Creates HandlerRegistry and registers all 153 built-in tools via X-macro
+   - Creates HandlerRegistry and registers all 164 built-in tools via X-macro
    - Creates McpToolRegistry singleton for SDK access
    - Reads port configuration
    - Starts HttpServer on the configured port

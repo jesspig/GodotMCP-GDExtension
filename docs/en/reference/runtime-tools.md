@@ -1,6 +1,6 @@
 ﻿# Runtime Tools
 
-13 tools for controlling the game runtime and bridging to the game process.
+14 tools for controlling the game runtime and bridging to the game process.
 
 ## Runtime Lifecycle (6)
 
@@ -60,7 +60,7 @@
 
 ---
 
-## Runtime Bridge (7)
+## Runtime Bridge (8)
 
 ### `wait_for_bridge`
 
@@ -73,6 +73,12 @@
 | Name | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `timeout_ms` | `int` | No | 5000 | Max wait time in ms |
+
+### `list_game_instances`
+
+**Category**: `runtime_tools/bridge`  
+**Description**: List all connected game instances.  
+**Destructive**: No | **Undo**: No
 
 ### `get_game_scene_tree`
 

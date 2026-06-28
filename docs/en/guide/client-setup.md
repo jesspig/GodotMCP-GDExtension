@@ -2,19 +2,21 @@
 
 ## Quick Reference
 
-| Client | Config File | Key |
-|--------|------------|-----|
-| opencode | `.opencode/opencode.json` | `mcpServers` |
+| Client | Config File | Key/Format |
+|--------|-------------|-----------|
+| Claude Code | `.mcp.json` | `mcpServers` |
 | Cursor | `.cursor/mcp.json` | `mcpServers` |
 | VS Code / Copilot | `.vscode/mcp.json` | `servers` |
-| Claude Code | `CLAUDE.md` | `mcpServers` |
-| Trae | `.trae/mcp.json` | `mcpServers` |
-| Cline | `.vscode/cline_mcp_settings.json` | `mcpServers` |
-| Roo Code | `.vscode/roocode_settings.json` | `mcpServers` |
-| Continue | `~/.continue/config.json` | `experimental.mcpServers` |
-| Windsurf | `.windsurf/models.json` | `mcpServers` |
+| Cline | `.cline/mcp.json` | `mcpServers` |
+| OpenCode | `.opencode/opencode.json` | `mcp` |
+| Codex | `.codex/config.toml` | TOML format |
+| Trae / Trae CN | `.trae/mcp.json` | `mcpServers` |
+| Qoder | `.qoder/mcp.json` | `mcpServers` |
+| CodeBuddy | `.codebuddy/mcp_settings.json` | `mcpServers` |
+| Pi | `.pi/settings.json` | `mcp` |
+| OpenClaw | `.openclaw/openclaw.json` | `mcpServers` |
 
-All clients use the same command to verify: `curl http://127.0.0.1:9600/mcp`
+All clients use the same command to verify: `curl -X POST http://127.0.0.1:9600/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_info","arguments":{}}}'`
 
 ## Universal Configuration
 
@@ -37,13 +39,15 @@ All clients share the same Streamable HTTP configuration:
 
 Always configure MCP at the **project level** (not global/user level). Each Godot project needs its own MCP configuration pointing to the same local server.
 
-### opencode
+### OpenCode
+
+File: `.opencode/opencode.json` in your project root.
 
 ```json
 {
-  "mcpServers": {
-    "godot-mcp": {
-      "type": "streamable-http",
+  "mcp": {
+    "godot": {
+      "type": "remote",
       "url": "http://127.0.0.1:9600/mcp"
     }
   }
@@ -57,8 +61,7 @@ File: `.cursor/mcp.json` in your project root.
 ```json
 {
   "mcpServers": {
-    "godot-mcp": {
-      "type": "streamable-http",
+    "godot": {
       "url": "http://127.0.0.1:9600/mcp"
     }
   }
@@ -74,8 +77,8 @@ File: `.vscode/mcp.json` in your project root.
 ```json
 {
   "servers": {
-    "godot-mcp": {
-      "type": "streamable-http",
+    "godot": {
+      "type": "http",
       "url": "http://127.0.0.1:9600/mcp"
     }
   }
@@ -86,13 +89,13 @@ After editing, reload the VS Code window.
 
 ### Claude Code
 
-Add to your `CLAUDE.md` file:
+File: `.mcp.json` in your project root.
 
 ```json
 {
   "mcpServers": {
-    "godot-mcp": {
-      "type": "streamable-http",
+    "godot": {
+      "type": "http",
       "url": "http://127.0.0.1:9600/mcp"
     }
   }
@@ -101,44 +104,85 @@ Add to your `CLAUDE.md` file:
 
 ### Cline
 
-File: `.vscode/cline_mcp_settings.json` in your project root.
+File: `.cline/mcp.json` in your project root.
 
 ```json
 {
   "mcpServers": {
-    "godot-mcp": {
-      "type": "streamable-http",
+    "godot": {
+      "type": "http",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "http://127.0.0.1:9600/mcp"]
+    }
+  }
+}
+```
+
+### Trae / Trae CN
+
+File: `.trae/mcp.json` in your project root.
+
+```json
+{
+  "mcpServers": {
+    "godot": {
       "url": "http://127.0.0.1:9600/mcp"
     }
   }
 }
 ```
 
-### Roo Code
+### Codex
 
-File: `.vscode/roocode_settings.json` in your project root.
+File: `.codex/config.toml` in your project root.
+
+```toml
+[mcp_servers.godot]
+enabled = true
+url = "http://127.0.0.1:9600/mcp"
+transport = "streamable_http"
+```
+
+### Qoder
+
+File: `.qoder/mcp.json` in your project root.
 
 ```json
 {
   "mcpServers": {
-    "godot-mcp": {
-      "type": "streamable-http",
+    "godot": {
+      "transport": "http",
       "url": "http://127.0.0.1:9600/mcp"
     }
   }
 }
 ```
 
-### Continue
+### CodeBuddy
 
-File: `~/.continue/config.json`
+File: `.codebuddy/mcp_settings.json` in your project root.
 
 ```json
 {
-  "experimental": {
+  "mcpServers": {
+    "godot": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "http://127.0.0.1:9600/mcp"]
+    }
+  }
+}
+```
+
+### Pi
+
+File: `.pi/settings.json` in your project root.
+
+```json
+{
+  "mcp": {
     "mcpServers": {
-      "godot-mcp": {
-        "type": "streamable-http",
+      "godot": {
         "url": "http://127.0.0.1:9600/mcp"
       }
     }
@@ -146,15 +190,14 @@ File: `~/.continue/config.json`
 }
 ```
 
-### Windsurf
+### OpenClaw
 
-File: `.windsurf/models.json` in your project root.
+File: `.openclaw/openclaw.json` in your project root.
 
 ```json
 {
   "mcpServers": {
-    "godot-mcp": {
-      "type": "streamable-http",
+    "godot": {
       "url": "http://127.0.0.1:9600/mcp"
     }
   }
@@ -163,13 +206,7 @@ File: `.windsurf/models.json` in your project root.
 
 ## Generating Client Config
 
-Use the `generate_client_config` meta tool to auto-generate the config for your client:
-
-```bash
-curl -X POST http://localhost:9600/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"method":"tools/call","params":{"name":"generate_client_config","arguments":{"client_type":"cursor"}}}'
-```
+Open the **GodotMCP** bottom panel in the editor to auto-generate config for any supported client. Select your client from the dropdown and click **Generate** to see the config, or use `get_info(include_configs=true)` to get client config snippets via the API.
 
 ## Troubleshooting
 

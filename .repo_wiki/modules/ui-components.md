@@ -98,7 +98,7 @@ add_control_to_dock(DOCK_SLOT_RIGHT_UL, mcp_dock_);
 
 | 回调 | 行为 | 源码 |
 |------|------|------|
-| `_on_generate_pressed()` | 调用 `generate_client_config` 工具，写入项目 | `mcp_dock.cpp:285` |
+| `_on_generate_pressed()` | 通过 `_generate_config()` 直接生成客户端配置 | `mcp_dock.cpp:285` |
 
 ## McpConsole
 
