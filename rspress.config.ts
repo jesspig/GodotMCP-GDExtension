@@ -101,6 +101,7 @@ export default defineConfig({
           collapsible: true,
           items: [
             { text: 'overview', link: '/changelog/' },
+            { text: 'v0.2.2', link: '/changelog/v0-2-2' },
             { text: 'v0.2.1', link: '/changelog/v0-2-1' },
             { text: 'v0.2.0', link: '/changelog/v0-2-0' },
             { text: 'v0.1.5', link: '/changelog/v0-1-5' },

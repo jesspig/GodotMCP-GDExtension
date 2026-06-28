@@ -2,6 +2,7 @@
 
 | Version | Date | Summary |
 |---------|------|---------|
+| [v0.2.2](./v0-2-2) | 2026-06-27 | Non-destructive editing, operation recording/replay, undo/redo, 164 tools |
 | [v0.2.1](./v0-2-1) | 2026-06-18 | MCP 2026-07-28 protocol, architecture optimization, 153 tools |
 | [v0.2.0](./v0-2-0) | 2026-06-12 | ITool architecture rewrite, runtime bridge, 149+ tools |
 | [v0.1.5](./v0-1-5) | 2026-05-30 | Pure C++ GDExtension rewrite, removed Rust and Python components |
