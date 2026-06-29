@@ -20,6 +20,19 @@ pipeline:
               - key: plugin.builtin_tools
                 not_empty: true
 
+        - id: get_info_with_configs
+          tool: get_info
+          description: Returns info with client configs
+          args:
+            include_configs: true
+          expect:
+            has_keys: [connection, engine, plugin, project, editor, client_configs]
+            field_checks:
+              - key: client_configs.claude_code
+                not_empty: true
+              - key: client_configs.cursor
+                not_empty: true
+
         - id: get_categories
           tool: get_categories
           description: Returns category tree
@@ -31,20 +44,16 @@ pipeline:
 
         - id: get_tools
           tool: get_tools
-          description: Lists tools in meta_tools category
-          args:
-            category: "meta_tools"
+          description: Lists all registered tools
           expect:
-            has_keys: [category, tools, count]
+            has_keys: [tools, count]
             field_checks:
-              - key: category
-                value: "meta_tools"
               - key: count
                 not_empty: true
 
         - id: get_tool_detail
-          tool: get_tool_detail
-          description: Gets full detail for get_info
+          tool: get_tools
+          description: Gets full detail for get_info via name
           args:
             name: "get_info"
           expect:
@@ -52,8 +61,6 @@ pipeline:
             field_checks:
               - key: id
                 value: "get_info"
-              - key: required
-                not_empty: false
 
         - id: find_tool
           tool: find_tool
@@ -66,20 +73,6 @@ pipeline:
               - key: query
                 value: "get_info"
               - key: count
-                not_empty: true
-
-        - id: generate_client_config
-          tool: generate_client_config
-          description: Generates Claude Code client config (no write)
-          args:
-            client: "claude_code"
-            write_to_project: false
-          expect:
-            has_keys: [client, config_path, config_content, format, url]
-            field_checks:
-              - key: client
-                value: "claude_code"
-              - key: config_content
                 not_empty: true
 
         - id: call_tool

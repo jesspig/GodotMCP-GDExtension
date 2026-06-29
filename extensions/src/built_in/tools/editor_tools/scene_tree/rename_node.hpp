@@ -4,9 +4,11 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/schema_builder.hpp"
+#include "built_in/cmd_utils/undo_stack.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
+#include <godot_cpp/classes/time.hpp>
 
 namespace godot_mcp {
 
@@ -60,13 +62,31 @@ protected:
         }
 
         String old_name = node->get_name();
-        auto *ur = begin_undo_action("MCP: Rename " + old_name);
+        auto *ur = begin_undo_action("MCP: Rename " + old_name, ctx.root);
         if (ur) {
             ur->add_do_method(node, "set_name", new_name);
             ur->add_undo_method(node, "set_name", old_name);
             commit_undo_action(ur);
         } else {
             node->set_name(new_name);
+        }
+
+        // Push MCP undo record
+        if (g_undo_manager) {
+            String node_path = relative_path(ctx.root, node);
+            UndoRecord rec;
+            rec.tool_name = "rename_node";
+            Dictionary fwd;
+            fwd["node_path"] = node_path;
+            fwd["new_name"] = new_name;
+            rec.forward_args = fwd;
+            Dictionary rev;
+            rev["node_path"] = node_path;
+            rev["new_name"] = old_name;
+            rec.reverse_args = rev;
+            rec.timestamp = godot::Time::get_singleton()->get_unix_time_from_system();
+            rec.description = String("Rename ") + old_name + String(" -> ") + new_name;
+            g_undo_manager->push(std::move(rec));
         }
 
         Dictionary data;

@@ -1,6 +1,6 @@
 ﻿# Settings, Export, Input & Plugin Tools
 
-15 tools for project settings, export, input mapping, plugin management, scaffolding, and visualization.
+16 tools for project settings, export, input mapping, plugin management, scaffolding, and visualization.
 
 ## Project Settings (4)
 

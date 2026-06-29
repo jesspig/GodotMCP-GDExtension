@@ -4,11 +4,13 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/memdelete_guard.hpp"
+#include "built_in/cmd_utils/undo_stack.hpp"
 #include "scene_tree_utils.hpp"
 
 #include <godot_cpp/classes/editor_selection.hpp>
 #include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/core/class_db.hpp>
 
 namespace godot_mcp {
@@ -86,7 +88,8 @@ protected:
         }
         Node *parent = nullptr;
         if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
-            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
+            godot::Dictionary nested = err->get("error", godot::Dictionary());
+            return ToolResult::err("NODE_NOT_FOUND", nested.get("message", parent_path));
         }
         if (node_name.is_empty()) {
             node_name = class_name;
@@ -123,6 +126,20 @@ protected:
                 sel->clear();
                 sel->add_node(child);
             }
+        }
+
+        // Push MCP undo record (reverse = delete_node)
+        if (g_undo_manager) {
+            String child_path = relative_path(ctx.root, child);
+            UndoRecord rec;
+            rec.tool_name = "add_node";
+            rec.forward_args = ctx.args;
+            Dictionary rev;
+            rev["node_path"] = child_path;
+            rec.reverse_args = rev;
+            rec.timestamp = godot::Time::get_singleton()->get_unix_time_from_system();
+            rec.description = String("Add ") + class_name + String(" as ") + node_name;
+            g_undo_manager->push(std::move(rec));
         }
 
         Dictionary data;

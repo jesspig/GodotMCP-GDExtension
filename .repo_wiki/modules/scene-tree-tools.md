@@ -1,6 +1,8 @@
 # 场景树工具
 
 > 与 Godot 编辑器场景树交互的工具集，支持场景创建/保存、节点 CRUD、剪贴板操作、场景实例化、脚本操作等。24 个工具，位于 `extensions/src/built_in/tools/editor_tools/scene_tree/`。
+> 
+> 场景树工具的通用模式（scene_path 解析、属性操作、undo 封装）详见 [scene-commands.md](scene-commands.md)。
 
 ## 工具列表
 
@@ -8,7 +10,7 @@
 
 | 工具名 | 文件 | 功能 | Undo |
 |--------|------|------|:----:|
-| `get_scene_tree` | `get_scene_tree.hpp` | 递归列出当前场景所有节点（名称、类型、路径、子节点） | ❌ |
+| `get_scene_tree` | `get_scene_tree.hpp` | 递归列出当前场景所有节点（名称、类型、路径、子节点），支持 `include_scripts` 参数 | ❌ |
 | `new_scene` | `new_scene.hpp` | 创建新场景，指定根节点类型和名称 | ✅ 内置 |
 | `save_scene` | `save_scene.hpp` | 保存当前场景到 `res://` 路径 | ❌ |
 | `save_branch_as_scene` | `save_branch_as_scene.hpp` | 将节点分支保存为 `.tscn` 文件 | ✅ 替换 |
@@ -20,7 +22,7 @@
 | 工具名 | 文件 | 功能 | Undo |
 |--------|------|------|:----:|
 | `rename_node` | `rename_node.hpp` | 重命名节点 | ✅ |
-| `move_node` | `move_node.hpp` | 调整节点在同级中的顺序（上移/下移/指定索引） | ✅ |
+| `move_node` | `move_node.hpp` | 调整节点位置（可选 `parent_path` 指定新父级，为空则保持当前父级） | ✅ |
 | `duplicate_node` | `duplicate_node.hpp` | 复制节点（`Node::duplicate` + `add_sibling`） | ✅ |
 | `reparent_node` | `reparent_node.hpp` | 更改节点的父节点 | ✅ |
 | `reparent_to_new_node` | `reparent_to_new_node.hpp` | 用新创建的父节点包裹选中节点 | ✅ |

@@ -14,22 +14,24 @@ flowchart LR
         subgraph Internal["内部组件"]
             HTTP["HttpServer<br/>(:9600, SSE)"]
             MCPHandler["McpHandler<br/>(JSON-RPC 2.0)"]
+            Executor["ToolExecutor<br/>(权限/异常/计时包装)"]
             Registry["HandlerRegistry<br/>(ITool 统一调度)"]
-            Tools["built_in/tools/<br/>153 工具 (X-macro 注册)"]
-            RB["RuntimeBridge<br/>(TCP :9601 客户端)"]
+            Tools["built_in/tools/<br/>164 工具 (X-macro 注册)"]
+            RBS["RuntimeBridgeServer<br/>(TCP :9601 服务器)"]
         end
         Main["_process() 每帧驱动<br/>poll HTTP + poll Bridge"]
     end
     subgraph Game["Godot Game 进程"]
-        GB["GameBridgeNode<br/>(TCP :9601 服务端)"]
+        GB["GameBridgeNode<br/>(TCP :9601 客户端)"]
     end
-    MCP <-->|POST+OPTIONS /mcp<br/>MCP Streamable HTTP| HTTP
+    MCP <-->|GET(SSE)+POST+OPTIONS /mcp<br/>MCP Streamable HTTP| HTTP
     HTTP --> MCPHandler
-    MCPHandler --> Registry
+    MCPHandler --> Executor
+    Executor --> Registry
     Registry --> Tools
     Main --> HTTP
-    Main --> RB
-    RB <-->|TCP JSON :9601| GB
+    Main --> RBS
+    GB <-->|TCP JSON :9601| RBS
 ```
 
 ## 关键属性
@@ -39,7 +41,7 @@ flowchart LR
 | 进程数 | **1**（C++ GDExtension 加载到 Godot 编辑器内） |
 | 传输 | MCP Streamable HTTP，端口 `:9600` |
 | 工具注册 | **X-macro 分文件注册**（`register_itools.cpp` + `register/*.hpp`） |
-| 工具总数 | **153**（无 codegen，无 YAML 数据库生成） |
+| 工具总数 | **164**（无 codegen，无 YAML 数据库生成） |
 | 线程模型 | **纯主线程**（`McpEditorPlugin::_process()` 驱动） |
 | 入口符号 | `gdext_mcp_init`（`register_types.cpp:60`） |
 | 编码规范 | `cmake/compiler.cmake:7` 已加 `/utf-8 /bigobj`（MSVC） |
@@ -53,18 +55,20 @@ sequenceDiagram
     participant AI as AI 客户端
     participant H as HttpServer
     participant M as McpHandler
+    participant E as ToolExecutor
     participant G as HandlerRegistry
     participant T as ITool
     AI->>H: POST /mcp (tools/list)
     H->>M: handle_message()
-    M->>G: list_tools()
+    M->>G: get_always_on_tools()
     G-->>M: always-on 工具列表
     M-->>H: MCP content array
     H-->>AI: 200 application/json
     Note over AI,G: 工具调用
     AI->>H: POST /mcp (tools/call)
     H->>M: handle_message()
-    M->>G: execute(name, args)
+    M->>E: execute(name, args)
+    E->>G: execute(name, args)
     G->>T: itool_table_ 查找 → execute(args)
     Note over T: 自动注入 ctx.root / ctx.node<br/>(按 needs_scene/needs_node)
     T-->>G: ToolResult 字典
@@ -88,9 +92,10 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │   ├── cmd_utils.hpp/.cpp       # 共享工具（resolve_node / undoable_set / notify_file_changed）
 │   ├── cmd_utils_json.cpp       # JSON↔Variant 递归转换
 │   ├── screenshot_utils.hpp     # 截图捕获
-│   ├── cmd_utils/               # 模板化共享工具（7 个独立头文件）
+│   ├── cmd_utils/               # 模板化共享工具（8 个独立头文件）
 │   │   ├── dispatch_map.hpp     # 编译期 String→String 查表
 │   │   ├── undo_helpers.hpp     # 统一 undo 模式
+│   │   ├── undo_stack.hpp       # UndoManager 自管理栈
 │   │   ├── args_get_typed.hpp   # 类型安全参数提取
 │   │   ├── error_codes.hpp      # 错误码常量
 │   │   ├── memdelete_guard.hpp  # RAII memdelete 守卫
@@ -102,11 +107,11 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │       │   ├── register_existing.hpp
 │       │   ├── register_fallback.hpp
 │       │   └── register_docs.hpp
-│       ├── meta/                # 7 个元工具
+│       ├── meta/                # 9 个元工具
 │       ├── signal/              # 4 个信号工具
 │       ├── group/               # 4 个分组工具
 │       ├── node_tools/general/  # 6 个资源管理工具
-│       ├── node_properties/     # 2 个通用兜底工具（Layer 0）
+│       ├── node_tools/fallback/ # 2 个通用兜底工具（Layer 0）
 │       ├── editor_tools/
 │       │   ├── scene_tree/      # 24 个场景树 CRUD 工具
 │       │   ├── animation/       # 10 个动画工具（Player + Tree）
@@ -118,7 +123,7 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │       │   ├── inputmap/        # 4 个输入映射工具
 │       │   ├── plugin/          # 2 个插件管理工具
 │       │   ├── scaffold/        # 1 个脚手架工具
-│       │   ├── scripts/         # 12 个脚本工具
+│       │   ├── scripts/         # 13 个脚本工具（含 run_editor_script）
 │       │   ├── settings/        # 4 个设置工具
 │       │   ├── shader/          # 5 个 shader 工具
 │       │   ├── audio/           # 3 个音频工具
@@ -128,31 +133,63 @@ extensions/src/                  # C++ GDExtension 唯一源码根
 │       │   ├── visualizer/      # 1 个可视化工具
 │       │   └── workspace/       # 13 个工作区/调试器工具
 │       └── runtime_tools/
-│           ├── bridge/          # 7 个运行时桥接工具
+│           ├── bridge/          # 8 个运行时桥接工具
 │           └── lifecycle/       # 6 个游戏生命周期工具
+├── scene_diff/                  # 非破坏编辑引擎
+│   ├── scene_diff.cpp/.hpp      # 场景差异计算
+│   ├── scene_diff_detail.hpp    # diff 细节类型
+│   ├── scene_snapshot.cpp/.hpp  # PackedScene 快照
+│   ├── scene_patcher.cpp/.hpp   # diff → undoable 应用
+│   └── scene_shadow.cpp/.hpp    # 影子场景管理器
+├── replay/                      # 操作录制与重放
+│   ├── operation_recorder.cpp/.hpp  # 操作录制器
+│   ├── operation_replay.cpp/.hpp    # 操作重放器
+│   └── replay_tools.cpp/.hpp        # ITool 包装（record_operations/replay_operations）
 ├── server/
-│   ├── ipc/http_server.cpp/.hpp # MCP Streamable HTTP 服务器
-│   ├── mcp/mcp_handler.cpp/.hpp # JSON-RPC 2.0 处理器（无 session）
+│   ├── ipc/                     # MCP HTTP 服务器
+│   │   ├── http_server.cpp/.hpp
+│   │   ├── http_parser.cpp       # 共用 http_server.hpp 声明
+│   │   ├── http_connection.cpp   # 共用 http_server.hpp 声明
+│   │   └── http_sse.cpp          # 共用 http_server.hpp 声明
+│   ├── mcp/                     # MCP 协议处理
+│   │   ├── mcp_handler.cpp/.hpp # JSON-RPC 2.0 处理器（无 session）
+│   │   ├── tool_executor.cpp/.hpp # 权限/异常/计时执行包装
+│   │   └── prompt_provider.cpp/.hpp # Prompt 提供器
 │   └── registry/
 │       └── handler_registry.cpp/.hpp  # ITool 调度 + 分类自动发现
 ├── sdk/
-│   ├── mcp_tool_definition.hpp/.cpp   # GDScript/C# 可继承基类
+│   ├── mcp_tool_definition.hpp/.cpp   # GDScript/C# 可继承基类（RefCounted）
 │   └── mcp_tool_registry.hpp/.cpp     # 单例 SDK 注册表
-└── testing/
-    ├── test_engine.cpp/.hpp     # C++ 进程内测试引擎
-    ├── yaml_parser.hpp          # ryml → Godot Variant
-    ├── test_assertions.hpp      # 断言运行器
-    ├── godot_file_verifier.hpp  # 磁盘文件校验
-    └── type_utils.hpp           # 类型辅助
+├── runtime/
+│   ├── bridge.cpp/.hpp           # RuntimeBridge（TCP 客户端，向后兼容）
+│   ├── bridge_server.cpp/.hpp    # RuntimeBridgeServer（TCP 服务器，多实例）
+│   └── game_bridge.cpp/.hpp      # GameBridgeNode（游戏进程 TCP 客户端）
+├── pipeline/                    # Pipeline 执行引擎（TestRunner/WorkflowRunner）
+│   ├── pipeline_runner_base.cpp/.hpp  # 基础执行器
+│   ├── pipeline_context.cpp/.hpp      # Pipeline 上下文
+│   ├── pipeline_parser.cpp/.hpp       # YAML → PipelineDef 解析
+│   ├── pipeline_types.hpp             # 类型定义
+│   ├── yaml_parser.hpp                # ryml → Godot Variant
+│   ├── type_utils.hpp                 # 类型辅助
+│   ├── test_parser.cpp/.hpp           # 测试解析器
+│   ├── test_runner.cpp/.hpp           # 带断言/磁盘校验的测试执行器
+│   ├── workflow_parser.cpp/.hpp       # 工作流解析器
+│   └── workflow_runner.cpp/.hpp       # WorkflowRunner
+└── testing/                     # 薄门面（委托 pipeline::TestRunner）
+    ├── test_engine.cpp/.hpp      # TestEngine 门面
+    ├── test_runner.cpp/.hpp      # 测试运行器
+    ├── test_assertions.hpp       # 断言运行器
+    └── godot_file_verifier.hpp   # 磁盘文件校验
 ```
 
 ## 运行时桥接
 
 编辑器 ↔ 游戏进程的 TCP JSON 通道，端口 9601：
 
-- **GameBridgeNode**（游戏进程）：`register_types.cpp` 在 `LEVEL_SCENE` 创建，`call_deferred` 加入场景树，7 个命令 handler
-- **RuntimeBridge**（编辑器进程）：`McpEditorPlugin` 持有，`_process()` 每帧 `poll()` 驱动
-- **生命周期**：`_try_bridge_connect()` 通过 `ei->is_playing_scene()` 感知游戏启停
+- **GameBridgeNode**（游戏进程）：`register_types.cpp` 在 `LEVEL_SCENE` 创建，`call_deferred` 加入场景树，7 个命令 handler。作为 TCP 客户端连接编辑器。
+- **RuntimeBridgeServer**（编辑器进程）：`McpEditorPlugin` 持有，TCP 服务器模式，接受多个游戏实例连接。使用 `bridge_server_.poll()` 每帧驱动所有实例。
+- **RuntimeBridge**（编辑器进程）：旧版 TCP 客户端模式，保留为向后兼容。
+- **生命周期**：`bridge_server_.poll()` 通过 `ei->is_playing_scene()` 感知游戏启停，自动接受新连接。
 
 详见 [modules/runtime-bridge.md](../modules/runtime-bridge.md)。
 

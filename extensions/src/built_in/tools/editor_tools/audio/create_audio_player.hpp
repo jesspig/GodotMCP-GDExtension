@@ -125,14 +125,7 @@ protected:
             p->set_volume_db(static_cast<float>(volume_db));
         }
 
-        auto *ur = begin_undo_action("MCP: Create AudioPlayer " + class_name);
-        if (!ur) {
-            parent->add_child(player_node, true, Node::INTERNAL_MODE_DISABLED);
-            player_node->set_owner(ctx.root);
-            mark_scene_dirty();
-        } else {
-            commit_add_child_undo(ur, "MCP: Create AudioPlayer " + class_name, parent, player_node, ctx.root);
-        }
+        commit_add_child_undo(get_undo_redo(), "MCP: Create AudioPlayer " + class_name, parent, player_node, ctx.root);
         guard.dismiss();
 
         auto *ei = godot::EditorInterface::get_singleton();

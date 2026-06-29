@@ -1,6 +1,6 @@
 # Godot MCP
 
-[![Version](https://img.shields.io/badge/version-0.2.1-blue?logo=github)](https://github.com/jessp/godot-mcp)
+[![Version](https://img.shields.io/badge/version-0.2.2-blue?logo=github)](https://github.com/jessp/godot-mcp)
 [![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=c%2B%2B)](https://isocpp.org)
 [![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?logo=godot%20engine)](https://godotengine.org)
 [![MCP](https://badge.mcpx.dev/?type=plugin&plugin_id=github.com/jessp/godot-mcp&logo=true)](https://modelcontextprotocol.io)
@@ -18,24 +18,31 @@ graph LR
 
     subgraph GodotProc["Godot Editor"]
         HTTP["HttpServer + McpHandler<br/>(:9600, MCP Streamable HTTP)"]
-        Registry["HandlerRegistry<br/>(122 tool schemas)"]
+        Meta["tools/list → 9 meta-tools<br/>(~4KB JSON)"]
+        Discover["discovery chain<br/>get_categories → get_tools<br/>→ find_tool"]
+        Registry["HandlerRegistry<br/>(164 tools, on-demand)"]
         Editor["EditorInterface /<br/>SceneTree / Node API"]
     end
 
     Client -->|HTTP POST /mcp<br/>JSON-RPC 2.0| HTTP
-    HTTP --> Registry
+    HTTP -->|always-on| Meta
+    Meta -.->|progressive disclosure| Discover
+    Discover -.->|load schema| Registry
     Registry --> Editor
 ```
 
-Godot MCP exposes the Godot 4.6+ editor to AI tools through **122 commands** — create nodes, modify properties, manage scenes, inspect the scene tree, edit GDScript/C# files, and more.
+Godot MCP exposes the Godot 4.6+ editor to AI tools through **164 commands** — create nodes, modify properties, manage scenes, inspect the scene tree, edit GDScript/C# files, animate, debug, and more.
 
 ## Features
 
-- **122 Editor Commands** — Scene/node manipulation, properties, search, undo/redo, collision shapes, GDScript/C# script management, LSP validation, file search/replace, project settings, multi-scene operations
-- **Streamable HTTP Transport** — Direct MCP Streamable HTTP (`:9600`) into the GDExtension
+- **164 Editor Commands** — Scene/node manipulation, animation, filesystem, scripts, debugger, docs, settings, input map, signals, groups, shadow scene editing, runtime bridge, and more
+- **Progressive Disclosure** — `tools/list` returns only 9 meta-tools (~4KB JSON); full 164 tools discovered on-demand via `get_categories` → `get_tools` → `find_tool`. Token cost comparable to an ~10-tool MCP server on first connect
+- **MCP Resources Layer** — 10 read-only resources (`godot://scene-tree`, `godot://project-settings`, `godot://editor-info`, `godot://console`, `godot://breakpoints`, `godot://performance`, `godot://filesystem`, `godot://signals`, `godot://groups`, `godot://classes`) plus 2 URI templates (`godot://scene-node/{path}`, `godot://class/{name}`)
+- **11-Client Auto-Configuration** — Per-project config generation from the bottom panel. No manual JSON editing
+- **Streamable HTTP Transport** — Direct MCP Streamable HTTP (`:9600`) into the GDExtension, no external process, no session state
 - **Single-Process Architecture** — C++ GDExtension plugin (godot-cpp 10.0.0-rc1) running inside the Godot editor
-- **Pure Main-Thread C++** — No worker threads, no tokio, no locks. Everything runs on Godot's main thread via `process_frame`
-- **AI Client Support (Streamable HTTP)** — Claude Code, OpenCode, Cursor, GitHub Copilot, Codex, Trae, and more
+- **Pure Main-Thread C++** — No worker threads, no locks. Everything runs on Godot's main thread via `_process()`
+- **AI Client Support** — Claude Code, OpenCode, Cursor, GitHub Copilot, Codex, Trae, and more
 - **Cross-Platform** — Windows, macOS, and Linux
 
 ## How It Works
@@ -45,7 +52,7 @@ AI Assistant ──► godot_mcp_gdext.dll
    (HTTP POST /mcp, :9600)     (C++ GDExtension, JSON-RPC 2.0)
 ```
 
-AI clients connect directly to the GDExtension's HTTP server on `localhost:9600` using the MCP Streamable HTTP protocol. The plugin dispatches each call to the Godot main thread via `EditorPlugin::_on_process_frame()`, executes editor APIs safely, and returns results. Supports SSE for server-initiated events.
+AI clients connect directly to the GDExtension's HTTP server on `localhost:9600` using the MCP Streamable HTTP protocol. The plugin dispatches each call on Godot's main thread via `McpEditorPlugin::_process()`, executes editor APIs safely, and returns results. Supports SSE for server-initiated events.
 
 ## Installation
 
@@ -54,6 +61,7 @@ AI clients connect directly to the GDExtension's HTTP server on `localhost:9600`
 - [Godot 4.6+](https://godotengine.org/download)
 - [CMake 3.22+](https://cmake.org/download)
 - [Visual Studio 2022](https://visualstudio.microsoft.com) (Windows) with C++ toolchain, or equivalent on macOS/Linux
+- Python 3.14+ with [uv](https://docs.astral.sh/uv/)
 
 ### Build
 
@@ -76,7 +84,9 @@ This produces `build/addons.zip` — extract into any Godot project to install t
 
 ### Configure Your AI Client
 
-Add this to your MCP client config:
+Use the bottom panel in Godot to get a per-project config for any supported AI client — no manual JSON editing needed.
+
+Or add the config manually:
 
 ```json
 {
@@ -89,16 +99,23 @@ Add this to your MCP client config:
 }
 ```
 
-### Client Config Locations
+### Supported Clients & Config Paths
 
-| Client | Config Path |
-|--------|-------------|
-| Claude Code | `~/.claude/mcp.json` |
-| OpenCode | `~/.config/opencode/config.json` |
-| Cursor | `<project>/.cursor/mcp.json` |
-| GitHub Copilot | `<project>/.vscode/mcp.json` |
-| Trae / Trae CN | `<project>/.trae/mcp.json` |
-| Codex | `~/.codex/config.toml` |
+Config files are generated at **project-level paths** to avoid polluting global MCP settings:
+
+| Client | Config Path | Format |
+|--------|-------------|:------:|
+| Claude Code | `.mcp.json` | JSON |
+| OpenCode | `.opencode/opencode.json` | JSON |
+| Cursor | `.cursor/mcp.json` | JSON |
+| VS Code Copilot | `.vscode/mcp.json` | JSON |
+| Cline | `.cline/mcp.json` | JSON |
+| Codex | `.codex/config.toml` | TOML |
+| Trae / Trae CN | `.trae/mcp.json` | JSON |
+| Qoder | `.qoder/mcp.json` | JSON |
+| CodeBuddy | `.codebuddy/mcp_settings.json` | JSON |
+| Pi | `.pi/settings.json` | JSON |
+| OpenClaw | `.openclaw/openclaw.json` | JSON |
 
 ## Usage
 
@@ -113,46 +130,52 @@ Add this to your MCP client config:
 "ping the godot editor"
 
 # Create a scene and populate it
-"open scene res://main.tscn"
-"create a Node2D called Player under the root"
+"create a new scene called Main"
+"add a Node2D called Player under the root"
+"set the Player's position to x=100, y=200"
 
 # Inspect and modify
 "get the scene tree"
-"set the Player's position to x=100, y=200"
 "attach the script res://player.gd to the Player node"
+"add an animation player to the Player node"
+
+# Debug
+"list all open scenes"
+"get any errors from the console"
 ```
 
-### Available Tools (122 total)
+### Tool Categories (164 total)
 
-| Category | Count | Tools |
-|----------|-------|-------|
-| Meta | 3 | `ping`, `get_engine_version`, `get_plugin_version` |
-| Node: Read | 4 | `get_scene_tree`, `get_node_path`, `get_property`, `get_property_list` |
-| Node: Write | 13 | `create/delete/rename/duplicate/move` node, `set_property`, `reset_parent`, `set_as_root`, `batch_set_property`, `attach/detach_script`, `add/remove_node_from_group` |
-| 2D Properties | 21 | `get/set_node_position/rotation/scale`, `get/set_node_visible/modulate/z_index/text`, `get/set_node_collision_layer/mask`, `get/set_node_texture`, `set_node_unique_name` |
-| 3D Properties | 6 | `get/set_node_position_3d/rotation_3d/scale_3d` |
-| Collision | 2 | `add_circle_collision`, `add_rectangle_collision` |
-| Node Search | 4 | `find_nodes_by_name/type/group/script` |
-| Script Helpers | 3 | `call_method`, `get_variable`, `set_variable` |
-| Project Settings | 7 | `get/set_project_setting`, `set_main_scene`, `list/add/remove_autoload`, `list_scenes` |
-| Scene: File | 6 | `create/delete/rename_scene`, `branch_to_scene`, `scene_to_branch`, `instantiate_scene` |
-| Scene: Editor Tabs | 9 | `open/close/save/save_as/save_all/reload_scene`, `get_open_scenes/roots`, `mark_scene_unsaved` |
-| GDScript | 5 | `create/edit/read/list_gdscript`, `validate_gdscript` |
-| C# | 6 | `csharp_create_solution`, `create/edit/read/list_csharp_script`, `csharp_build` |
-| Search | 3 | `find_in_file`, `search_project`, `find_and_replace` |
-| Editor Control (gdext) | 7 | `play_current_scene`, `play_main_scene`, `stop_scene`, `is_scene_playing`, `refresh_filesystem`, `get_editor_info`, `godot_editor_restart` |
-| Undo/Redo | 2 | `undo`, `redo` |
-| Node Convenience | 4 | `set_node_transform_2d/3d`, `get_node_info`, `get_script_variables` |
-| Scene Info | 1 | `is_scene_dirty` |
-| Display Settings | 2 | `get/set_display_settings` |
-| Project Info | 2 | `get/set_project_info` |
-| Physics Settings | 2 | `get/set_physics_settings` |
-| Rendering Settings | 2 | `get/set_rendering_settings` |
-| Layer Names | 2 | `get/set_layer_names` |
-| Plugin Management | 2 | `list_plugins`, `set_plugin_enabled` |
-| Input Map | 4 | `list/add/remove_input_action`, `set_input_action_events` |
-
-See the [Tool Catalog](docs/reference/tools-catalog.md) for detailed argument shapes and return values.
+| Category | Count | Description |
+|----------|-------|-------------|
+| Meta | 9 | Tool discovery, introspection, undo/redo, workflow execution |
+| Scene Tree | 24 | Create/delete/rename/move/duplicate/reparent nodes |
+| Shadow Scene | 4 | Non-destructive editing: stage/preview/apply/discard |
+| Diff Scene States | 1 | Compare scene snapshots |
+| Recording/Replay | 2 | Record and replay editor operations |
+| Workspace/Debugger | 13 | Viewport capture, console, debugger, breakpoints |
+| Scripts | 13 | Read/write/patch/validate/list GDScript + C#, run EditorScript |
+| Filesystem | 12 | Create/delete/move/copy/open/search files |
+| Animation | 10 | Create animation player/clip/track/keyframe/tree |
+| Docs | 8 | Class/method/property/enum queries via ClassDB |
+| Runtime (Bridge + Lifecycle) | 14 | Run/stop/pause game, inspect/modify runtime scene tree |
+| Resources | 6 | Save/load/new/duplicate/clear/get_info |
+| Shaders | 5 | Create/read/apply preset/get/set uniforms |
+| Control/UI | 4 | Create control, stylebox, layout, theme override |
+| Settings | 4 | Get/set/reset/list project settings |
+| Input Map | 4 | List/add/remove input actions and event bindings |
+| Signals | 4 | Connect/disconnect/list/get signal connections |
+| Groups | 4 | Add/remove/get node groups |
+| Export | 4 | List/validate/create export presets |
+| 3D Scene | 3 | Mesh, light, environment |
+| Audio | 3 | Audio player, stream, bus list |
+| Navigation | 3 | Region, agent, navmesh bake |
+| TileMap | 3 | Get info, set cells, erase cells |
+| Plugin | 2 | List/enable/disable plugins |
+| Fallback | 2 | Universal node property get/set (Layer 0) |
+| Collision | 1 | Create collision shape |
+| Scaffold | 1 | Create project |
+| Visualizer | 1 | Get project graph |
 
 ## Development
 
@@ -160,26 +183,29 @@ See the [Tool Catalog](docs/reference/tools-catalog.md) for detailed argument sh
 
 ```
 extensions/                   C++ GDExtension plugin (godot-cpp 10.0.0-rc1)
-  ├── src/                    源代码
-  │   ├── sdk/                SDK (McpToolDefinition, McpToolRegistry)
-  │   ├── server/             MCP 服务器 (HttpServer, McpHandler, HandlerRegistry)
-  │   ├── built_in/           内置工具 (cmd_*.cpp)
-  │   └── lsp/                LSP 客户端
-  ├── codegen.py              工具注册代码生成（扫描 // @tool register）
+  ├── src/
+  │   ├── built_in/           Built-in tools (164 tools, 4-layer system)
+  │   │   ├── tools/          ITool implementations by category
+  │   │   ├── register/       X-macro registration files
+  │   │   ├── cmd_utils/      Shared tool utilities (SchemaBuilder, undo_helpers, …)
+  │   │   └── register_itools.cpp  X-macro registration entry
+  │   ├── server/             MCP server
+  │   │   ├── ipc/            HttpServer, SSE, HTTP parser
+  │   │   ├── mcp/            McpHandler, ToolExecutor, PromptProvider
+  │   │   └── registry/       HandlerRegistry (tool table, search, categories)
+  │   ├── sdk/                McpToolDefinition, McpToolRegistry
+  │   ├── runtime/            RuntimeBridge (editor↔game TCP :9601)
+  │   ├── pipeline/           PipelineRunnerBase + TestRunner + WorkflowRunner
+  │   ├── scene_diff/         Non-destructive editing engine (diff/snapshot/patcher/shadow)
+  │   ├── replay/             Operation recorder and replay
+  │   ├── testing/            C++ TestEngine façade (delegates to pipeline::TestRunner)
+  │   ├── ui/                 Bottom panel, confirm dialog, console, logger
+  │   ├── editor_plugin.cpp   EditorPlugin — HTTP poll via _process()
+  │   └── register_types.cpp  GDExtension entry (symbol: gdext_mcp_init)
   └── CMakeLists.txt
-├── CMakeLists.txt
-└── src/
-    ├── register_types.cpp  GDExtension entry (symbol: gdext_mcp_init)
-    ├── editor_plugin.cpp   EditorPlugin — HTTP poll via _on_process_frame()
-    ├── ipc/
-    │   └── http_server.cpp MCP Streamable HTTP server :9600
-    ├── mcp/
-    │   └── mcp_handler.cpp MCP JSON-RPC 2.0 session management
-    ├── lsp/client.cpp      Godot LSP client (GDScript validation)
-    └── commands/           17 handler files (16 active groups)
-        ├── handler_registry.cpp/hpp
-        ├── cmd_utils.cpp/hpp
-        └── cmd_<group>.cpp
+├── CMakeLists.txt             Root CMake (version, compatibility_minimum)
+├── main.py                    Build/test/package orchestration
+└── .repo_wiki/                Knowledge base for AI agents
 ```
 
 ### CI Gates
@@ -194,37 +220,38 @@ cmake --build build --config Debug
 ```bash
 uv run python main.py build                        # Debug + copy to example/
 uv run python main.py build --release              # Release
-uv run python main.py build --clean                # Clear CMake cache (keeps _deps/)
-uv run python main.py build --no-zip               # Skip zip (fast iteration)
+uv run python main.py build --clean                # Clear build cache (keeps _deps/)
 uv run python main.py build -j 8                   # Parallel build with 8 jobs
-uv run python main.py package                      # Package addons.zip
-uv run python main.py test                         # Headless test pipeline
+uv run python main.py test                         # Full test pipeline (auto start/stop Godot)
 uv run python main.py test --file 03_*.yaml        # Run specific test files
-cmake --build build --target deep-clean            # Also wipes _deps/ (FetchContent cache)
+uv run python main.py package                      # Package addons.zip
 ```
 
-### File Lock Tips
+### DLL Hot-Reload
 
-- **DLL locked by Godot editor** → close editor or disable plugin before rebuilding.
+- `.gdextension` sets `reloadable = true` (Godot 4.2+ official mechanism — `GDExtensionManager::reload_extension()` auto-detects file changes and reloads the extension). `main.py build` overwrites the DLL directly; the editor reloads automatically on detecting a change. On Windows, the OS loader may lock the DLL and prevent overwriting (varies by system version / configuration); close the editor and retry if this happens. Known constraints: editor builds only; modifying a Godot base class requires restarting the editor.
 
 ### Key Constraints
 
-- **Pinned deps**: `godot-cpp` at `10.0.0-rc1` (FetchContent). Don't bump without testing.
+- **Pinned deps**: `godot-cpp` at `10.0.0-rc1`, `ryml` at `v0.7.0` (both FetchContent). Don't bump without testing.
 - **`godot_mcp.gdextension`**: entry symbol `gdext_mcp_init`, `compatibility_minimum = "4.6"`, `reloadable = true`.
-- **Version** maintained in `CMakeLists.txt` (`set(PROJECT_VERSION "...")`). Only change there — `plugin.cfg` is generated by CMake.
-- **Adding a tool**: create `cmd_<group>.cpp` in `extensions/src/built_in/`, implement `register_<group>(HandlerRegistry &)`, add declaration in `handler_registry.cpp`.
+- **Version** maintained in root `CMakeLists.txt` (`PROJECT_VERSION`). Only change there — `plugin.cfg` and `.gdextension` are auto-generated by `main.py build`.
+- **Adding a tool**: create `.hpp` (implement `ITool`) → add `GODOT_MCP_TOOL(MyTool, false)` in `register/*.hpp` → `#include` in `register_itools.cpp`. No codegen.
 
 ## Documentation
 
 | Doc | Content |
 |-----|---------|
-| [Getting Started](docs/guide/getting-started.md) | Install, configure, basic usage |
-| [Architecture](docs/guide/architecture.md) | Single-process C++ GDExtension architecture |
-| [Building](docs/guide/building.md) | Build system, versioning |
-| [Tool Catalog](docs/reference/tools-catalog.md) | All 122 tools |
-| [Client Configuration](docs/reference/client-config.md) | Config templates for all AI clients |
-| [Protocol](docs/reference/protocol.md) | MCP Streamable HTTP wire format |
-| [FAQ](docs/reference/faq.md) | Frequently asked questions |
-| [Client Quirks](docs/reference/client-quirks.md) | Known issues and limitations |
-| [C# Solution](docs/reference/csharp-solution.md) | Auto-generating .sln/.csproj |
-| [Project Settings Ext](docs/reference/project-settings-ext.md) | Display/physics/rendering key mapping |
+| [Getting Started](docs/en/guide/getting-started.md) | Install, configure, basic usage |
+| [Architecture](docs/en/about/architecture.md) | Single-process C++ GDExtension architecture |
+| [Building](docs/en/guide/building.md) | Build system, versioning |
+| [Tools Overview](docs/en/guide/tools-overview.md) | All 164 tools by category |
+| [Client Configuration](docs/en/guide/client-setup.md) | Config templates for all AI clients |
+| [FAQ](docs/en/guide/faq.md) | Frequently asked questions |
+| [Project Wiki](.repo_wiki/index.md) | Knowledge base for AI agents |
+
+## Related
+
+- [MCP Specification](https://modelcontextprotocol.io)
+- [Godot Engine](https://godotengine.org)
+- [godot-cpp](https://github.com/godotengine/godot-cpp)

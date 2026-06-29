@@ -1,9 +1,10 @@
+// DEPRECATED — use bridge_server.hpp + bridge_server.cpp instead.
+// Retained for reference only. Scheduled for removal in v0.4.0.
 #include "bridge.hpp"
 #include "built_in/cmd_utils/error_codes.hpp"
 #include "logging.hpp"
 
 #include <algorithm>
-#include <chrono>
 #include <godot_cpp/classes/json.hpp>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/time.hpp>
@@ -91,9 +92,19 @@ Dictionary RuntimeBridge::send_command(const String &cmd, const Dictionary &para
     msg["id"] = id;
 
     String json_str = JSON::stringify(msg);
-    PackedByteArray data = json_str.to_utf8_buffer();
+    PackedByteArray json_bytes = json_str.to_utf8_buffer();
 
-    Error err = tcp_->put_data(data);
+    const uint32_t len = static_cast<uint32_t>(json_bytes.size());
+    PackedByteArray frame;
+    frame.resize(4 + json_bytes.size());
+    auto *p = frame.ptrw();
+    p[0] = static_cast<uint8_t>((len >> 24) & 0xFF);
+    p[1] = static_cast<uint8_t>((len >> 16) & 0xFF);
+    p[2] = static_cast<uint8_t>((len >> 8) & 0xFF);
+    p[3] = static_cast<uint8_t>(len & 0xFF);
+    std::copy_n(json_bytes.ptr(), json_bytes.size(), p + 4);
+
+    Error err = tcp_->put_data(frame);
     if (err != OK) {
         disconnect();
         raw["ok"] = false;
@@ -116,100 +127,86 @@ Dictionary RuntimeBridge::send_command(const String &cmd, const Dictionary &para
 }
 
 Dictionary RuntimeBridge::read_response(int timeout_ms) {
-    const int step = 5;
-    const int max_response_size = 1024 * 1024;
-    PackedByteArray buf;
+    uint32_t msg_length = 0;
+    bool header_done = false;
+    int body_received = 0;
+    PackedByteArray body;
 
-    int consumed_offset = 0;
-
-    auto try_parse_line = [&]() -> Dictionary {
-        int new_bytes = static_cast<int>(buf.size()) - consumed_offset;
-        if (new_bytes <= 0) return Dictionary();
-
-        String text;
-        {
-            const uint8_t* raw = buf.ptr() + consumed_offset;
-            Error utf8_err = text.parse_utf8((const char*)raw, new_bytes);
-            if (utf8_err != OK) return Dictionary();
-        }
-
-        int newline_idx = static_cast<int>(text.find("\n"));
-        if (newline_idx == -1) {
-            return Dictionary();
-        }
-
-        String line = text.substr(0, newline_idx);
-        Ref<JSON> json;
-        json.instantiate();
-        Error parse_err = json->parse(line);
-        if (parse_err != OK) {
-            consumed_offset += newline_idx + 1;
-            return Dictionary();
-        }
-
-        Variant result = json->get_data();
-        if (result.get_type() != Variant::DICTIONARY) {
-            consumed_offset += newline_idx + 1;
-            return Dictionary();
-        }
-
-        // Success — advance past the parsed line
-        consumed_offset += newline_idx + 1;
-
-        // Trim buffer when too far ahead
-        if (consumed_offset > 65536) {
-            PackedByteArray remaining;
-            int remaining_size = static_cast<int>(buf.size()) - consumed_offset;
-            if (remaining_size > 0) {
-                remaining.resize(remaining_size);
-                std::copy_n(buf.ptr() + consumed_offset, remaining_size, remaining.ptrw());
-            }
-            buf = remaining;
-            consumed_offset = 0;
-        }
-
-        return result;
-    };
-
-    auto start = std::chrono::steady_clock::now();
+    const uint64_t start = Time::get_singleton()->get_ticks_msec();
+    PackedByteArray header_buf;
 
     while (true) {
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - start).count();
-        if (elapsed >= timeout_ms) break;
+        const uint64_t elapsed = Time::get_singleton()->get_ticks_msec() - start;
+        if (elapsed >= static_cast<uint64_t>(timeout_ms)) break;
 
         tcp_->poll();
-        // Bail immediately if the connection dropped so we don't loop
-        // and spam ERROR logs (Godot's StreamPeerTCP precondition check
-        // fires for every method call on a dead socket).
         if (tcp_->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
             disconnect();
             Dictionary err;
             err["ok"] = false;
-            err["error"] = "Bridge connection broken";
+            err["error"] = "Connection lost during read";
             return err;
         }
-        if (tcp_->get_available_bytes() > 0) {
-            Array chunk = tcp_->get_partial_data(tcp_->get_available_bytes());
-            if (static_cast<int>(chunk[0]) == static_cast<int>(Error::OK)) {
-                PackedByteArray data = chunk[1];
-                buf.append_array(data);
-                if (buf.size() > max_response_size) {
-                    disconnect();
-                    Dictionary r;
-                    r["ok"] = false;
-                    r["error"] = "Runtime bridge response too large";
-                    return r;
+
+        const int64_t avail = tcp_->get_available_bytes();
+        if (avail <= 0) {
+            OS::get_singleton()->delay_msec(5);
+            continue;
+        }
+
+        Array chunk = tcp_->get_partial_data(static_cast<int>(avail));
+        if (static_cast<Error>(static_cast<int>(chunk[0])) != OK) continue;
+        PackedByteArray data = chunk[1];
+
+        if (!header_done) {
+            for (int i = 0; i < data.size(); i++) {
+                header_buf.push_back(data[i]);
+                if (header_buf.size() == 4) {
+                    msg_length = (static_cast<uint32_t>(header_buf[0]) << 24) |
+                                 (static_cast<uint32_t>(header_buf[1]) << 16) |
+                                 (static_cast<uint32_t>(header_buf[2]) << 8) |
+                                  static_cast<uint32_t>(header_buf[3]);
+                    if (msg_length == 0 || msg_length > 65536) {
+                        disconnect();
+                        Dictionary r;
+                        r["ok"] = false;
+                        r["error"] = "Invalid message length";
+                        return r;
+                    }
+                    header_done = true;
+                    PackedByteArray remaining;
+                    int rem_count = data.size() - (i + 1);
+                    if (rem_count > 0) {
+                        remaining.resize(rem_count);
+                        std::copy_n(data.ptr() + i + 1, rem_count, remaining.ptrw());
+                        body.append_array(remaining);
+                        body_received += rem_count;
+                    }
+                    break;
                 }
             }
+        } else {
+            body.append_array(data);
+            body_received += data.size();
         }
 
-        Dictionary parsed = try_parse_line();
-        if (!parsed.is_empty()) {
-            return parsed;
+        if (header_done && body_received >= static_cast<int>(msg_length)) {
+            String text;
+            text.parse_utf8(reinterpret_cast<const char *>(body.ptr()), static_cast<int>(msg_length));
+            Ref<JSON> json;
+            json.instantiate();
+            if (json->parse(text) == OK) {
+                Variant result = json->get_data();
+                if (result.get_type() == Variant::DICTIONARY) {
+                    return result;
+                }
+            }
+            disconnect();
+            Dictionary r;
+            r["ok"] = false;
+            r["error"] = "Invalid JSON in response";
+            return r;
         }
-
-        OS::get_singleton()->delay_msec(step);
     }
 
     Dictionary r;

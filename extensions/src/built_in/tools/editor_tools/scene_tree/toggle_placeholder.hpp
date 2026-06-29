@@ -42,7 +42,7 @@ protected:
             data["changed"] = false;
             return ToolResult::ok(data);
         }
-        auto *ur = begin_undo_action("MCP: Toggle Placeholder");
+        auto *ur = begin_undo_action("MCP: Toggle Placeholder", ctx.root);
         if (ur) {
             ur->add_do_method(node, "set_scene_instance_load_placeholder", enable);
             ur->add_undo_method(node, "set_scene_instance_load_placeholder", current);

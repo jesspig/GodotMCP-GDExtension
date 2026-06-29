@@ -64,14 +64,27 @@ set(GODOT_MCP_SOURCES
     src/built_in/cmd_utils.cpp
     src/built_in/cmd_utils_json.cpp
     src/runtime/bridge.cpp
+    src/runtime/bridge_server.cpp
     src/runtime/game_bridge.cpp
     src/testing/test_engine.cpp
-    src/testing/pipeline_parser.cpp
-    src/testing/pipeline_context.cpp
-    src/testing/pipeline_runner.cpp
-    src/ui/mcp_dock.cpp
+    src/pipeline/pipeline_parser.cpp
+    src/pipeline/pipeline_context.cpp
+    src/pipeline/workflow_parser.cpp
+    src/pipeline/workflow_runner.cpp
+    src/pipeline/test_parser.cpp
+    src/pipeline/pipeline_runner_base.cpp
+    src/testing/test_runner.cpp
     src/ui/mcp_logger.cpp
     src/ui/mcp_console.cpp
+    src/ui/mcp_confirm_dialog.cpp
+    src/scene_diff/scene_diff.cpp
+    src/scene_diff/scene_snapshot.cpp
+    src/scene_diff/scene_shadow.cpp
+    src/scene_diff/scene_patcher.cpp
+    src/scene_diff/diff_scene_states.cpp
+    src/replay/operation_recorder.cpp
+    src/replay/operation_replay.cpp
+    src/replay/replay_tools.cpp
 )
 
 file(GLOB_RECURSE TOOL_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.cpp")

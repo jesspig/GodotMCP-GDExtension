@@ -95,7 +95,7 @@ protected:
         godot::StringName old_condition = trans->get_advance_condition();
         godot::StringName new_condition = value ? godot::StringName(condition) : godot::StringName();
 
-        auto *ur = begin_undo_action("MCP: Set Transition Condition " + from + " -> " + to);
+        auto *ur = begin_undo_action("MCP: Set Transition Condition " + from + " -> " + to, ctx.root);
         if (!ur) {
             trans->set_advance_condition(new_condition);
             mark_scene_dirty();

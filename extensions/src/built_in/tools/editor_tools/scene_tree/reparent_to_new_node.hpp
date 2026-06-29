@@ -71,7 +71,7 @@ protected:
 
         int64_t old_index = node->get_index();
 
-        auto *ur = begin_undo_action("MCP: Reparent to New Node");
+        auto *ur = begin_undo_action("MCP: Reparent to New Node", ctx.root);
         if (ur) {
             ur->add_do_method(old_parent, "add_child", wrapper, true,
                               static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
@@ -80,16 +80,11 @@ protected:
             ur->add_do_method(old_parent, "remove_child", node);
             ur->add_do_method(wrapper, "add_child", node, true,
                               static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
-            ur->add_do_reference(wrapper);
-            ur->add_do_reference(node);
-
             ur->add_undo_method(wrapper, "remove_child", node);
             ur->add_undo_method(old_parent, "add_child", node, true,
                                 static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
             ur->add_undo_method(old_parent, "move_child", node, old_index);
             ur->add_undo_method(old_parent, "remove_child", wrapper);
-            ur->add_undo_reference(wrapper);
-            ur->add_undo_reference(node);
 
             commit_undo_action(ur);
         } else {

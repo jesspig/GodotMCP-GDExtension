@@ -106,7 +106,7 @@ protected:
             indices_arr.append(static_cast<int64_t>(n->get_index()));
         }
 
-        auto *ur = begin_undo_action("MCP: Group Selected Nodes");
+        auto *ur = begin_undo_action("MCP: Group Selected Nodes", ctx.root);
         if (ur) {
             int64_t min_idx = static_cast<int64_t>(indices_arr[0]);
             for (int i = 1; i < indices_arr.size(); i++) {
@@ -123,8 +123,6 @@ protected:
                 ur->add_do_method(common_parent, "remove_child", n);
                 ur->add_do_method(wrapper, "add_child", n, true,
                                   static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED));
-                ur->add_do_reference(n);
-                ur->add_undo_reference(n);
                 // undo: move back
                 ur->add_undo_method(wrapper, "remove_child", n);
                 ur->add_undo_method(common_parent, "add_child", n, true,
@@ -132,8 +130,6 @@ protected:
                 ur->add_undo_method(common_parent, "move_child", n, old_idx);
             }
 
-            ur->add_do_reference(wrapper);
-            ur->add_undo_reference(wrapper);
             commit_undo_action(ur);
         } else {
             int64_t min_idx = static_cast<int64_t>(indices_arr[0]);

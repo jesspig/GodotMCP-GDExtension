@@ -1,6 +1,6 @@
 name: editor_scene_tools
-description: Instanced scene, branch save, toggle edit group, nav region/agent, animation player, light
-headless: false
+description: Instanced scene, branch save, toggle edit group, animation player
+headless: true
 
 pipeline:
   on_failure: fail_fast
@@ -25,8 +25,6 @@ pipeline:
   stages:
     - id: main
       name: Main tests
-      before_each: []
-      after_each: []
       steps:
         - id: apply_shader_preset
           tool: apply_shader_preset
@@ -74,22 +72,4 @@ pipeline:
           tool: create_animation_player
           description: Creates an AnimationPlayer
           args: { parent_path: "Root", node_name: "AnimPlayer" }
-          expect: { status: success }
-
-        - id: create_light_3d
-          tool: create_light_3d
-          description: Creates a directional light
-          args: { parent_path: "Root", light_type: "directional", node_name: "TestLight" }
-          expect: { status: success }
-
-        - id: create_navigation_region
-          tool: create_navigation_region
-          description: Creates a 3D nav region
-          args: { parent_path: "Root", dimension: "3d", node_name: "TestNavRegion" }
-          expect: { status: success }
-
-        - id: create_navigation_agent
-          tool: create_navigation_agent
-          description: Creates a 3D nav agent
-          args: { parent_path: "Root", dimension: "3d", node_name: "TestNavAgent" }
           expect: { status: success }

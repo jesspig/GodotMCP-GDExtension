@@ -7,12 +7,15 @@ sequenceDiagram
     participant AI as AI 客户端
     participant H as HttpServer
     participant M as McpHandler
+    participant E as ToolExecutor
     participant G as HandlerRegistry
     participant T as ITool
     AI->>H: POST /mcp {"method": "tools/call", "params": {"name": "get_info"}}
     H->>H: 验证 MCP-Protocol-Version / Content-Type / Accept / Origin
     H->>M: handle_message(json)
-    M->>G: execute("get_info", args)
+    M->>M: routes by method → handle_tools_call()
+    M->>E: execute(name, args, jsonrpc_id)
+    E->>G: execute("get_info", args)
     G->>G: 查 itool_table_ (std::map<String, unique_ptr<ITool>>)
     alt 内置工具
         G->>T: itool_table_.find(name) → ITool*
@@ -24,7 +27,8 @@ sequenceDiagram
         T->>T: 前置检查 + 调 Callable
         T-->>G: ToolResult 字典
     end
-    G-->>M: Dictionary
+    G-->>E: Dictionary
+    E-->>M: Dictionary
     M-->>H: MCP content array
     H-->>AI: 200 application/json
 ```
@@ -35,7 +39,7 @@ sequenceDiagram
 flowchart LR
     REG["HandlerRegistry::execute(name, args)"]
     ITBL["itool_table_<br/>std::map<String, unique_ptr<ITool>>"]
-    BUILTIN["X-macro 注册的内置工具<br/>(152 个 ITool 子类)"]
+    BUILTIN["X-macro 注册的内置工具<br/>(164 个 ITool 子类)"]
     SDK["SDK 自定义工具<br/>(McpToolRegistry → IToolAdapter)"]
     RES["返回 ToolResult 字典"]
     REG -->|"查 itool_table_"| ITBL
@@ -45,12 +49,13 @@ flowchart LR
     SDK --> RES
 ```
 
-| 步骤 | 文件:行 | 行为 |
-|------|---------|------|
-| 1 | `handler_registry.cpp:40` | `register_tool(unique_ptr<ITool>, bool is_custom)` 存入 `itool_table_` |
-| 2 | `handler_registry.cpp:40` | SDK 自定义工具通过 `register_tool(IToolAdapter, true)` 存入同一张表 |
-| 3 | `editor_plugin.cpp:108` | `_enter_tree()` → `register_itools(registry_)` — X-macro 注册所有内置工具 |
-| 4 | execute | 查 `itool_table_`（内置和 SDK 工具同表） |
+| 步骤 | 文件 | 行为 |
+|------|------|------|
+| 1 | `handler_registry.cpp` | `register_tool(unique_ptr<ITool>, bool is_custom)` 存入 `itool_table_` |
+| 2 | `handler_registry.cpp` | SDK 自定义工具通过 `register_tool(IToolAdapter, true)` 存入同一张表 |
+| 3 | `editor_plugin.cpp` | `_enter_tree()` → `register_itools(registry_)` — X-macro 注册所有内置工具 |
+| 4 | `mcp_handler.cpp` / `tool_executor.cpp` | `McpHandler::handle_tools_call()` → `ToolExecutor::execute()` — 权限检查/计时/MCP 格式化 |
+| 5 | `handler_registry.cpp` | `HandlerRegistry::execute(name, args)` → 查 `itool_table_` 调用 `ITool::execute()` |
 
 ## 顶级分类自动发现
 
@@ -68,10 +73,8 @@ public:
     // ── 元数据 ──
     virtual String name() const = 0;
     virtual String brief() const = 0;
-    virtual String description() const = 0;
-    virtual Dictionary input_schema() const = 0;
-
-    // ── 两轴分类 ──
+    virtual String description() const { return brief(); }
+    Dictionary input_schema() const;
     virtual String category() const = 0;
     virtual String category_description() const { return {}; }
 
@@ -94,6 +97,7 @@ public:
     Dictionary execute(const Dictionary &args);
 
 protected:
+    virtual Dictionary build_input_schema() const = 0;
     virtual Dictionary execute_impl(const ToolContext &ctx) = 0;
     bool is_destructive_ = false;
 };

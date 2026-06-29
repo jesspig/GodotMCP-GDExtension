@@ -2,17 +2,19 @@
 
 ## 快速参考
 
-| 客户端 | 配置文件 | 键 |
-|--------|------------|-----|
-| opencode | `.opencode/opencode.json` | `mcpServers` |
+| 客户端 | 配置文件 | 键/格式 |
+|--------|----------|---------|
+| Claude Code | `.mcp.json` | `mcpServers` |
 | Cursor | `.cursor/mcp.json` | `mcpServers` |
 | VS Code / Copilot | `.vscode/mcp.json` | `servers` |
-| Claude Code | `CLAUDE.md` | `mcpServers` |
-| Trae | `.trae/mcp.json` | `mcpServers` |
-| Cline | `.vscode/cline_mcp_settings.json` | `mcpServers` |
-| Roo Code | `.vscode/roocode_settings.json` | `mcpServers` |
-| Continue | `~/.continue/config.json` | `experimental.mcpServers` |
-| Windsurf | `.windsurf/models.json` | `mcpServers` |
+| Cline | `.cline/mcp.json` | `mcpServers` |
+| OpenCode | `.opencode/opencode.json` | `mcp` |
+| Codex | `.codex/config.toml` | TOML 格式 |
+| Trae / Trae CN | `.trae/mcp.json` | `mcpServers` |
+| Qoder | `.qoder/mcp.json` | `mcpServers` |
+| CodeBuddy | `.codebuddy/mcp_settings.json` | `mcpServers` |
+| Pi | `.pi/settings.json` | `mcp` |
+| OpenClaw | `.openclaw/openclaw.json` | `mcpServers` |
 
 所有客户端使用相同的验证命令：`curl http://127.0.0.1:9600/mcp`
 
@@ -37,18 +39,24 @@
 
 始终在**项目级别**（而非全局/用户级别）配置 MCP。每个 Godot 项目都需要自己的 MCP 配置，指向同一个本地服务器。
 
-### opencode
+### OpenCode
+
+文件：`.opencode/opencode.json`
 
 ```json
 {
-  "mcpServers": {
-    "godot-mcp": {
-      "type": "streamable-http",
-      "url": "http://127.0.0.1:9600/mcp"
+  "mcp": {
+    "mcpServers": {
+      "godot-mcp": {
+        "type": "streamable-http",
+        "url": "http://127.0.0.1:9600/mcp"
+      }
     }
   }
 }
 ```
+
+编辑后重新加载 OpenCode 配置。
 
 ### Cursor
 
@@ -86,7 +94,7 @@
 
 ### Claude Code
 
-添加到 `CLAUDE.md` 文件：
+文件：项目根目录下的 `.mcp.json`
 
 ```json
 {
@@ -101,7 +109,7 @@
 
 ### Cline
 
-文件：项目根目录下的 `.vscode/cline_mcp_settings.json`
+文件：项目根目录下的 `.cline/mcp.json`
 
 ```json
 {
@@ -114,9 +122,20 @@
 }
 ```
 
-### Roo Code
+### Codex
 
-文件：项目根目录下的 `.vscode/roocode_settings.json`
+文件：项目根目录下的 `.codex/config.toml`
+
+```toml
+[mcp_servers.godot]
+enabled = true
+url = "http://127.0.0.1:9600/mcp"
+transport = "streamable_http"
+```
+
+### Qoder
+
+文件：项目根目录下的 `.qoder/mcp.json`
 
 ```json
 {
@@ -129,13 +148,28 @@
 }
 ```
 
-### Continue
+### CodeBuddy
 
-文件：`~/.continue/config.json`
+文件：项目根目录下的 `.codebuddy/mcp_settings.json`
 
 ```json
 {
-  "experimental": {
+  "mcpServers": {
+    "godot-mcp": {
+      "type": "streamable-http",
+      "url": "http://127.0.0.1:9600/mcp"
+    }
+  }
+}
+```
+
+### Pi
+
+文件：项目根目录下的 `.pi/settings.json`
+
+```json
+{
+  "mcp": {
     "mcpServers": {
       "godot-mcp": {
         "type": "streamable-http",
@@ -146,9 +180,9 @@
 }
 ```
 
-### Windsurf
+### OpenClaw
 
-文件：项目根目录下的 `.windsurf/models.json`
+文件：项目根目录下的 `.openclaw/openclaw.json`
 
 ```json
 {
@@ -163,13 +197,7 @@
 
 ## 生成客户端配置
 
-使用 `generate_client_config` 元工具自动生成客户端的配置：
-
-```bash
-curl -X POST http://localhost:9600/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"method":"tools/call","params":{"name":"generate_client_config","arguments":{"client_type":"cursor"}}}'
-```
+打开编辑器中的 **GodotMCP** 底部面板即可为任一支持的客户端自动生成配置。从下拉菜单中选择客户端，点击 **Generate** 查看配置内容，或通过 `get_info(include_configs=true)` 通过 API 获取配置片段。
 
 ## 故障排除
 

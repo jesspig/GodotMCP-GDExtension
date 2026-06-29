@@ -22,7 +22,7 @@ scripts/                 Python build/package scripts
 cmake/                   CMake modules (8 files)
 main.py                  Build/test/package entry point
 rspress.config.ts        Documentation site config
-CMakeLists.txt           Root CMake build (version: 0.2.1)
+CMakeLists.txt           Root CMake build (version: 0.2.2)
 ```
 
 ## Source Code Layout (extensions/src/)
@@ -49,13 +49,13 @@ built_in/
   cmd_utils_json            JSON to Variant conversion
   cmd_utils/                7 template headers
   register_itools.cpp       X-macro registration master
-  tools/                    153 tool implementations
-    meta/                   7 meta tools
+  tools/                    164 tool implementations
+    meta/                   9 meta tools
     signal/                 4 signal tools
     group/                  4 group tools
     node_tools/             6 resource + 2 fallback
-    editor_tools/           19 subcategories
-    runtime_tools/          7 bridge + 6 lifecycle
+    editor_tools/           20 subcategories
+    runtime_tools/          8 bridge + 6 lifecycle
 
 runtime/
   bridge                    Editor-side TCP client

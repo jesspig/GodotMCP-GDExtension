@@ -13,8 +13,8 @@ flowchart LR
         REGCPP["register_itools.cpp"]
         INCLUDE["#include 所有工具头文件"]
         MACRO["#define GODOT_MCP_TOOL(cls, is_destructive_val)"]
-        REGMETA["register/register_meta.hpp<br/>(7 个元工具)"]
-        REGEXIST["register/register_existing.hpp<br/>(136 个现有工具，含 1 个 is_meta=true)"]
+        REGMETA["register/register_meta.hpp<br/>(9 个元工具)"]
+        REGEXIST["register/register_existing.hpp<br/>(137 个现有工具)"]
         REGFALL["register/register_fallback.hpp<br/>(2 个兜底工具)"]
         REGDOCS["register/register_docs.hpp<br/>(8 个文档工具)"]
     end
@@ -37,14 +37,14 @@ flowchart LR
 
 | 文件 | 工具数 | 内容 |
 |------|--------|------|
-| `register_meta.hpp` | 7 | 元工具（`get_info`、`get_tools`、`get_categories`、`get_tool_detail`、`find_tool`、`call_tool`、`generate_client_config`）。另有 `list_settings` 在 `register_existing.hpp` 中以 `is_meta=true` 注册，共 8 个 always-on 工具 |
-| `register_existing.hpp` | 136 | 功能工具（场景树、文件系统、脚本、工作区等），其中 `list_settings` 有 `is_meta=true` |
+| `register_meta.hpp` | 9 | 元工具（`get_info`、`get_tools`、`get_categories`、`find_tool`、`call_tool`）。全部 `is_meta()=true`，共 9 个 always-on 工具 |
+| `register_existing.hpp` | 145 | 145 tools (functional tools: scene tree, filesystem, scripts, workspace, bridge, lifecycle, etc.) |
 | `register_fallback.hpp` | 2 | Layer 0 通用兜底工具（`get_node_property`、`set_node_property`） |
 | `register_docs.hpp` | 8 | Layer 3 文档查询工具（`search_docs`、`get_class_info`、`get_best_practices`、`get_class_list`、`get_inheritance_chain`、`get_property_doc`、`get_method_doc`、`get_enum_doc`） |
 
 ## GODOT_MCP_TOOL 宏
 
-定义于 `register_itools.cpp:214`：
+定义于 `register_itools.cpp`：
 
 ```cpp
 #define GODOT_MCP_TOOL(cls, is_destructive_val) \
@@ -84,4 +84,4 @@ flowchart LR
 | 类型安全 | 无（Python 文本解析） | 有（编译器检查类名） |
 | 新增工具步骤 | 仅创建 `.hpp` | 创建 `.hpp` + 加宏 + 加 include |
 | UTF-8 BOM 问题 | 会导致漏扫 | 无影响 |
-| 工具总数 | ~11,791（含 YAML 生成） | 153（纯手工编写） |
+| 工具总数 | ~11,791（含 YAML 生成） | 152（纯手工编写） |

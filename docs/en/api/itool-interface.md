@@ -4,7 +4,7 @@ Abstract interface for all built-in MCP tools. Each tool inherits from `ITool` a
 
 ## Description
 
-`ITool` is the base class for all 153 built-in tools. It provides a template method pattern: `execute()` handles schema validation, context resolution, and error wrapping, then delegates to `execute_impl()` for tool-specific logic.
+`ITool` is the base class for all 164 built-in tools. It provides a template method pattern: `execute()` handles schema validation, context resolution, and error wrapping, then delegates to `execute_impl()` for tool-specific logic.
 
 ## Methods
 

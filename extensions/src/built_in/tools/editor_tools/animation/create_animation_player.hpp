@@ -65,7 +65,7 @@ protected:
             library_created = true;
         }
 
-        auto *ur = begin_undo_action("MCP: Create AnimationPlayer");
+        auto *ur = begin_undo_action("MCP: Create AnimationPlayer", ctx.root);
         if (!ur) {
             parent->add_child(player, true, Node::INTERNAL_MODE_DISABLED);
             player->set_owner(ctx.root);
@@ -78,8 +78,6 @@ protected:
                               static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
             ur->add_undo_method(parent, "remove_child", player);
             ur->add_do_method(player, "set_owner", ctx.root);
-            ur->add_do_reference(player);
-            ur->add_undo_reference(player);
 
             if (library_created) {
                 ur->add_do_method(player, "add_animation_library",

@@ -35,7 +35,7 @@ flowchart LR
 
 ## `list_signals`
 
-列出目标节点的所有可用信号，不需要场景。返回信号名、参数列表、参数类型等元信息。内部调用 Godot 的 `get_signal_list()`。
+列出目标节点的所有可用信号，需要已打开的场景。返回信号名、参数列表、参数类型等元信息。内部调用 Godot 的 `get_signal_list()`。
 
 ## `get_signal_connections`
 

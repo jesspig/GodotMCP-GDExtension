@@ -3,7 +3,6 @@
 
 #include "built_in/tool_base.hpp"
 #include "server/registry/handler_registry.hpp"
-#include "runtime/bridge.hpp"
 
 #include <godot_cpp/classes/editor_interface.hpp>
 
@@ -31,12 +30,7 @@ protected:
         bool was_playing = ei->is_playing_scene();
         ei->stop_playing_scene();
 
-        // Disconnect bridge immediately so tools don't try to use stale connection
-        RuntimeBridge *bridge = registry_ ? registry_->get_runtime_bridge() : nullptr;
-        if (bridge) {
-            bridge->disconnect();
-        }
-
+        // BridgeServer handles disconnection automatically via poll loop
         Dictionary data;
         data["action"] = "stop_playing_scene";
         data["was_running"] = was_playing;

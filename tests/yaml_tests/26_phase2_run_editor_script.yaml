@@ -1,0 +1,76 @@
+name: phase2_run_editor_script
+description: Phase 2 tests for run_editor_script tool
+headless: true
+
+pipeline:
+  on_failure: fail_fast
+  before_all:
+    - tool: new_scene
+      args:
+        root_type: "Node2D"
+        root_name: "ScriptTestRoot"
+    - tool: create_directory
+      args:
+        path: "res://test_mcp_scripts"
+  after_all:
+    - tool: new_scene
+      args:
+        root_type: "Node"
+        root_name: "Cleanup"
+    - tool: delete_file
+      args:
+        path: "res://test_mcp_scripts"
+        recursive: true
+  stages:
+    - id: run_editor_script_basic
+      steps:
+        - id: write_simple_script
+          tool: write_gd_script
+          description: Write a simple EditorScript
+          args:
+            path: "res://test_mcp_scripts/simple_test.gd"
+            content: "@tool\nextends EditorScript\n\nfunc _run():\n\tprint(\"Hello from MCP test\")\n"
+          expect:
+            status: success
+
+        - id: run_simple_script
+          tool: run_editor_script
+          description: Execute the simple EditorScript
+          args:
+            path: "res://test_mcp_scripts/simple_test.gd"
+          expect:
+            has_keys: [path, execution_time_ms, stdout]
+            field_checks:
+              - key: path
+                value: "res://test_mcp_scripts/simple_test.gd"
+
+        - id: run_nonexistent
+          tool: run_editor_script
+          description: Running a nonexistent script should fail
+          args:
+            path: "res://test_mcp_scripts/nonexistent.gd"
+          expect:
+            status: error
+            error_code: "LOAD_FAILED"
+
+    - id: run_editor_script_scene_access
+      steps:
+        - id: write_scene_script
+          tool: write_gd_script
+          description: Write a script that accesses the scene
+          args:
+            path: "res://test_mcp_scripts/scene_test.gd"
+            content: "@tool\nextends EditorScript\n\nfunc _run():\n\tvar root = get_scene()\n\tif root:\n\t\tprint(\"Scene root: \" + root.name)\n\telse:\n\t\tprint(\"No scene open\")\n"
+          expect:
+            status: success
+
+        - id: run_scene_script
+          tool: run_editor_script
+          description: Execute scene access script
+          args:
+            path: "res://test_mcp_scripts/scene_test.gd"
+          expect:
+            has_keys: [path, execution_time_ms, stdout]
+            field_checks:
+              - key: path
+                value: "res://test_mcp_scripts/scene_test.gd"

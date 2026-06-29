@@ -40,7 +40,8 @@ protected:
 
         Node *node = nullptr;
         if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, node_path, node)) {
-            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
+            godot::Dictionary nested = err->get("error", godot::Dictionary());
+            return ToolResult::err("NODE_NOT_FOUND", nested.get("message", node_path));
         }
         auto *tilemap = godot::Object::cast_to<godot::TileMapLayer>(node);
         if (!tilemap) {

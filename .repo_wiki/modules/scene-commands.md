@@ -53,18 +53,18 @@ Dictionary data = parser->get_data();
 
 ### 场景文件生命周期
 
-```
-open_scene(path)
-  ↓
-EditorInterface 打开文件 → 标签页可见
-  ↓
-get_open_scene_roots() / get_open_scenes()
-  ↓
-修改命令 → 自动标记脏
-  ↓
-save_scene() / save_scene_as(path)
-  ↓
-close_scene() → 关闭标签页
+以下流程图展示了场景从打开到关闭的完整生命周期：
+
+```mermaid
+stateDiagram-v2
+    [*] --> Opened: open_scene(path)
+    Opened --> Displayed: 编辑器标签页可见
+    Displayed --> Modified: 修改命令
+    Modified --> Displayed: 自动标记脏状态
+    Modified --> Saved: save_scene() / save_scene_as(path)
+    Saved --> Displayed: 保存成功
+    Displayed --> Closed: close_scene()
+    Closed --> [*]
 ```
 
 ## 文件系统通知

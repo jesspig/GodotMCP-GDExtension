@@ -1,6 +1,6 @@
 #include "test_engine.hpp"
-#include "pipeline_parser.hpp"
-#include "yaml_parser.hpp"
+#include "../pipeline/pipeline_parser.hpp"
+#include "../pipeline/yaml_parser.hpp"
 
 #include "../logging.hpp"
 #include "../server/registry/handler_registry.hpp"
@@ -14,7 +14,7 @@ using namespace godot;
 namespace godot_mcp {
 
 TestEngine::TestEngine(HandlerRegistry *registry) {
-    runner_ = std::make_unique<pipeline::PipelineRunner>(registry);
+    runner_ = std::make_unique<pipeline::TestRunner>(registry);
 }
 
 godot::Dictionary TestEngine::run(const godot::String &yaml_content) {
@@ -41,7 +41,7 @@ godot::Dictionary TestEngine::run(const godot::String &yaml_content) {
 
     // Run the pipeline
     const auto &pipeline = std::get<std::shared_ptr<pipeline::PipelineDef>>(parse_result);
-    return runner_->run(pipeline);
+    return runner_->run_test(pipeline);
 }
 
 } // namespace godot_mcp

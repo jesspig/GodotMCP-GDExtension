@@ -1,6 +1,6 @@
 # UI 组件
 
-> `extensions/src/ui/` — 编辑器 UI 组件：右侧 Dock 控制面板 + 底部 Console 日志面板 + Logger 数据后端。
+> `extensions/src/ui/` — 编辑器 UI 组件：右侧 Dock 控制面板 + 底部 Console 日志面板 + 确认弹窗（McpConfirmDialog） + Logger 数据后端。
 
 ## 组件关系
 
@@ -11,6 +11,7 @@ flowchart TB
         BP["底部面板<br/>MCP Console 标签"]
     end
     subgraph Cpp["GDExtension 进程"]
+        CONFIRM["McpConfirmDialog<br/>（Window 弹窗）"]
         PLUGIN["McpEditorPlugin"]
         DOCK["McpDock<br/>（VBoxContainer）"]
         CONSOLE["McpConsole<br/>（VBoxContainer）"]
@@ -97,14 +98,7 @@ add_control_to_dock(DOCK_SLOT_RIGHT_UL, mcp_dock_);
 
 | 回调 | 行为 | 源码 |
 |------|------|------|
-| `_on_generate_pressed()` | 调用 `generate_client_config` 工具，写入项目 | `mcp_dock.cpp:248-259` |
-| `_on_client_changed()` | 切换客户端时刷新配置预览 | `mcp_dock.cpp:261-263` |
-| `_on_copy_pressed()` | 复制配置到剪贴板 | `mcp_dock.cpp:278-282` |
-| `_on_apply_restart_pressed()` | `plugin->save_config()` + `restart_server(false)` | `mcp_dock.cpp:284-288` |
-| `_on_force_restart_pressed()` | `plugin->save_config()` + `restart_server(true)` | `mcp_dock.cpp:290-294` |
-| `_on_max_entries_changed()` | `logger_->set_max_entries()` | `mcp_dock.cpp:300-304` |
-| `_on_log_dir_changed()` | `logger_->set_log_dir()` | `mcp_dock.cpp:306-310` |
-| `update_status()` | 查询工具数 + `EditorInterface::is_playing_scene()` 判断桥接状态 | `mcp_dock.cpp:316-331` |
+| `_on_generate_pressed()` | 通过 `_generate_config()` 直接生成客户端配置 | `mcp_dock.cpp:285` |
 
 ## McpConsole
 
@@ -131,7 +125,8 @@ add_control_to_bottom_panel(mcp_console_, "MCP Console");
 
 ```
 McpConsole (VBoxContainer)
-├── Toolbar: [Expand All] [Collapse All] ... [N entries] [Clear] [☑ Auto-scroll]
+├── Status Bar: [tools count] | [bridge status icon]
+├── Toolbar: [Expand All] [Collapse All] ... [N entries] [Clear] | [client dropdown] [Configure] | [☑ Auto-scroll]
 ├── Column Header: [Time | draggable divider | Tool]
 └── VSplitContainer
     ├── Tree (日志列表，默认折叠，含 Request/Response 子项)

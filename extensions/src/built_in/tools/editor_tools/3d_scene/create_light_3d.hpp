@@ -117,7 +117,7 @@ protected:
             light->set_param(godot::Light3D::PARAM_SPOT_ANGLE, static_cast<real_t>(spot_angle));
         }
 
-        auto *ur = begin_undo_action("MCP: Create " + class_name);
+        auto *ur = begin_undo_action("MCP: Create " + class_name, ctx.root);
         if (!ur) {
             parent->add_child(light_node, true, Node::INTERNAL_MODE_DISABLED);
             light_node->set_owner(ctx.root);

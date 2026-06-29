@@ -1,6 +1,6 @@
 name: animation_state_machine
 description: create_animation_tree, add_animation_node, get_animation_tree_info
-headless: false
+headless: true
 
 pipeline:
   on_failure: fail_fast
@@ -15,9 +15,6 @@ pipeline:
       args: { anim_player_path: "Root/AP", clip_name: "idle", length: 1.0, library_name: "lib" }
     - tool: create_animation_tree
       args: { parent_path: "Root", anim_player_path: "Root/AP", node_name: "AT" }
-  after_all:
-    - tool: new_scene
-      args: { root_type: "Node", root_name: "Cleanup" }
   stages:
     - id: main
       steps:

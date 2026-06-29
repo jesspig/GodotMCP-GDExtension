@@ -4,6 +4,10 @@
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/variant.hpp>
 
+using godot::HashMap;
+using godot::String;
+using godot::Variant;
+
 namespace godot_mcp {
 
 // Tracks original values of ProjectSettings keys before set_setting modifies them.

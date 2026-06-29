@@ -46,7 +46,7 @@ protected:
         }
         String old_path = old_script->get_path();
 
-        auto *ur = begin_undo_action("MCP: Detach Script");
+        auto *ur = begin_undo_action("MCP: Detach Script", ctx.root);
         if (ur) {
             ur->add_do_method(node, "set_script", godot::Variant());
             ur->add_undo_method(node, "set_script", old_script);

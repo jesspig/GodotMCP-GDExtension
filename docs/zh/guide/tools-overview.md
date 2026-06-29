@@ -1,22 +1,22 @@
 ﻿# 工具概述
 
-GodotMCP 提供 **153 个内置工具**，组织成四层体系。工具按分类自动发现，可通过 `find_tool` 元工具搜索。
+GodotMCP 提供 **164 个内置工具**，组织成四层体系。工具按分类自动发现，可通过 `find_tool` 元工具搜索。
 
 ## 四层体系
 
 | 层级 | 数量 | 用途 |
 |-------|-------|---------|
 | 第 0 层：通用兜底 | 2 | 任何节点的通用属性读取/设置 |
-| 第 1 层：元工具 | 7 | 工具发现、内省、配置 |
-| 第 2 层：语义工具 | 136 | 针对各编辑器领域的专用工具 |
+| 第 1 层：元工具 | 9 | 工具发现、内省、配置 |
+| 第 2 层：语义工具 | 145 | 针对各编辑器领域的专用工具 |
 | 第 3 层：文档查询工具 | 8 | 基于 ClassDB 的 Godot API 参考 |
 
 ## 分类树
 
 ```
-meta_tools/                       # 7 个工具
-  get_info, get_tools, get_categories, get_tool_detail,
-  find_tool, call_tool, generate_client_config
+meta_tools/                       # 9 个工具
+  get_info, get_tools, get_categories, find_tool, call_tool,
+  undo, redo, get_undo_history, execute_workflow
 
 node_tools/
   signal/                         # 4 个工具
@@ -26,7 +26,8 @@ node_tools/
 
 editor_tools/
   scene_tree/                     # 24 个工具
-  scripts/                        # 12 个工具（GD + C#）
+  scene/                          # 7 个工具
+  scripts/                        # 13 个工具（8 GD + 5 C#）
   filesystem/                     # 12 个工具
   workspace/                      # 13 个工具
   animation/                      # 10 个工具
@@ -46,7 +47,7 @@ editor_tools/
   visualizer/                     # 1 个工具
 
 runtime_tools/
-  bridge/                         # 7 个工具
+  bridge/                         # 8 个工具
   lifecycle/                      # 6 个工具
 ```
 

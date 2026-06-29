@@ -97,7 +97,7 @@ protected:
         trans->set_xfade_time(static_cast<float>(xfade_time));
         trans->set_switch_mode(switch_mode);
 
-        auto *ur = begin_undo_action("MCP: Add Transition " + from + " -> " + to);
+        auto *ur = begin_undo_action("MCP: Add Transition " + from + " -> " + to, ctx.root);
         if (!ur) {
             sm->add_transition(godot::StringName(from), godot::StringName(to), trans);
             mark_scene_dirty();

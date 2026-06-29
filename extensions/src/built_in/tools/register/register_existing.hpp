@@ -106,6 +106,7 @@ GODOT_MCP_TOOL(ValidateGdScriptTool, false)
 GODOT_MCP_TOOL(ListGdScriptsTool, false)
 GODOT_MCP_TOOL(GrepScriptsTool, false)
 GODOT_MCP_TOOL(GlobScriptsTool, false)
+GODOT_MCP_TOOL(RunEditorScriptTool, true)
 GODOT_MCP_TOOL(ReadCsharpScriptTool, false)
 GODOT_MCP_TOOL(WriteCsharpScriptTool, true)
 GODOT_MCP_TOOL(PatchCsharpScriptTool, true)
@@ -171,6 +172,20 @@ GODOT_MCP_TOOL(SetGameNodePropertyTool, true)
 GODOT_MCP_TOOL(CallMethodInGameTool, false)
 GODOT_MCP_TOOL(CaptureGameScreenshotTool, false)
 GODOT_MCP_TOOL(SimulateGameInputTool, false)
+GODOT_MCP_TOOL(ListGameInstancesTool, false)
+
+// Shadow Scene tools
+GODOT_MCP_TOOL(StageSceneChangeTool, false)
+GODOT_MCP_TOOL(PreviewChangeTool, false)
+GODOT_MCP_TOOL(ApplyChangesTool, true)
+GODOT_MCP_TOOL(DiscardChangesTool, false)
+
+// Diff Scene States tool
+GODOT_MCP_TOOL(DiffSceneStatesTool, false)
+
+// Recording / Replay tools
+GODOT_MCP_TOOL(RecordOperationsTool, false)
+GODOT_MCP_TOOL(ReplayOperationsTool, true)
 
 // Runtime lifecycle tools
 GODOT_MCP_TOOL(RunProjectTool, false)

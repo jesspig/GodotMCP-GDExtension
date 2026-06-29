@@ -1,8 +1,8 @@
 ﻿# Script Tools
 
-12 tools for reading, writing, and managing GDScript and C# scripts.
+13 tools for reading, writing, and managing GDScript and C# scripts.
 
-## GDScript Tools (7)
+## GDScript Tools (8)
 
 ### `read_gd_script`
 
@@ -122,6 +122,27 @@ Or with errors:
 |------|------|----------|-------------|
 | `pattern` | `string` | Yes | Glob pattern |
 | `path` | `string` | No | Search root |
+
+---
+
+### `run_editor_script`
+
+**Category**: `editor_tools/scripts`  
+**Description**: Execute an EditorScript (.gd) file in the editor context.  
+**Destructive**: Yes | **Undo**: No
+
+#### Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `path` | `string` | Yes | Path to .gd script file (must extend EditorScript) |
+| `timeout_ms` | `integer` | No | Max execution time in milliseconds (default 5000, max 30000) |
+
+#### Returns
+
+```json
+{ "success": true, "data": { "path": "res://my_script.gd", "execution_time_ms": 42, "stdout": "Hello from EditorScript!", "timed_out": false } }
+```
 
 ---
 

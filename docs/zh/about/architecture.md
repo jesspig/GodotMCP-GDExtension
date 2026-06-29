@@ -29,13 +29,13 @@ graph TB
         SDK --> HR
         RB -.->|TCP :9601| GameProcess[Game Process]
 
-        HR --> tools_meta[Meta tools: 7]
+        HR --> tools_meta[Meta tools: 9]
         HR --> tools_scene[Scene tree: 24]
-        HR --> tools_script[Scripts: 12]
+        HR --> tools_script[Scripts: 13]
         HR --> tools_fs[Filesystem: 12]
         HR --> tools_workspace[Workspace/Debugger: 13]
-        HR --> tools_runtime[Runtime bridge + lifecycle: 13]
-        HR --> tools_other[... 72+ other tools]
+        HR --> tools_runtime[Runtime bridge + lifecycle: 14]
+        HR --> tools_other[... 79+ other tools]
     end
 
     AI_CLIENT -- "Streamable HTTP :9600" --> HS
@@ -69,7 +69,7 @@ flowchart LR
 
 ### Streamable HTTP（MCP 2026-07-28）
 
-使用 JSON-RPC 2.0，纯 `POST + OPTIONS` 通信。MCP 2026-07-28 升级中已移除会话管理。SSE 事件内联在 POST 响应体中。服务器会根据请求体校验 `Mcp-Method` 和 `Mcp-Name` HTTP 头。
+使用 JSON-RPC 2.0，支持 `GET`（SSE 流）、`POST` 和 `OPTIONS` 通信。MCP 2026-07-28 升级中已移除会话管理。SSE 事件内联在 POST 响应体中。服务器会根据请求体校验 `Mcp-Method` 和 `Mcp-Name` HTTP 头。
 
 ### ITool 架构 + X-macro 注册
 
@@ -80,8 +80,8 @@ flowchart LR
 | 层 | 名称 | 数量 | 描述 |
 |-------|------|-------|-------------|
 | 0 | 通用兜底 | 2 | `get_node_property` / `set_node_property` |
-| 1 | 元工具 | 7 | 工具内省、搜索、发现 |
-| 2 | 语义工具 | 136 | 面向各个领域的专用工具 |
+| 1 | 元工具 | 9 | 工具内省、搜索、发现 |
+| 2 | 语义工具 | 145 | 面向各个领域的专用工具 |
 | 3 | 文档查询工具 | 8 | 基于 ClassDB 的文档查询 |
 
 ### 运行时桥接

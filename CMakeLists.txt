@@ -7,7 +7,7 @@ if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Project version — single source of truth
-set(PROJECT_VERSION "0.2.1")
+set(PROJECT_VERSION "0.2.2")
 message(STATUS "GodotMCP version: ${PROJECT_VERSION}")
 
 # Compiler cache (sccache/ccache)

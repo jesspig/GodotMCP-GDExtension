@@ -31,6 +31,7 @@ bool HandlerRegistry::unregister_custom_tool(const String &name) {
 
     search_index_.erase(name);
     categories_dirty_ = true;
+    notify_tools_changed();
     return true;
 }
 
@@ -61,47 +62,21 @@ void HandlerRegistry::register_tool(std::unique_ptr<ITool> tool, bool is_custom)
     }
 
     itool_table_[name] = std::move(tool);
+
+    categories_dirty_ = true;
+    notify_tools_changed();
 }
 
 // ---------------------------------------------------------------------------
 // Unified execution: ITool dispatch
 // ---------------------------------------------------------------------------
 
-Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args) {
+Dictionary HandlerRegistry::execute(const String &name, const Dictionary &args, const Variant &jsonrpc_id) {
     record_tool_call(name);
 
-    auto info_it = tool_info_.find(name);
-    bool undoable = false;
-    if (info_it != tool_info_.end()) {
-        const ITool *tp = find_itool(name);
-        if (tp) undoable = tp->supports_undo();
-    }
-
-    // Check ITool table first
     auto it = itool_table_.find(name);
     if (it != itool_table_.end()) {
-        // Auto-Undo wrapping
-        if (undoable) {
-            EditorUndoRedoManager *undo_redo = get_undo_redo();
-            if (undo_redo) {
-                undo_redo->create_action(
-                    String("MCP: ") + name,
-                    UndoRedo::MERGE_ENDS);
-
-                Dictionary result = it->second->execute(args);
-
-                if (result.has("success") && result["success"].operator bool()) {
-                    undo_redo->commit_action(false);
-                } else {
-                    undo_redo->commit_action(true);
-                }
-
-                return result;
-            }
-        }
-
-        // No undo wrapping (tool doesn't support undo, or no undo manager)
-        return it->second->execute(args);
+        return it->second->execute(args, jsonrpc_id);
     }
 
     Dictionary error;
@@ -145,19 +120,19 @@ Dictionary HandlerRegistry::make_tool_entry(const String &name, const ToolInfo &
 // ---------------------------------------------------------------------------
 //
 // get_categories() 输出字段契约(每个分类节点):
-//   id          : 分类段名(如 "node"、"property"),用于 get_tools 查询
-//   name        : 分类展示名(如 "Node"、"Property")(prettify 自动美化,客户端 UI 显示用)
-//   path        : 完整分类路径(如 "node/property"),用于 get_tools 查询
-//   description : 分类描述(来自工具的 category_description(),自动发现)
-//   tool_count  : 直接挂载到该分类的工具数(不含子分类)
-//   total       : 包含子分类的累加值
-//   subcategories : 子分类列表(数组),递归结构一致,若无则省略
+//   id          : 分类段名(�?"node"�?property"),用于 get_tools 查询
+//   name        : 分类展示�?�?"Node"�?Property")(prettify 自动美化,客户�?UI 显示�?
+//   path        : 完整分类路径(�?"node/property"),用于 get_tools 查询
+//   description : 分类描述(来自工具�?category_description(),自动发现)
+//   tool_count  : 直接挂载到该分类的工具数(不含子分�?
+//   total       : 包含子分类的累加�?
+//   subcategories : 子分类列�?数组),递归结构一�?若无则省�?
 namespace {
 
 String prettify_segment(const String &seg) {
     if (seg.is_empty()) return seg;
     String result = seg.replace("_", " ");
-    // 查找首字母位置（跳过开头的数字，如 "3d" → "3D", "2d" → "2D"）
+    // 查找首字母位置（跳过开头的数字，如 "3d" �?"3D", "2d" �?"2D"�?
     int first_letter = -1;
     for (int i = 0; i < result.length(); i++) {
         char32_t c = result[i];
@@ -175,14 +150,14 @@ String prettify_segment(const String &seg) {
 
 }  // namespace
 
-// 把 CatNode 序列化为 Dictionary(MCP 协议输出契约)。
-//   id          : 分类段名(如 "node"、"property"),用于 get_tools 查询
-//   name        : 分类展示名(如 "Node"、"Property"),客户端 UI 显示用
-//   path        : 完整分类路径(如 "node/property"),用于 get_tools 查询
-//   description : 分类描述(来自工具的 category_description(),自动发现)
-//   tool_count  : 直接挂载到该分类的工具数(不含子分类)
-//   total       : 包含子分类的累加值
-//   subcategories : 子分类列表(数组),递归结构一致,若无则省略
+// �?CatNode 序列化为 Dictionary(MCP 协议输出契约)�?
+//   id          : 分类段名(�?"node"�?property"),用于 get_tools 查询
+//   name        : 分类展示�?�?"Node"�?Property"),客户�?UI 显示�?
+//   path        : 完整分类路径(�?"node/property"),用于 get_tools 查询
+//   description : 分类描述(来自工具�?category_description(),自动发现)
+//   tool_count  : 直接挂载到该分类的工具数(不含子分�?
+//   total       : 包含子分类的累加�?
+//   subcategories : 子分类列�?数组),递归结构一�?若无则省�?
 static Dictionary cat_node_to_dict(const String &id, const String &name,
                                    const String &path,
                                    int direct, int total,
@@ -266,7 +241,7 @@ Array HandlerRegistry::get_categories() const {
         }
     }
 
-    // Recursive converter: CatNode → Array of Dictionaries, sorted by name
+    // Recursive converter: CatNode �?Array of Dictionaries, sorted by name
     std::function<Array(const CatNode &, const String &)> node_to_subs =
         [&](const CatNode &parent, const String &parent_path) -> Array {
             std::vector<Dictionary> entries;
@@ -298,6 +273,33 @@ Array HandlerRegistry::get_categories() const {
     categories_cache_ = result;
     categories_dirty_ = false;
     return result;
+}
+
+
+Array HandlerRegistry::get_tools_by_group(const String &group) const {
+    Array result;
+    for (const auto &[name, info] : tool_info_) {
+        if (!info.enabled) continue;
+        const ITool *tool = find_itool(name);
+        if (tool && tool->tool_group() == group) {
+            result.push_back(make_tool_entry(name, info));
+        }
+    }
+    return result;
+}
+PackedStringArray HandlerRegistry::get_all_category_paths() const {
+    PackedStringArray paths;
+    for (const auto &[name, info] : tool_info_) {
+        if (!info.enabled) continue;
+        const ITool *tool = find_itool(name);
+        if (!tool) continue;
+        const String cat = tool->category();
+        if (cat.is_empty()) continue;
+        if (paths.find(cat) < 0) {
+            paths.push_back(cat);
+        }
+    }
+    return paths;
 }
 
 Array HandlerRegistry::get_tools_in_category(const String &category) const {
@@ -366,12 +368,30 @@ PackedStringArray HandlerRegistry::tokenize(const String &text) {
     return result;
 }
 
+void HandlerRegistry::notify_tools_changed() {
+    if (on_tools_changed_) {
+        on_tools_changed_();
+    }
+}
+
+void HandlerRegistry::apply_freq_decay() {
+    for (auto &kv : freq_index_) {
+        kv.value = static_cast<int>(kv.value * 0.99);
+    }
+}
+
 void HandlerRegistry::record_tool_call(const String &name) {
     auto it = freq_index_.find(name);
     if (it != freq_index_.end()) {
         it->value++;
     } else {
         freq_index_[name] = 1;
+    }
+
+    freq_decay_counter_++;
+    if (freq_decay_counter_ >= 50) {
+        apply_freq_decay();
+        freq_decay_counter_ = 0;
     }
 }
 
@@ -381,7 +401,7 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
     const String q = query.to_lower().strip_edges();
     HashMap<String, int> best_weight;
 
-    // Single pass: evaluate all matching strategies for each tool (权重降序检查)
+    // Single pass: evaluate all matching strategies for each tool (权重降序检�?
     for (const auto &[tool_name, info] : tool_info_) {
         const ITool *tool = find_itool(tool_name);
         if (!tool) continue;
@@ -401,7 +421,7 @@ Array HandlerRegistry::search_tools(const String &query, const String &category,
             continue;
         }
 
-        // Token fuzzy — any token contains query (weight 200)
+        // Token fuzzy �?any token contains query (weight 200)
         bool token_matched = false;
         auto idx_it = search_index_.find(tool_name);
         if (idx_it != search_index_.end()) {

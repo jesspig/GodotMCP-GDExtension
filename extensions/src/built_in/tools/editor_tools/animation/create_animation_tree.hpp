@@ -51,12 +51,12 @@ protected:
 
         Node *parent = nullptr;
         if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, parent_path, parent)) {
-            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
+            return *err;
         }
 
         Node *ap_node = nullptr;
         if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, anim_player_path, ap_node)) {
-            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
+            return *err;
         }
         auto *player = Object::cast_to<godot::AnimationPlayer>(ap_node);
         if (!player) {
@@ -81,28 +81,36 @@ protected:
             return ToolResult::err("CAST_FAILED", "Failed to cast node to AnimationTree");
         }
 
-        godot::NodePath player_path = tree->get_path_to(player);
-        tree->set_animation_player(player_path);
+        // Compute path from parent (in scene tree) to player, prefix "../" for tree_node
+        String parent_to_player = parent->get_path_to(player);
+        godot::NodePath player_rel_path = godot::NodePath(String("../") + parent_to_player);
 
         godot::Ref<godot::AnimationNodeStateMachine> sm;
         sm.instantiate();
         if (sm.is_null()) {
             return ToolResult::err("CREATE_FAILED", "Failed to create AnimationNodeStateMachine");
         }
-        tree->set_tree_root(sm);
 
         if (parent->has_node(String("./") + node_name)) {
             return ToolResult::err("NAME_CONFLICT",
                 String("A node with the same name already exists: ") + node_name);
         }
 
-        auto *ur = begin_undo_action("MCP: Create AnimationTree");
+        auto *ur = begin_undo_action("MCP: Create AnimationTree", ctx.root);
         if (!ur) {
             parent->add_child(tree_node, true, Node::INTERNAL_MODE_DISABLED);
             tree_node->set_owner(ctx.root);
+            tree->set_tree_root(sm);
+            tree->set_animation_player(player_rel_path);
             mark_scene_dirty();
         } else {
-            commit_add_child_undo(ur, "MCP: Create AnimationTree", parent, tree_node, ctx.root);
+            ur->add_do_method(parent, "add_child", tree_node, true,
+                              static_cast<int64_t>(Node::INTERNAL_MODE_DISABLED));
+            ur->add_do_method(tree_node, "set_owner", ctx.root);
+            ur->add_do_method(tree, "set_tree_root", sm);
+            ur->add_do_method(tree, "set_animation_player", player_rel_path);
+            ur->add_undo_method(parent, "remove_child", tree_node);
+            commit_undo_action(ur);
         }
         guard.dismiss();
 

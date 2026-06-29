@@ -19,8 +19,14 @@ class GodotManager:
         self.headless = headless
         self.mcp_port = mcp_port
         self.mcp_url = f"http://127.0.0.1:{mcp_port}/mcp"
+        self.run_tests_url = f"http://127.0.0.1:{mcp_port}/run-tests"
         self.process: subprocess.Popen | None = None
         self._started_by_us = False
+        self._start_retries = 0
+        self.stderr_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "godot_stderr.log"
+        )
+        self._stderr_file = None
 
     async def ensure_running(self, timeout: int = 60) -> bool:
         if await self._check_mcp_ready():
@@ -40,7 +46,19 @@ class GodotManager:
                 if self.process.poll() is None:
                     self.process.kill()
                     self.process.wait(5)
+        if self.process:
+            rc = self.process.poll()
+            if rc is not None and self._stderr_file:
+                self._stderr_file.write(f"\n[{time.strftime('%Y-%m-%d %H:%M:%S')}] Exit code: {rc}\n")
+                self._stderr_file.flush()
         self.process = None
+        if self._stderr_file:
+            self._stderr_file.close()
+            self._stderr_file = None
+        # Brief pause to let the OS release the port (avoids TIME_WAIT on Windows)
+        await asyncio.sleep(1.0)
+
+    MAX_START_RETRIES = 3
 
     async def _start(self, timeout: int) -> bool:
         if not os.path.isfile(self.godot_path):
@@ -57,16 +75,33 @@ class GodotManager:
         if self.headless:
             cmd.append("--headless")
 
+        self._stderr_file = open(self.stderr_path, "w", encoding="utf-8")
+        self._stderr_file.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Starting: {' '.join(cmd)}\n")
+        self._stderr_file.flush()
+
         self.process = subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stderr=self._stderr_file,
             creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
         )
         self._started_by_us = True
 
         if await self._wait_for_mcp(timeout):
             return True
+
+        # Retry transient Godot startup crashes (e.g. "Property info is missing name")
+        has_crashed = self.process and self.process.poll() is not None
+        if has_crashed:
+            retries = getattr(self, '_start_retries', 0)
+            if retries < self.MAX_START_RETRIES:
+                self._start_retries = retries + 1
+                wait = self._start_retries * 0.5
+                print(f"  [retry {self._start_retries}/{self.MAX_START_RETRIES}] Godot crashed on startup, retrying in {wait}s...")
+                await asyncio.sleep(wait)
+                await self.stop()
+                return await self._start(timeout)
+            print(f"  [fail] Godot crashed {self.MAX_START_RETRIES} times, giving up")
 
         if self.headless:
             await self.stop()
@@ -108,6 +143,28 @@ class GodotManager:
         except Exception:
             return False
 
+    async def wait_for_run_tests(self, timeout: int = 30) -> bool:
+        """Wait until the /run-tests endpoint returns 200 (separate from MCP ping)."""
+        deadline = time.time() + timeout
+        async with httpx.AsyncClient() as client:
+            while time.time() < deadline:
+                if self.process and self.process.poll() is not None:
+                    return False
+                try:
+                    resp = await client.post(
+                        self.run_tests_url,
+                        content="name: ping\npipeline:\n  stages:\n    - id: ping\n      steps: []",
+                        headers={"Content-Type": "application/x-yaml"},
+                        timeout=5,
+                    )
+                    if resp.status_code == 200:
+                        return True
+                    # 400/500 means server is up but GDExtension not ready — retry
+                except Exception:
+                    pass
+                await asyncio.sleep(0.5)
+        return False
+
     @property
     def is_running(self) -> bool:
         return self.process is not None and self.process.poll() is None
@@ -118,3 +175,5 @@ class GodotManager:
                 self.process.terminate()
             except Exception:
                 pass
+        if self._stderr_file:
+            self._stderr_file.close()

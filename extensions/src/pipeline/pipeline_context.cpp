@@ -46,7 +46,6 @@ bool PipelineContext::eval_when(const WhenClause &c) const {
 
 namespace {
 
-// Resolve a path like "data.node_path" against a Dictionary
 godot::Variant resolve_path(const godot::Dictionary &root, const godot::String &path) {
     if (path.is_empty()) {
         return root;
@@ -72,22 +71,32 @@ godot::Variant resolve_path(const godot::Dictionary &root, const godot::String &
     return current;
 }
 
-// Check if a string matches the ${steps.<id>.result.<path>} or ${steps.<id>.status} pattern
-// Returns true if the string IS a template (whole string), and fills ref_id and ref_field
 bool parse_template_ref(const godot::String &s, godot::String &out_ref_id, godot::String &out_field, godot::String &out_path) {
     if (!s.begins_with("${") || !s.ends_with("}")) {
         return false;
     }
     godot::String inner = s.substr(2, s.length() - 3);
-    // Split by '.'
     const godot::Array parts = inner.split(".");
+    if (parts.size() < 2) {
+        return false;
+    }
+    if (parts[0] == "vars" && parts.size() >= 2) {
+        out_ref_id = "vars";
+        out_field = "";
+        godot::String path_buf;
+        for (int i = 1; i < static_cast<int>(parts.size()); ++i) {
+            if (i > 1) path_buf += ".";
+            path_buf += godot::String(parts[i]);
+        }
+        out_path = path_buf;
+        return true;
+    }
     if (parts.size() < 3 || parts[0] != "steps") {
         return false;
     }
     out_ref_id = parts[1];
     if (parts.size() >= 3) {
-        out_field = parts[2]; // "result" or "status"
-        // Rebuild remaining path
+        out_field = parts[2];
         godot::String path_buf;
         for (int i = 3; i < static_cast<int>(parts.size()); ++i) {
             if (i > 3) path_buf += ".";
@@ -98,14 +107,20 @@ bool parse_template_ref(const godot::String &s, godot::String &out_ref_id, godot
     return true;
 }
 
-// Recursively expand templates in a Variant
 godot::Variant expand_variant(const godot::Variant &val, const PipelineContext &ctx) {
     switch (val.get_type()) {
         case godot::Variant::STRING: {
             godot::String s = val;
             godot::String ref_id, ref_field, ref_path;
             if (parse_template_ref(s, ref_id, ref_field, ref_path)) {
-                // Whole string is a template — preserve type
+                if (ref_id == "vars") {
+                    const godot::Dictionary &vars = ctx.get_workflow_vars();
+                    godot::Variant resolved = resolve_path(vars, ref_path);
+                    if (resolved.get_type() == godot::Variant::NIL) {
+                        return godot::String("[ERROR: unknown var '") + ref_path + "']";
+                    }
+                    return resolved;
+                }
                 auto sr = ctx.get_step(ref_id);
                 if (!sr.has_value()) {
                     return godot::String("[ERROR: unknown step '") + ref_id + "']";
@@ -118,23 +133,36 @@ godot::Variant expand_variant(const godot::Variant &val, const PipelineContext &
                         default: return godot::String("pending");
                     }
                 }
-                // result
                 if (ref_path.is_empty()) {
                     return sr->raw_result;
                 }
                 return resolve_path(sr->raw_result, ref_path);
             }
-            // Check for embedded templates
             if (s.find("${") != -1) {
-                // Simple replace (only handles one embedded template for now)
                 int start = static_cast<int>(s.find("${"));
                 int end = static_cast<int>(s.find("}", static_cast<int64_t>(start)));
                 if (start != -1 && end != -1 && end > start) {
                     godot::String inner = s.substr(start + 2, end - start - 2);
                     const godot::Array parts = inner.split(".");
+                    if (parts.size() >= 2 && parts[0] == "vars") {
+                        godot::String path_buf;
+                        for (int i = 1; i < static_cast<int>(parts.size()); ++i) {
+                            if (i > 1) path_buf += ".";
+                            path_buf += godot::String(parts[i]);
+                        }
+                        const godot::Dictionary &vars = ctx.get_workflow_vars();
+                        godot::Variant resolved = resolve_path(vars, path_buf);
+                        godot::String resolved_str = godot::JSON::stringify(resolved);
+                        if (resolved_str.length() >= 2 &&
+                            resolved_str[0] == '"' &&
+                            resolved_str[resolved_str.length() - 1] == '"') {
+                            resolved_str = resolved_str.substr(1, resolved_str.length() - 2);
+                        }
+                        return s.substr(0, start) + resolved_str + s.substr(end + 1);
+                    }
                     if (parts.size() >= 3 && parts[0] == "steps") {
-                        godot::String ref_id = parts[1];
-                        auto sr = ctx.get_step(ref_id);
+                        godot::String ref_id2 = parts[1];
+                        auto sr = ctx.get_step(ref_id2);
                         if (sr.has_value() && parts.size() >= 4 && parts[2] == "result") {
                             godot::String path_buf;
                             for (int i = 3; i < static_cast<int>(parts.size()); ++i) {
@@ -143,14 +171,12 @@ godot::Variant expand_variant(const godot::Variant &val, const PipelineContext &
                             }
                             godot::Variant resolved = resolve_path(sr->raw_result, path_buf);
                             godot::String resolved_str = godot::JSON::stringify(resolved);
-                            // Remove quotes if it's a simple string
                             if (resolved_str.length() >= 2 &&
                                 resolved_str[0] == '"' &&
                                 resolved_str[resolved_str.length() - 1] == '"') {
                                 resolved_str = resolved_str.substr(1, resolved_str.length() - 2);
                             }
-                            godot::String result = s.substr(0, start) + resolved_str + s.substr(end + 1);
-                            return result;
+                            return s.substr(0, start) + resolved_str + s.substr(end + 1);
                         }
                     }
                 }

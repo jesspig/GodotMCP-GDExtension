@@ -5,7 +5,7 @@
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "server/registry/handler_registry.hpp"
-#include "runtime/bridge.hpp"
+#include "runtime/bridge_server.hpp"
 
 namespace godot_mcp {
 
@@ -32,14 +32,22 @@ public:
 
 protected:
     Dictionary execute_impl(const ToolContext &ctx) override {
-        RuntimeBridge *bridge = registry_ ? registry_->get_runtime_bridge() : nullptr;
+        RuntimeBridgeServer *bridge = registry_ ? registry_->get_runtime_bridge_server() : nullptr;
         if (!bridge || !bridge->is_connected()) {
             return ToolResult::err("GAME_NOT_RUNNING", "Game not running or bridge not connected");
         }
         bool paused = args_bool(ctx.args, "paused");
         Dictionary params;
         params["paused"] = paused;
-        return RuntimeBridge::make_response(bridge->send_command("set_pause", params));
+        int instance_id = bridge->get_default_instance_id();
+        if (instance_id < 0) {
+            return ToolResult::err("GAME_NOT_RUNNING", "No game instance connected");
+        }
+        Dictionary raw = bridge->send_command_sync(instance_id, "set_pause", params);
+        if (raw.is_empty()) {
+            return ToolResult::err("BRIDGE_TIMEOUT", "Bridge command timed out");
+        }
+        return RuntimeBridgeServer::make_response(raw);
     }
 };
 

@@ -7,9 +7,9 @@
 ```
 editor_tools/settings/
   get_setting.hpp       GetSettingTool       — 通用读取器
-  set_setting.hpp       SetSettingTool       — 通用写入器，带撤销
+  set_setting.hpp       SetSettingTool       — 通用写入器，带修改追踪与重置
   reset_setting.hpp     ResetSettingTool     — 重置为默认值
-  list_settings.hpp     ListSettingsTool     — 列表 + 搜索（is_meta=true）
+  list_settings.hpp     ListSettingsTool     — 列表 + 搜索（is_meta=false，通过发现链按需加载）
 ```
 
 所有工具注册在 `register_existing.hpp:117-120`：
@@ -59,14 +59,14 @@ class ResetSettingTool : public ITool {
 ```
 
 - 参数：`setting_path`（string，必填）
-- 实现：`ProjectSettings::clear(path)` → 从 `project.godot` 移除
-- 返回 `previous_value`
+- 实现：从 `set_setting` 的 `tracked_overrides` 快照中恢复原始值
+- 返回 `previous_value`；若未被 `set_setting` 修改过则返回 `"already_at_original"`
 
 ### list_settings (`list_settings.hpp:13`)
 
 ```cpp
 class ListSettingsTool : public ITool {
-    // is_meta: true（始终在 tools/list 中可见）
+    // is_meta: false（通过发现链按需加载）
     // needs_scene: false, needs_node: false
 }
 ```

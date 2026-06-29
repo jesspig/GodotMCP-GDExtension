@@ -2,6 +2,7 @@
 
 #include "tool_executor.hpp"
 #include "prompt_provider.hpp"
+#include "pending_operation.hpp"
 #include "../registry/handler_registry.hpp"
 
 #include <deque>
@@ -44,8 +45,18 @@ public:
     using McpLogCallback = std::function<void(const ToolCallLog &)>;
     void set_log_callback(McpLogCallback cb);
 
+    using ConfirmCallback = std::function<void(const PendingDestructiveOp &)>;
+    void set_confirm_callback(ConfirmCallback cb) { confirm_callback_ = std::move(cb); }
+    void resolve_pending_op(const godot::Variant &id, bool allow, bool allow_all_for_session);
+    void check_pending_timeouts(uint64_t timeout_msec);
+    void reset_session_flags() { allow_all_for_session_ = false; }
+    int pending_op_count() const noexcept { return static_cast<int>(pending_ops_.size()); }
+
     // Utility: parse a MCP-Protocol-Version header and return a compatible version.
     static String negotiate_protocol_version(const String &header_value);
+
+    // Enqueue an SSE event (public for RuntimeBridgeServer, McpToolRegistry, etc.)
+    void enqueue_event(const Dictionary &event);
 
     // JSON-RPC 2.0 standard error codes
     static constexpr int kParseError = -32700;
@@ -62,8 +73,6 @@ private:
     static Dictionary make_jsonrpc_error(const Variant &id, int code, const String &message,
                                          const Variant &data = {});
     static Dictionary make_notification(const String &method, const Variant &params);
-
-    void enqueue_event(const Dictionary &event);
 
     // Lifecycle
     Dictionary handle_initialize(const Dictionary &params, const Variant &id);
@@ -89,11 +98,19 @@ private:
     // Notifications (no return value needed)
     void handle_cancelled(const Dictionary & /*params*/);
 
+public:
+    void set_bridge_server(class RuntimeBridgeServer *bs) { bridge_server_ = bs; }
+
+private:
     HandlerRegistry *registry_;
     McpLogCallback log_callback_;
     ToolExecutor tool_executor_;
+    RuntimeBridgeServer *bridge_server_ = nullptr;
     std::deque<Dictionary> global_event_queue_;
     String log_level_ = "info";
+    std::deque<PendingDestructiveOp> pending_ops_;
+    bool allow_all_for_session_ = false;
+    ConfirmCallback confirm_callback_;
 };
 
 } // namespace godot_mcp

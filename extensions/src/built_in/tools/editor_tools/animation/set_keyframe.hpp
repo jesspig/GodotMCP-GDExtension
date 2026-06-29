@@ -90,7 +90,7 @@ protected:
 
         Node *node = nullptr;
         if (auto err = scene_tree_utils::resolve_node_or_error(ctx.root, anim_player_path, node)) {
-            return ToolResult::err("NODE_NOT_FOUND", err->get("message", ""));
+            return *err;
         }
         auto *player = Object::cast_to<godot::AnimationPlayer>(node);
         if (!player) {
@@ -126,11 +126,18 @@ protected:
                 String::num_int64(track_index));
         }
 
-        // Normalize value: parse string representations and convert for animation tracks
+        // Normalize value: parse string representations, convert JSON-sourced
+        // Dictionary/Array to typed Variant (Vector2/3, Color, Rect2, etc.)
         if (value.get_type() == Variant::STRING) {
             Variant parsed = godot::UtilityFunctions::str_to_var(value);
             if (parsed.get_type() != Variant::NIL) {
                 value = parsed;
+            }
+        }
+        if (value.get_type() == Variant::DICTIONARY || value.get_type() == Variant::ARRAY) {
+            Variant converted = json_to_variant(value);
+            if (converted.get_type() != Variant::NIL && converted.get_type() != value.get_type()) {
+                value = converted;
             }
         }
         {
@@ -164,14 +171,23 @@ protected:
                 : Variant();
 
             if (!ur) {
-                animation->track_insert_key(static_cast<int32_t>(track_index), time, value);
+                if (animation->track_insert_key(static_cast<int32_t>(track_index), time, value) < 0) {
+                    return ToolResult::err("INSERT_FAILED", "Failed to insert keyframe: value type mismatch with track");
+                }
                 mark_scene_dirty();
             } else {
-                auto *ur_ins = begin_undo_action("MCP: Insert Keyframe");
+                auto *ur_ins = begin_undo_action("MCP: Insert Keyframe", ctx.root);
                 if (!ur_ins) {
-                    animation->track_insert_key(static_cast<int32_t>(track_index), time, value);
+                    if (animation->track_insert_key(static_cast<int32_t>(track_index), time, value) < 0) {
+                        return ToolResult::err("INSERT_FAILED", "Failed to insert keyframe: value type mismatch with track");
+                    }
                     mark_scene_dirty();
                 } else {
+                    // Validate track_insert_key before committing to undo
+                    if (animation->track_insert_key(static_cast<int32_t>(track_index), time, value) < 0) {
+                        return ToolResult::err("INSERT_FAILED", "Failed to insert keyframe: value type mismatch with track");
+                    }
+                    animation->track_remove_key_at_time(static_cast<int32_t>(track_index), time);
                     ur_ins->add_do_method(animation.ptr(), "track_insert_key",
                                       static_cast<int32_t>(track_index), time, value);
                     if (had_key) {
@@ -198,7 +214,7 @@ protected:
                 animation->track_remove_key_at_time(static_cast<int32_t>(track_index), time);
                 mark_scene_dirty();
             } else {
-                auto *ur_del = begin_undo_action("MCP: Delete Keyframe");
+                auto *ur_del = begin_undo_action("MCP: Delete Keyframe", ctx.root);
                 if (!ur_del) {
                     animation->track_remove_key_at_time(static_cast<int32_t>(track_index), time);
                     mark_scene_dirty();
@@ -226,7 +242,7 @@ protected:
                 animation->track_set_key_value(static_cast<int32_t>(track_index), key_idx, value);
                 mark_scene_dirty();
             } else {
-                auto *ur_set = begin_undo_action("MCP: Set Keyframe Value");
+                auto *ur_set = begin_undo_action("MCP: Set Keyframe Value", ctx.root);
                 if (!ur_set) {
                     animation->track_set_key_value(static_cast<int32_t>(track_index), key_idx, value);
                     mark_scene_dirty();

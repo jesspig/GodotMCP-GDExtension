@@ -7,10 +7,6 @@
 //
 // Key conventions
 // --------------
-// * add_do_reference(obj)   — protect an object created in `do` from being
-//                             freed before `undo`/Redo replays the action.
-// * add_undo_reference(obj) — protect an object removed in `do` so that
-//                             `undo` can re-insert it back into the tree.
 // * add_do_method(parent, "add_child", child, true, InternalMode::INTERNAL_MODE_DISABLED)
 //                             — use force_read_only=false; ownership is
 //                               established separately via set_owner.
@@ -111,8 +107,13 @@ inline std::optional<godot::Dictionary> resolve_node_or_error(
     godot::Node *root, const godot::String &path, godot::Node *&out_node) {
     out_node = godot_mcp::resolve_node(root, path);
     if (!out_node) {
-        return ToolResult::err("NODE_NOT_FOUND",
-            godot::String("Node not found: ") + path);
+        godot::Dictionary err_dict;
+        err_dict["success"] = false;
+        godot::Dictionary error;
+        error["code"] = "NODE_NOT_FOUND";
+        error["message"] = "Node not found: " + path;
+        err_dict["error"] = error;
+        return err_dict;
     }
     return {};
 }

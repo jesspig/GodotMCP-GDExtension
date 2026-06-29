@@ -16,6 +16,8 @@ namespace godot_mcp {
 // 前向声明
 class ITool;
 class RuntimeBridge;
+class RuntimeBridgeServer;
+class McpHandler;
 
 using CommandFn = std::function<godot::Dictionary(const godot::Dictionary &args)>;
 
@@ -34,13 +36,15 @@ public:
     [[nodiscard]] bool unregister_custom_tool(const godot::String &name);
 
     void register_tool(std::unique_ptr<ITool> tool, bool is_custom = false);
-    [[nodiscard]] godot::Dictionary execute(const godot::String &name, const godot::Dictionary &args);
+    [[nodiscard]] godot::Dictionary execute(const godot::String &name, const godot::Dictionary &args, const godot::Variant &jsonrpc_id = {});
 
     [[nodiscard]] const ToolInfo *find_tool_info(const godot::String &name) const;
 
     // --- Category queries (for progressive disclosure) ---
     [[nodiscard]] godot::Array get_categories() const;
     [[nodiscard]] godot::Array get_tools_in_category(const godot::String &category) const;
+    [[nodiscard]] godot::Array get_tools_by_group(const godot::String &group) const;
+    [[nodiscard]] godot::PackedStringArray get_all_category_paths() const;
 
     // --- Always-on tools list ---
     [[nodiscard]] godot::Array get_always_on_tools() const;
@@ -53,10 +57,18 @@ public:
     void set_runtime_bridge(RuntimeBridge *bridge) { runtime_bridge_ = bridge; }
     RuntimeBridge *get_runtime_bridge() const { return runtime_bridge_; }
 
+    void set_runtime_bridge_server(RuntimeBridgeServer *server) { bridge_server_ = server; }
+    RuntimeBridgeServer *get_runtime_bridge_server() const { return bridge_server_; }
+
     // --- Search engine ---
     [[nodiscard]] godot::Array search_tools(const godot::String &query, const godot::String &category = "", int limit = 20) const;
     void record_tool_call(const godot::String &name);
     [[nodiscard]] godot::Array get_search_suggestions(const godot::String &prefix, int limit = 10) const;
+
+    // --- Tools changed callback ---
+    using ToolsChangedCallback = std::function<void()>;
+    void set_on_tools_changed(ToolsChangedCallback cb) { on_tools_changed_ = std::move(cb); }
+    void notify_tools_changed();
 
     // --- Version info ---
     void set_engine_version(const godot::String &v) { engine_version_ = v; }
@@ -72,13 +84,15 @@ private:
         return (it != itool_table_.end()) ? it->second.get() : nullptr;
     }
 
+    void apply_freq_decay();
+
     static godot::PackedStringArray tokenize(const godot::String &text);
 
     // 使用 std::map 而非 godot::HashMap，因�?unique_ptr 不可复制（HashMap 要求 value 可复制）
     std::map<godot::String, std::unique_ptr<ITool>> itool_table_;
     godot::HashMap<godot::String, ToolInfo> tool_info_;
 
-    // 预构建搜索索引：在 register_tool() 时增量构建，避免 search_tools() 实时 tokenize
+    // 预构建搜索索引：�?register_tool() 时增量构建，避免 search_tools() 实时 tokenize
     struct SearchIndexEntry {
         godot::PackedStringArray tokens;
     };
@@ -86,10 +100,13 @@ private:
 
     mutable godot::Array categories_cache_;
     mutable bool categories_dirty_ = true;
-    godot::HashMap<godot::String, int> freq_index_;
+    mutable godot::HashMap<godot::String, int> freq_index_;
+    mutable int64_t freq_decay_counter_ = 0;
     RuntimeBridge *runtime_bridge_ = nullptr;
+    RuntimeBridgeServer *bridge_server_ = nullptr;
     godot::String engine_version_;
     godot::String plugin_version_;
+    ToolsChangedCallback on_tools_changed_;
 };
 
 void register_itools(HandlerRegistry &reg);

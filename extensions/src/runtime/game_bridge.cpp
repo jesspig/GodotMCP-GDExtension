@@ -15,6 +15,7 @@
 #include <godot_cpp/classes/marshalls.hpp>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/scene_tree.hpp>
+#include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/classes/viewport_texture.hpp>
 #include <godot_cpp/classes/window.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
@@ -23,28 +24,7 @@ using namespace godot;
 
 namespace godot_mcp {
 // Forward declaration - defined in cmd_utils_json.cpp, no editor dependency.
-// Keep this signature in sync with cmd_utils.hpp (the depth default lives in
-// the header; redeclaring the default here would be an ODR violation, so omit it).
 Variant json_to_variant(const Variant &jv, int depth);
-
-static Dictionary make_error(const String &msg) {
-    Dictionary r;
-    r["ok"] = false;
-    r["error"] = msg;
-    return r;
-}
-
-static constexpr int64_t MAX_MESSAGE_SIZE = 65536;
-
-static void reset_read_state(PackedByteArray &buf, String &text, int64_t &offset,
-                              int &retries, int64_t &fail_offset, int64_t &consumed) {
-    buf.clear();
-    text = String();
-    offset = 0;
-    retries = 0;
-    fail_offset = -1;
-    consumed = 0;
-}
 
 // -----------------------------------------------------------------------
 // Lifecycle
@@ -66,21 +46,38 @@ int GameBridgeNode::read_port() {
 
 void GameBridgeNode::_ready() {
     if (Engine::get_singleton()->is_editor_hint()) {
-        // Should never happen - only created in game process
         return;
     }
     set_process(true);
-    start_server();
+    connect_to_editor();
 }
 
 void GameBridgeNode::_exit_tree() {
-    stop_server();
+    disconnect_from_editor();
 }
 
 void GameBridgeNode::_process(double) {
-    if (server_.is_valid()) {
-        accept_clients();
-        read_clients();
+    if (!connection_.is_valid()) {
+        // Retry connection every 2 seconds
+        const uint64_t now = Time::get_singleton()->get_ticks_msec();
+        if (now > connect_retry_msec_) {
+            connect_to_editor();
+            connect_retry_msec_ = now + 2000;
+        }
+        return;
+    }
+
+    connection_->poll();
+    StreamPeerTCP::Status s = connection_->get_status();
+    if (s == StreamPeerTCP::STATUS_ERROR || s == StreamPeerTCP::STATUS_NONE) {
+        log_warn("game_bridge", "Editor bridge disconnected");
+        connection_.unref();
+        reset_read_state_internal();
+        return;
+    }
+
+    if (s == StreamPeerTCP::STATUS_CONNECTED) {
+        read_from_editor();
     }
 }
 
@@ -90,78 +87,52 @@ void GameBridgeNode::_self_add() {
 
     Node *root = get_scene_root();
     if (!root) {
-        // Root not ready yet - try again next frame
         call_deferred("_self_add");
         return;
     }
 
     root->add_child(this);
-    log_info("game_bridge", String("GameBridgeNode added to scene tree, port=") +
+    log_info("game_bridge", String("GameBridgeNode added to scene tree, connecting to editor bridge :") +
                                     String::num_int64(port_));
 }
 
 // -----------------------------------------------------------------------
-// TCP Server
+// TCP Client: connect to editor's RuntimeBridgeServer
 // -----------------------------------------------------------------------
 
-void GameBridgeNode::start_server() {
-    server_.instantiate();
-    Error err = server_->listen(port_, "127.0.0.1");
+void GameBridgeNode::connect_to_editor() {
+    if (connection_.is_valid()) return;
+
+    connection_.instantiate();
+    Error err = connection_->connect_to_host("127.0.0.1", port_);
     if (err != OK) {
-        log_error("game_bridge", String("Failed to listen on :") + String::num_int64(port_));
-        server_.unref();
+        connection_.unref();
         return;
     }
-    log_info("game_bridge", String("GameBridge listening on :") + String::num_int64(port_));
+    log_info("game_bridge", String("Connecting to editor bridge 127.0.0.1:") + String::num_int64(port_));
 }
 
-void GameBridgeNode::stop_server() {
-    if (client_.is_valid()) {
-        client_->disconnect_from_host();
-        client_.unref();
-    }
-    if (server_.is_valid()) {
-        server_->stop();
-        server_.unref();
+void GameBridgeNode::disconnect_from_editor() {
+    if (connection_.is_valid()) {
+        connection_->disconnect_from_host();
+        connection_.unref();
     }
     reset_read_state_internal();
 }
 
-void GameBridgeNode::accept_clients() {
-    if (client_.is_valid()) {
-        // Already have a connected client
-        return;
-    }
-    if (!server_->is_connection_available()) {
-        return;
-    }
-    Ref<StreamPeerTCP> new_client = server_->take_connection();
-    if (new_client.is_valid()) {
-        client_ = new_client;
-        reset_read_state_internal();
-        log_info("game_bridge", "Client connected");
-    }
-}
+// -----------------------------------------------------------------------
+// Read from editor (same framing protocol, now reads from connection_)
+// -----------------------------------------------------------------------
 
-void GameBridgeNode::read_clients() {
-    if (!client_.is_valid()) return;
+void GameBridgeNode::read_from_editor() {
+    if (!connection_.is_valid()) return;
 
-    client_->poll();
-    StreamPeerTCP::Status s = client_->get_status();
-    if (s == StreamPeerTCP::STATUS_ERROR || s == StreamPeerTCP::STATUS_NONE) {
-        client_.unref();
-        reset_read_state_internal();
-        log_info("game_bridge", "Client disconnected");
-        return;
-    }
-
-    int64_t avail = client_->get_available_bytes();
+    int64_t avail = connection_->get_available_bytes();
     if (avail <= 0) return;
 
-    Array chunk = client_->get_partial_data(avail);
+    Array chunk = connection_->get_partial_data(static_cast<int>(avail));
     if (static_cast<int64_t>(chunk[0]) != OK) {
-        client_->disconnect_from_host();
-        client_.unref();
+        connection_.unref();
         reset_read_state_internal();
         return;
     }
@@ -169,75 +140,45 @@ void GameBridgeNode::read_clients() {
     read_buf_.append_array(data);
 
     if (read_buf_.size() > BUFFER_LIMIT) {
-        Dictionary err = make_error("Message body too large");
-        send_response(client_, err);
-        client_->disconnect_from_host();
-        client_.unref();
+        log_warn("game_bridge", "Buffer overflow, resetting");
         reset_read_state_internal();
         return;
     }
 
-    // Decode only newly received bytes and accumulate the decoded text
-    int64_t new_bytes = read_buf_.size() - read_offset_;
-    if (new_bytes > 0) {
-        const uint8_t* raw = read_buf_.ptr() + read_offset_;
-        String chunk_text;
-        int64_t parse_len = (new_bytes > 65536) ? 65536 : new_bytes;
-        Error utf8_err = chunk_text.parse_utf8((const char*)raw, static_cast<int>(parse_len));
-        if (utf8_err != OK) {
-            if (read_offset_ == utf8_fail_offset_) {
-                utf8_retries_++;
-            } else {
-                utf8_retries_ = 0;
-                utf8_fail_offset_ = read_offset_;
-            }
-            if (utf8_retries_ >= 3) {
-                read_offset_ = read_buf_.size();
-                utf8_retries_ = 0;
-                utf8_fail_offset_ = -1;
-                log_warn("game_bridge", "Discarding un-decodable UTF-8 data");
-            }
-            return;
-        }
-        utf8_retries_ = 0;
-        utf8_fail_offset_ = -1;
-        read_text_ += chunk_text;
-        read_offset_ = read_buf_.size();
-    }
-
-    if (read_text_.is_empty()) return;
-
-    // Process newline-delimited messages (fixes pipelined messages and JSON parse hang)
     while (true) {
-        int64_t newline_idx = read_text_.find("\n");
-        if (newline_idx == -1) {
-            // Incomplete message – guard against runaway accumulation
-            if (read_text_.length() > MAX_MESSAGE_SIZE) {
-                log_warn("game_bridge", "Message too large, discarding buffer");
-                reset_read_state_internal();
-            }
+        if (read_offset_ + 4 > read_buf_.size()) break;
+
+        const uint8_t *p = read_buf_.ptr() + read_offset_;
+        const uint32_t msg_len = (static_cast<uint32_t>(p[0]) << 24) |
+                                 (static_cast<uint32_t>(p[1]) << 16) |
+                                 (static_cast<uint32_t>(p[2]) << 8) |
+                                  static_cast<uint32_t>(p[3]);
+
+        if (msg_len == 0 || msg_len > MAX_MESSAGE_SIZE) {
+            log_warn("game_bridge", "Invalid message length, resetting buffer");
+            reset_read_state_internal();
             return;
         }
 
-        String line = read_text_.substr(0, static_cast<int>(newline_idx));
-        read_text_ = read_text_.substr(static_cast<int>(newline_idx) + 1);
+        if (read_offset_ + 4 + static_cast<int64_t>(msg_len) > read_buf_.size()) break;
 
-        // All of read_buf_ has been decoded, safe to clear
-        read_buf_.clear();
-        read_offset_ = 0;
+        read_offset_ += 4;
 
-        if (line.is_empty()) continue;
+        String text;
+        text.parse_utf8(reinterpret_cast<const char *>(read_buf_.ptr() + read_offset_),
+                        static_cast<int>(msg_len));
+        read_offset_ += static_cast<int64_t>(msg_len);
 
         Ref<JSON> json;
         json.instantiate();
-        if (json->parse(line) != OK) {
-            log_warn("game_bridge", "Skipping unparseable JSON message");
+        if (json->parse(text) != OK) {
+            log_warn("game_bridge", "Invalid JSON message");
             continue;
         }
 
         Variant msg = json->get_data();
         if (msg.get_type() != Variant::DICTIONARY) {
-            log_warn("game_bridge", "Message must be a JSON object, skipping");
+            log_warn("game_bridge", "Message is not a dictionary");
             continue;
         }
 
@@ -248,21 +189,48 @@ void GameBridgeNode::read_clients() {
 
         Dictionary result = dispatch(cmd, params);
         result["id"] = id;
-        send_response(client_, result);
+        send_response(result);
+    }
+
+    if (read_offset_ > 0) {
+        const int remaining = read_buf_.size() - static_cast<int>(read_offset_);
+        if (remaining > 0) {
+            PackedByteArray new_buf;
+            new_buf.resize(remaining);
+            std::copy_n(read_buf_.ptr() + read_offset_, remaining, new_buf.ptrw());
+            read_buf_ = new_buf;
+        } else {
+            read_buf_.clear();
+        }
+        read_offset_ = 0;
     }
 }
 
 void GameBridgeNode::reset_read_state_internal() {
-    reset_read_state(read_buf_, read_text_, read_offset_,
-                      utf8_retries_, utf8_fail_offset_, consumed_bytes_);
+    read_buf_.clear();
+    read_offset_ = 0;
 }
 
-void GameBridgeNode::send_response(const Ref<StreamPeerTCP> &client, const Dictionary &msg) {
-    if (!client.is_valid()) return;
-    String json_str = JSON::stringify(msg);
-    PackedByteArray data = json_str.to_utf8_buffer();
-    data.push_back('\n');
-    Error err = client->put_data(data);
+void GameBridgeNode::send_response(const Dictionary &msg) {
+    if (!connection_.is_valid()) return;
+
+    PackedByteArray json_bytes = JSON::stringify(msg).to_utf8_buffer();
+    if (json_bytes.size() > MAX_MESSAGE_SIZE) {
+        log_error("game_bridge", "Response too large");
+        return;
+    }
+
+    const uint32_t len = static_cast<uint32_t>(json_bytes.size());
+    PackedByteArray frame;
+    frame.resize(4 + json_bytes.size());
+    auto *p = frame.ptrw();
+    p[0] = static_cast<uint8_t>((len >> 24) & 0xFF);
+    p[1] = static_cast<uint8_t>((len >> 16) & 0xFF);
+    p[2] = static_cast<uint8_t>((len >> 8) & 0xFF);
+    p[3] = static_cast<uint8_t>(len & 0xFF);
+    std::copy_n(json_bytes.ptr(), json_bytes.size(), p + 4);
+
+    Error err = connection_->put_data(frame);
     if (err != OK) {
         log_error("game_bridge", String("send_response put_data failed: err=") + String::num_int64(err));
     }
@@ -298,7 +266,7 @@ Dictionary GameBridgeNode::dispatch(const String &cmd, const Dictionary &params)
 }
 
 // -----------------------------------------------------------------------
-// Command handlers
+// Command handlers (unchanged from v1)
 // -----------------------------------------------------------------------
 
 Dictionary GameBridgeNode::handle_get_scene_tree(const Dictionary &params) {
@@ -417,6 +385,12 @@ Dictionary GameBridgeNode::handle_call_method(const Dictionary &params) {
         r["error"] = String("Node not found: ") + node_path;
         return r;
     }
+    if (!node->has_method(method)) {
+        Dictionary r;
+        r["ok"] = false;
+        r["error"] = String("Method '") + method + String("' not found on node ") + node_path;
+        return r;
+    }
     Array args = params.get("args", Array());
     Array converted_args;
     converted_args.resize(args.size());
@@ -427,11 +401,16 @@ Dictionary GameBridgeNode::handle_call_method(const Dictionary &params) {
     Dictionary r;
     r["ok"] = true;
     r["data"] = result;
+    r["return_type"] = Variant::get_type_name(result.get_type());
     return r;
 }
 
 Dictionary GameBridgeNode::handle_screenshot(const Dictionary &params) {
     String format = params.get("format", "png");
+    int64_t max_w = params.get("max_width", static_cast<int64_t>(0));
+    int64_t max_h = params.get("max_height", static_cast<int64_t>(0));
+    double quality = params.get("quality", 0.85);
+
     Viewport *vp = get_viewport();
     if (!vp) {
         Dictionary r;
@@ -446,9 +425,26 @@ Dictionary GameBridgeNode::handle_screenshot(const Dictionary &params) {
         r["error"] = String("Unable to get viewport image");
         return r;
     }
+
+    // Resize if max dimensions specified
+    int64_t w = img->get_width();
+    int64_t h = img->get_height();
+    if (max_w > 0 || max_h > 0) {
+        int64_t target_w = max_w > 0 ? max_w : w;
+        int64_t target_h = max_h > 0 ? max_h : h;
+        float scale = std::min(static_cast<float>(target_w) / static_cast<float>(w),
+                               static_cast<float>(target_h) / static_cast<float>(h));
+        if (scale < 1.0f) {
+            int64_t new_w = std::max(static_cast<int64_t>(1), static_cast<int64_t>(w * scale));
+            int64_t new_h = std::max(static_cast<int64_t>(1), static_cast<int64_t>(h * scale));
+            img->resize(static_cast<int>(new_w), static_cast<int>(new_h), Image::INTERPOLATE_BILINEAR);
+        }
+    }
+
     PackedByteArray buf;
     if (format == "jpg" || format == "jpeg") {
-        buf = img->save_jpg_to_buffer(0.85f);
+        float q = static_cast<float>(std::clamp(quality, 0.0, 1.0));
+        buf = img->save_jpg_to_buffer(q);
     } else {
         buf = img->save_png_to_buffer();
     }
@@ -459,6 +455,8 @@ Dictionary GameBridgeNode::handle_screenshot(const Dictionary &params) {
     data["mime"] = mime;
     data["data"] = b64;
     data["size"] = buf.size();
+    data["width"] = img->get_width();
+    data["height"] = img->get_height();
 
     Dictionary r;
     r["ok"] = true;
@@ -469,14 +467,12 @@ Dictionary GameBridgeNode::handle_screenshot(const Dictionary &params) {
 static Key key_from_string(const String &name) {
     String upper = name.to_upper();
 
-    // Single letter A-Z
     if (upper.length() == 1) {
         char32_t c = upper[0];
         if (c >= 'A' && c <= 'Z') return static_cast<Key>((KEY_A + (c - 'A')));
         if (c >= '0' && c <= '9') return static_cast<Key>((KEY_0 + (c - '0')));
     }
 
-    // Named keys via constexpr lookup table
     struct KeyEntry { const char *name; Key key; };
     static constexpr KeyEntry kEntries[] = {
         {"ENTER", KEY_ENTER}, {"RETURN", KEY_ENTER},

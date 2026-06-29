@@ -2,9 +2,12 @@
 #pragma warning(disable: 4828)  // non-UTF-8 bytes in file (known, harmless)
 
 #include "built_in/cmd_utils/schema_builder.hpp"
+#include "built_in/cmd_utils/undo_stack.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/args_get_typed.hpp"
+
+#include <godot_cpp/classes/time.hpp>
 
 namespace godot_mcp {
 
@@ -103,9 +106,31 @@ protected:
         if (!ctx.args.has("value")) {
             return ToolResult::err("MISSING_PARAM", "value is required");
         }
+        Variant old_val = ctx.node->get(prop);
         Variant new_val = json_to_variant(ctx.args["value"]);
         undoable_set(ctx.node, prop, new_val,
                      String("Set ") + prop + String(" for ") + relative_path(ctx.root, ctx.node));
+
+        // Push MCP undo record
+        if (g_undo_manager) {
+            String node_path = relative_path(ctx.root, ctx.node);
+            UndoRecord rec;
+            rec.tool_name = "set_node_property";
+            Dictionary fwd;
+            fwd["node_path"] = node_path;
+            fwd["property"] = prop;
+            fwd["value"] = ctx.args["value"];
+            rec.forward_args = fwd;
+            Dictionary rev;
+            rev["node_path"] = node_path;
+            rev["property"] = prop;
+            rev["value"] = variant_to_json(old_val);
+            rec.reverse_args = rev;
+            rec.timestamp = godot::Time::get_singleton()->get_unix_time_from_system();
+            rec.description = String("Set ") + prop + String(" on ") + node_path;
+            g_undo_manager->push(std::move(rec));
+        }
+
         Dictionary data;
         data["node_path"] = relative_path(ctx.root, ctx.node);
         data["property"] = prop;

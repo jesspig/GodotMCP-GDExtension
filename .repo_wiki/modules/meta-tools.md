@@ -1,43 +1,68 @@
 # 元工具
 
-> 发现工具的系统级工具，`is_meta() == true`，始终在 `tools/list` 中可见。`HandlerRegistry::get_always_on_tools()` 按 `is_meta` 标记过滤（`handler_registry.cpp:371-380`）。
+> 发现工具的系统级工具，`is_meta() == true`，始终在 `tools/list` 中可见。`HandlerRegistry::get_always_on_tools()` 按 `is_meta` 标记过滤。
 
 ## 工具列表
 
-共 **8 个**元工具：7 个在 `meta_tools` 分类（`register/register_meta.hpp`），1 个在 `editor_tools/settings`（`register/register_existing.hpp:119`）。
+共 **9 个**元工具（`is_meta()==true`），全部在 `meta_tools` 分类（`register/register_meta.hpp`）。`list_settings` 的 `is_meta()=false`，通过发现链按需加载。
 
 | 工具名 | 文件 | 分类 | 功能 |
 |--------|------|------|------|
 | `get_info` | `meta/get_info.hpp` | `meta_tools` | 连接状态、引擎版本、项目配置、编辑器状态、桥接状态 |
-| `get_tools` | `meta/get_tools.hpp` | `meta_tools` | 按分类路径列出该分类下所有工具（不含子分类） |
+| `get_tools` | `meta/get_tools.hpp` | `meta_tools` | 两种模式：无 name 时列出分类下工具；有 name+detail=true 时返回单工具完整 schema |
 | `get_categories` | `meta/get_categories.hpp` | `meta_tools` | 分类树，支持 path 钻取和 max_depth 控制 |
-| `get_tool_detail` | `meta/get_tool_detail.hpp` | `meta_tools` | 指定工具的完整元数据（参数、类型、用法示例） |
 | `find_tool` | `meta/find_tool.hpp` | `meta_tools` | 搜索引擎：4 阶段权重 + 频率排序 |
 | `call_tool` | `meta/call_tool.hpp` | `meta_tools` | 兜底调用任意工具 |
-| `generate_client_config` | `meta/generate_client_config.hpp` | `meta_tools` | 生成 11 个 MCP 客户端的连接配置 |
-| `list_settings` | `editor_tools/settings/list_settings.hpp` | `editor_tools/settings` | 列出项目设置（`is_meta=true`，`register_existing.hpp:119`） |
+| `undo` | `meta/undo.hpp` | `meta_tools` | 回退上一次编辑器操作 |
+| `redo` | `meta/redo.hpp` | `meta_tools` | 重做上一次 undo 操作 |
+| `get_undo_history` | `meta/get_undo_history.hpp` | `meta_tools` | 查看 undo/redo 栈历史 |
+| `execute_workflow` | `meta/execute_workflow.hpp` | `meta_tools` | 执行多步骤工作流 |
+
+## undo / redo / get_undo_history
+
+基于 `EditorUndoRedoManager` 的元工具，提供对编辑器操作历史栈的查询与撤销能力。实现在 `meta/undo.hpp`、`meta/redo.hpp`、`meta/get_undo_history.hpp`。
+
+- `undo`：调用 `EditorUndoRedoManager::undo()` 回退一步，返回操作描述
+- `redo`：调用 `EditorUndoRedoManager::redo()` 重做一步，返回操作描述
+- `get_undo_history`：返回 `undo`/`redo` 操作列表，含 `action_name`、`type`（undo/redo）
+
+各工具配合内置的 `UndoStack`（`cmd_utils/undo_stack.hpp`）自管理栈。详见 `extensions/src/built_in/cmd_utils/undo_stack.hpp`。
+
+## execute_workflow
+
+基于 `[WorkflowRunner](../pipeline/workflow_runner.hpp)` 的多步骤编排元工具。实现在 `meta/execute_workflow.hpp`。
+
+参数：
+
+| 参数 | 类型 | 必需 | 默认 | 说明 |
+|------|------|------|------|------|
+| `workflow_json` | object | 否 | — | 工作流定义 JSON（stages/steps/vars/timeout） |
+| `workflow_yaml` | string | 否 | — | 工作流定义 YAML 字符串 |
+| `dry_run` | boolean | 否 | false | 仅验证不执行 |
+
+支持 `$\{vars.*\}` 变量替换和 `$\{steps.<id>.result.<path>\}` 步骤结果链式引用。内部使用 `PipelineRunnerBase` 执行引擎（`extensions/src/pipeline/pipeline_runner_base.hpp`）。
 
 ## 渐进式披露
 
 ```mermaid
 flowchart LR
-    A["tools/list<br/>8 个元工具"] --> B["get_categories<br/>分类树"]
+    A["tools/list<br/>9 个元工具"] --> B["get_categories<br/>分类树"]
     B --> C["get_tools(category)<br/>分类下工具列表"]
-    C --> D["get_tool_detail(name)<br/>单工具完整 schema"]
+    C --> D["get_tools(name, detail=true)<br/>单工具完整 schema"]
     B --> E["find_tool(query)<br/>搜索匹配"]
 ```
 
 | 阶段 | 操作 | 返回 |
 |------|------|------|
-| 1 | `tools/list` | 8 个元工具（`is_meta=true`） |
+| 1 | `tools/list` | 9 个元工具（`is_meta=true`） |
 | 2 | `get_categories` | 分类树（默认 max_depth=3） |
 | 3 | `get_tools(category)` | 指定分类下工具（id/name/description） |
 | 4 | `find_tool(query)` | 按频率+权重排序的搜索结果 |
-| 5 | `get_tool_detail(name)` | 单工具完整参数 schema + 用法示例 |
+| 5 | `get_tools(name, detail=true)` | 单工具完整参数 schema + 用法示例 |
 
 ## `get_info` 返回结构
 
-来自 `get_info.hpp:30-88`，返回 `ToolResult::ok(result)`：
+返回 `ToolResult::ok(result)`：
 
 ```json
 {
@@ -47,9 +72,9 @@ flowchart LR
     "hash": "abc123..."
   },
   "plugin": {
-    "builtin_tools": 153,
+    "builtin_tools": 164,
     "custom_tools": 0,
-    "version": "0.2.1"
+    "version": "0.2.2"
   },
   "project": {
     "name": "MyGame",
@@ -65,32 +90,37 @@ flowchart LR
   "bridge": {
     "status": 0,
     "port": 9601,
-    "connected": false
+    "connected": false,
+    "server_status": 2,
+    "server_port": 9601,
+    "server_connected": false,
+    "instance_count": 0,
+    "server_listening": true
   }
 }
 ```
 
-- `engine.version`：来自 `Engine::get_version_info()["string"]`（`get_info.hpp:39`）
-- `engine.hash`：同上 `["hash"]`（`get_info.hpp:40`）
-- `plugin.builtin_tools` / `custom_tools` / `version`：来自 `HandlerRegistry` 计数（`get_info.hpp:45-47`）
-- `project.path`：`globalize_path("res://")` 绝对路径（`get_info.hpp:54`）
-- `editor.current_scene`：当前编辑场景的文件路径，无场景则为空字符串（`get_info.hpp:62-64`）
-- `bridge.status`：`RuntimeBridge::status()` 的 int 值（`get_info.hpp:81`）
+- `engine.version`：来自 `Engine::get_version_info()["string"]`
+- `engine.hash`：同上 `["hash"]`
+- `plugin.builtin_tools` / `custom_tools` / `version`：来自 `HandlerRegistry` 计数
+- `project.path`：`globalize_path("res://")` 绝对路径
+- `editor.current_scene`：当前编辑场景的文件路径，无场景则为空字符串
+- `bridge` 结构体包含两个桥的信息：`status/port/connected` 来自旧版 `RuntimeBridge`（TCP 客户端，向后兼容），`server_status/server_port/server_connected/instance_count/server_listening/instances` 来自 `RuntimeBridgeServer`（TCP 服务器，多实例支持）
 
 ## `call_tool` 兜底调用
 
-参数（`call_tool.hpp:21-37`）：
+参数（`call_tool.hpp`）：
 
 | 参数 | 类型 | 必需 | 说明 |
 |------|------|------|------|
 | `tool_name` | string | 是 | 要调用的工具名 |
 | `arguments` | object | 否 | 工具参数键值对 |
 
-内部将 `tool_name` + `arguments` 转发到 `HandlerRegistry::execute()`（`call_tool.hpp:57`）。
+内部将 `tool_name` + `arguments` 转发到 `HandlerRegistry::execute()`。
 
 ## 搜索引擎（`find_tool`）
 
-参数（`find_tool.hpp:21-41`）：
+参数（`find_tool.hpp`）：
 
 | 参数 | 类型 | 必需 | 默认 | 说明 |
 |------|------|------|------|------|
@@ -100,14 +130,14 @@ flowchart LR
 
 ### 4 阶段权重匹配
 
-`HandlerRegistry::search_tools()`（`handler_registry.cpp:378-462`）对每个工具取**最高权重**（非累加）：
+`HandlerRegistry::search_tools()` 对每个工具取**最高权重**（非累加）：
 
-| 阶段 | 匹配方式 | 权重 | 代码行 |
-|------|---------|------|--------|
-| 1 | 工具名精确匹配（大小写不敏感） | 1000 | `:393-396` |
-| 2 | 工具名前缀匹配 | 500 | `:399-402` |
-| 3 | name + brief + description 分词后 Token 包含 | 200 | `:404-416` |
-| 4 | description 子串匹配 | 50 | `:419-421` |
+| 阶段 | 匹配方式 | 权重 |
+|------|---------|------|
+| 1 | 工具名精确匹配（大小写不敏感） | 1000 |
+| 2 | 工具名前缀匹配 | 500 |
+| 3 | name + brief + description 分词后 Token 包含 | 200 |
+| 4 | description 子串匹配 | 50 |
 
 ### 排序算法
 
@@ -121,30 +151,34 @@ flowchart TD
     E --> F
 ```
 
-**排序规则**：先按调用频率（`freq_index_`）降序，频率相同再按权重降序（`handler_registry.cpp:442-445`）。
+**排序规则**：先按调用频率（`freq_index_`）降序，频率相同再按权重降序。
 
 ```cpp
-// handler_registry.cpp:442-445
-if (a.freq != b.freq) return a.freq > b.freq;  // 频率优先
-return a.weight > b.weight;                      // 权重次之
+if (a.freq != b.freq) return a.freq > b.freq;
+return a.weight > b.weight;
 ```
 
-返回每条结果包含 `name`、`brief`、`category`、`description`、`frequency` 字段（`:449-460`）。
+返回每条结果包含 `name`、`brief`、`category`、`description`、`frequency` 字段。
 
-## `generate_client_config`
+## 客户端自动配置（底部面板）
 
-参数（`generate_client_config.hpp:22-51`）：
+通过 Godot 底部面板（`McpDock`）的配置生成器，可一键生成 11 个 MCP 客户端的项目级配置。实现在 `client_config_registry.hpp`（声明式描述符 + 策略模式）：
 
-| 参数 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `client` | string (enum) | 是 | 客户端名称 |
-| `write_to_project` | bool | 否 | 默认 false，true 时写入项目配置文件 |
+| 客户端 | 配置文件路径 | 格式 |
+|--------|-------------|:----:|
+| Claude Code | `.mcp.json` | JSON |
+| Cursor | `.cursor/mcp.json` | JSON |
+| VS Code Copilot | `.vscode/mcp.json` | JSON |
+| Cline | `.cline/mcp.json` | JSON |
+| OpenCode | `.opencode/opencode.json` | JSON |
+| Codex | `.codex/config.toml` | TOML |
+| Trae | `.trae/mcp.json` | JSON |
+| Qoder | `.qoder/mcp.json` | JSON |
+| CodeBuddy | `.codebuddy/mcp_settings.json` | JSON |
+| Pi | `.pi/settings.json` | JSON |
+| OpenClaw | `.openclaw/openclaw.json` | JSON |
 
-支持 **11 个客户端**（`client_config_registry.hpp:151-163`）：
-
-`claude_code`、`cursor`、`vscode_copilot`、`cline`、`opencode`、`codex`、`trae`、`qoder`、`codebuddy`、`pi`、`openclaw`
-
-返回 `{ client, config_path, config_content, format, scope, url }`。`write_to_project=true` 时按格式（json 深合并 / toml 追加 / 直接写入）落盘。
+所有配置文件为**项目级路径**，避免污染用户全局 MCP 配置。`write_to_project=true` 时按格式（json 深合并 / toml 追加 / 直接写入）落盘。
 
 ## `get_categories`
 
@@ -157,7 +191,9 @@ return a.weight > b.weight;                      // 权重次之
 
 ## `get_tools`
 
-参数（`get_tools.hpp:20-32`）：
+有两种模式：
+
+**模式 1：按分类列出工具**（无 `name` 参数）
 
 | 参数 | 类型 | 必需 | 说明 |
 |------|------|------|------|
@@ -165,24 +201,13 @@ return a.weight > b.weight;                      // 权重次之
 
 返回该分类下（不含子分类）工具的 `{ id, name, description }` 列表。
 
-## `get_tool_detail`
-
-参数（`get_tool_detail.hpp:21-33`）：
+**模式 2：查询单工具详情**（带 `name` + `detail=true`）
 
 | 参数 | 类型 | 必需 | 说明 |
 |------|------|------|------|
 | `name` | string | 是 | 工具名 |
+| `detail` | bool | 是 | 必须为 `true` |
 
 返回 `{ id, name, description, parameters[], required[], return_value, category_id, category_path, usage_example }`。
 
-## `list_settings`
-
-参数（`list_settings.hpp:27-44`）：
-
-| 参数 | 类型 | 默认 | 说明 |
-|------|------|------|------|
-| `filter` | string | `""` | 分类前缀过滤，如 `display/window` |
-| `search` | string | `""` | 文本搜索（大小写不敏感） |
-| `limit` | int | 200 | 最大返回数（上限 5000） |
-
-返回匹配设置的 `{ setting, type, value, basic, restart_if_changed }` 列表。`is_meta=true` 使其始终在 `tools/list` 可见，但分类归属 `editor_tools/settings`。
+> **注意**：`list_settings` 工具不属于元工具（`is_meta()=false`，category 为 `editor_tools/settings`），详见 [settings-tools.md](settings-tools.md)。

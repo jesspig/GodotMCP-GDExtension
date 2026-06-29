@@ -150,7 +150,7 @@ protected:
                 String("' (declared ") + declared_class + String(")"));
         }
         Variant old_val = material->get_shader_parameter(uniform_sn);
-        auto *ur = begin_undo_action("MCP: Set Shader Uniform " + uniform_name);
+        auto *ur = begin_undo_action("MCP: Set Shader Uniform " + uniform_name, ctx.root);
         if (ur) {
             ur->add_do_method(material, "set_shader_parameter", uniform_sn, converted);
             ur->add_undo_method(material, "set_shader_parameter", uniform_sn, old_val);

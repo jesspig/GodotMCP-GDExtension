@@ -23,7 +23,7 @@ inline void commit_add_child_undo(
         return;
     }
 
-    ur->create_action(action_name);
+    ur->create_action(action_name, godot::UndoRedo::MERGE_DISABLE, scene_root);
     if (index >= 0) {
         ur->add_do_method(parent, "add_child", child, true,
             static_cast<int64_t>(godot::Node::INTERNAL_MODE_DISABLED), index);
@@ -36,8 +36,7 @@ inline void commit_add_child_undo(
     if (clear_owner_on_undo) {
         ur->add_undo_method(child, "set_owner", godot::Variant());
     }
-    ur->add_do_reference(child);
-    ur->add_undo_reference(child);
+
     ur->commit_action();
 }
 

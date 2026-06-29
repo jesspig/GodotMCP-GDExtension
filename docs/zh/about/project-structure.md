@@ -22,7 +22,7 @@ scripts/                 Python 构建/打包脚本
 cmake/                   CMake 模块（8 个文件）
 main.py                  构建/测试/打包入口点
 rspress.config.ts        文档站点配置
-CMakeLists.txt           根 CMake 构建（版本：0.2.1）
+CMakeLists.txt           根 CMake 构建（版本：0.2.2）
 ```
 
 ## 源代码布局（extensions/src/）
@@ -49,13 +49,13 @@ built_in/
   cmd_utils_json            JSON 到 Variant 转换
   cmd_utils/                7 个模板头文件
   register_itools.cpp       X-macro 注册主文件
-  tools/                    153 个工具实现
-    meta/                   7 个元工具
+  tools/                    164 个工具实现
+    meta/                   9 个元工具
     signal/                 4 个信号工具
     group/                  4 个分组工具
     node_tools/             6 个资源 + 2 个兜底
-    editor_tools/           19 个子分类
-    runtime_tools/          7 个桥接 + 6 个生命周期
+    editor_tools/           20 个子分类
+    runtime_tools/          8 个桥接 + 6 个生命周期
 
 runtime/
   bridge                    编辑器端 TCP 客户端

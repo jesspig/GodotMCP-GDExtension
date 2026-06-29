@@ -4,11 +4,13 @@
 #pragma once
 
 #include "built_in/cmd_utils/tracked_settings.hpp"
+#include "built_in/cmd_utils/undo_stack.hpp"
 #include "built_in/tool_base.hpp"
 #include "built_in/cmd_utils.hpp"
 #include "built_in/cmd_utils/args_get_typed.hpp"
 
 #include <godot_cpp/classes/project_settings.hpp>
+#include <godot_cpp/classes/time.hpp>
 
 namespace godot_mcp {
 
@@ -71,6 +73,21 @@ protected:
             return ToolResult::err("SAVE_FAILED",
                 String("Failed to save project settings (error ") + godot::itos(err) + String(")"));
         }
+
+        // Push MCP undo record
+        if (g_undo_manager) {
+            UndoRecord rec;
+            rec.tool_name = "set_setting";
+            rec.forward_args = ctx.args;
+            Dictionary rev;
+            rev["setting_path"] = path;
+            rev["value"] = variant_to_json(old_val);
+            rec.reverse_args = rev;
+            rec.timestamp = godot::Time::get_singleton()->get_unix_time_from_system();
+            rec.description = String("Set ") + path;
+            g_undo_manager->push(std::move(rec));
+        }
+
         Dictionary data;
         data["setting"] = path;
         data["previous_value"] = variant_to_json(old_val);

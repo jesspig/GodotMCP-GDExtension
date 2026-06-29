@@ -3,6 +3,16 @@
 #pragma warning(disable: 4244) // int64_t→int from Godot API calls in tool headers
 #endif
 
+#include <godot_cpp/classes/dir_access.hpp>
+#include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/file_access.hpp>
+#include <godot_cpp/classes/os.hpp>
+#include <godot_cpp/classes/project_settings.hpp>
+#include <godot_cpp/classes/time.hpp>
+#include <godot_cpp/templates/hash_map.hpp>
+
+using namespace godot;
+
 #include "server/registry/handler_registry.hpp"
 #include "built_in/cmd_utils/dispatch_map.hpp"
 #include "built_in/cmd_utils/undo_helpers.hpp"
@@ -11,11 +21,12 @@
 #include "built_in/tools/meta/get_info.hpp"
 #include "built_in/tools/meta/get_tools.hpp"
 #include "built_in/tools/meta/get_categories.hpp"
-#include "built_in/tools/meta/get_tool_detail.hpp"
 #include "built_in/tools/meta/find_tool.hpp"
 #include "built_in/tools/meta/call_tool.hpp"
-#include "built_in/tools/meta/generate_client_config.hpp"
-
+#include "built_in/tools/meta/undo.hpp"
+#include "built_in/tools/meta/redo.hpp"
+#include "built_in/tools/meta/get_undo_history.hpp"
+#include "built_in/tools/meta/execute_workflow.hpp"
 // ── Signal tools ──
 #include "built_in/tools/signal/connect_signal.hpp"
 #include "built_in/tools/signal/disconnect_signal.hpp"
@@ -134,6 +145,7 @@
 #include "built_in/tools/editor_tools/scripts/list_scripts.hpp"
 #include "built_in/tools/editor_tools/scripts/grep_scripts.hpp"
 #include "built_in/tools/editor_tools/scripts/glob_scripts.hpp"
+#include "built_in/tools/editor_tools/scripts/run_editor_script.hpp"
 
 // ── Settings tools ──
 #include "built_in/tools/editor_tools/settings/get_setting.hpp"
@@ -188,12 +200,25 @@
 
 // ── Runtime bridge tools ──
 #include "built_in/tools/runtime_tools/bridge/wait_for_bridge.hpp"
+#include "built_in/tools/runtime_tools/bridge/list_game_instances.hpp"
 #include "built_in/tools/runtime_tools/bridge/get_game_scene_tree.hpp"
 #include "built_in/tools/runtime_tools/bridge/get_game_node_property.hpp"
 #include "built_in/tools/runtime_tools/bridge/set_game_node_property.hpp"
 #include "built_in/tools/runtime_tools/bridge/call_method_in_game.hpp"
 #include "built_in/tools/runtime_tools/bridge/capture_game_screenshot.hpp"
 #include "built_in/tools/runtime_tools/bridge/simulate_game_input.hpp"
+
+// ── Shadow Scene tools ──
+#include "built_in/tools/editor_tools/scene/stage_change.hpp"
+#include "built_in/tools/editor_tools/scene/preview_change.hpp"
+#include "built_in/tools/editor_tools/scene/apply_changes.hpp"
+#include "built_in/tools/editor_tools/scene/discard_changes.hpp"
+
+// ── Diff Scene States tool ──
+#include "scene_diff/diff_scene_states.hpp"
+
+// ── Recording / Replay tools ──
+#include "replay/replay_tools.hpp"
 
 // ── Runtime lifecycle tools ──
 #include "built_in/tools/runtime_tools/lifecycle/run_project.hpp"
@@ -210,7 +235,7 @@ using namespace godot;
 
 namespace godot_mcp {
 
-// is_destructive_val — the tool's virtual method overrides (name(), category(), etc.) are authoritative.
+// is_destructive_val �?the tool's virtual method overrides (name(), category(), etc.) are authoritative.
 #define GODOT_MCP_TOOL(cls, is_destructive_val) \
     { \
         auto tool = std::make_unique<cls>(); \

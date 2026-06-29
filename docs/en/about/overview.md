@@ -12,16 +12,16 @@ GodotMCP acts as a bridge between AI tools (Claude Code, Cline, Continue, Cursor
 - **Control the editor** — run/stop projects, set breakpoints, capture viewports
 - **Query the runtime** — inspect game scenes, get/set properties, call methods
 - **Query Godot documentation** — search classes, methods, properties via ClassDB
-- **And 140+ more operations** across every editor domain
+- **And 150+ more operations** across every editor domain
 
 ## Key Features
 
 | Feature | Description |
 |---------|-------------|
-| **153 built-in tools** | Covers scene tree, scripts, filesystem, animation, shaders, input, physics, runtime bridge, and more |
+| **164 built-in tools** | Covers scene tree, scripts, filesystem, animation, shaders, input, physics, runtime bridge, and more |
 | **Pure C++ GDExtension** | No external dependencies — runs inside the editor process with native performance |
 | **Main-thread only** | No threading, no locks, no synchronization primitives needed |
-| **Streamable HTTP** | MCP 2026-07-28 protocol on port 9600, pure POST/OPTIONS, no sessions |
+| **Streamable HTTP** | MCP 2026-07-28 protocol on port 9600, supports GET (SSE stream), POST, OPTIONS — no sessions |
 | **Runtime bridge** | TCP bridge (port 9601) to query and control running game instances |
 | **X-macro registration** | No codegen, no build steps — add a tool by creating one .hpp file |
 | **SDK layer** | GDScript and C# API for creating custom MCP tools |
@@ -40,7 +40,7 @@ Godot Editor Process
     ├── McpEditorPlugin — plugin lifecycle + _process() pump
     ├── HttpServer — HTTP/1.1 + SSE
     ├── McpHandler — JSON-RPC 2.0 → MCP
-    ├── HandlerRegistry — 153 ITool dispatch + search engine
+    ├── HandlerRegistry — 164 ITool dispatch + search engine
     ├── SDK → McpToolRegistry — custom tool registration
     ├── RuntimeBridge — TCP :9601 → game process
     └── TestEngine — YAML pipeline testing
@@ -50,7 +50,7 @@ Godot Editor Process
 
 | Metric | Value |
 |--------|-------|
-| Built-in tools | 153 |
+| Built-in tools | 164 |
 | Registration files | 4 X-macro .hpp files |
 | SDK classes | 2 (McpToolDefinition + McpToolRegistry) |
 | Test YAML files | 26 |

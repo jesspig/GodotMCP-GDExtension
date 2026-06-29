@@ -1,6 +1,6 @@
 #pragma once
 
-#include "type_utils.hpp"
+#include "../pipeline/type_utils.hpp"
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
@@ -29,6 +29,11 @@ inline godot::String run_assertions(const godot::Dictionary &expect,
     using namespace godot;
 
     const Dictionary data = unwrap_result(result);
+
+    // 0. If tool returned an error, surface it before any key checks
+    if (result.has("error") && !expect.has("status")) {
+        return String("Tool returned error: ") + JSON::stringify(result);
+    }
 
     // 1. status check
     if (expect.has("status")) {

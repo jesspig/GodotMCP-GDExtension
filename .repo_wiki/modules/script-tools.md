@@ -1,12 +1,12 @@
 # 脚本工具
 
-> 12 个工具，位于 `extensions/src/built_in/tools/editor_tools/scripts/`，分为 GDScript 线（7 工具）和 C# 线（5 工具），共享通用工具函数。每个工具源文件通过 `ScriptLang` 模板参数在 X-macro 展开时实例化为两种语言变体。
+> 13 个工具，位于 `extensions/src/built_in/tools/editor_tools/scripts/`，分为 GDScript 线（7 工具）和 C# 线（5 工具），共享通用工具函数。每个工具源文件通过 `ScriptLang` 模板参数在 X-macro 展开时实例化为两种语言变体。
 
 ## 架构总览
 
 ```mermaid
 flowchart TB
-    subgraph SrcFiles["源文件（7 工具 .hpp + 1 utils .hpp）"]
+    subgraph SrcFiles["源文件（8 工具 .hpp + 1 utils .hpp）"]
         READ["read_script.hpp<br/>模板: ScriptLang L"]
         WRITE["write_script.hpp<br/>模板: ScriptLang L"]
         PATCH["patch_script.hpp<br/>模板: ScriptLang L"]
@@ -14,6 +14,7 @@ flowchart TB
         LIST["list_scripts.hpp<br/>模板: ScriptLang L"]
         GREP["grep_scripts.hpp<br/>同时搜 .gd/.cs"]
         GLOB["glob_scripts.hpp<br/>同时匹配 .gd/.cs"]
+        RUN["run_editor_script.hpp<br/>非模板，直接执行"]
     end
 
     subgraph XMACRO["X-macro GODOT_MCP_TOOL 展开"]
@@ -24,6 +25,7 @@ flowchart TB
         LG["ListGdScriptsTool(GDSCRIPT)"]
         GS["GrepScriptsTool"]
         GB["GlobScriptsTool"]
+        RE["RunEditorScriptTool"]
         RC["ReadCsharpScriptTool(CSHARP)"]
         WC["WriteCsharpScriptTool(CSHARP)"]
         PC["PatchCsharpScriptTool(CSHARP)"]
@@ -41,11 +43,12 @@ flowchart TB
     LIST --> LG & LC
     GREP --> GS
     GLOB --> GB
+    RUN --> RE
 ```
 
 ## 注册
 
-所有 12 个工具通过 X-macro 注册（`register/register_existing.hpp:102-113`），category 均为 `editor_tools/scripts`。
+所有 13 个工具通过 X-macro 注册（`register/register_existing.hpp:102-114`），category 均为 `editor_tools/scripts`。
 
 | 工具 | is_destructive |
 |------|:--------------:|
@@ -56,9 +59,10 @@ flowchart TB
 | `ListGdScriptsTool` | false |
 | `GrepScriptsTool` | false |
 | `GlobScriptsTool` | false |
+| `RunEditorScriptTool` | **true** |
 | `ReadCsharpScriptTool` | false |
-| `WriteCsharpScriptTool` | false |
-| `PatchCsharpScriptTool` | false |
+| `WriteCsharpScriptTool` | true |
+| `PatchCsharpScriptTool` | true |
 | `ValidateCsharpScriptTool` | false |
 | `ListCsharpScriptsTool` | false |
 
@@ -113,6 +117,17 @@ flowchart TB
 - 实现：先 `walk_project_dir` 搜集文件，逐文件 `split("\n")` 逐行匹配 `find()`，不区分大小写时双方 `.to_lower()`
 - 返回 `matches` 数组（每项含 `path`、`line`、`content`、`language`）
 
+### `run_editor_script`
+
+`register_existing.hpp:109` — `scripts/run_editor_script.hpp`
+
+- **销毁性**（`is_destructive = true`）
+- 参数：`script_path`（string，必填）、`args`（array，可选）
+- 执行 `EditorScript` 子类脚本：`resource_loader->load(script_path)` → `script->new()` → `cast_to<EditorScript>` → `_run()`
+- 返回脚本执行结果或错误信息
+- 用于需要在编辑器上下文运行的自定义 GDScript（如资产批量处理）
+- 常与 `write_gd_script` 组合使用（先写入脚本再执行）
+
 ### `glob_scripts`
 `register_existing.hpp:109` — `scripts/glob_scripts.hpp`
 
@@ -121,7 +136,7 @@ flowchart TB
 - 先 `walk_project_dir` 搜集文件，逐文件 `get_file_name().match(pattern)` 过滤
 - 返回 `files` 数组 + `truncated` 标记
 
-## C# 工具（5 个）
+## C# 工具（5 个，不含 RunEditorScriptTool，后者同时支持 GDScript）
 
 ### `read_csharp_script`
 `register_existing.hpp:110` — 模板参数 `ScriptLang::CSHARP`
@@ -131,7 +146,7 @@ flowchart TB
 ### `write_csharp_script`
 `register_existing.hpp:111` — 模板参数 `ScriptLang::CSHARP`
 
-- **非销毁性注册**（`is_destructive = false`，但仍会覆盖写入）
+- **销毁性注册**（`is_destructive = true`，会覆盖写入文件）
 - `content` 为空时使用 `script_utils::sanitize_class_name()` 生成默认模板：
   ```
   using Godot;
@@ -146,7 +161,7 @@ flowchart TB
 ### `patch_csharp_script`
 `register_existing.hpp:112` — 模板参数 `ScriptLang::CSHARP`
 
-- **非销毁性注册**（`is_destructive = false`）
+- **销毁性注册**（`is_destructive = true`）
 - 与 `patch_gd_script` 逻辑相同，但**不包含** `whole_word` 参数
 - `occurrence <= 0` 时使用 `String::replace()` 批量替换（与 GDScript 的手动拼接不同）
 
@@ -179,7 +194,7 @@ flowchart TB
 
 ## 注意事项
 
-- `write_gd_script` 和 `patch_gd_script` 是仅有的两个标记为销毁性的脚本工具，二者都会覆盖写入文件且无 UndoRedoManager 保护
+- `write_gd_script`、`patch_gd_script` 和 `run_editor_script` 是标记为销毁性的脚本工具，前两者覆盖写入文件，后者执行编辑器脚本
 - `validate_script` 在编辑器内子进程调用 `godot --check-only`，性能开销较大
 - `validate_csharp_script` 当前实际上只检查 dotnet 配置是否存在，未实现真正的语法验证
 - `grep_scripts` 使用大小写不敏感比对时，双方 `.to_lower()` 后再 `find()`，性能随文件量线性增长

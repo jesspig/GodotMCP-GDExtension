@@ -3,16 +3,20 @@
 // =====================================================================
 
 #include "mcp_console.hpp"
+#include "client_config_registry.hpp"
+#include "editor_plugin.hpp"
 #include "mcp_logger.hpp"
 
 #include <godot_cpp/classes/control.hpp>
 #include <godot_cpp/classes/display_server.hpp>
 #include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/editor_settings.hpp>
 #include <godot_cpp/classes/code_highlighter.hpp>
 #include <godot_cpp/classes/input.hpp>
 #include <godot_cpp/classes/h_separator.hpp>
 #include <godot_cpp/classes/json.hpp>
+#include <godot_cpp/classes/style_box_flat.hpp>
 #include <godot_cpp/core/class_db.hpp>
 
 using namespace godot;
@@ -31,6 +35,34 @@ enum ContextMenuId {
 
 McpConsole::McpConsole() {
     set_auto_translate(false);
+    set_process(true);
+
+    // ── Status Bar ───────────────────────────────────────────────────
+    HBoxContainer *status_bar = memnew(HBoxContainer);
+    status_bar->add_theme_constant_override("separation", 16);
+    add_child(status_bar);
+
+    status_icon_ = memnew(Label);
+    status_icon_->set_text("[OFF]");
+    status_icon_->add_theme_color_override("font_color", Color(0.9f, 0.2f, 0.2f));
+    status_icon_->add_theme_font_size_override("font_size", 14);
+    status_bar->add_child(status_icon_);
+
+    tools_count_ = memnew(Label);
+    tools_count_->set_text("Tools: 0");
+    tools_count_->add_theme_font_size_override("font_size", 14);
+    status_bar->add_child(tools_count_);
+
+    bridge_status_ = memnew(Label);
+    bridge_status_->set_text("Bridge: Disconnected");
+    bridge_status_->add_theme_font_size_override("font_size", 14);
+    status_bar->add_child(bridge_status_);
+
+    Control *status_spacer = memnew(Control);
+    status_spacer->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+    status_bar->add_child(status_spacer);
+
+    add_child(memnew(HSeparator));
 
     // ── Toolbar ──────────────────────────────────────────────────────
     HBoxContainer *toolbar = memnew(HBoxContainer);
@@ -59,6 +91,21 @@ McpConsole::McpConsole() {
     clear_btn_->set_disabled(true);
     toolbar->add_child(clear_btn_);
 
+    toolbar->add_child(memnew(VSeparator));
+
+    config_client_selector_ = memnew(OptionButton);
+    int cc;
+    const ClientEntry *ce = get_entries(cc);
+    for (int i = 0; i < cc; i++) {
+        config_client_selector_->add_item(String(ce[i].display_name));
+    }
+    config_client_selector_->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
+    toolbar->add_child(config_client_selector_);
+
+    config_apply_btn_ = memnew(Button);
+    config_apply_btn_->set_text("Configure");
+    toolbar->add_child(config_apply_btn_);
+
     auto_scroll_chk_ = memnew(CheckBox);
     auto_scroll_chk_->set_text("Auto-scroll");
     auto_scroll_chk_->set_pressed(true);
@@ -66,6 +113,7 @@ McpConsole::McpConsole() {
 
     // ── Custom column header (visible draggable divider) ─────────────
     HBoxContainer *header = memnew(HBoxContainer);
+    header->set_alignment(BoxContainer::ALIGNMENT_BEGIN);
 
     time_header_ = memnew(Label);
     time_header_->set_text("Time");
@@ -73,15 +121,16 @@ McpConsole::McpConsole() {
     time_header_->set_h_size_flags(Control::SIZE_SHRINK_BEGIN);
     header->add_child(time_header_);
 
-    drag_area_ = memnew(Control);
-    drag_area_->set_custom_minimum_size(Vector2(10, 0));
+    drag_area_ = memnew(Panel);
+    drag_area_->set_custom_minimum_size(Vector2(2, 0));
     drag_area_->set_mouse_filter(Control::MOUSE_FILTER_STOP);
     drag_area_->set_default_cursor_shape(Control::CURSOR_HSIZE);
-    VSeparator *divider = memnew(VSeparator);
-    divider->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-    divider->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
-    divider->set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
-    drag_area_->add_child(divider);
+    {
+        Ref<StyleBoxFlat> dg_bg;
+        dg_bg.instantiate();
+        dg_bg->set_bg_color(Color(0.12f, 0.12f, 0.12f));
+        drag_area_->add_theme_stylebox_override("panel", dg_bg);
+    }
     header->add_child(drag_area_);
 
     Label *tool_header = memnew(Label);
@@ -100,6 +149,21 @@ McpConsole::McpConsole() {
     split->set_split_offset(-200);
     add_child(split);
 
+    PanelContainer *tree_panel = memnew(PanelContainer);
+    tree_panel->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+    {
+        Ref<StyleBoxFlat> bg;
+        bg.instantiate();
+        bg->set_bg_color(Color(0.12f, 0.12f, 0.12f));
+        bg->set_content_margin_all(2);
+        bg->set_corner_radius(Corner::CORNER_TOP_LEFT,3);
+        bg->set_corner_radius(Corner::CORNER_TOP_RIGHT,3);
+        bg->set_corner_radius(Corner::CORNER_BOTTOM_RIGHT,3);
+        bg->set_corner_radius(Corner::CORNER_BOTTOM_LEFT,3);
+        tree_panel->add_theme_stylebox_override("panel", bg);
+    }
+    split->add_child(tree_panel);
+
     log_tree_ = memnew(Tree);
     log_tree_->set_v_size_flags(Control::SIZE_EXPAND_FILL);
     log_tree_->set_h_size_flags(Control::SIZE_EXPAND_FILL);
@@ -107,7 +171,7 @@ McpConsole::McpConsole() {
     log_tree_->set_allow_reselect(true);
     log_tree_->set_allow_rmb_select(true);
 
-    split->add_child(log_tree_);
+    tree_panel->add_child(log_tree_);
 
     setup_tree_columns();
 
@@ -194,6 +258,7 @@ McpConsole::McpConsole() {
     collapse_btn_->connect("pressed", Callable(this, "_on_collapse_all"));
     clear_btn_->connect("pressed", Callable(this, "_on_clear_pressed"));
     auto_scroll_chk_->connect("toggled", Callable(this, "_on_auto_scroll_toggled"));
+    config_apply_btn_->connect("pressed", Callable(this, "_on_config_apply_pressed"));
     log_tree_->connect("item_selected", Callable(this, "_on_item_selected"));
     log_tree_->connect("item_activated", Callable(this, "_on_item_activated"));
     log_tree_->connect("item_mouse_selected", Callable(this, "_on_item_mouse_selected"));
@@ -496,6 +561,35 @@ void McpConsole::_on_auto_scroll_toggled(bool pressed) {
 }
 
 // =====================================================================
+// 客户端配置生成
+// =====================================================================
+
+void McpConsole::_on_config_apply_pressed() {
+    int sel = config_client_selector_->get_selected();
+    int count;
+    const ClientEntry *entries = get_entries(count);
+    if (sel < 0 || sel >= count) return;
+
+    int port = 9600;
+    ProjectSettings *ps = ProjectSettings::get_singleton();
+    if (ps) {
+        Variant port_v = ps->get_setting("godot_mcp/http_port");
+        if (port_v.get_type() == Variant::INT) {
+            port = static_cast<int>(static_cast<int64_t>(port_v));
+        }
+    }
+    String url = String("http://127.0.0.1:") + String::num_int64(port) + String("/mcp");
+    String content = entries[sel].generator(url);
+
+    if (auto *ds = DisplayServer::get_singleton()) {
+        ds->clipboard_set(content);
+    }
+
+    count_label_->set_text(String("Config for ") + String(entries[sel].display_name) + String(" copied"));
+    count_label_->add_theme_color_override("font_color", Color(0.2f, 0.9f, 0.2f));
+}
+
+// =====================================================================
 // 列宽拖拽
 // =====================================================================
 
@@ -510,6 +604,79 @@ void McpConsole::_on_drag_area_gui_input(const Ref<InputEvent> &event) {
 }
 
 // =====================================================================
+// 状态更新
+// =====================================================================
+
+void McpConsole::update_status() {
+    if (!plugin_ || !registry_) return;
+
+    int builtin = registry_->builtin_tool_count();
+    int custom = registry_->custom_tool_count();
+    String tools_text = String("Tools: ") + String::num_int64(builtin + custom);
+    if (tools_text != cached_tools_text_) {
+        cached_tools_text_ = tools_text;
+        tools_count_->set_text(tools_text);
+    }
+
+    if (plugin_->is_started()) {
+        int cfg_port = plugin_->http_port();
+        int actual_port = plugin_->actual_http_port();
+        String st;
+        if (actual_port != cfg_port) {
+            st = String("[ON :") + String::num_int64(actual_port) +
+                 String("] (cfg ") + String::num_int64(cfg_port) +
+                 String(" in use)");
+        } else {
+            st = String("[ON :") + String::num_int64(actual_port) + String("]");
+        }
+        Color sc(0.2f, 0.9f, 0.2f);
+        if (st != cached_status_text_ || sc != cached_status_color_) {
+            cached_status_text_ = st;
+            cached_status_color_ = sc;
+            status_icon_->set_text(st);
+            status_icon_->add_theme_color_override("font_color", sc);
+        }
+    } else {
+        String st = "[OFF]";
+        Color sc(0.9f, 0.2f, 0.2f);
+        if (st != cached_status_text_ || sc != cached_status_color_) {
+            cached_status_text_ = st;
+            cached_status_color_ = sc;
+            status_icon_->set_text(st);
+            status_icon_->add_theme_color_override("font_color", sc);
+        }
+    }
+
+    if (plugin_->is_bridge_connected()) {
+        String bt = "Bridge: Connected";
+        Color bc(0.2f, 0.9f, 0.2f);
+        if (bt != cached_bridge_text_ || bc != cached_bridge_color_) {
+            cached_bridge_text_ = bt;
+            cached_bridge_color_ = bc;
+            bridge_status_->set_text(bt);
+            bridge_status_->add_theme_color_override("font_color", bc);
+        }
+    } else {
+        String bt = "Bridge: Disconnected";
+        Color bc(0.9f, 0.2f, 0.2f);
+        if (bt != cached_bridge_text_ || bc != cached_bridge_color_) {
+            cached_bridge_text_ = bt;
+            cached_bridge_color_ = bc;
+            bridge_status_->set_text(bt);
+            bridge_status_->add_theme_color_override("font_color", bc);
+        }
+    }
+}
+
+void McpConsole::_process(double delta) {
+    time_since_status_update_ += delta;
+    if (time_since_status_update_ >= 1.0) {
+        time_since_status_update_ = 0.0;
+        update_status();
+    }
+}
+
+// =====================================================================
 // Godot 绑定
 // =====================================================================
 
@@ -518,6 +685,7 @@ void McpConsole::_bind_methods() {
     ClassDB::bind_method(D_METHOD("_on_expand_all"), &McpConsole::_on_expand_all);
     ClassDB::bind_method(D_METHOD("_on_collapse_all"), &McpConsole::_on_collapse_all);
     ClassDB::bind_method(D_METHOD("_on_auto_scroll_toggled", "pressed"), &McpConsole::_on_auto_scroll_toggled);
+    ClassDB::bind_method(D_METHOD("_on_config_apply_pressed"), &McpConsole::_on_config_apply_pressed);
     ClassDB::bind_method(D_METHOD("_on_item_selected"), &McpConsole::_on_item_selected);
     ClassDB::bind_method(D_METHOD("_on_item_activated"), &McpConsole::_on_item_activated);
     ClassDB::bind_method(D_METHOD("_on_item_mouse_selected", "pos", "button"), &McpConsole::_on_item_mouse_selected);

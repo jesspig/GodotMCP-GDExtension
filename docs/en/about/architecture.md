@@ -29,13 +29,13 @@ graph TB
         SDK --> HR
         RB -.->|TCP :9601| GameProcess[Game Process]
 
-        HR --> tools_meta[Meta tools: 7]
+        HR --> tools_meta[Meta tools: 9]
         HR --> tools_scene[Scene tree: 24]
-        HR --> tools_script[Scripts: 12]
+        HR --> tools_script[Scripts: 13]
         HR --> tools_fs[Filesystem: 12]
         HR --> tools_workspace[Workspace/Debugger: 13]
-        HR --> tools_runtime[Runtime bridge + lifecycle: 13]
-        HR --> tools_other[... 72+ other tools]
+        HR --> tools_runtime[Runtime bridge + lifecycle: 14]
+        HR --> tools_other[... 79+ other tools]
     end
 
     AI_CLIENT -- "Streamable HTTP :9600" --> HS
@@ -69,7 +69,7 @@ This means:
 
 ### Streamable HTTP (MCP 2026-07-28)
 
-Uses JSON-RPC 2.0 with pure `POST + OPTIONS` communication. Session management has been removed in the MCP 2026-07-28 upgrade. SSE events are inlined in POST responses. The server validates `Mcp-Method` and `Mcp-Name` HTTP headers against the request body.
+Uses JSON-RPC 2.0 with `GET (SSE stream), POST, OPTIONS` communication. Session management has been removed in the MCP 2026-07-28 upgrade. SSE events are inlined in POST responses and also available via GET streaming. The server validates `Mcp-Method` and `Mcp-Name` HTTP headers against the request body.
 
 ### ITool Architecture + X-macro Registration
 
@@ -80,8 +80,8 @@ Each tool implements the `ITool` interface (`name()`, `category()`, `input_schem
 | Layer | Name | Count | Description |
 |-------|------|-------|-------------|
 | 0 | Generic Fallback | 2 | `get_node_property` / `set_node_property` |
-| 1 | Meta Tools | 7 | Tool introspection, search, discovery |
-| 2 | Semantic Tools | 136 | Purpose-built tools for every domain |
+| 1 | Meta Tools | 9 | Tool introspection, search, discovery |
+| 2 | Semantic Tools | 145 | Purpose-built tools for every domain |
 | 3 | Doc Query Tools | 8 | ClassDB-powered documentation queries |
 
 ### Runtime Bridge

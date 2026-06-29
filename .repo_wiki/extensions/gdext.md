@@ -13,11 +13,11 @@ flowchart TB
             MCP["server/mcp/mcp_handler.cpp<br/>McpHandler"]
             REG["server/registry/handler_registry.cpp<br/>HandlerRegistry"]
             BASE["built_in/tool_base.hpp<br/>ITool + ToolResult + ToolContext"]
-            TOOLS["built_in/tools/<br/>153 个 .hpp (X-macro 注册)"]
+            TOOLS["built_in/tools/<br/>152 个 .hpp (X-macro 注册)"]
             UTILS["built_in/cmd_utils.hpp<br/>resolve_node / undoable_set / notify_file_changed"]
             SDK["sdk/<br/>McpToolDefinition / McpToolRegistry"]
             TEST["testing/test_engine.cpp<br/>YAML 进程内引擎"]
-            BRIDGE["runtime/bridge.cpp<br/>RuntimeBridge (TCP :9601)"]
+            BRIDGE["runtime/bridge_server.cpp<br/>RuntimeBridgeServer (TCP :9601)"]
         end
     end
 
@@ -45,7 +45,7 @@ flowchart TB
 extensions/src/
 ├── register_types.cpp              # GDExtension 入口：gdext_mcp_init
 ├── editor_plugin.cpp/.hpp          # McpEditorPlugin 生命周期 + _process() 泵
-├── logging.hpp                     # log_info/warn/error（28 行）
+├── logging.hpp                     # log_info/warn/error（24 行）
 ├── built_in/
 │   ├── register_itools.cpp         # X-macro 注册主文件（#include + GODOT_MCP_TOOL 宏）
 │   ├── tool_base.hpp/.cpp          # ITool + ToolResult + ToolContext
@@ -58,11 +58,11 @@ extensions/src/
 │       │   ├── register_existing.hpp
 │       │   ├── register_fallback.hpp
 │       │   └── register_docs.hpp
-│       ├── meta/                   #   7 个元工具（register_meta.hpp）
+│       ├── meta/                   #   5 个元工具（register_meta.hpp）
 │       ├── signal/                 #   4 个信号工具
 │       ├── group/                  #   4 个分组工具
 │       ├── node_tools/general/     #   6 个资源管理工具
-│       ├── node_properties/        #   2 个通用兜底工具（Layer 0）
+│       ├── node_tools/fallback/    #   2 个通用兜底工具（Layer 0）
 │       ├── editor_tools/
 │       │   ├── scene_tree/         #   24 个场景树 CRUD 工具
 │       │   ├── animation/          #   10 个动画工具（Player + Tree）
@@ -74,7 +74,7 @@ extensions/src/
 │       │   ├── inputmap/           #   4 个输入映射工具
 │   │   ├── plugin/             #   2 个插件管理工具
 │       │   ├── scaffold/           #   1 个脚手架工具
-│       │   ├── scripts/            #   12 个脚本读写验证工具
+│       │   ├── scripts/            #   13 个脚本读写验证工具
 │       │   ├── settings/           #   4 个设置工具
 │       │   ├── shader/             #   5 个 shader 工具
 │       │   ├── audio/              #   3 个音频工具
@@ -84,7 +84,7 @@ extensions/src/
 │       │   ├── visualizer/         #   1 个可视化工具
 │       │   └── workspace/          #   13 个工作区/调试器工具
 │       └── runtime_tools/
-│           ├── bridge/             #   7 个运行时桥接工具
+│           ├── bridge/             #   8 个运行时桥接工具
 │           └── lifecycle/          #   6 个游戏生命周期工具
 ├── server/
 │   ├── ipc/
@@ -94,25 +94,28 @@ extensions/src/
 │   │   ├── http_sse.cpp            # SSE 事件流
 │   │   └── test_http_handler.hpp   # /run-tests 端点
 │   ├── mcp/
-│   │   └── mcp_handler.cpp/.hpp    # MCP JSON-RPC 2.0 会话管理
+│   │   ├── mcp_handler.cpp/.hpp    # MCP JSON-RPC 2.0 会话管理
+│   │   ├── tool_executor.cpp/.hpp  # ITool 调用执行器（权限/异常/计时包装）
+│   │   └── prompt_provider.cpp/.hpp # MCP Prompts 提供器
 │   └── registry/
 │       └── handler_registry.cpp/.hpp  # ITool 调度 + 分类自动发现 + 搜索引擎
 ├── runtime/
-│   ├── bridge.hpp/.cpp             # RuntimeBridge：编辑器侧 TCP 客户端（→9601）
-│   └── game_bridge.hpp/.cpp        # GameBridgeNode：游戏进程 TCP 服务端（:9601）
+│   ├── bridge.hpp/.cpp             # RuntimeBridge：编辑器侧 TCP 客户端（旧版，向后兼容）
+│   ├── bridge_server.hpp/.cpp      # RuntimeBridgeServer：编辑器侧 TCP 服务端（:9601，多实例）
+│   └── game_bridge.hpp/.cpp        # GameBridgeNode：游戏进程 TCP 客户端（:9601）
 ├── sdk/
-│   ├── mcp_tool_definition.hpp/.cpp  # GDScript 可继承的 RefCounted 基类
+│   ├── mcp_tool_definition.hpp/.cpp  # GDScript 可继承的 RefCounted 子类
 │   └── mcp_tool_registry.hpp/.cpp    # 单例注册表
 ├── ui/
 │   ├── mcp_dock.cpp/.hpp           # 右侧面板（工具浏览）
 │   ├── mcp_console.cpp/.hpp        # 底部面板（MCP 日志输出）
-│   └── mcp_logger.cpp/.hpp         # 日志后端（数据存储）
+│   ├── mcp_logger.cpp/.hpp         # 日志后端（数据存储）
+│   └── mcp_confirm_dialog.cpp/.hpp # 破坏性操作确认弹窗（Window）
 └── testing/
     ├── test_engine.cpp/.hpp        # 进程内 YAML 测试引擎
-    ├── yaml_parser.hpp             # ryml → Godot Variant 解析
+    ├── test_runner.cpp/.hpp        # 测试运行器
     ├── test_assertions.hpp         # 断言引擎（status/has_keys/field_checks/error_contains）
-    ├── godot_file_verifier.hpp     # .tscn/project.godot 磁盘验证
-    └── type_utils.hpp              # 类型辅助
+    └── godot_file_verifier.hpp     # .tscn/project.godot 磁盘验证
 ```
 
 ## 工具注册（X-macro 分文件）
@@ -122,8 +125,8 @@ extensions/src/
 1. `register_itools.cpp` 包含所有工具 `.hpp` 的 `#include` 指令
 2. 定义 `GODOT_MCP_TOOL` 宏，展开为 `reg.register_tool(std::make_unique<cls>())`
 3. 通过 `#include` 展开四个注册文件：
-   - `register/register_meta.hpp` — 7 个元工具（另有 `list_settings` 在 `register_existing.hpp` 中以 `is_meta=true` 注册，共 8 个 always-on 工具）
-    - `register/register_existing.hpp` — 136 个功能工具
+    - `register/register_meta.hpp` — 9 个元工具（全部 `is_meta()=true`，共 9 个 always-on 工具；`list_settings` 的 `is_meta()=false`，通过发现链按需加载）
+    - `register/register_existing.hpp` — 145 个功能工具
    - `register/register_fallback.hpp` — 2 个后备属性工具
    - `register/register_docs.hpp` — 8 个文档查询工具
 
@@ -132,7 +135,7 @@ extensions/src/
 1. 在 `extensions/src/built_in/tools/<category>/` 创建 `<name>.hpp`，实现 ITool 接口
 2. 在 `extensions/src/built_in/tools/register/` 对应 X-macro 文件加一行：
    ```cpp
-    GODOT_MCP_TOOL(MyTool, "my_tool", "editor_tools/my_category", false, false, false, false)
+    GODOT_MCP_TOOL(MyTool, false)
    ```
 3. 在 `extensions/src/built_in/register_itools.cpp` 对应分类区域加 `#include`
 4. 编译 —— CMake GLOB 收集 `tools/**/*.cpp`（当前所有工具为 header-only，X-macro 编译期注册）
@@ -180,9 +183,9 @@ extensions/src/
 | L17-22 | `FetchContent` 拉取 `godot-cpp 10.0.0-rc1` |
 | L34-41 | `FetchContent` 拉取 `rapidyaml v0.7.0`（GIT_SUBMODULES 包含 c4core） |
 | L51-89 | `GODOT_MCP_SOURCES`（含 register_types / editor_plugin / server / sdk / runtime / testing / ui） |
-| L96 | `file(GLOB_RECURSE TOOL_SOURCES "src/built_in/tools/*.cpp")` — 自动收集 .cpp（当前无 .cpp，工具为 header-only） |
+| L96 | `file(GLOB_RECURSE TOOL_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/built_in/tools/*.cpp")` — 自动收集 .cpp（当前无 .cpp，工具为 header-only） |
 | L101 | `add_library(godot_mcp_gdext SHARED ...)` |
 | L110-117 | 编译定义 `GODOT_MCP_PLUGIN_VERSION` |
-| L122-148 | Unity Build ON（batch size 自动匹配 CPU 核数，上限 12） |
+| L122-148 | Unity Build ON（batch size = min(CPU核数, ceil(源文件数/4))，无硬上限） |
 | L161-167 | lld-link 自动检测（MSVC） |
 | `cmake/compiler.cmake:7` | MSVC: `/utf-8 /bigobj /W4 /wd4244 /wd4267` |

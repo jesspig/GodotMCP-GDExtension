@@ -1,8 +1,8 @@
 ﻿# 脚本工具
 
-12 个用于读写和管理 GDScript 及 C# 脚本的工具。
+13 个用于读写和管理 GDScript 及 C# 脚本的工具。
 
-## GDScript 工具（7 个）
+## GDScript 工具（8 个）
 
 ### `read_gd_script`
 
@@ -122,6 +122,27 @@
 |------|------|----------|-------------|
 | `pattern` | `string` | 是 | Glob 模式 |
 | `path` | `string` | 否 | 搜索根目录 |
+
+---
+
+### `run_editor_script`
+
+**分类**: `editor_tools/scripts`  
+**描述**: 在编辑器上下文中执行 EditorScript (.gd) 文件。  
+**破坏性**: 是 | **撤销**: 否
+
+#### 参数
+
+| 名称 | 类型 | 必需 | 说明 |
+|------|------|----------|-------------|
+| `path` | `string` | 是 | 脚本文件路径（必须继承 EditorScript） |
+| `timeout_ms` | `integer` | 否 | 最大执行时间（毫秒，默认 5000，最大 30000） |
+
+#### 返回值
+
+```json
+{ "success": true, "data": { "path": "res://my_script.gd", "execution_time_ms": 1234, "stdout": "", "timed_out": false } }
+```
 
 ---
 
