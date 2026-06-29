@@ -1,6 +1,7 @@
 #include "tool_base.hpp"
 #include "cmd_utils.hpp"
 #include "logging.hpp"
+#include <godot_cpp/core/object.hpp>
 
 using namespace godot;
 

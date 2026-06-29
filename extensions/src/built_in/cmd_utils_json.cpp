@@ -12,6 +12,7 @@
 
 #include <godot_cpp/classes/json.hpp>
 #include <godot_cpp/classes/resource.hpp>
+#include <godot_cpp/core/object.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/color.hpp>

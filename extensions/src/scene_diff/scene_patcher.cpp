@@ -6,6 +6,7 @@
 #include <vector>
 #include <godot_cpp/classes/undo_redo.hpp>
 #include <godot_cpp/core/memory.hpp>
+#include <godot_cpp/core/object.hpp>
 
 using namespace godot;
 

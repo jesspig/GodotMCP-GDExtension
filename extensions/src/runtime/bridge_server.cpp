@@ -1,10 +1,12 @@
 #include "bridge_server.hpp"
+#include "bridge.hpp"
 #include "built_in/cmd_utils/error_codes.hpp"
 #include "logging.hpp"
 #include "server/mcp/mcp_handler.hpp"
 
 #include <algorithm>
 #include <godot_cpp/classes/json.hpp>
+#include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
 
