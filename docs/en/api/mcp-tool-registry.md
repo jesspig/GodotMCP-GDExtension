@@ -8,7 +8,7 @@ Engine singleton that manages all custom tools registered via the SDK. Supports 
 
 ## Description
 
-`McpToolRegistry` is the central registry for custom MCP tools defined in GDScript or C#. It wraps custom tools into the `HandlerRegistry` dispatch table, making them available alongside the 153 built-in tools. All custom tool names are automatically prefixed with `custom_` to avoid conflicts.
+`McpToolRegistry` is the central registry for custom MCP tools defined in GDScript or C#. It wraps custom tools into the `HandlerRegistry` dispatch table, making them available alongside the 164 built-in tools. All custom tool names are automatically prefixed with `custom_` to avoid conflicts.
 
 ## Methods
 

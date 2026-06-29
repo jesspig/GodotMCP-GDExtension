@@ -3,7 +3,7 @@ pageType: home
 hero:
   name: GodotMCP
   text: Bridge AI assistants to Godot 4.6+
-  tagline: 153 editor tools | C++ GDExtension | MCP Streamable HTTP
+  tagline: 164 editor tools | C++ GDExtension | MCP Streamable HTTP
   actions:
     - theme: brand
       text: Get Started
@@ -15,12 +15,12 @@ hero:
       text: Changelog
       link: /changelog/
   features:
-    - title: 153 Built-in Tools
+    - title: 164 Built-in Tools
       details: Scene tree, scripts, filesystem, animation, shaders, runtime bridge, and more
     - title: C++ GDExtension
       details: Native performance, runs inside the editor process, no external dependencies
     - title: Streamable HTTP
-      details: MCP 2026-07-28 protocol on port 9600, pure POST/OPTIONS, no sessions
+      details: MCP 2026-07-28 protocol on port 9600, supports GET (SSE stream), POST, OPTIONS — no sessions
     - title: Meta Tools & Search
       details: Built-in find_tool search engine with progressive category discovery
     - title: Runtime Bridge

@@ -8,7 +8,7 @@
 
 ## 描述
 
-`McpToolRegistry` 是在 GDScript 或 C# 中定义的自定义 MCP 工具的中央注册中心。它将自定义工具包装到 `HandlerRegistry` 调度表中，使其与 153 个内置工具一起可用。所有自定义工具名称自动添加 `custom_` 前缀以避免冲突。
+`McpToolRegistry` 是在 GDScript 或 C# 中定义的自定义 MCP 工具的中央注册中心。它将自定义工具包装到 `HandlerRegistry` 调度表中，使其与 164 个内置工具一起可用。所有自定义工具名称自动添加 `custom_` 前缀以避免冲突。
 
 ## 方法
 

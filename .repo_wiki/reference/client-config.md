@@ -4,7 +4,7 @@
 
 ## 自动生成配置
 
-通过 Godot 底部面板（`McpDock`）或 `generate_client_config` 工具，可一键生成 11 个客户端的项目级配置。所有配置文件均为**项目级路径**，避免污染全局 MCP 配置。
+通过 Godot 底部面板（`McpDock`）的 Generate 按钮，可一键生成 11 个客户端的项目级配置。所有配置文件均为**项目级路径**，避免污染全局 MCP 配置。
 
 配置生成通过 `client_config_registry.hpp`（声明式描述符 + 策略模式）实现：
 
