@@ -5,12 +5,9 @@
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/variant.hpp>
 
-namespace godot_mcp::replay {
+using namespace godot;
 
-using godot::Array;
-using godot::Dictionary;
-using godot::String;
-using godot::Variant;
+namespace godot_mcp::replay {
 
 namespace {
 

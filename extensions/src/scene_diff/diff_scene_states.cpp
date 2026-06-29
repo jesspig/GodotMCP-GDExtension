@@ -7,11 +7,9 @@
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/core/memory.hpp>
 
-namespace godot_mcp {
+using namespace godot;
 
-using godot::Ref;
-using godot::ResourceLoader;
-using godot::PackedScene;
+namespace godot_mcp {
 
 using scene_diff::SceneDiff;
 

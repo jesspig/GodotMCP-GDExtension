@@ -7,9 +7,9 @@
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/core/memory.hpp>
 
-namespace godot_mcp::scene_diff {
+using namespace godot;
 
-using godot::EditorInterface;
+namespace godot_mcp::scene_diff {
 
 SceneShadow &get_global_shadow() {
     static SceneShadow instance;

@@ -7,10 +7,9 @@
 #include <godot_cpp/classes/undo_redo.hpp>
 #include <godot_cpp/core/memory.hpp>
 
-namespace godot_mcp::scene_diff {
+using namespace godot;
 
-using godot::NodePath;
-using godot::UndoRedo;
+namespace godot_mcp::scene_diff {
 
 int ScenePatcher::apply(Node *scene_root, EditorUndoRedoManager *ur, const DiffResult &diff) {
     ur->create_action("MCP: Apply scene changes", UndoRedo::MERGE_DISABLE, scene_root);
